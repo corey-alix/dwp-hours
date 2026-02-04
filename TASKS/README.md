@@ -13,11 +13,12 @@ This document outlines all remaining tasks to complete the DWP Hours Tracker app
 
 ### 🟡 Medium Priority (Core Features)
 5. **[admin-panel.md](admin-panel.md)** - Admin panel functionality
-6. **[testing-suite.md](testing-suite.md)** - Testing implementation
+6. **[admin-review-acknowledgment.md](admin-review-acknowledgment.md)** - Admin review acknowledgment
+7. **[testing-suite.md](testing-suite.md)** - Testing implementation
 
 ### 🟢 Low Priority (Polish & Production)
-7. **[data-migration.md](data-migration.md)** - Legacy data migration
-8. **[security-production.md](security-production.md)** - Security & production features
+8. **[data-migration.md](data-migration.md)** - Legacy data migration
+9. **[security-production.md](security-production.md)** - Security & production features
 
 ## Task Dependencies
 
@@ -27,6 +28,7 @@ database-schema.md
 ├── pto-calculations.md
 └── api-endpoints.md
     ├── admin-panel.md
+        └── admin-review-acknowledgment.md
     ├── testing-suite.md
     ├── data-migration.md
     └── security-production.md
@@ -83,9 +85,10 @@ database-schema.md
 3. Implement **pto-calculations.md** - core business logic
 4. Complete **api-endpoints.md** - backend functionality
 5. Build **admin-panel.md** - admin features
-6. Add **testing-suite.md** - quality assurance
-7. Handle **data-migration.md** - data transition
-8. Finish with **security-production.md** - production readiness
+6. Implement **admin-review-acknowledgment.md** - admin review acknowledgment
+7. Add **testing-suite.md** - quality assurance
+8. Handle **data-migration.md** - data transition
+9. Finish with **security-production.md** - production readiness
 
 Each task file contains detailed checklists for implementation steps.</content>
 <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/TASKS/README.md

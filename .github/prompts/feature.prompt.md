@@ -13,7 +13,11 @@ Generate a new task file for implementing a feature in the DWP Hours Tracker pro
 ## Instructions
 
 1. **Feature Details**: Use the provided feature name and description from `${input:featureName}` and `${input:featureDescription}`.
-2. **Priority**: Determine the priority level (🔥 High, 🟡 Medium, 🟢 Low) based on the feature's impact and dependencies, referencing the [TASKS/README.md](TASKS/README.md) for priority guidelines.
+2. **Priority**: Determine the priority level based on the feature's alignment with the task priority order in [TASKS/README.md](TASKS/README.md):
+   - 🔥 **High Priority** (Foundation - Complete First): database-schema, authentication, pto-calculations, api-endpoints
+   - 🟡 **Medium Priority** (Core Features): admin-panel, testing-suite
+   - 🟢 **Low Priority** (Polish & Production): data-migration, security-production
+   Assign priority based on impact, dependencies, and similarity to existing tasks.
 3. **Checklist**: Create a comprehensive checklist covering:
    - Database schema changes (if needed)
    - API endpoints (if needed)
