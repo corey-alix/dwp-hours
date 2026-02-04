@@ -6,6 +6,9 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
+import "reflect-metadata";
+import { DataSource } from "typeorm";
+import { Employee, PtoEntry, MonthlyHours, Acknowledgement } from "./entities/index.js";
 
 dotenv.config();
 
@@ -41,67 +44,40 @@ function log(message: string) {
 // Database connection
 let db: initSqlJs.Database;
 let SQL: initSqlJs.SqlJsStatic;
+let dataSource: DataSource;
 
 async function initDatabase() {
     try {
         SQL = await initSqlJs();
 
-        let filebuffer: Uint8Array | undefined;
-        if (fs.existsSync(DB_PATH)) {
-            filebuffer = fs.readFileSync(DB_PATH);
-        }
+        db = new SQL.Database();
 
-        db = new SQL.Database(filebuffer);
-        log("Connected to SQLite database.");
+        // Read and execute schema
+        const schemaPath = path.join(__dirname, "..", "db", "schema.sql");
+        const schema = fs.readFileSync(schemaPath, "utf8");
+        db.exec(schema);
+
+        // Initialize TypeORM DataSource
+        dataSource = new DataSource({
+            type: "sqljs",
+            location: DB_PATH,
+            autoSave: true,
+            entities: [Employee, PtoEntry, MonthlyHours, Acknowledgement],
+            synchronize: false, // Schema is managed manually
+            logging: false,
+        });
+
+        await dataSource.initialize();
+        log("Connected to SQLite database with TypeORM.");
     } catch (error) {
         log(`Database connection error: ${error}`);
         process.exit(1);
     }
 }
 
-// Save database to file
-function saveDatabase() {
-    if (db) {
-        const data = db.export();
-        const buffer = Buffer.from(data);
-        fs.writeFileSync(DB_PATH, buffer);
-    }
-}
-
 // Initialize database on startup
 initDatabase().then(() => {
-    // Ensure tables exist
-    try {
-        db.run(`
-      CREATE TABLE IF NOT EXISTS employees (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        identifier TEXT UNIQUE NOT NULL,
-        pto_rate REAL DEFAULT 0.71,
-        carryover_hours REAL DEFAULT 0,
-        role TEXT DEFAULT 'Employee',
-        hash TEXT
-      )
-    `);
-
-        db.run(`
-      CREATE TABLE IF NOT EXISTS pto_entries (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        employee_id INTEGER NOT NULL,
-        start_date DATE NOT NULL,
-        end_date DATE NOT NULL,
-        type TEXT NOT NULL CHECK (type IN ('Sick', 'Full PTO', 'Partial PTO', 'Bereavement', 'Jury Duty')),
-        hours REAL NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
-      )
-    `);
-
-        saveDatabase();
-        log("Database tables ensured.");
-    } catch (error) {
-        log(`Error ensuring tables: ${error}`);
-    }
+    log("Database initialized.");
 });
 
 // Health check endpoint
@@ -111,37 +87,36 @@ app.get("/api/health", (req, res) => {
 });
 
 // Placeholder for PTO routes
-app.get("/api/pto/:employeeId", (req, res) => {
+app.get("/api/pto/:employeeId", async (req, res) => {
     const { employeeId } = req.params;
     log(`PTO entries requested for employee ${employeeId}`);
     try {
-        const stmt = db.prepare("SELECT * FROM pto_entries WHERE employee_id = ?");
-        const entries = stmt.getAsObject({ ":employee_id": employeeId });
-        res.json({ employeeId, entries: [entries] });
+        const ptoRepository = dataSource.getRepository(PtoEntry);
+        const entries = await ptoRepository.find({
+            where: { employee_id: parseInt(employeeId) },
+            order: { created_at: "DESC" }
+        });
+        res.json({ employeeId, entries });
     } catch (error) {
         log(`Error fetching PTO entries: ${error}`);
         res.status(500).json({ error: "Database error" });
     }
 });
 
-app.post("/api/pto", (req, res) => {
+app.post("/api/pto", async (req, res) => {
     const { employeeId, startDate, endDate, type, hours } = req.body;
     log(`New PTO entry: ${JSON.stringify(req.body)}`);
     try {
-        const stmt = db.prepare(`
-            INSERT INTO pto_entries (employee_id, start_date, end_date, type, hours)
-            VALUES (?, ?, ?, ?, ?)
-        `);
-        stmt.bind([employeeId, startDate, endDate, type, hours]);
-        stmt.run();
-        stmt.free();
-
-        // Get the last inserted ID
-        const idResult = db.exec("SELECT last_insert_rowid() as id");
-        const id = idResult[0].values[0][0];
-
-        saveDatabase();
-        res.json({ success: true, id });
+        const ptoRepository = dataSource.getRepository(PtoEntry);
+        const ptoEntry = ptoRepository.create({
+            employee_id: employeeId,
+            start_date: new Date(startDate),
+            end_date: new Date(endDate),
+            type,
+            hours
+        });
+        const saved = await ptoRepository.save(ptoEntry);
+        res.json({ success: true, id: saved.id });
     } catch (error) {
         log(`Error creating PTO entry: ${error}`);
         res.status(500).json({ error: "Database error" });
@@ -149,55 +124,43 @@ app.post("/api/pto", (req, res) => {
 });
 
 // Placeholder for employee routes
-app.get("/api/employees", (req, res) => {
+app.get("/api/employees", async (req, res) => {
     log("Employees list requested");
     try {
-        const result = db.exec(
-            "SELECT id, name, identifier, pto_rate, carryover_hours, role FROM employees",
-        );
-        const employees =
-            result.length > 0
-                ? result[0].values.map((row: any[]) => ({
-                    id: row[0],
-                    name: row[1],
-                    identifier: row[2],
-                    ptoRate: row[3],
-                    carryoverHours: row[4],
-                    role: row[5],
-                }))
-                : [];
-        res.json({ employees });
+        const employeeRepository = dataSource.getRepository(Employee);
+        const employees = await employeeRepository.find({
+            select: ["id", "name", "identifier", "pto_rate", "carryover_hours", "role"]
+        });
+        const formatted = employees.map(emp => ({
+            id: emp.id,
+            name: emp.name,
+            identifier: emp.identifier,
+            ptoRate: emp.pto_rate,
+            carryoverHours: emp.carryover_hours,
+            role: emp.role
+        }));
+        res.json({ employees: formatted });
     } catch (error) {
         log(`Error fetching employees: ${error}`);
         res.status(500).json({ error: "Database error" });
     }
 });
 
-app.post("/api/employees", (req, res) => {
+app.post("/api/employees", async (req, res) => {
     const { name, identifier, ptoRate, carryoverHours, role, hash } = req.body;
     log(`New employee: ${JSON.stringify(req.body)}`);
     try {
-        const stmt = db.prepare(`
-            INSERT INTO employees (name, identifier, pto_rate, carryover_hours, role, hash)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `);
-        stmt.bind([
+        const employeeRepository = dataSource.getRepository(Employee);
+        const employee = employeeRepository.create({
             name,
             identifier,
-            ptoRate || 0.71,
-            carryoverHours || 0,
-            role || "Employee",
-            hash,
-        ]);
-        stmt.run();
-        stmt.free();
-
-        // Get the last inserted ID
-        const idResult = db.exec("SELECT last_insert_rowid() as id");
-        const id = idResult[0].values[0][0];
-
-        saveDatabase();
-        res.json({ success: true, id });
+            pto_rate: ptoRate || 0.71,
+            carryover_hours: carryoverHours || 0,
+            role: role || "Employee",
+            hash
+        });
+        const saved = await employeeRepository.save(employee);
+        res.json({ success: true, id: saved.id });
     } catch (error) {
         log(`Error creating employee: ${error}`);
         res.status(500).json({ error: "Database error" });

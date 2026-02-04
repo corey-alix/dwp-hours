@@ -26,7 +26,9 @@
         "cors": "^2.8.6",
         "dotenv": "^17.2.3",
         "express": "^5.2.1",
-        "sql.js": "^1.13.0"
+        "reflect-metadata": "^0.2.2",
+        "sql.js": "^1.13.0",
+        "typeorm": "^0.3.28"
     },
     "devDependencies": {
         "@types/cors": "^2.8.19",
