@@ -5,6 +5,9 @@ import initSqlJs from "sql.js";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -90,27 +93,6 @@ initDatabase().then(() => {
         type TEXT NOT NULL CHECK (type IN ('Sick', 'Full PTO', 'Partial PTO', 'Bereavement', 'Jury Duty')),
         hours REAL NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
-      )
-    `);
-
-        db.run(`
-      CREATE TABLE IF NOT EXISTS monthly_hours (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        employee_id INTEGER NOT NULL,
-        month DATE NOT NULL,
-        hours_worked REAL NOT NULL,
-        submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
-      )
-    `);
-
-        db.run(`
-      CREATE TABLE IF NOT EXISTS acknowledgements (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        employee_id INTEGER NOT NULL,
-        month DATE NOT NULL,
-        acknowledged_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
       )
     `);

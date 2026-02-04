@@ -25,3 +25,30 @@ CREATE TABLE IF NOT EXISTS pto_entries (
 CREATE INDEX IF NOT EXISTS idx_pto_entries_employee_id ON pto_entries(employee_id);
 CREATE INDEX IF NOT EXISTS idx_pto_entries_start_date ON pto_entries(start_date);
 CREATE INDEX IF NOT EXISTS idx_pto_entries_end_date ON pto_entries(end_date);
+
+-- Create monthly hours table
+CREATE TABLE IF NOT EXISTS monthly_hours (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  employee_id INTEGER NOT NULL,
+  month DATE NOT NULL,
+  hours_worked REAL NOT NULL,
+  submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+-- Create acknowledgements table
+CREATE TABLE IF NOT EXISTS acknowledgements (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  employee_id INTEGER NOT NULL,
+  month DATE NOT NULL,
+  acknowledged_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+-- Create indexes for monthly hours
+CREATE INDEX IF NOT EXISTS idx_monthly_hours_employee_id ON monthly_hours(employee_id);
+CREATE INDEX IF NOT EXISTS idx_monthly_hours_month ON monthly_hours(month);
+
+-- Create indexes for acknowledgements
+CREATE INDEX IF NOT EXISTS idx_acknowledgements_employee_id ON acknowledgements(employee_id);
+CREATE INDEX IF NOT EXISTS idx_acknowledgements_month ON acknowledgements(month);
