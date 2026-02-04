@@ -1,9 +1,9 @@
 ---
 description: A prompt for generating new prompt files for VS Code Copilot, following best practices from the official guide.
 name: prompt
-agent: edit
+agent: agent
 model: Grok Code Fast 1
-tools: []
+tools: [read, edit, search, edit/createFile]
 ---
 
 # Prompt for Creating New Prompt Files
@@ -55,7 +55,7 @@ The body should contain:
 
 ## Output Format
 
-When creating a new prompt file, output the complete Markdown content including header and body. Ensure the content is ready to be saved as a `.prompt.md` file in the `.github/prompts` folder of the workspace.
+When creating a new prompt file, generate the complete Markdown content including header and body. Then, use #tool:edit/createFile to create the file at `.github/prompts/${input:name}.prompt.md` with the generated content.
 
 ## Example Generated Prompt
 
