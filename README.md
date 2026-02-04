@@ -28,30 +28,61 @@ The system accounts for individual PTO accumulation rates and carryover balances
   - `employees`: Stores employee name and identifier
   - `pto_entries`: Tracks time off entries with dates, types, and hours
 
-## Installation
+## Getting Started
 
-1. Clone the repository:
+### Prerequisites
+
+- Node.js (v16 or higher)
+- npm or yarn
+
+### Quick Start
+
+1. **Clone and Install**
    ```bash
    git clone <repository-url>
    cd dwp-hours-tracker
-   ```
-
-2. Install dependencies:
-   ```bash
    npm install
    ```
 
-3. Set up the database:
+2. **Set up the Database**
    ```bash
-   npm run setup-db
+   npm run db:init
    ```
 
-4. Start the development server:
+3. **Start Development Server**
    ```bash
    npm run dev
    ```
 
-The application will be available at `http://localhost:3000` (or configured port).
+4. **Open in Browser**
+   
+   Navigate to `http://localhost:3000` to access the application.
+
+### Development Workflow
+
+- **Build**: `npm run build` - Compile TypeScript to JavaScript
+- **Lint**: `npm run lint` - Check TypeScript for errors
+- **Format**: `npm run format` - Format code with Prettier
+- **Test**: `npm test` - Run unit tests with Vitest
+- **E2E Test**: `npm run test:e2e` - Run end-to-end tests with Playwright
+
+### Project Structure
+
+```
+dwp-hours-tracker/
+├── src/                 # TypeScript source files
+├── public/              # Static web assets
+├── db/                  # Database files and schema
+├── scripts/             # Utility scripts
+├── docs/                # Documentation
+├── dist/                # Compiled JavaScript (generated)
+├── logs/                # Application logs
+├── package.json         # Project configuration
+├── tsconfig.json        # TypeScript configuration
+└── README.md           # This file
+```
+
+## Installation
 
 ## Usage
 
