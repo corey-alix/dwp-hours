@@ -7,7 +7,95 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-describe('Database Persistence', () => {
+describe('Database Schema and Persistence', () => {
+    async function createDatabase() {
+        const SQL = await initSqlJs();
+        const db = new SQL.Database();
+        const schemaPath = path.join(__dirname, '..', 'db', 'schema.sql');
+        const schema = fs.readFileSync(schemaPath, 'utf8');
+        db.exec(schema);
+        return { db, SQL };
+    }
+
+    it('Database Initialization Test: should create all required tables without errors', async () => {
+        const { db } = await createDatabase();
+
+        // Query sqlite_master to check tables exist
+        const tables = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
+        const tableNames = tables[0].values.map(row => row[0]).sort();
+
+        expect(tableNames).toEqual(['acknowledgements', 'employees', 'monthly_hours', 'pto_entries']);
+
+        db.close();
+    });
+
+    it('Schema Validation Test: should have correct data types, indexes, and constraints', async () => {
+        const { db } = await createDatabase();
+
+        // Check employees table structure
+        const employeesInfo = db.exec("PRAGMA table_info(employees)");
+        expect(employeesInfo[0].values).toEqual(
+            expect.arrayContaining([
+                [0, 'id', 'INTEGER', 0, null, 1], // pk
+                [1, 'name', 'TEXT', 1, null, 0], // not null
+                [2, 'identifier', 'TEXT', 1, null, 0], // not null
+                [3, 'pto_rate', 'REAL', 0, '0.71', 0], // default
+                [4, 'carryover_hours', 'REAL', 0, '0', 0],
+                [5, 'role', 'TEXT', 0, "'Employee'", 0],
+                [6, 'hash', 'TEXT', 0, null, 0]
+            ])
+        );
+
+        // Check indexes exist
+        const indexes = db.exec("SELECT name FROM sqlite_master WHERE type='index' AND name NOT LIKE 'sqlite_%'");
+        const indexNames = indexes[0].values.map(row => row[0]).sort();
+        expect(indexNames).toEqual([
+            'idx_acknowledgements_employee_id',
+            'idx_acknowledgements_month',
+            'idx_monthly_hours_employee_id',
+            'idx_monthly_hours_month',
+            'idx_pto_entries_employee_id',
+            'idx_pto_entries_end_date',
+            'idx_pto_entries_start_date'
+        ]);
+
+        // Test UNIQUE constraint on employees.identifier
+        expect(() => {
+            db.exec("INSERT INTO employees (name, identifier) VALUES ('Test1', 'unique')");
+            db.exec("INSERT INTO employees (name, identifier) VALUES ('Test2', 'unique')");
+        }).toThrow();
+
+        // Test CHECK constraint on pto_entries.type
+        expect(() => {
+            db.exec("INSERT INTO employees (name, identifier) VALUES ('Test', 'T001')");
+            db.exec("INSERT INTO pto_entries (employee_id, start_date, end_date, type, hours) VALUES (1, '2026-01-01', '2026-01-01', 'Invalid', 8)");
+        }).toThrow();
+
+        db.close();
+    });
+
+    it('Foreign Key Constraints Test: should enforce referential integrity', async () => {
+        const { db } = await createDatabase();
+
+        // Insert employee
+        db.exec("INSERT INTO employees (name, identifier) VALUES ('Test', 'T001')");
+
+        // Valid foreign key should work
+        db.exec("INSERT INTO pto_entries (employee_id, start_date, end_date, type, hours) VALUES (1, '2026-01-01', '2026-01-01', 'Sick', 8)");
+
+        // Invalid foreign key should fail
+        expect(() => {
+            db.exec("INSERT INTO pto_entries (employee_id, start_date, end_date, type, hours) VALUES (999, '2026-01-01', '2026-01-01', 'Sick', 8)");
+        }).toThrow();
+
+        // Test CASCADE delete
+        db.exec("DELETE FROM employees WHERE id = 1");
+        const ptoCount = db.exec("SELECT COUNT(*) FROM pto_entries");
+        expect(ptoCount[0].values[0][0]).toBe(0);
+
+        db.close();
+    });
+
     it('should create database from schema, manipulate data, save, and reload', async () => {
         // Initialize SQL.js
         const SQL = await initSqlJs();
