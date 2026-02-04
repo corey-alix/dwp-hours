@@ -1,26 +1,35 @@
 /**
  * PTO Calculations Utility
- * Handles all PTO balance calculations, accruals, and projections
+ * Handles annual PTO allocation with monthly accrual display
  */
 
-import { calculateWorkDays, getUSHolidays } from './workDays.js';
+import { getWorkDays, getTotalWorkDaysInYear, calculateMonthlyAccrual } from './workDays.js';
 
 export interface PTOStatus {
     employeeId: number;
     hireDate: Date;
-    currentDailyRate: number;
+    annualAllocation: number; // 96 hours PTO
     availablePTO: number;
     usedPTO: number;
-    accruedThisYear: number;
     carryoverFromPreviousYear: number;
-    nextAccrualDate: Date;
-    nextAccrualAmount: number;
+    monthlyAccruals: { month: number; hours: number }[]; // For display
+    nextRolloverDate: Date;
     sickTime: {
         allowed: number;
         used: number;
         remaining: number;
     };
-    bereavementJuryDuty: {
+    ptoTime: {
+        allowed: number;
+        used: number;
+        remaining: number;
+    };
+    bereavementTime: {
+        allowed: number;
+        used: number;
+        remaining: number;
+    };
+    juryDutyTime: {
         allowed: number;
         used: number;
         remaining: number;
@@ -41,14 +50,15 @@ export interface Employee {
     id: number;
     name: string;
     identifier: string;
-    pto_rate: number;
+    pto_rate: number; // Hours per work day for accrual calculations
+    annual_allocation: number; // 96 hours per year
     carryover_hours: number;
     hire_date: Date;
     role: string;
 }
 
 /**
- * Calculate PTO status for an employee
+ * Calculate PTO status for an employee using annual allocation system
  * @param employee - Employee data
  * @param ptoEntries - All PTO entries for the employee
  * @param currentDate - Current date (defaults to today)
@@ -60,105 +70,93 @@ export function calculatePTOStatus(
     currentDate: Date = new Date()
 ): PTOStatus {
     const currentYear = currentDate.getFullYear();
-    const currentMonth = currentDate.getMonth() + 1; // 1-12
 
-    // Calculate total accrued PTO from hire date to current month
-    const totalAccrued = calculateTotalAccruedPTO(employee, currentDate);
-
-    // Calculate used PTO hours
+    // Calculate used hours by type
     const usedPTO = calculateUsedPTO(ptoEntries, 'Full PTO', 'Partial PTO');
-    const usedSick = calculateUsedPTO(ptoEntries, 'Sick', currentYear);
-    const usedBereavementJuryDuty = calculateUsedPTO(ptoEntries, 'Bereavement', 'Jury Duty', currentYear);
+    const usedSick = calculateUsedPTO(ptoEntries, 'Sick');
+    const usedBereavement = calculateUsedPTO(ptoEntries, 'Bereavement');
+    const usedJuryDuty = calculateUsedPTO(ptoEntries, 'Jury Duty');
+
+    // Starting PTO balance: 96 + carryover
+    const startingPTOBalance = employee.annual_allocation + employee.carryover_hours;
+
+    // Calculate accrued PTO so far this year
+    let accrued = 0;
+    for (let month = 1; month <= 12; month++) {
+        accrued += employee.pto_rate * getWorkDays(currentYear, month);
+    }
 
     // Calculate available PTO
-    const availablePTO = totalAccrued + employee.carryover_hours - usedPTO;
+    const availablePTO = startingPTOBalance + accrued - usedPTO;
 
-    // Calculate accrued this year (from Jan 1 to current month)
-    const yearStart = new Date(currentYear, 0, 1);
-    const accruedThisYear = calculateTotalAccruedPTO(employee, currentDate, yearStart);
+    // Calculate monthly accruals for display (current year)
+    const monthlyAccruals = [];
+    for (let month = 1; month <= 12; month++) {
+        const hours = employee.pto_rate * getWorkDays(currentYear, month);
+        monthlyAccruals.push({ month, hours });
+    }
 
-    // Calculate next accrual
-    const nextAccrual = calculateNextAccrual(employee, currentDate);
+    // Next rollover is January 1st of next year
+    const nextRolloverDate = new Date(currentYear + 1, 0, 1);
 
     return {
         employeeId: employee.id,
         hireDate: employee.hire_date,
-        currentDailyRate: employee.pto_rate,
+        annualAllocation: employee.annual_allocation,
         availablePTO: Math.max(0, availablePTO), // Don't allow negative PTO
         usedPTO,
-        accruedThisYear,
         carryoverFromPreviousYear: employee.carryover_hours,
-        nextAccrualDate: nextAccrual.date,
-        nextAccrualAmount: nextAccrual.amount,
+        monthlyAccruals,
+        nextRolloverDate,
         sickTime: {
             allowed: 24,
             used: usedSick,
             remaining: Math.max(0, 24 - usedSick)
         },
-        bereavementJuryDuty: {
+        ptoTime: {
+            allowed: startingPTOBalance + accrued,
+            used: usedPTO,
+            remaining: Math.max(0, startingPTOBalance + accrued - usedPTO)
+        },
+        bereavementTime: {
             allowed: 40,
-            used: usedBereavementJuryDuty,
-            remaining: Math.max(0, 40 - usedBereavementJuryDuty)
+            used: usedBereavement,
+            remaining: Math.max(0, 40 - usedBereavement)
+        },
+        juryDutyTime: {
+            allowed: 40,
+            used: usedJuryDuty,
+            remaining: Math.max(0, 40 - usedJuryDuty)
         }
     };
 }
 
 /**
- * Calculate total accrued PTO from hire date to specified date
+ * Calculate year-end carryover for an employee
  * @param employee - Employee data
- * @param toDate - End date for calculation
- * @param fromDate - Start date for calculation (defaults to hire date)
- * @returns Total accrued PTO hours
+ * @param ptoEntries - All PTO entries for the employee
+ * @param year - The year to calculate carryover for
+ * @param carryoverLimit - Maximum carryover allowed (optional)
+ * @returns Carryover amount for the next year
  */
-export function calculateTotalAccruedPTO(
+export function calculateYearEndCarryover(
     employee: Employee,
-    toDate: Date,
-    fromDate?: Date
+    ptoEntries: PTOEntry[],
+    year: number,
+    carryoverLimit?: number
 ): number {
-    const startDate = fromDate || employee.hire_date;
-    let totalAccrued = 0;
-
-    // Calculate monthly accruals
-    const startYear = startDate.getFullYear();
-    const startMonth = startDate.getMonth() + 1;
-    const endYear = toDate.getFullYear();
-    const endMonth = toDate.getMonth() + 1;
-
-    for (let year = startYear; year <= endYear; year++) {
-        const monthStart = (year === startYear) ? startMonth : 1;
-        const monthEnd = (year === endYear) ? endMonth : 12;
-
-        for (let month = monthStart; month <= monthEnd; month++) {
-            // Skip future months
-            if (year === endYear && month > endMonth) continue;
-
-            // For partial months, prorate the accrual
-            let workDays: number;
-            if (year === startYear && month === startMonth && startDate.getDate() > 1) {
-                // Partial first month
-                const daysInMonth = new Date(year, month, 0).getDate();
-                const workedDays = daysInMonth - startDate.getDate() + 1;
-                const holidays = getUSHolidays(year);
-                const monthWorkDays = calculateWorkDays(year, month, holidays).workDays;
-                workDays = (workedDays / daysInMonth) * monthWorkDays;
-            } else if (year === endYear && month === endMonth && toDate.getDate() < new Date(year, month, 0).getDate()) {
-                // Partial current month
-                const daysInMonth = new Date(year, month, 0).getDate();
-                const workedDays = toDate.getDate();
-                const holidays = getUSHolidays(year);
-                const monthWorkDays = calculateWorkDays(year, month, holidays).workDays;
-                workDays = (workedDays / daysInMonth) * monthWorkDays;
-            } else {
-                // Full month
-                const holidays = getUSHolidays(year);
-                workDays = calculateWorkDays(year, month, holidays).workDays;
-            }
-
-            totalAccrued += workDays * employee.pto_rate;
-        }
+    // Calculate available PTO at year end
+    const usedPTO = calculateUsedPTO(ptoEntries, 'Full PTO', 'Partial PTO');
+    const startingPTOBalance = employee.annual_allocation + employee.carryover_hours;
+    let accrued = 0;
+    for (let month = 1; month <= 12; month++) {
+        accrued += employee.pto_rate * getWorkDays(year, month);
     }
+    const availableAtYearEnd = startingPTOBalance + accrued - usedPTO;
 
-    return totalAccrued;
+    // Carryover is the available amount, capped at limit if specified
+    const carryover = Math.max(0, availableAtYearEnd);
+    return carryoverLimit !== undefined ? Math.min(carryover, carryoverLimit) : carryover;
 }
 
 /**
@@ -178,70 +176,6 @@ export function calculateUsedPTO(ptoEntries: PTOEntry[], ...types: (string | num
     }
 
     return filteredEntries.reduce((total, entry) => total + entry.hours, 0);
-}
-
-/**
- * Calculate next PTO accrual
- * @param employee - Employee data
- * @param currentDate - Current date
- * @returns Next accrual date and amount
- */
-export function calculateNextAccrual(employee: Employee, currentDate: Date): { date: Date; amount: number } {
-    const nextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
-    const holidays = getUSHolidays(nextMonth.getFullYear());
-    const workDays = calculateWorkDays(nextMonth.getFullYear(), nextMonth.getMonth() + 1, holidays).workDays;
-    const amount = workDays * employee.pto_rate;
-
-    return {
-        date: nextMonth,
-        amount
-    };
-}
-
-/**
- * Calculate daily PTO rate based on hire date and tenure
- * This is a simplified implementation - in reality, rates might change based on company policy
- * @param hireDate - Employee hire date
- * @returns Daily PTO rate
- */
-export function calculateDailyRate(hireDate: Date): number {
-    const now = new Date();
-    const yearsOfService = (now.getTime() - hireDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
-
-    // Simplified rate calculation - adjust based on company policy
-    if (yearsOfService < 1) return 0.68;
-    if (yearsOfService < 5) return 0.69;
-    if (yearsOfService < 10) return 0.70;
-    return 0.71;
-}
-
-/**
- * Calculate year-end carryover for an employee
- * @param employee - Employee data
- * @param ptoEntries - All PTO entries for the employee
- * @param year - The year to calculate carryover for
- * @param carryoverLimit - Maximum carryover allowed (optional)
- * @returns Carryover amount for the next year
- */
-export function calculateYearEndCarryover(
-    employee: Employee,
-    ptoEntries: PTOEntry[],
-    year: number,
-    carryoverLimit?: number
-): number {
-    // Calculate total accrued up to year end
-    const yearEnd = new Date(year, 11, 31);
-    const totalAccrued = calculateTotalAccruedPTO(employee, yearEnd);
-
-    // Calculate used PTO (all time, not just this year)
-    const usedPTO = calculateUsedPTO(ptoEntries, 'Full PTO', 'Partial PTO');
-
-    // Available PTO at year end
-    const availableAtYearEnd = totalAccrued + employee.carryover_hours - usedPTO;
-
-    // Carryover is the available amount, capped at limit if specified
-    const carryover = Math.max(0, availableAtYearEnd);
-    return carryoverLimit !== undefined ? Math.min(carryover, carryoverLimit) : carryover;
 }
 
 /**

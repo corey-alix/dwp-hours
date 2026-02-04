@@ -22,13 +22,12 @@ interface PTOEntry {
 interface PTOStatus {
     employeeId: number;
     hireDate: string;
-    currentDailyRate: number;
+    annualAllocation: number;
     availablePTO: number;
     usedPTO: number;
-    accruedThisYear: number;
     carryoverFromPreviousYear: number;
-    nextAccrualDate: string;
-    nextAccrualAmount: number;
+    monthlyAccruals: { month: number; hours: number }[];
+    nextRolloverDate: string;
     sickTime: {
         allowed: number;
         used: number;
@@ -266,21 +265,31 @@ class UIManager {
 
             const statusDiv = document.getElementById("pto-status")!;
             const hireDate = new Date(status.hireDate).toLocaleDateString();
-            const nextAccrualDate = new Date(status.nextAccrualDate).toLocaleDateString('en-US', {
+            const nextRolloverDate = new Date(status.nextRolloverDate).toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric'
             });
+
+            // Create monthly accrual display
+            const monthlyDisplay = status.monthlyAccruals.map(accrual => {
+                const monthName = new Date(2024, accrual.month - 1, 1).toLocaleString('default', { month: 'short' });
+                return `<span>${monthName}: ${accrual.hours.toFixed(1)}h</span>`;
+            }).join(', ');
 
             statusDiv.innerHTML = `
                 <h3>Your PTO Status</h3>
                 <div class="pto-summary">
                     <div class="pto-section">
                         <h4>Regular PTO</h4>
+                        <p><strong>Annual Allocation:</strong> ${status.annualAllocation} hours</p>
                         <p><strong>Available:</strong> ${status.availablePTO.toFixed(2)} hours</p>
                         <p><strong>Used:</strong> ${status.usedPTO.toFixed(2)} hours</p>
-                        <p><strong>Accrued This Year:</strong> ${status.accruedThisYear.toFixed(2)} hours</p>
                         <p><strong>Carryover from Previous Year:</strong> ${status.carryoverFromPreviousYear.toFixed(2)} hours</p>
+                    </div>
+                    <div class="pto-section">
+                        <h4>Monthly Accrual Breakdown</h4>
+                        <p><small>${monthlyDisplay}</small></p>
                     </div>
                     <div class="pto-section">
                         <h4>Sick Time</h4>
@@ -297,8 +306,7 @@ class UIManager {
                     <div class="pto-section">
                         <h4>Employee Information</h4>
                         <p><strong>Hire Date:</strong> ${hireDate}</p>
-                        <p><strong>Current Daily Rate:</strong> ${status.currentDailyRate.toFixed(2)} hours</p>
-                        <p><strong>Next Accrual:</strong> ${nextAccrualDate} (${status.nextAccrualAmount.toFixed(2)} hours)</p>
+                        <p><strong>Next Rollover:</strong> ${nextRolloverDate}</p>
                     </div>
                 </div>
             `;

@@ -34,7 +34,7 @@ const seedEmployees = [
     {
         name: "John Doe",
         identifier: "john.doe",
-        pto_rate: 0.71,
+        annual_allocation: 96.0,
         carryover_hours: 40,
         hire_date: "2020-01-15",
         role: "Employee",
@@ -43,7 +43,7 @@ const seedEmployees = [
     {
         name: "Jane Smith",
         identifier: "jane.smith",
-        pto_rate: 0.71,
+        annual_allocation: 96.0,
         carryover_hours: 25,
         hire_date: "2021-06-01",
         role: "Employee",
@@ -52,7 +52,7 @@ const seedEmployees = [
     {
         name: "Admin User",
         identifier: "admin",
-        pto_rate: 0.71,
+        annual_allocation: 96.0,
         carryover_hours: 0,
         hire_date: "2019-03-10",
         role: "Admin",
@@ -63,7 +63,7 @@ const seedEmployees = [
 try {
     // Insert seed employees
     const stmt = db.prepare(`
-    INSERT OR IGNORE INTO employees (name, identifier, pto_rate, carryover_hours, hire_date, role, hash)
+    INSERT OR IGNORE INTO employees (name, identifier, annual_allocation, carryover_hours, hire_date, role, hash)
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
 
@@ -71,7 +71,7 @@ try {
         stmt.run([
             employee.name,
             employee.identifier,
-            employee.pto_rate,
+            employee.annual_allocation,
             employee.carryover_hours,
             employee.hire_date,
             employee.role,

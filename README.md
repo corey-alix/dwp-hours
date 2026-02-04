@@ -6,7 +6,19 @@ A Node.js application for tracking monthly hours worked and managing Paid Time O
 
 This application allows employees to log various types of time off (Sick, Full PTO, Partial PTO, Bereavement, Jury Duty) for specific date ranges, including total hours. Users can view their PTO status for the entire year, broken down by month. An admin panel provides oversight for managing users and reviewing PTO usage.
 
-The system accounts for individual PTO accumulation rates and carryover balances, ensuring accurate tracking per employee.
+**PTO Calculation Rules:**
+- Each employee begins the year with **24 hours of "Sick" time** and **96 hours of "PTO"** plus any **PTO carryover from the prior year**
+- "Sick" time is **reset to 24 hours at the start of each year**
+- In addition, employees **accrue pto_rate hours per work day** to their PTO balance throughout the year
+- **Work days** are the total non-weekend (Monday-Friday) days in each month
+- **Monthly accrual** = pto_rate × work_days_in_month
+- **Carryover** from previous years applies only to PTO
+- **Available PTO** = Starting PTO Balance + Accrued - Used PTO Hours
+- **Time Off Types**: "Sick", "PTO", "Bereavement", "Jury Duty" are all tracked as separate PTO types
+- Each type has its own balance and usage tracking
+- At year-end, usage reports must break down hours by type
+
+The system ensures accurate tracking per employee with individual rates and carryover balances.
 
 ## Features
 
@@ -149,10 +161,16 @@ export class Employee {
   identifier!: string;
 
   @Column({ type: "real", default: 0.71 })
-  pto_rate!: number;
+  pto_rate!: number;  // Hours per work day for accrual calculations
+
+  @Column({ type: "real", default: 96.0 })
+  annual_allocation!: number;  // Fixed annual PTO allocation (96 hours)
 
   @Column({ type: "real", default: 0 })
   carryover_hours!: number;
+
+  @Column({ type: "date" })
+  hire_date!: Date;
 
   @Column({ type: "text", default: "Employee" })
   role!: string;

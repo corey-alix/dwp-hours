@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS employees (
   name TEXT NOT NULL,
   identifier TEXT UNIQUE NOT NULL,
   pto_rate REAL DEFAULT 0.71,
+  annual_allocation REAL DEFAULT 96.0,
   carryover_hours REAL DEFAULT 0,
   hire_date DATE NOT NULL,
   role TEXT DEFAULT 'Employee',

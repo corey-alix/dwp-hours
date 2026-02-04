@@ -184,7 +184,7 @@ initDatabase().then(() => {
                 id: employee.id,
                 name: employee.name,
                 identifier: employee.identifier,
-                pto_rate: employee.pto_rate,
+                annual_allocation: employee.annual_allocation,
                 carryover_hours: employee.carryover_hours,
                 hire_date: employee.hire_date,
                 role: employee.role
