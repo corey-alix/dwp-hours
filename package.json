@@ -6,7 +6,7 @@
     "main": "src/server.mts",
     "scripts": {
         "dev": "http-serve public -p 3000 -o",
-        "build": "npm run build:client && npm run build:server",
+        "build": "npm-run-all -p build:client build:server",
         "build:client": "esbuild public/app.ts --bundle --outfile=public/app.js --format=esm --sourcemap",
         "build:server": "esbuild src/server.mts --bundle --outfile=dist/server.js --format=esm --platform=node --packages=external --sourcemap",
         "start": "nodemon",
@@ -15,7 +15,7 @@
         "test:unit": "vitest --run",
         "test:e2e": "playwright test",
         "test": "npm-run-all build test:unit test:e2e",
-        "lint": "npm run lint:server && npm run lint:client",
+        "lint": "npm-run-all -p lint:server lint:client",
         "lint:server": "tsc --noEmit --project tsconfig-server.json",
         "lint:client": "tsc --noEmit --project tsconfig-client.json",
         "format": "prettier --write ."
