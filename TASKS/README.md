@@ -43,9 +43,9 @@ database-schema.md
 - Basic API routes (health, PTO CRUD, employee CRUD)
 - Database connection with sql.js
 - TypeScript compilation and linting
+- Database schema implementation
 
 ### 🚧 In Progress
-- Database schema (missing 2 tables)
 - Authentication (mock implementation)
 - PTO calculations (hardcoded values)
 - Admin panel (placeholder UI)

@@ -78,7 +78,7 @@ async function initDatabase() {
 // Initialize database on startup
 initDatabase().then(() => {
     log("Database initialized.");
-    
+
     // Start server
     app.listen(PORT, () => {
         log(`Server running on port ${PORT}`);
