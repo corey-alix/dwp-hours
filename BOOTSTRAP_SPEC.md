@@ -46,10 +46,10 @@ Before scaffolding the project, answer the following questions to guide implemen
 
 ### Development & Build
 
-- What TypeScript configuration? (**Decided**: Strict mode, target ES2020, module "node16" for ES modules and import.meta support)
-- Should there be a build step for production? (Bundle JS/CSS, or serve as-is?)
+- What TypeScript configuration? (**Decided**: Use esbuild for bundling. Separate tsconfig files: tsconfig-base.json (base config with strict mode, noEmit, latest ESM), tsconfig.json (IDE config extending base, includes all), tsconfig-server.json (server linting extending base), tsconfig-client.json (client linting extending base).)
+- Should there be a build step for production? (**Decided**: Yes, use esbuild to bundle client.js and server.js packages.)
 - What testing framework? (**Decided**: Vitest for unit tests, Playwright for integration/E2E tests.)
-- Linting and formatting? (**Decided**: Linting with `tsc --noEmit`, formatting with Prettier before every commit.)
+- Linting and formatting? (**Decided**: Linting with `tsc --noEmit` using specific tsconfig files, formatting with Prettier before every commit.)
 
 ### Deployment & Production
 
@@ -85,7 +85,8 @@ Before scaffolding the project, answer the following questions to guide implemen
 ### TypeScript Configuration for ES Modules
 
 - [ ] Set `"type": "module"` in `package.json` to enable ES modules
-- [ ] Configure `tsconfig.json` with `"module": "node16"` for import.meta support
+- [ ] Create tsconfig-base.json with strict mode, noEmit, latest ESM settings
+- [ ] Create tsconfig.json (IDE), tsconfig-server.json (server linting), tsconfig-client.json (client linting) extending base
 - [ ] Install `@types/sql.js` for TypeScript definitions
 
 ## Bootstrap Checklist
@@ -154,9 +155,13 @@ Before scaffolding the project, answer the following questions to guide implemen
 ### 7. Development Environment
 
 - [ ] Install `http-serve` for development server
+- [ ] Install `esbuild` for bundling
 - [ ] Configure npm scripts:
   - `npm run dev` - start development server
-  - `npm run build` - build for production
+  - `npm run build` - build client and server packages with esbuild
+  - `npm run build:client` - build client package
+  - `npm run build:server` - build server package
+  - `npm run lint` - lint with tsc using specific configs
   - `npm run db:init` - initialize database
 - [ ] Set up hot reloading if needed
 - [ ] Add environment configuration

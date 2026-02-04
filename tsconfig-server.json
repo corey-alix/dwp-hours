@@ -1,8 +1,8 @@
 {
   "extends": "./tsconfig-base.json",
   "compilerOptions": {
-    "lib": ["ES2020", "DOM"]
+    "lib": ["ES2020"]
   },
-  "include": ["src/**/*", "public/**/*"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }
