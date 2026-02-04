@@ -57,8 +57,59 @@ class UIManager {
     }
 
     private init(): void {
+        this.checkAuth();
         this.setupEventListeners();
+    }
+
+    private async checkAuth(): Promise<void> {
+        // Check URL params for magic link
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        const ts = urlParams.get('ts');
+        if (token && ts) {
+            try {
+                const response = await api.get(`/auth/validate?token=${token}&ts=${ts}`);
+                this.setAuthCookie(response.publicHash);
+                localStorage.setItem('currentUser', JSON.stringify(response.employee));
+                this.currentUser = response.employee;
+                this.showDashboard();
+                await this.loadPTOStatus();
+                // Clean URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+                return;
+            } catch (error) {
+                alert('Invalid or expired magic link.');
+            }
+        }
+
+        // Check cookie
+        const cookieHash = this.getAuthCookie();
+        if (cookieHash) {
+            const storedUser = localStorage.getItem('currentUser');
+            if (storedUser) {
+                this.currentUser = JSON.parse(storedUser);
+                this.showDashboard();
+                await this.loadPTOStatus();
+                return;
+            }
+        }
+
         this.showLogin();
+    }
+
+    private setAuthCookie(hash: string): void {
+        document.cookie = `auth_hash=${hash}; path=/; max-age=31536000`; // 1 year
+    }
+
+    private getAuthCookie(): string | null {
+        const cookies = document.cookie.split(';');
+        for (const cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'auth_hash') {
+                return value;
+            }
+        }
+        return null;
     }
 
     private setupEventListeners(): void {
@@ -76,6 +127,10 @@ class UIManager {
             "cancel-pto",
         ) as HTMLButtonElement;
         cancelBtn.addEventListener("click", () => this.showDashboard());
+
+        // Logout
+        const logoutBtn = document.getElementById("logout-btn") as HTMLButtonElement;
+        logoutBtn.addEventListener("click", () => this.handleLogout());
 
         // Navigation
         const newPTOBtn = document.getElementById(
@@ -95,30 +150,26 @@ class UIManager {
         reportsBtn.addEventListener("click", () => this.showReports());
     }
 
+    private handleLogout(): void {
+        this.currentUser = null;
+        document.cookie = 'auth_hash=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        localStorage.removeItem('currentUser');
+        this.showLogin();
+    }
+
     private async handleLogin(e: Event): Promise<void> {
         e.preventDefault();
         const identifier = (
             document.getElementById("identifier") as HTMLInputElement
         ).value;
-        const hash = (document.getElementById("hash") as HTMLInputElement).value;
 
         try {
-            // TODO: Implement proper authentication
-            // For now, assume login succeeds
-            this.currentUser = {
-                id: 1,
-                name: "Test User",
-                identifier,
-                ptoRate: 0.71,
-                carryoverHours: 0,
-                role: "Employee",
-                hash,
-            };
-
-            this.showDashboard();
-            await this.loadPTOStatus();
+            const response = await api.post("/auth/request-link", { identifier });
+            const messageDiv = document.getElementById("login-message")!;
+            messageDiv.textContent = response.message;
+            messageDiv.classList.remove("hidden");
         } catch (error) {
-            alert("Login failed. Please check your credentials.");
+            alert("Failed to send magic link. Please try again.");
         }
     }
 
@@ -157,6 +208,7 @@ class UIManager {
     private showLogin(): void {
         this.hideAllSections();
         document.getElementById("login-section")!.classList.remove("hidden");
+        document.getElementById("logout-btn")!.classList.add("hidden");
     }
 
     private showDashboard(): void {
@@ -165,6 +217,7 @@ class UIManager {
         if (this.currentUser?.role === "Admin") {
             document.getElementById("admin-panel")!.classList.remove("hidden");
         }
+        document.getElementById("logout-btn")!.classList.remove("hidden");
     }
 
     private showPTOForm(): void {

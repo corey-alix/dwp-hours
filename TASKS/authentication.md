@@ -1,33 +1,38 @@
 # Authentication System Implementation
 
 ## Overview
-Implement proper user authentication system to replace the current mock login functionality.
+Implement magic link authentication system using email-based access.
 
 ## Checklist
 
 ### Backend Authentication
-- [ ] Create authentication middleware for protected routes
-- [ ] Implement hash verification for login attempts
-- [ ] Add session/token management (or simple cookie-based auth)
-- [ ] Create login endpoint that validates against database
-- [ ] Add logout functionality
+- [x] Generate secret hash based on user email and store in database
+- [x] Create endpoint to request magic link (/api/auth/request-link)
+- [x] Generate temporal hash with expiration for magic links
+- [x] Create validation endpoint for temporal hashes (/api/auth/validate)
+- [x] Return public hash (never expires) upon successful validation
 
 ### Frontend Authentication
-- [ ] Replace mock login in `app.ts` with real API calls
-- [ ] Implement proper error handling for authentication failures
-- [ ] Add loading states during authentication
-- [ ] Store authentication state (user info, role) in memory
-- [ ] Handle authentication expiration/timeout
+- [x] Replace login form with email input and "Send Magic Link" button
+- [x] Handle URL parameters for magic link validation
+- [x] Store public hash in cookie for persistent authentication
+- [x] Store user info in localStorage
+- [x] Check cookie/localStorage on app load for auto-login
+- [x] Add logout functionality to clear cookie and localStorage
 
 ### Security Features
-- [ ] Implement rate limiting for login attempts
-- [ ] Add input validation for credentials
-- [ ] Sanitize user inputs to prevent injection attacks
-- [ ] Add CSRF protection for forms
+- [x] Temporal hash expires after 1 hour
+- [x] Use crypto hashing for secret and temporal hashes
+- [x] Input validation for email format
+- [ ] Implement rate limiting for magic link requests (TODO)
+- [ ] Add CSRF protection (TODO)
 
 ### User Experience
-- [ ] Show appropriate error messages for login failures
-- [ ] Remember login state across page refreshes
+- [x] Show success message after requesting magic link
+- [x] Handle invalid/expired magic links with error messages
+- [x] Remember login state across page refreshes
+- [x] Clean URL after processing magic link
+- [x] Provide logout button in UI
 - [ ] Provide logout functionality in UI
 - [ ] Handle authentication redirects appropriately</content>
 <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/TASKS/authentication.md

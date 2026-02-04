@@ -9,19 +9,20 @@
   <body>
     <header>
       <h1>DWP Hours Tracker</h1>
-      <nav id="nav"></nav>
+      <nav id="nav">
+        <button id="logout-btn" class="hidden">Logout</button>
+      </nav>
     </header>
 
     <main id="main-content">
       <div id="login-section">
         <h2>Login</h2>
         <form id="login-form">
-          <label for="identifier">Employee ID:</label>
-          <input type="text" id="identifier" required />
-          <label for="hash">Access Code:</label>
-          <input type="password" id="hash" required />
-          <button type="submit">Login</button>
+          <label for="identifier">Email:</label>
+          <input type="email" id="identifier" required />
+          <button type="submit">Send Magic Link</button>
         </form>
+        <div id="login-message" class="hidden"></div>
       </div>
 
       <div id="dashboard" class="hidden">

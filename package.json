@@ -3,12 +3,12 @@
     "version": "1.0.0",
     "type": "module",
     "description": "A Node.js application for tracking monthly hours worked and managing Paid Time Off (PTO) for employees.",
-    "main": "src/server.ts",
+    "main": "src/server.mts",
     "scripts": {
         "dev": "http-serve public -p 3000 -o",
         "build": "tsc",
         "start": "nodemon",
-        "start:prod": "node dist/server.js",
+        "start:prod": "npx tsx src/server.mts",
         "db:init": "echo 'Database initialized by server startup'",
         "test:unit": "vitest --run",
         "test:e2e": "playwright test",
@@ -34,6 +34,7 @@
         "typeorm": "^0.3.28"
     },
     "devDependencies": {
+        "@playwright/test": "^1.58.1",
         "@types/cors": "^2.8.19",
         "@types/express": "^5.0.6",
         "@types/node": "^25.2.0",
@@ -42,6 +43,7 @@
         "nodemon": "^3.1.11",
         "playwright": "^1.58.1",
         "prettier": "^3.8.1",
+        "tsx": "^4.21.0",
         "typescript": "^5.9.3",
         "vitest": "^4.0.18"
     }
