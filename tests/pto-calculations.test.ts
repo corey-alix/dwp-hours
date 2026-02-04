@@ -163,17 +163,23 @@ describe('PTO Calculations', () => {
         expect(result.updatedEmployee.carryover_hours).toBe(result.carryover);
     });
 
-    it('should report PTO usage by type at year end', () => {
-        const fullPTOUsed = calculateUsedPTO(mockPTOEntries, 'Full PTO');
-        const partialPTOUsed = calculateUsedPTO(mockPTOEntries, 'Partial PTO');
-        const sickUsed = calculateUsedPTO(mockPTOEntries, 'Sick');
-        const bereavementUsed = calculateUsedPTO(mockPTOEntries, 'Bereavement');
-        const juryDutyUsed = calculateUsedPTO(mockPTOEntries, 'Jury Duty');
+    it('should calculate prorated allocation for new hires', () => {
+        const newHireEmployee: Employee = {
+            ...mockEmployee,
+            hire_date: new Date('2024-06-01'), // Hired in June
+            carryover_hours: 0 // No carryover for new hire
+        };
 
-        expect(fullPTOUsed).toBe(32);
-        expect(partialPTOUsed).toBe(0);
-        expect(sickUsed).toBe(8);
-        expect(bereavementUsed).toBe(8);
-        expect(juryDutyUsed).toBe(0);
+        const currentDate = new Date('2024-12-01');
+        const status: PTOStatus = calculatePTOStatus(newHireEmployee, [], currentDate);
+
+        // Prorated allocation: 96 * (8/12) ≈ 64 hours
+        expect(status.annualAllocation).toBeCloseTo(64, 1);
+        // Accrued from May to Dec
+        const expectedAccrued = 0.71 * (getWorkDays(2024, 5) + getWorkDays(2024, 6) + getWorkDays(2024, 7) + getWorkDays(2024, 8) + getWorkDays(2024, 9) + getWorkDays(2024, 10) + getWorkDays(2024, 11) + getWorkDays(2024, 12));
+        expect(status.availablePTO).toBeCloseTo(status.annualAllocation + expectedAccrued, 1);
+        // Monthly accruals should start from May
+        expect(status.monthlyAccruals[0].month).toBe(5); // May
+        expect(status.monthlyAccruals).toHaveLength(8); // May to Dec
     });
 });

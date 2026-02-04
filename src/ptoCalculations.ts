@@ -58,6 +58,27 @@ export interface Employee {
 }
 
 /**
+ * Calculate prorated annual allocation for new hires
+ * @param employee - Employee data
+ * @param year - The year to calculate for
+ * @returns Prorated allocation amount
+ */
+function calculateProratedAllocation(employee: Employee, year: number): number {
+    if (employee.hire_date.getFullYear() < year) {
+        return employee.annual_allocation;
+    } else if (employee.hire_date.getFullYear() === year) {
+        const hireMonth = employee.hire_date.getMonth(); // 0-11
+        if (hireMonth <= 1) {
+            return employee.annual_allocation; // Hired in Jan or Feb, full allocation
+        }
+        const monthsRemaining = 12 - hireMonth;
+        return employee.annual_allocation * (monthsRemaining / 12);
+    } else {
+        return 0; // Hired after the year
+    }
+}
+
+/**
  * Calculate PTO status for an employee using annual allocation system
  * @param employee - Employee data
  * @param ptoEntries - All PTO entries for the employee
@@ -77,12 +98,16 @@ export function calculatePTOStatus(
     const usedBereavement = calculateUsedPTO(ptoEntries, 'Bereavement');
     const usedJuryDuty = calculateUsedPTO(ptoEntries, 'Jury Duty');
 
-    // Starting PTO balance: 96 + carryover
-    const startingPTOBalance = employee.annual_allocation + employee.carryover_hours;
+    const effectiveAnnualAllocation = calculateProratedAllocation(employee, currentYear);
 
-    // Calculate accrued PTO so far this year
+    // Starting PTO balance: prorated allocation + carryover
+    const startingPTOBalance = effectiveAnnualAllocation + employee.carryover_hours;
+
+    // Calculate accrued PTO so far this year (from hire date or Jan)
     let accrued = 0;
-    for (let month = 1; month <= 12; month++) {
+    const startMonth = Math.max(1, employee.hire_date.getMonth());
+    const currentMonth = currentDate.getMonth() + 1;
+    for (let month = startMonth; month <= currentMonth; month++) {
         accrued += employee.pto_rate * getWorkDays(currentYear, month);
     }
 
@@ -96,13 +121,20 @@ export function calculatePTOStatus(
         monthlyAccruals.push({ month, hours });
     }
 
+    // For new hires in current year, only accrue from hire month onwards
+    let filteredMonthlyAccruals = monthlyAccruals;
+    if (employee.hire_date.getFullYear() === currentYear) {
+        const hireMonth = Math.max(1, employee.hire_date.getMonth());
+        filteredMonthlyAccruals = monthlyAccruals.filter(accrual => accrual.month >= hireMonth);
+    }
+
     // Next rollover is January 1st of next year
     const nextRolloverDate = new Date(currentYear + 1, 0, 1);
 
     return {
         employeeId: employee.id,
         hireDate: employee.hire_date,
-        annualAllocation: employee.annual_allocation,
+        annualAllocation: effectiveAnnualAllocation,
         availablePTO: Math.max(0, availablePTO), // Don't allow negative PTO
         usedPTO,
         carryoverFromPreviousYear: employee.carryover_hours,
