@@ -7,7 +7,7 @@ This document outlines the steps and decisions required to bootstrap the DWP Hou
 Based on the README.md, this is a Node.js application for PTO tracking with:
 
 - Vanilla HTML/CSS/TypeScript frontend
-- Node.js backend with SQLite database
+- Node.js backend with TypeORM and SQLite database
 - http-serve for development
 - RESTful API
 - Admin panel for user management
@@ -35,6 +35,7 @@ Before scaffolding the project, answer the following questions to guide implemen
 - How to handle PTO rate changes over time? (Store historical rates, or just current?)
 - Should sick hours be tracked separately from PTO? (Based on legacy spreadsheet, yes)
 - How to calculate available PTO? (Monthly accrual + carryover - used)
+- What ORM to use? (**Decided**: TypeORM with DataMapper pattern and sql.js driver for WSL compatibility)
 
 ### Frontend & UI
 
@@ -77,8 +78,9 @@ Before scaffolding the project, answer the following questions to guide implemen
 ### Database Choice for WSL Compatibility
 
 - **Issue**: Native SQLite packages (sqlite3, better-sqlite3) require compilation and fail in WSL due to UNC path restrictions
-- **Solution**: Use `sql.js` (pure JavaScript SQLite implementation) instead of native SQLite packages
+- **Solution**: Use `sql.js` (pure JavaScript SQLite implementation) with TypeORM ORM
 - **Trade-off**: Slightly slower performance but full WSL compatibility and no native dependencies
+- **ORM**: TypeORM provides entity-based modeling, query building, and repository patterns
 
 ### TypeScript Configuration for ES Modules
 
@@ -101,25 +103,26 @@ Before scaffolding the project, answer the following questions to guide implemen
 
 ### 2. Backend Setup
 
-- [ ] Install Node.js dependencies:
+- [x] Install Node.js dependencies:
   - `express` for server
   - `sql.js` for database (instead of sqlite3 for WSL compatibility)
   - `cors` for cross-origin requests
   - `body-parser` for JSON parsing
-  - `@types/sql.js` for TypeScript definitions
-- [ ] Create basic Express server (`src/server.js` or `.ts`)
-- [ ] Set up SQLite database connection
-- [ ] Create database schema files (`db/schema.sql`)
-- [ ] Implement basic API routes (health check, etc.)
+  - `typeorm` for ORM
+  - `reflect-metadata` for TypeORM decorators
+  - `@types/sql.js` and other TypeScript definitions
+- [x] Create basic Express server (`src/server.ts`)
+- [x] Set up SQLite database connection with TypeORM DataSource
+- [x] Create database schema entities (`src/entities/`)
+- [x] Implement basic API routes (health check, employees, PTO)
 
 ### 3. Database Schema Implementation
 
-- [ ] Create employees table with fields: id, name, identifier, pto_rate, carryover_hours, role, hash
-- [ ] Create pto_entries table with fields: id, employee_id, start_date, end_date, type, hours, created_at
-- [ ] Add foreign key constraints
-- [ ] Implement hash generation for user authentication
-- [ ] Create migration script to initialize database
-- [ ] **Note**: When using sql.js, use `stmt.bind(array)` followed by `stmt.run()` for prepared statements, and `db.exec('SELECT last_insert_rowid()')` to get inserted IDs
+- [x] Create TypeORM entities with decorators: Employee, PtoEntry, MonthlyHours, Acknowledgement
+- [x] Add relationships and foreign key constraints via entity decorators
+- [x] Implement hash generation for user authentication
+- [x] Create migration script to initialize database (schema.sql executed in server startup)
+- [x] **Note**: TypeORM handles prepared statements and ID retrieval automatically
 
 ### 4. API Development
 
@@ -169,10 +172,10 @@ Before scaffolding the project, answer the following questions to guide implemen
 
 ### 9. Documentation & Migration
 
-- [ ] Create API documentation (e.g., using Swagger or simple markdown)
-- [ ] Document database schema and relationships
+- [x] Create API documentation (in README)
+- [x] Document database schema (now TypeORM entities)
 - [ ] Create migration script from legacy spreadsheet
-- [ ] Update README with setup instructions
+- [x] Update README with setup instructions
 
 ### 10. Initial Data & Testing
 
@@ -189,7 +192,7 @@ Before scaffolding the project, answer the following questions to guide implemen
 - [ ] Implement input sanitization
 - [ ] Add rate limiting to API
 - [ ] Secure admin routes
-- [ ] Add CORS configuration
+- [x] Add CORS configuration
 - [ ] Review and implement security headers
 
 ### 12. Deployment Preparation
@@ -217,13 +220,16 @@ Core Dependencies:
 - sql.js (pure JavaScript SQLite, WSL-compatible)
 - Express.js
 - TypeScript
+- TypeORM (ORM with sql.js driver)
 - http-serve
 
 Optional/Recommended:
 
 - dotenv (environment variables)
 - cors (CORS handling)
+- reflect-metadata (for TypeORM decorators)
 - @types/sql.js (TypeScript definitions for sql.js)
+- @types packages for other dependencies
 - vitest (unit testing)
 - playwright (E2E testing)
 - prettier (code formatting)

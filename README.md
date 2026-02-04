@@ -27,13 +27,14 @@ The system accounts for individual PTO accumulation rates and carryover balances
 ## Architecture
 
 - **Frontend**: Vanilla HTML, CSS, and TypeScript
-- **Backend**: Node.js with SQLite database
+- **Backend**: Node.js with TypeORM and SQLite database
 - **Development Server**: http-serve for local development
-- **Database**: SQLite with tables for:
-  - `employees`: Employee information and authentication
-  - `pto_entries`: Time off tracking
-  - `monthly_hours`: Monthly hours worked submissions
-  - `acknowledgements`: Monthly review acknowledgements
+- **Database**: SQLite with TypeORM entities for:
+  - `Employee`: Employee information and authentication
+  - `PtoEntry`: Time off tracking with relationships
+  - `MonthlyHours`: Monthly hours worked submissions
+  - `Acknowledgement`: Monthly review acknowledgements
+- **ORM**: TypeORM with DataMapper pattern and sql.js driver for WSL compatibility
 - **Automated Systems**: Monthly reminder scheduler and daily follow-up system
 
 ## Getting Started
@@ -129,60 +130,126 @@ dwp-hours-tracker/
 - `GET /api/employees/:id/pto-report`: Generate PTO report (admin only)
 - `GET /api/reminders/unacknowledged`: Get list of employees needing reminders (admin only)
 
-## Database Schema
+## TypeORM Entities
 
-### Employees Table
+The database schema is defined using TypeORM entities with relationships and decorators. The entities are located in `src/entities/` and automatically generate the SQLite tables.
 
-```sql
-CREATE TABLE employees (
-  id INTEGER PRIMARY KEY,
-  name TEXT NOT NULL,
-  identifier TEXT UNIQUE NOT NULL,
-  pto_rate REAL DEFAULT 0.71,
-  carryover_hours REAL DEFAULT 0,
-  role TEXT DEFAULT 'Employee',
-  hash TEXT
-);
+### Employee Entity
+
+```typescript
+@Entity("employees")
+export class Employee {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column({ type: "text" })
+  name!: string;
+
+  @Column({ type: "text", unique: true })
+  identifier!: string;
+
+  @Column({ type: "real", default: 0.71 })
+  pto_rate!: number;
+
+  @Column({ type: "real", default: 0 })
+  carryover_hours!: number;
+
+  @Column({ type: "text", default: "Employee" })
+  role!: string;
+
+  @Column({ type: "text", nullable: true })
+  hash!: string;
+
+  @OneToMany(() => PtoEntry, ptoEntry => ptoEntry.employee)
+  ptoEntries!: PtoEntry[];
+
+  @OneToMany(() => MonthlyHours, monthlyHours => monthlyHours.employee)
+  monthlyHours!: MonthlyHours[];
+
+  @OneToMany(() => Acknowledgement, acknowledgement => acknowledgement.employee)
+  acknowledgements!: Acknowledgement[];
+}
 ```
 
-### PTO Entries Table
+### PtoEntry Entity
 
-```sql
-CREATE TABLE pto_entries (
-  id INTEGER PRIMARY KEY,
-  employee_id INTEGER,
-  start_date DATE,
-  end_date DATE,
-  type TEXT, -- 'Sick', 'Full PTO', 'Partial PTO', 'Bereavement', 'Jury Duty'
-  hours REAL,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
-);
+```typescript
+@Entity("pto_entries")
+export class PtoEntry {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column({ type: "integer" })
+  employee_id!: number;
+
+  @Column({ type: "date" })
+  start_date!: Date;
+
+  @Column({ type: "date" })
+  end_date!: Date;
+
+  @Column({ type: "text" })
+  type!: "Sick" | "Full PTO" | "Partial PTO" | "Bereavement" | "Jury Duty";
+
+  @Column({ type: "real" })
+  hours!: number;
+
+  @Column({ type: "datetime", default: () => "CURRENT_TIMESTAMP" })
+  created_at!: Date;
+
+  @ManyToOne(() => Employee, employee => employee.ptoEntries)
+  @JoinColumn({ name: "employee_id" })
+  employee!: Employee;
+}
 ```
 
-### Monthly Hours Table
+### MonthlyHours Entity
 
-```sql
-CREATE TABLE monthly_hours (
-  id INTEGER PRIMARY KEY,
-  employee_id INTEGER NOT NULL,
-  month DATE NOT NULL, -- YYYY-MM-01 format
-  hours_worked REAL NOT NULL,
-  submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
-);
+```typescript
+@Entity("monthly_hours")
+export class MonthlyHours {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column({ type: "integer" })
+  employee_id!: number;
+
+  @Column({ type: "date" })
+  month!: Date;
+
+  @Column({ type: "real" })
+  hours_worked!: number;
+
+  @Column({ type: "datetime", default: () => "CURRENT_TIMESTAMP" })
+  submitted_at!: Date;
+
+  @ManyToOne(() => Employee, employee => employee.monthlyHours)
+  @JoinColumn({ name: "employee_id" })
+  employee!: Employee;
+}
 ```
 
-### Acknowledgements Table
+### Acknowledgement Entity
 
-```sql
-CREATE TABLE acknowledgements (
-  id INTEGER PRIMARY KEY,
-  employee_id INTEGER NOT NULL,
-  month DATE NOT NULL, -- YYYY-MM-01 format
-  acknowledged_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
-);
+```typescript
+@Entity("acknowledgements")
+export class Acknowledgement {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column({ type: "integer" })
+  employee_id!: number;
+
+  @Column({ type: "date" })
+  month!: Date;
+
+  @Column({ type: "datetime", default: () => "CURRENT_TIMESTAMP" })
+  acknowledged_at!: Date;
+
+  @ManyToOne(() => Employee, employee => employee.acknowledgements)
+  @JoinColumn({ name: "employee_id" })
+  employee!: Employee;
+}
 ```
 
 ## Admin Panel
