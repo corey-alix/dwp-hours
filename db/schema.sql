@@ -1,3 +1,6 @@
+-- Enable foreign key constraints
+PRAGMA foreign_keys = ON;
+
 -- Create employees table
 CREATE TABLE IF NOT EXISTS employees (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
