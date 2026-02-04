@@ -23,15 +23,12 @@ Implement magic link authentication system using email-based access.
 - [x] Temporal hash expires after 1 hour
 - [x] Use crypto hashing for secret and temporal hashes
 - [x] Input validation for email format
-- [ ] Implement rate limiting for magic link requests (TODO)
-- [ ] Add CSRF protection (TODO)
 
 ### User Experience
 - [x] Show success message after requesting magic link
 - [x] Handle invalid/expired magic links with error messages
 - [x] Remember authentication state across page refreshes
 - [x] Clean URL after processing magic link
-- [ ] Handle authentication redirects appropriately
 
 ### Unit Tests
 - [x] Write unit tests for secret hash generation function
