@@ -10,6 +10,7 @@ import crypto from "crypto";
 import "reflect-metadata";
 import { DataSource, Not, IsNull } from "typeorm";
 import { Employee, PtoEntry, MonthlyHours, Acknowledgement } from "./entities/index.js";
+import { calculatePTOStatus } from "./ptoCalculations.js";
 
 dotenv.config();
 
@@ -23,6 +24,9 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// Serve static files from public directory
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // Database setup
 const DB_PATH = path.join(__dirname, "..", "db", "dwp-hours.db");
@@ -151,6 +155,56 @@ initDatabase().then(() => {
             res.json({ publicHash: validEmployee.hash, employee: { id: validEmployee.id, name: validEmployee.name, role: validEmployee.role } });
         } catch (error) {
             log(`Error validating token: ${error}`);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    });
+
+    // PTO routes
+    app.get('/api/pto/status/:employeeId', async (req, res) => {
+        try {
+            const { employeeId } = req.params;
+            const employeeIdNum = parseInt(employeeId);
+
+            if (isNaN(employeeIdNum)) {
+                return res.status(400).json({ error: 'Invalid employee ID' });
+            }
+
+            const employeeRepo = dataSource.getRepository(Employee);
+            const ptoEntryRepo = dataSource.getRepository(PtoEntry);
+
+            const employee = await employeeRepo.findOne({ where: { id: employeeIdNum } });
+            if (!employee) {
+                return res.status(404).json({ error: 'Employee not found' });
+            }
+
+            const ptoEntries = await ptoEntryRepo.find({ where: { employee_id: employeeIdNum } });
+
+            // Convert to PTO calculation format
+            const employeeData = {
+                id: employee.id,
+                name: employee.name,
+                identifier: employee.identifier,
+                pto_rate: employee.pto_rate,
+                carryover_hours: employee.carryover_hours,
+                hire_date: employee.hire_date,
+                role: employee.role
+            };
+
+            const ptoEntriesData = ptoEntries.map(entry => ({
+                id: entry.id,
+                employee_id: entry.employee_id,
+                start_date: entry.start_date,
+                end_date: entry.end_date,
+                type: entry.type,
+                hours: entry.hours,
+                created_at: entry.created_at
+            }));
+
+            const status = calculatePTOStatus(employeeData, ptoEntriesData);
+
+            res.json(status);
+        } catch (error) {
+            log(`Error getting PTO status: ${error}`);
             res.status(500).json({ error: 'Internal server error' });
         }
     });

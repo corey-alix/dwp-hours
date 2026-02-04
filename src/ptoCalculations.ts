@@ -67,8 +67,8 @@ export function calculatePTOStatus(
 
     // Calculate used PTO hours
     const usedPTO = calculateUsedPTO(ptoEntries, 'Full PTO', 'Partial PTO');
-    const usedSick = calculateUsedPTO(ptoEntries, 'Sick');
-    const usedBereavementJuryDuty = calculateUsedPTO(ptoEntries, 'Bereavement', 'Jury Duty');
+    const usedSick = calculateUsedPTO(ptoEntries, 'Sick', currentYear);
+    const usedBereavementJuryDuty = calculateUsedPTO(ptoEntries, 'Bereavement', 'Jury Duty', currentYear);
 
     // Calculate available PTO
     const availablePTO = totalAccrued + employee.carryover_hours - usedPTO;
@@ -165,12 +165,19 @@ export function calculateTotalAccruedPTO(
  * Calculate used PTO hours for specific types
  * @param ptoEntries - PTO entries
  * @param types - PTO types to include
+ * @param year - Optional year filter (for annual resets)
  * @returns Total used hours
  */
-export function calculateUsedPTO(ptoEntries: PTOEntry[], ...types: string[]): number {
-    return ptoEntries
-        .filter(entry => types.includes(entry.type))
-        .reduce((total, entry) => total + entry.hours, 0);
+export function calculateUsedPTO(ptoEntries: PTOEntry[], ...types: (string | number)[]): number {
+    const year = typeof types[types.length - 1] === 'number' ? types.pop() as number : undefined;
+    const filteredTypes = types as string[];
+
+    let filteredEntries = ptoEntries.filter(entry => filteredTypes.includes(entry.type));
+    if (year !== undefined) {
+        filteredEntries = filteredEntries.filter(entry => entry.start_date.getFullYear() === year);
+    }
+
+    return filteredEntries.reduce((total, entry) => total + entry.hours, 0);
 }
 
 /**
@@ -206,4 +213,59 @@ export function calculateDailyRate(hireDate: Date): number {
     if (yearsOfService < 5) return 0.69;
     if (yearsOfService < 10) return 0.70;
     return 0.71;
+}
+
+/**
+ * Calculate year-end carryover for an employee
+ * @param employee - Employee data
+ * @param ptoEntries - All PTO entries for the employee
+ * @param year - The year to calculate carryover for
+ * @param carryoverLimit - Maximum carryover allowed (optional)
+ * @returns Carryover amount for the next year
+ */
+export function calculateYearEndCarryover(
+    employee: Employee,
+    ptoEntries: PTOEntry[],
+    year: number,
+    carryoverLimit?: number
+): number {
+    // Calculate total accrued up to year end
+    const yearEnd = new Date(year, 11, 31);
+    const totalAccrued = calculateTotalAccruedPTO(employee, yearEnd);
+
+    // Calculate used PTO (all time, not just this year)
+    const usedPTO = calculateUsedPTO(ptoEntries, 'Full PTO', 'Partial PTO');
+
+    // Available PTO at year end
+    const availableAtYearEnd = totalAccrued + employee.carryover_hours - usedPTO;
+
+    // Carryover is the available amount, capped at limit if specified
+    const carryover = Math.max(0, availableAtYearEnd);
+    return carryoverLimit !== undefined ? Math.min(carryover, carryoverLimit) : carryover;
+}
+
+/**
+ * Process year-end for an employee (reset annual allocations)
+ * This would typically be called at the start of a new year
+ * @param employee - Employee data
+ * @param newYear - The new year
+ * @param carryoverLimit - Maximum carryover allowed
+ * @returns Updated employee data with new carryover
+ */
+export function processYearEnd(
+    employee: Employee,
+    ptoEntries: PTOEntry[],
+    newYear: number,
+    carryoverLimit?: number
+): { carryover: number; updatedEmployee: Employee } {
+    const previousYear = newYear - 1;
+    const carryover = calculateYearEndCarryover(employee, ptoEntries, previousYear, carryoverLimit);
+
+    // Update employee with new carryover (previous carryover becomes the new one)
+    const updatedEmployee: Employee = {
+        ...employee,
+        carryover_hours: carryover
+    };
+
+    return { carryover, updatedEmployee };
 }

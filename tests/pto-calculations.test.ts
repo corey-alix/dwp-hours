@@ -10,6 +10,8 @@ import {
     calculateUsedPTO,
     calculateNextAccrual,
     calculateDailyRate,
+    calculateYearEndCarryover,
+    processYearEnd,
     PTOStatus,
     PTOEntry,
     Employee
@@ -185,5 +187,26 @@ describe('PTO Calculations', () => {
 
         const status = calculatePTOStatus(overUsedEmployee, excessivePTO);
         expect(status.availablePTO).toBe(0); // Should not be negative
+    });
+
+    it('should calculate year-end carryover', () => {
+        const carryover = calculateYearEndCarryover(mockEmployee, mockPTOEntries, 2024);
+        expect(carryover).toBeGreaterThan(150); // Should be substantial positive amount
+        expect(carryover).toBeLessThan(200);
+    });
+
+    it('should apply carryover limit', () => {
+        const highCarryoverEmployee: Employee = {
+            ...mockEmployee,
+            carryover_hours: 100
+        };
+        const carryover = calculateYearEndCarryover(highCarryoverEmployee, [], 2024, 50);
+        expect(carryover).toBeLessThanOrEqual(50);
+    });
+
+    it('should process year-end correctly', () => {
+        const result = processYearEnd(mockEmployee, mockPTOEntries, 2025);
+        expect(result.carryover).toBeGreaterThan(0);
+        expect(result.updatedEmployee.carryover_hours).toBe(result.carryover);
     });
 });

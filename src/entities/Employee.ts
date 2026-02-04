@@ -17,6 +17,9 @@ export class Employee {
     @Column({ type: "real", default: 0.71 })
     pto_rate!: number;
 
+    @Column({ type: "real", default: 0 })
+    carryover_hours!: number;
+
     @Column({ type: "date" })
     hire_date!: Date;
 

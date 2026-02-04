@@ -3,5 +3,5 @@
         "src"
     ],
     "ext": "ts",
-    "exec": "npm run build && node dist/server.js"
+    "exec": "npm-run-all build start:prod"
 }
