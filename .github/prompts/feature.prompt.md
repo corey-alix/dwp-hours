@@ -1,9 +1,9 @@
 ---
 description: Generate a new task file for adding a feature to the DWP Hours Tracker project, following the project's task management system.
 name: feature
-agent: edit
+agent: agent
 model: Grok Code Fast 1
-tools: [read, edit, create_file]
+tools: [read, edit, edit/createFile]
 ---
 
 # Feature Task Generator
@@ -25,7 +25,7 @@ Generate a new task file for implementing a feature in the DWP Hours Tracker pro
 
 ## Output Format
 
-Generate the complete Markdown content for a new task file. Then, use #tool:create_file to create the file at `TASKS/${input:featureName}.md` with the generated content.
+Generate the complete Markdown content for a new task file. Then, use #tool:edit/createFile to create the file at `TASKS/${input:featureName}.md` with the generated content.
 
 ## Example Generated Task File
 

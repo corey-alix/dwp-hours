@@ -30,8 +30,8 @@ Example header:
 ---
 description: Generate a React component with TypeScript
 name: react-component
-agent: edit
-tools: [run_in_terminal, read_file]
+agent: agent
+tools: [read, edit, edit/createFile]
 ---
 ```
 
