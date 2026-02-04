@@ -20,9 +20,25 @@ interface PTOEntry {
 }
 
 interface PTOStatus {
-    available: number;
-    used: number;
-    remaining: number;
+    employeeId: number;
+    hireDate: string;
+    currentDailyRate: number;
+    availablePTO: number;
+    usedPTO: number;
+    accruedThisYear: number;
+    carryoverFromPreviousYear: number;
+    nextAccrualDate: string;
+    nextAccrualAmount: number;
+    sickTime: {
+        allowed: number;
+        used: number;
+        remaining: number;
+    };
+    bereavementJuryDuty: {
+        allowed: number;
+        used: number;
+        remaining: number;
+    };
 }
 
 // API client
@@ -246,22 +262,53 @@ class UIManager {
         if (!this.currentUser) return;
 
         try {
-            // TODO: Implement PTO status calculation
-            const status: PTOStatus = {
-                available: 80,
-                used: 16,
-                remaining: 64,
-            };
+            const status: PTOStatus = await api.get(`/pto/status/${this.currentUser.id}`);
 
             const statusDiv = document.getElementById("pto-status")!;
+            const hireDate = new Date(status.hireDate).toLocaleDateString();
+            const nextAccrualDate = new Date(status.nextAccrualDate).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
             statusDiv.innerHTML = `
                 <h3>Your PTO Status</h3>
-                <p>Available: ${status.available} hours</p>
-                <p>Used: ${status.used} hours</p>
-                <p>Remaining: ${status.remaining} hours</p>
+                <div class="pto-summary">
+                    <div class="pto-section">
+                        <h4>Regular PTO</h4>
+                        <p><strong>Available:</strong> ${status.availablePTO.toFixed(2)} hours</p>
+                        <p><strong>Used:</strong> ${status.usedPTO.toFixed(2)} hours</p>
+                        <p><strong>Accrued This Year:</strong> ${status.accruedThisYear.toFixed(2)} hours</p>
+                        <p><strong>Carryover from Previous Year:</strong> ${status.carryoverFromPreviousYear.toFixed(2)} hours</p>
+                    </div>
+                    <div class="pto-section">
+                        <h4>Sick Time</h4>
+                        <p><strong>Allowed:</strong> ${status.sickTime.allowed} hours</p>
+                        <p><strong>Used:</strong> ${status.sickTime.used.toFixed(2)} hours</p>
+                        <p><strong>Remaining:</strong> ${status.sickTime.remaining.toFixed(2)} hours</p>
+                    </div>
+                    <div class="pto-section">
+                        <h4>Bereavement/Jury Duty</h4>
+                        <p><strong>Allowed:</strong> ${status.bereavementJuryDuty.allowed} hours</p>
+                        <p><strong>Used:</strong> ${status.bereavementJuryDuty.used.toFixed(2)} hours</p>
+                        <p><strong>Remaining:</strong> ${status.bereavementJuryDuty.remaining.toFixed(2)} hours</p>
+                    </div>
+                    <div class="pto-section">
+                        <h4>Employee Information</h4>
+                        <p><strong>Hire Date:</strong> ${hireDate}</p>
+                        <p><strong>Current Daily Rate:</strong> ${status.currentDailyRate.toFixed(2)} hours</p>
+                        <p><strong>Next Accrual:</strong> ${nextAccrualDate} (${status.nextAccrualAmount.toFixed(2)} hours)</p>
+                    </div>
+                </div>
             `;
         } catch (error) {
             console.error("Failed to load PTO status:", error);
+            const statusDiv = document.getElementById("pto-status")!;
+            statusDiv.innerHTML = `
+                <h3>PTO Status</h3>
+                <p>Error loading PTO status. Please try again later.</p>
+            `;
         }
     }
 }

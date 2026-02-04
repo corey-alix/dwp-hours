@@ -99,6 +99,31 @@ button[type="button"]:hover {
   color: #2c3e50;
 }
 
+.pto-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.pto-section {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 6px;
+  border-left: 4px solid #3498db;
+}
+
+.pto-section h4 {
+  margin-bottom: 1rem;
+  color: #2c3e50;
+  font-size: 1.1rem;
+}
+
+.pto-section p {
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
 /* Admin panel */
 #admin-panel {
   background: white;

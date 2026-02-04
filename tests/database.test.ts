@@ -41,8 +41,9 @@ describe('Database Schema and Persistence', () => {
                 [2, 'identifier', 'TEXT', 1, null, 0], // not null
                 [3, 'pto_rate', 'REAL', 0, '0.71', 0], // default
                 [4, 'carryover_hours', 'REAL', 0, '0', 0],
-                [5, 'role', 'TEXT', 0, "'Employee'", 0],
-                [6, 'hash', 'TEXT', 0, null, 0]
+                [5, 'hire_date', 'DATE', 1, null, 0], // not null
+                [6, 'role', 'TEXT', 0, "'Employee'", 0],
+                [7, 'hash', 'TEXT', 0, null, 0]
             ])
         );
 
@@ -78,7 +79,7 @@ describe('Database Schema and Persistence', () => {
         const { db } = await createDatabase();
 
         // Insert employee
-        db.exec("INSERT INTO employees (name, identifier) VALUES ('Test', 'T001')");
+        db.exec("INSERT INTO employees (name, identifier, hire_date) VALUES ('Test', 'T001', '2024-01-01')");
 
         // Valid foreign key should work
         db.exec("INSERT INTO pto_entries (employee_id, start_date, end_date, type, hours) VALUES (1, '2026-01-01', '2026-01-01', 'Sick', 8)");
@@ -110,9 +111,9 @@ describe('Database Schema and Persistence', () => {
 
         // Insert test data
         db.exec(`
-      INSERT INTO employees (name, identifier, pto_rate) VALUES
-      ('John Doe', 'JD001', 0.8),
-      ('Jane Smith', 'JS002', 0.7);
+      INSERT INTO employees (name, identifier, pto_rate, hire_date) VALUES
+      ('John Doe', 'JD001', 0.8, '2020-01-01'),
+      ('Jane Smith', 'JS002', 0.7, '2021-01-01');
     `);
 
         // Query data

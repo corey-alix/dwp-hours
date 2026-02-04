@@ -19,6 +19,11 @@ try {
         filebuffer = fs.readFileSync(DB_PATH);
     }
     db = new SQL.Database(filebuffer);
+
+    // Always execute schema to ensure tables exist
+    const schemaPath = path.join(__dirname, "..", "db", "schema.sql");
+    const schema = fs.readFileSync(schemaPath, "utf8");
+    db.exec(schema);
 } catch (error) {
     console.error("Failed to load database:", error);
     process.exit(1);
@@ -31,6 +36,7 @@ const seedEmployees = [
         identifier: "john.doe",
         pto_rate: 0.71,
         carryover_hours: 40,
+        hire_date: "2020-01-15",
         role: "Employee",
         hash: "test-hash-1"
     },
@@ -39,6 +45,7 @@ const seedEmployees = [
         identifier: "jane.smith",
         pto_rate: 0.71,
         carryover_hours: 25,
+        hire_date: "2021-06-01",
         role: "Employee",
         hash: "test-hash-2"
     },
@@ -47,6 +54,7 @@ const seedEmployees = [
         identifier: "admin",
         pto_rate: 0.71,
         carryover_hours: 0,
+        hire_date: "2019-03-10",
         role: "Admin",
         hash: "admin-hash"
     }
@@ -55,8 +63,8 @@ const seedEmployees = [
 try {
     // Insert seed employees
     const stmt = db.prepare(`
-    INSERT OR IGNORE INTO employees (name, identifier, pto_rate, carryover_hours, role, hash)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT OR IGNORE INTO employees (name, identifier, pto_rate, carryover_hours, hire_date, role, hash)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
 
     for (const employee of seedEmployees) {
@@ -65,6 +73,7 @@ try {
             employee.identifier,
             employee.pto_rate,
             employee.carryover_hours,
+            employee.hire_date,
             employee.role,
             employee.hash
         ]);

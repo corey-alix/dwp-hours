@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS employees (
   identifier TEXT UNIQUE NOT NULL,
   pto_rate REAL DEFAULT 0.71,
   carryover_hours REAL DEFAULT 0,
+  hire_date DATE NOT NULL,
   role TEXT DEFAULT 'Employee',
   hash TEXT
 );

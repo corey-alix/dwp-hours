@@ -10,6 +10,7 @@ import crypto from "crypto";
 import "reflect-metadata";
 import { DataSource, Not, IsNull } from "typeorm";
 import { Employee, PtoEntry, MonthlyHours, Acknowledgement } from "./entities/index.js";
+import { calculatePTOStatus } from "./ptoCalculations.js";
 
 dotenv.config();
 
@@ -151,6 +152,41 @@ initDatabase().then(() => {
             res.json({ publicHash: validEmployee.hash, employee: { id: validEmployee.id, name: validEmployee.name, role: validEmployee.role } });
         } catch (error) {
             log(`Error validating token: ${error}`);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    });
+
+    // PTO Status endpoint
+    app.get('/api/pto/status/:employeeId', async (req, res) => {
+        try {
+            const { employeeId } = req.params;
+            const employeeIdNum = parseInt(employeeId);
+
+            if (isNaN(employeeIdNum)) {
+                return res.status(400).json({ error: 'Invalid employee ID' });
+            }
+
+            const employeeRepo = dataSource.getRepository(Employee);
+            const ptoEntryRepo = dataSource.getRepository(PtoEntry);
+
+            // Get employee data
+            const employee = await employeeRepo.findOne({ where: { id: employeeIdNum } });
+            if (!employee) {
+                return res.status(404).json({ error: 'Employee not found' });
+            }
+
+            // Get all PTO entries for the employee
+            const ptoEntries = await ptoEntryRepo.find({
+                where: { employee_id: employeeIdNum },
+                order: { created_at: 'DESC' }
+            });
+
+            // Calculate PTO status
+            const ptoStatus = calculatePTOStatus(employee, ptoEntries);
+
+            res.json(ptoStatus);
+        } catch (error) {
+            log(`Error getting PTO status: ${error}`);
             res.status(500).json({ error: 'Internal server error' });
         }
     });
