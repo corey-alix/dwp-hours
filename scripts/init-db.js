@@ -1,40 +1,42 @@
-const sqlite3 = require('sqlite3').verbose();
-const fs = require('fs');
-const path = require('path');
+const Database = require("better-sqlite3");
+const fs = require("fs");
+const path = require("path");
 
 // Database file path
-const DB_PATH = path.join(__dirname, '..', 'db', 'dwp-hours.db');
+const DB_PATH = path.join(__dirname, "..", "db", "dwp-hours.db");
 
 // Create database directory if it doesn't exist
 const dbDir = path.dirname(DB_PATH);
 if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
+    fs.mkdirSync(dbDir, { recursive: true });
 }
 
 // Initialize database
-const db = new sqlite3.Database(DB_PATH, (err) => {
-  if (err) {
-    console.error('Error opening database:', err.message);
+let db;
+try {
+    db = new Database(DB_PATH);
+    console.log("Connected to SQLite database.");
+} catch (error) {
+    console.error("Error opening database:", error.message);
     process.exit(1);
-  }
-  console.log('Connected to SQLite database.');
-});
+}
 
 // Read and execute schema
-const schemaPath = path.join(__dirname, 'schema.sql');
-const schema = fs.readFileSync(schemaPath, 'utf8');
+const schemaPath = path.join(__dirname, "..", "db", "schema.sql");
+const schema = fs.readFileSync(schemaPath, "utf8");
 
-db.exec(schema, (err) => {
-  if (err) {
-    console.error('Error creating tables:', err.message);
+try {
+    db.exec(schema);
+    console.log("Database schema created successfully.");
+} catch (error) {
+    console.error("Error creating tables:", error.message);
     process.exit(1);
-  }
-  console.log('Database schema created successfully.');
-  db.close((err) => {
+}
+
+db.close((err) => {
     if (err) {
-      console.error('Error closing database:', err.message);
+        console.error("Error closing database:", err.message);
     } else {
-      console.log('Database connection closed.');
+        console.log("Database connection closed.");
     }
-  });
 });
