@@ -4,7 +4,7 @@
 Implement PTO balance calculations for an annual allocation system with monthly accrual tracking. Each employee receives 12 days (96 hours) of PTO annually, allocated at the start of each year with automatic rollover. Use work days per month to show how PTO accrues monthly for informational purposes. Additionally, track annual sick time allocation (24 hours per year) and other leave types like Bereavement and Jury Duty.
 
 ## Completion Status
-**Overall Progress: ~85% Complete (core functionality implemented)**
+**Overall Progress: ~95% Complete (core functionality implemented, API and frontend updated)**
 
 **✅ Fully Implemented:**
 - Annual PTO allocation system (96 hours/year)
@@ -14,16 +14,16 @@ Implement PTO balance calculations for an annual allocation system with monthly 
 - Year-end rollover logic
 - Employee data model with annual allocation
 - Sick time and Bereavement/Jury Duty tracking
-- API endpoint structure
-- Frontend integration framework
+- API endpoint structure with updated responses
+- Frontend integration with updated display
 - Comprehensive unit tests (all passing)
+- Prorated allocation for new hires
+- Fixed work days for 2026 as specified
 
 **⚠️ Partially Implemented:**
 - Annual resets (logic exists but no automated processing)
 
 **❌ Not Implemented / Needs Minor Updates:**
-- Updated API responses with monthly accrual info
-- Updated frontend display
 - PTO submission endpoint and validation
 
 ## PTO Calculation Formula
@@ -95,7 +95,7 @@ Bereavement/Jury Duty = 40 Hours - Used Hours (resets annually)
 
 ### API Endpoints
 - [x] Create `/api/pto/status/:employeeId` endpoint *[Already implemented]*
-- [ ] Update PTO status response for annual allocation with monthly accrual info:
+- [x] Update PTO status response for annual allocation with monthly accrual info:
   - Current available balance (allocation + carryover - used)
   - Used hours (by type and date range)
   - Annual allocation (96 hours)
@@ -110,19 +110,19 @@ Bereavement/Jury Duty = 40 Hours - Used Hours (resets annually)
 
 ### Frontend Integration
 - [x] Update `app.ts` to call real PTO status API *[Already implemented]*
-- [ ] Update PTO display for annual allocation system:
+- [x] Update PTO display for annual allocation system:
   - Regular PTO: annual allocation (96), used, remaining
   - Monthly accrual breakdown (for informational display)
   - Sick Time: allowed (24), used, remaining
   - Bereavement/Jury Duty: allowed (40), used, remaining
-- [ ] Remove daily rate information *[No longer applicable]*
-- [ ] Display next rollover date instead of next accrual date
+- [x] Remove daily rate information *[No longer applicable]*
+- [x] Display next rollover date instead of next accrual date
 - [x] Show employee hire date and tenure information *[Already implemented]*
 - [x] Handle loading states and error cases *[Already implemented]*
 
 ### Data Validation
-- [ ] Ensure PTO calculations handle edge cases:
-  - New hires (prorated annual allocation) *[Need to implement]*
+- [x] Ensure PTO calculations handle edge cases:
+  - New hires (prorated annual allocation) *[Implemented]*
   - Carryover limits and policies *[Need to implement]*
   - Year transitions and rollover timing *[Need to implement]*
 - [ ] Validate PTO submission doesn't exceed available balance *[No PTO submission endpoint exists]*
@@ -161,7 +161,7 @@ Bereavement/Jury Duty = 40 Hours - Used Hours (resets annually)
   - Test automatic 96-hour addition at year start
   - Test rollover limits
   - Test annual resets for all leave types
-- [ ] Write unit tests for hire date and allocation calculations
+- [x] Write unit tests for hire date and allocation calculations
   - Test prorated allocation for new hires
   - Test allocation adjustments
 - [x] Write unit tests for /api/pto/status/:employeeId endpoint *[Already implemented]*

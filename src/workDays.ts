@@ -57,6 +57,12 @@ export function getWorkDays(year: number, month: number): number {
     if (month < 1 || month > 12) {
         throw new Error(`Invalid month: ${month}. Must be 1-12.`);
     }
+
+    // Use fixed values for 2026 as specified in requirements
+    if (year === 2026) {
+        return WORK_DAYS_TEMPLATE[month];
+    }
+
     // For other years, calculate dynamically (raw weekdays, no holiday adjustment)
     return calculateWorkDaysInMonth(year, month);
 }

@@ -11,14 +11,14 @@ This document outlines all remaining tasks to complete the DWP Hours Tracker app
 3. **[pto-calculations.md](pto-calculations.md)** - PTO status calculations
 4. **[api-endpoints.md](api-endpoints.md)** - Complete API endpoints
 
-### 🟡 Medium Priority (Core Features)
-5. **[admin-panel.md](admin-panel.md)** - Admin panel functionality
-6. **[admin-review-acknowledgment.md](admin-review-acknowledgment.md)** - Admin review acknowledgment
-7. **[testing-suite.md](testing-suite.md)** - Testing implementation
+### 🟡 Medium Priority (Backend/API Core Features)
+5. **[testing-suite.md](testing-suite.md)** - Testing implementation
+6. **[data-migration.md](data-migration.md)** - Legacy data migration
+7. **[security-production.md](security-production.md)** - Security & production features
 
-### 🟢 Low Priority (Polish & Production)
-8. **[data-migration.md](data-migration.md)** - Legacy data migration
-9. **[security-production.md](security-production.md)** - Security & production features
+### 🟢 Low Priority (Frontend/UI Features)
+8. **[admin-panel.md](admin-panel.md)** - Admin panel functionality
+9. **[admin-review-acknowledgment.md](admin-review-acknowledgment.md)** - Admin review acknowledgment
 
 ## Task Dependencies
 
@@ -27,11 +27,11 @@ database-schema.md
 ├── authentication.md
 ├── pto-calculations.md
 └── api-endpoints.md
-    ├── admin-panel.md
-        └── admin-review-acknowledgment.md
     ├── testing-suite.md
     ├── data-migration.md
-    └── security-production.md
+    ├── security-production.md
+    ├── admin-panel.md
+    └── admin-review-acknowledgment.md
 ```
 
 ## Current Status Summary
@@ -45,18 +45,22 @@ database-schema.md
 - TypeScript compilation and linting
 - Database schema implementation
 - Authentication system implementation
+- PTO calculations and status logic
+- Complete API endpoints implementation
 
 ### 🚧 In Progress
-- PTO calculations (hardcoded values)
-- Admin panel (placeholder UI)
+- Testing suite implementation
+- Data migration tools
+- Security hardening
 
 ### ❌ Not Started
-- Testing suite
-- Data migration
-- Security hardening
+- Admin panel UI
+- Admin review acknowledgment UI
 - Production deployment
 
 ## Implementation Guidelines
+
+**Priority Focus: Backend/API First** - Complete all backend and API functionality before implementing frontend features. This ensures a solid foundation and API contract before building user interfaces.
 
 ### Task Completion Criteria
 - [ ] All checklist items completed
@@ -82,13 +86,13 @@ database-schema.md
 
 1. ✅ **database-schema.md** - foundation completed
 2. ✅ **authentication.md** - secure access implemented
-3. Implement **pto-calculations.md** - core business logic
-4. Complete **api-endpoints.md** - backend functionality
-5. Build **admin-panel.md** - admin features
-6. Implement **admin-review-acknowledgment.md** - admin review acknowledgment
-7. Add **testing-suite.md** - quality assurance
-8. Handle **data-migration.md** - data transition
-9. Finish with **security-production.md** - production readiness
+3. ✅ **pto-calculations.md** - core business logic completed
+4. ✅ **api-endpoints.md** - backend functionality completed
+5. Implement **testing-suite.md** - comprehensive testing
+6. Handle **data-migration.md** - legacy data transition
+7. Finish **security-production.md** - production readiness
+8. Build **admin-panel.md** - admin UI features
+9. Implement **admin-review-acknowledgment.md** - admin review UI
 
 Each task file contains detailed checklists for implementation steps.</content>
 <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/TASKS/README.md

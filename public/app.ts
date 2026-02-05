@@ -33,7 +33,17 @@ interface PTOStatus {
         used: number;
         remaining: number;
     };
-    bereavementJuryDuty: {
+    ptoTime: {
+        allowed: number;
+        used: number;
+        remaining: number;
+    };
+    bereavementTime: {
+        allowed: number;
+        used: number;
+        remaining: number;
+    };
+    juryDutyTime: {
         allowed: number;
         used: number;
         remaining: number;
@@ -298,10 +308,16 @@ class UIManager {
                         <p><strong>Remaining:</strong> ${status.sickTime.remaining.toFixed(2)} hours</p>
                     </div>
                     <div class="pto-section">
-                        <h4>Bereavement/Jury Duty</h4>
-                        <p><strong>Allowed:</strong> ${status.bereavementJuryDuty.allowed} hours</p>
-                        <p><strong>Used:</strong> ${status.bereavementJuryDuty.used.toFixed(2)} hours</p>
-                        <p><strong>Remaining:</strong> ${status.bereavementJuryDuty.remaining.toFixed(2)} hours</p>
+                        <h4>Bereavement</h4>
+                        <p><strong>Allowed:</strong> ${status.bereavementTime.allowed} hours</p>
+                        <p><strong>Used:</strong> ${status.bereavementTime.used.toFixed(2)} hours</p>
+                        <p><strong>Remaining:</strong> ${status.bereavementTime.remaining.toFixed(2)} hours</p>
+                    </div>
+                    <div class="pto-section">
+                        <h4>Jury Duty</h4>
+                        <p><strong>Allowed:</strong> ${status.juryDutyTime.allowed} hours</p>
+                        <p><strong>Used:</strong> ${status.juryDutyTime.used.toFixed(2)} hours</p>
+                        <p><strong>Remaining:</strong> ${status.juryDutyTime.remaining.toFixed(2)} hours</p>
                     </div>
                     <div class="pto-section">
                         <h4>Employee Information</h4>
