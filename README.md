@@ -182,6 +182,47 @@ addEventListener(button, 'click', handler);
 
 This approach ensures reliable DOM interactions, easier debugging during development, and consistent error handling patterns throughout the codebase.
 
+## Notification System
+
+This project uses a lightweight bespoke notification/toaster system to provide user feedback without blocking the UI or interfering with automated testing. All `alert()` calls have been replaced with toast notifications that:
+
+- **Non-blocking**: Don't interrupt user workflow or testing
+- **Auto-dismiss**: Automatically disappear after 5 seconds (configurable)
+- **Type-safe**: Support success, error, info, and warning types
+- **Accessible**: Include close buttons and proper ARIA attributes
+- **Test-friendly**: Don't interfere with Playwright or other testing frameworks
+
+**Key Features:**
+
+- **Toast Types**: `success`, `error`, `info`, `warning` with color-coded styling
+- **Auto-dismiss**: Configurable duration (default 5 seconds)
+- **Manual close**: Click the × button to dismiss immediately
+- **Smooth animations**: Slide-in and fade-out effects
+- **Stacking**: Multiple notifications stack vertically in top-right corner
+
+**Usage Examples:**
+```typescript
+// Success notification
+notifications.success('PTO submitted successfully!');
+
+// Error notification with title
+notifications.error('Failed to submit PTO. Please try again.', 'Submission Error');
+
+// Info notification with custom duration
+notifications.info('Feature coming soon!', undefined, 3000);
+
+// Warning notification
+notifications.warning('Session will expire in 5 minutes.');
+```
+
+**Implementation Details:**
+- **CSS Classes**: `.notification-toast`, `.notification-success`, `.notification-error`, etc.
+- **Animation**: CSS transitions with `slideIn` keyframe
+- **Positioning**: Fixed position in top-right corner with z-index 1000
+- **Accessibility**: Proper contrast ratios and keyboard navigation support
+
+This system ensures a smooth user experience and reliable automated testing without modal interruptions.
+
 ## Getting Started
 
 ### Prerequisites

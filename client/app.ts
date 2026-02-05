@@ -89,6 +89,87 @@ class APIClient {
 
 const api = (window as any).api || new APIClient();
 
+// Notification/Toast System
+class NotificationManager {
+    private container: HTMLElement | null = null;
+
+    constructor() {
+        this.createContainer();
+    }
+
+    private createContainer(): void {
+        this.container = document.createElement('div');
+        this.container.className = 'notifications-container';
+        document.body.appendChild(this.container);
+    }
+
+    show(message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info', title?: string, duration: number = 5000): void {
+        const toast = document.createElement('div');
+        toast.className = `notification-toast ${type}`;
+
+        const content = document.createElement('div');
+        content.className = 'notification-content';
+
+        if (title) {
+            const titleElement = document.createElement('div');
+            titleElement.className = 'notification-title';
+            titleElement.textContent = title;
+            content.appendChild(titleElement);
+        }
+
+        const messageElement = document.createElement('div');
+        messageElement.className = 'notification-message';
+        messageElement.textContent = message;
+        content.appendChild(messageElement);
+
+        const closeButton = document.createElement('button');
+        closeButton.className = 'notification-close';
+        closeButton.innerHTML = '×';
+        closeButton.onclick = () => this.removeToast(toast);
+
+        toast.appendChild(content);
+        toast.appendChild(closeButton);
+        if (this.container) {
+            this.container.appendChild(toast);
+        }
+
+        // Trigger animation
+        setTimeout(() => toast.classList.add('show'), 10);
+
+        // Auto-dismiss
+        if (duration > 0) {
+            setTimeout(() => this.removeToast(toast), duration);
+        }
+    }
+
+    success(message: string, title?: string, duration?: number): void {
+        this.show(message, 'success', title, duration);
+    }
+
+    error(message: string, title?: string, duration?: number): void {
+        this.show(message, 'error', title, duration);
+    }
+
+    info(message: string, title?: string, duration?: number): void {
+        this.show(message, 'info', title, duration);
+    }
+
+    warning(message: string, title?: string, duration?: number): void {
+        this.show(message, 'warning', title, duration);
+    }
+
+    private removeToast(toast: HTMLElement): void {
+        toast.classList.add('fade-out');
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 300);
+    }
+}
+
+const notifications = new NotificationManager();
+
 // UI Manager
 class UIManager {
     private currentUser: Employee | null = null;
@@ -119,7 +200,8 @@ class UIManager {
                 window.history.replaceState({}, document.title, window.location.pathname);
                 return;
             } catch (error) {
-                alert('Invalid or expired magic link.');
+                console.error('Auth validation failed:', error);
+                notifications.error('Invalid or expired magic link. Please request a new one.');
             }
         }
 
@@ -172,6 +254,14 @@ class UIManager {
         // Navigation
         const newPTOBtn = getElementById<HTMLButtonElement>("new-pto-btn");
         addEventListener(newPTOBtn, "click", () => this.showPTOForm());
+
+        // PTO Request Mode Toggle (only if it exists - for test.html compatibility)
+        try {
+            const toggleRequestModeBtn = getElementById<HTMLButtonElement>("toggle-pto-request-mode");
+            addEventListener(toggleRequestModeBtn, "click", () => this.togglePTORequestMode());
+        } catch (error) {
+            // Element doesn't exist in test environment, skip
+        }
 
         // Admin buttons (only if they exist - for test.html compatibility)
         try {
@@ -237,7 +327,8 @@ class UIManager {
                 messageDiv.appendChild(linkWrapper);
             }
         } catch (error) {
-            alert("Failed to send magic link. Please try again.");
+            console.error('Failed to send magic link:', error);
+            notifications.error('Failed to send magic link. Please try again.');
         }
     }
 
@@ -265,11 +356,12 @@ class UIManager {
                 hours,
             });
 
-            alert("PTO submitted successfully!");
+            notifications.success('PTO submitted successfully!');
             this.showDashboard();
             await this.loadPTOStatus();
         } catch (error) {
-            alert("Failed to submit PTO. Please try again.");
+            console.error('Failed to submit PTO:', error);
+            notifications.error('Failed to submit PTO. Please try again.');
         }
     }
 
@@ -293,31 +385,43 @@ class UIManager {
         getElementById("pto-form").classList.remove("hidden");
     }
 
+    private togglePTORequestMode(): void {
+        const accrualCard = document.querySelector('pto-accrual-card') as any;
+        if (accrualCard) {
+            const currentMode = accrualCard.getAttribute('request-mode') === 'true';
+            accrualCard.setAttribute('request-mode', (!currentMode).toString());
+
+            // Update button text
+            const button = getElementById("toggle-pto-request-mode");
+            button.textContent = currentMode ? 'Submit PTO Requests' : 'View PTO Status';
+        }
+    }
+
     private showEmployeeManagement(): void {
         // TODO: Implement employee management UI
-        alert("Employee management coming soon!");
+        notifications.info('Employee management feature coming soon!');
     }
 
     private showReports(): void {
         // TODO: Implement reports UI
-        alert("Reports coming soon!");
+        notifications.info('Reports feature coming soon!');
     }
 
     private handleAddEmployee(): void {
         // TODO: Implement add employee dialog
-        alert("Add employee coming soon!");
+        notifications.info('Add employee feature coming soon!');
     }
 
     private handleEditEmployee(employeeId: number): void {
         // TODO: Implement edit employee dialog
-        alert(`Edit employee ${employeeId} coming soon!`);
+        notifications.info(`Edit employee ${employeeId} feature coming soon!`);
     }
 
     private handleDeleteEmployee(employeeId: number): void {
         // TODO: Implement delete employee confirmation
         if (confirm(`Are you sure you want to delete employee ${employeeId}?`)) {
             // TODO: Call API to delete
-            alert(`Delete employee ${employeeId} coming soon!`);
+            notifications.info(`Delete employee ${employeeId} feature coming soon!`);
         }
     }
 
@@ -332,7 +436,7 @@ class UIManager {
     private async submitAdminAcknowledgment(employeeId: number, month: string): Promise<void> {
         try {
             if (!this.currentUser) {
-                alert("Not logged in");
+                notifications.error('You must be logged in to perform this action.');
                 return;
             }
             const response = await api.post('/admin-acknowledgements', {
@@ -340,10 +444,10 @@ class UIManager {
                 month,
                 adminId: this.currentUser.id
             });
-            alert(response.message);
+            notifications.success(response.message || 'Acknowledgment submitted successfully.');
         } catch (error: any) {
             console.error("Failed to submit admin acknowledgment:", error);
-            alert("Failed to submit acknowledgment: " + (error.message || "Unknown error"));
+            notifications.error("Failed to submit acknowledgment: " + (error.message || "Unknown error"));
         }
     }
 
@@ -390,6 +494,8 @@ class UIManager {
             accrualCard.calendar = calendarData;
             accrualCard.calendarYear = new Date().getFullYear();
             accrualCard.monthlyUsage = this.buildMonthlyUsage(entries, new Date().getFullYear());
+            accrualCard.setAttribute('request-mode', 'true'); // Enable calendar editing
+            accrualCard.setAttribute('annual-allocation', status.annualAllocation.toString());
 
             const sickCard = document.createElement('pto-sick-card') as any;
             sickCard.bucket = status.sickTime;
@@ -552,12 +658,12 @@ class UIManager {
 
     private async handlePtoRequestSubmit(requests: CalendarEntry[]): Promise<void> {
         if (!this.currentUser) {
-            alert('You must be logged in to submit PTO requests');
+            notifications.error('You must be logged in to submit PTO requests.');
             return;
         }
 
         try {
-            // Submit each request
+            // Submit each request to real API
             for (const request of requests) {
                 await api.post('/pto', {
                     employeeId: this.currentUser.id,
@@ -568,14 +674,94 @@ class UIManager {
                 });
             }
 
-            alert(`Successfully submitted ${requests.length} PTO request(s)!`);
+            notifications.success(`Successfully submitted ${requests.length} PTO request(s)!`);
 
-            // Reload PTO status to reflect changes
-            await this.loadPTOStatus();
+            // Critical: Refresh all PTO data and re-render components
+            await this.refreshPTOData();
+
         } catch (error) {
             console.error('Error submitting PTO request:', error);
-            alert('Failed to submit PTO request. Please try again.');
+            notifications.error('Failed to submit PTO request. Please try again.');
         }
+    }
+
+    private async refreshPTOData(): Promise<void> {
+        if (!this.currentUser) return;
+
+        try {
+            // Re-query PTO status from server
+            const status: PTOStatus = await api.get(`/pto/status/${this.currentUser.id}`);
+            const entries = await api.get(`/pto?employeeId=${this.currentUser.id}`);
+            const calendarData = this.buildCalendarData(entries, new Date().getFullYear());
+
+            // Re-render all PTO components with fresh data
+            await this.renderPTOStatus(status, entries, calendarData);
+
+        } catch (error) {
+            console.error("Failed to refresh PTO data:", error);
+            notifications.error("Failed to refresh PTO data. Please refresh the page.");
+        }
+    }
+
+    private async renderPTOStatus(status: PTOStatus, entries: any[], calendarData: CalendarData): Promise<void> {
+        // Re-render the entire PTO status section with fresh data
+        const statusDiv = getElementById("pto-status");
+
+        // Clear existing content
+        statusDiv.innerHTML = '';
+
+        // Re-create all PTO components with fresh data
+        const summaryContainer = statusDiv.querySelector('.pto-summary') as HTMLElement;
+
+        const summaryCard = document.createElement('pto-summary-card') as any;
+        summaryCard.summary = {
+            annualAllocation: status.annualAllocation,
+            availablePTO: status.availablePTO,
+            usedPTO: status.usedPTO,
+            carryoverFromPreviousYear: status.carryoverFromPreviousYear
+        };
+
+        const accrualCard = document.createElement('pto-accrual-card') as any;
+        accrualCard.monthlyAccruals = status.monthlyAccruals;
+        accrualCard.calendar = calendarData;
+        accrualCard.calendarYear = new Date().getFullYear();
+        accrualCard.monthlyUsage = this.buildMonthlyUsage(entries, new Date().getFullYear());
+        accrualCard.setAttribute('request-mode', 'true');
+        accrualCard.setAttribute('annual-allocation', status.annualAllocation.toString());
+
+        const sickCard = document.createElement('pto-sick-card') as any;
+        sickCard.bucket = status.sickTime;
+        sickCard.usageEntries = this.buildUsageEntries(entries, new Date().getFullYear(), 'Sick');
+
+        const bereavementCard = document.createElement('pto-bereavement-card') as any;
+        bereavementCard.bucket = status.bereavementTime;
+        bereavementCard.usageEntries = this.buildUsageEntries(entries, new Date().getFullYear(), 'Bereavement');
+
+        const juryDutyCard = document.createElement('pto-jury-duty-card') as any;
+        juryDutyCard.bucket = status.juryDutyTime;
+        juryDutyCard.usageEntries = this.buildUsageEntries(entries, new Date().getFullYear(), 'Jury Duty');
+
+        const employeeInfoCard = document.createElement('pto-employee-info-card') as any;
+        employeeInfoCard.info = {
+            hireDate: new Date(status.hireDate).toLocaleDateString(), nextRolloverDate: new Date(status.nextRolloverDate).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            })
+        };
+
+        summaryContainer.appendChild(summaryCard);
+        summaryContainer.appendChild(accrualCard);
+        summaryContainer.appendChild(sickCard);
+        summaryContainer.appendChild(bereavementCard);
+        summaryContainer.appendChild(juryDutyCard);
+        summaryContainer.appendChild(employeeInfoCard);
+
+        // Re-attach event listeners for the newly created components
+        accrualCard.addEventListener('pto-request-submit', (e: any) => {
+            e.stopPropagation();
+            this.handlePtoRequestSubmit(e.detail.requests);
+        });
     }
 }
 
