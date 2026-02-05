@@ -78,7 +78,10 @@
 
         // Mock submission handler
         function handlePtoRequestSubmit(event) {
+            console.log('PTO Request Submit Event Received:', event);
+            console.log('Event detail:', event.detail);
             const { requests } = event.detail;
+            console.log('Requests:', requests);
             const logElement = document.getElementById('submission-log');
 
             const timestamp = new Date().toLocaleTimeString();
@@ -102,6 +105,7 @@ Total Requests: ${requests.length}
 
         // Listen for PTO request submissions from the accrual card
         document.addEventListener('pto-request-submit', handlePtoRequestSubmit);
+        console.log('Event listener added for pto-request-submit');
 
         // Add some helpful logging for testing
         console.log('PTO Request Test Page Loaded');

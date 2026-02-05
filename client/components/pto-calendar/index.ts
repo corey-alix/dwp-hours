@@ -122,7 +122,9 @@ export class PtoCalendar extends HTMLElement {
 
     submitRequest() {
         const requests = this.getSelectedRequests();
+        console.log('PtoCalendar.submitRequest called, requests:', requests);
         if (requests.length === 0) {
+            console.log('No requests to submit');
             return;
         }
 
@@ -131,6 +133,7 @@ export class PtoCalendar extends HTMLElement {
             bubbles: true,
             composed: true
         });
+        console.log('Dispatching pto-request-submit event from pto-calendar:', event);
         this.dispatchEvent(event);
     }
 
@@ -362,6 +365,18 @@ export class PtoCalendar extends HTMLElement {
 
     private attachEventListeners() {
         if (this.readonly) return;
+
+        // Submit button clicks (handle slotted submit button)
+        const submitSlot = this.shadow.querySelector('.submit-slot');
+        if (submitSlot) {
+            submitSlot.addEventListener('click', (e) => {
+                const target = e.target as HTMLElement;
+                if (target.tagName === 'BUTTON' && target.textContent === 'Submit PTO Request') {
+                    e.preventDefault();
+                    this.submitRequest();
+                }
+            });
+        }
 
         // Legend item clicks
         const legendItems = this.shadow.querySelectorAll('.legend-item.clickable');

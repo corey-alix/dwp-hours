@@ -288,6 +288,7 @@ export class PtoAccrualCard extends PtoSectionCard {
         const calendar = this.shadow.querySelector('pto-calendar') as any;
         if (calendar) {
             calendar.addEventListener('pto-request-submit', (e: any) => {
+                console.log('PtoAccrualCard received pto-request-submit event from calendar:', e.detail);
                 e.stopPropagation();
                 this.handlePtoRequestSubmit(e.detail.requests);
             });
@@ -295,6 +296,7 @@ export class PtoAccrualCard extends PtoSectionCard {
     }
 
     private async handlePtoRequestSubmit(requests: CalendarEntry[]) {
+        console.log('PtoAccrualCard.handlePtoRequestSubmit called with requests:', requests);
         try {
             // Dispatch event to parent component for API submission
             const event = new CustomEvent('pto-request-submit', {
@@ -302,6 +304,7 @@ export class PtoAccrualCard extends PtoSectionCard {
                 bubbles: true,
                 composed: true
             });
+            console.log('PtoAccrualCard dispatching pto-request-submit event:', event);
             this.dispatchEvent(event);
         } catch (error) {
             console.error('Error submitting PTO request:', error);
