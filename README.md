@@ -50,6 +50,38 @@ The system ensures accurate tracking per employee with individual rates and carr
 #### Confirmation Dialogs
 ![Confirmation Dialog](assets/confirmation-dialog-component.png)
 
+### PTO Dashboard Components
+
+#### PTO Summary Card
+![PTO Summary Card](assets/pto-summary-card-component.png)
+
+*Displays overall PTO allocation and usage summary.*
+
+#### PTO Accrual Card
+![PTO Accrual Card](assets/pto-accrual-card-component.png)
+
+*Shows monthly PTO accruals with interactive calendar views for detailed usage.*
+
+#### PTO Sick Card
+![PTO Sick Card](assets/pto-sick-card-component.png)
+
+*Tracks sick time allocation, usage, and remaining balance.*
+
+#### PTO Bereavement Card
+![PTO Bereavement Card](assets/pto-bereavement-card-component.png)
+
+*Manages bereavement time with date-specific entries.*
+
+#### PTO Jury Duty Card
+![PTO Jury Duty Card](assets/pto-jury-duty-card-component.png)
+
+*Handles jury duty time tracking and reporting.*
+
+#### PTO Employee Info Card
+![PTO Employee Info Card](assets/pto-employee-info-card-component.png)
+
+*Displays employee information and PTO rate details.*
+
 ## Features
 
 - **Secure Authentication**: Passwordless magic link authentication system

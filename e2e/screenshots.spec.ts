@@ -83,3 +83,39 @@ test('report-generator component screenshot', async ({ page }) => {
     await page.waitForSelector('#test-output', { timeout: 10000 });
     await page.screenshot({ path: 'assets/report-generator-component.png', fullPage: true });
 });
+
+test('pto-summary-card component screenshot', async ({ page }) => {
+    await page.goto('http://localhost:3000/components/pto-summary-card/test.html');
+    await page.waitForSelector('#test-output', { timeout: 10000 });
+    await page.screenshot({ path: 'assets/pto-summary-card-component.png', fullPage: true });
+});
+
+test('pto-accrual-card component screenshot', async ({ page }) => {
+    await page.goto('http://localhost:3000/components/pto-accrual-card/test.html');
+    await page.waitForSelector('#test-output', { timeout: 10000 });
+    await page.screenshot({ path: 'assets/pto-accrual-card-component.png', fullPage: true });
+});
+
+test('pto-sick-card component screenshot', async ({ page }) => {
+    await page.goto('http://localhost:3000/components/pto-sick-card/test.html');
+    await page.waitForSelector('#test-output', { timeout: 10000 });
+    await page.screenshot({ path: 'assets/pto-sick-card-component.png', fullPage: true });
+});
+
+test('pto-bereavement-card component screenshot', async ({ page }) => {
+    await page.goto('http://localhost:3000/components/pto-bereavement-card/test.html');
+    await page.waitForSelector('#test-output', { timeout: 10000 });
+    await page.screenshot({ path: 'assets/pto-bereavement-card-component.png', fullPage: true });
+});
+
+test('pto-jury-duty-card component screenshot', async ({ page }) => {
+    await page.goto('http://localhost:3000/components/pto-jury-duty-card/test.html');
+    await page.waitForSelector('#test-output', { timeout: 10000 });
+    await page.screenshot({ path: 'assets/pto-jury-duty-card-component.png', fullPage: true });
+});
+
+test('pto-employee-info-card component screenshot', async ({ page }) => {
+    await page.goto('http://localhost:3000/components/pto-employee-info-card/test.html');
+    await page.waitForSelector('#test-output', { timeout: 10000 });
+    await page.screenshot({ path: 'assets/pto-employee-info-card-component.png', fullPage: true });
+});
