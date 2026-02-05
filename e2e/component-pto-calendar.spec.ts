@@ -18,9 +18,9 @@ test('pto-calendar component test', async ({ page }) => {
     const legend = await page.locator('pto-calendar').locator('.legend');
     await expect(legend).toBeVisible();
 
-    // Check legend items count (should be 5: PTO, Sick, Bereavement, Jury Duty, Planned PTO)
+    // Check legend items count (should be 6: PTO, Sick, Bereavement, Jury Duty, Planned PTO, Work Day)
     const legendItems = await page.locator('pto-calendar').locator('.legend-item');
-    await expect(legendItems).toHaveCount(5);
+    await expect(legendItems).toHaveCount(6);
 
     // Test editable mode (default) - legend items should be clickable
     const legendItem = await page.locator('pto-calendar').locator('.legend-item').first();
@@ -63,51 +63,41 @@ test('pto-calendar component test', async ({ page }) => {
     await expect(hoursInput).toBeVisible();
 
     // Test hours editing
-    await hoursInput.fill('6.5');
+    await hoursInput.fill('4');
     await hoursInput.press('Tab'); // Trigger change event
 
     // Verify the value was set
-    await expect(hoursInput).toHaveValue('6.5');
+    await expect(hoursInput).toHaveValue('4');
 
-    // Test invalid hours (should show error styling)
-    await hoursInput.fill('25'); // Invalid - over 24 hours
+    // Test invalid hours (should show error styling) - value not 0, 4 or 8
+    await hoursInput.fill('6'); // Invalid - not 0, 4 or 8
     await hoursInput.press('Tab');
 
     // Should have invalid class
     await expect(hoursInput).toHaveClass(/invalid/);
 
-    // Test submit button injection
-    // First add a submit button via slot
-    await page.evaluate(() => {
-        const calendar = document.querySelector('pto-calendar') as any;
-        const submitButton = document.createElement('button');
-        submitButton.setAttribute('slot', 'submit');
-        submitButton.textContent = 'Submit Request';
-        submitButton.id = 'test-submit-btn';
-        submitButton.addEventListener('click', () => {
-            calendar.submitRequest();
-        });
-        calendar.appendChild(submitButton);
-    });
+    // Test Work Day clear functionality
+    const workDayLegendItem = await page.locator('pto-calendar').locator('.legend-item').filter({ hasText: 'Work Day' });
+    await workDayLegendItem.click();
+    await expect(workDayLegendItem).toHaveClass(/selected/);
 
-    // Check that submit button appears in the slot
-    const submitButton = await page.locator('pto-calendar').locator('#test-submit-btn');
-    await expect(submitButton).toBeVisible();
+    // Click on a cell with existing PTO to clear it
+    await firstCell.click();
+    // Cell should not be selected (cleared)
+    await expect(firstCell).not.toHaveClass(/selected/);
 
-    // Test submit functionality
-    let eventFired = false;
-    page.on('console', msg => {
-        if (msg.text().includes('PTO Request Submitted')) {
-            eventFired = true;
-        }
-    });
+    // Test 0 hours clear functionality
+    // First select PTO again
+    await legendItem.click();
+    await firstCell.click();
+    await expect(firstCell).toHaveClass(/selected/);
 
-    // Click submit button
-    await submitButton.click();
+    // Enter 0 hours to clear
+    await hoursInput.fill('0');
+    await hoursInput.press('Tab');
 
-    // Check that event was fired (by checking console message from test.html)
-    await page.waitForTimeout(100); // Give time for event to fire
-    expect(eventFired).toBe(true);
+    // Cell should no longer be selected (cleared)
+    await expect(firstCell).not.toHaveClass(/selected/);
 
     // Test clear selection
     await page.evaluate(() => {

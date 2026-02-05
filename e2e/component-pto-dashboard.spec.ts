@@ -34,28 +34,28 @@ test('pto-dashboard component test', async ({ page }) => {
     // Check that February sick days are correctly colored (based on actual rendering)
     const day13 = calendar.locator('.day').filter({ hasText: '13' });
     await expect(day13).toHaveClass(/type-Sick/);
-    await expect(day13).toContainText('8.0');
+    await expect(day13).toContainText('8');
 
     const day15 = calendar.locator('.day').filter({ hasText: '15' });
     await expect(day15).toHaveClass(/type-Sick/);
-    await expect(day15).toContainText('8.0');
+    await expect(day15).toContainText('8');
 
     const day17 = calendar.locator('.day').filter({ hasText: '17' });
     await expect(day17).toHaveClass(/type-Sick/);
-    await expect(day17).toContainText('8.0');
+    await expect(day17).toContainText('8');
 
     // Check that February PTO days are correctly colored
     const day21 = calendar.locator('.day').filter({ hasText: '21' });
     await expect(day21).toHaveClass(/type-PTO/);
-    await expect(day21).toContainText('8.0');
+    await expect(day21).toContainText('8');
 
     const day23 = calendar.locator('.day').filter({ hasText: '23' });
     await expect(day23).toHaveClass(/type-PTO/);
-    await expect(day23).toContainText('8.0');
+    await expect(day23).toContainText('8');
 
     const day25 = calendar.locator('.day').filter({ hasText: '25' });
     await expect(day25).toHaveClass(/type-PTO/);
-    await expect(day25).toContainText('8.0');
+    await expect(day25).toContainText('8');
 
     // Check that other days in February are not colored
     const day12 = calendar.locator('.day').filter({ hasText: '12' });

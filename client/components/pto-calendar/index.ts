@@ -18,7 +18,8 @@ const PTO_TYPE_COLORS: Record<string, string> = {
     Sick: "#00B050",
     Bereavement: "#BFBFBF",
     "Jury Duty": "#FF0000",
-    "Planned PTO": "#00B0F0"
+    "Planned PTO": "#00B0F0",
+    "Work Day": "#FFFFFF"
 };
 
 export interface CalendarEntry {
@@ -172,9 +173,9 @@ export class PtoCalendar extends HTMLElement {
             const emptyClass = isCurrentMonth ? '' : 'empty';
             const selectedClass = isSelected ? 'selected' : '';
             const clickableClass = (!this.readonly && isCurrentMonth && !isWeekend) ? 'clickable' : '';
-            const hoursDisplay = entry ? entry.hours.toFixed(1) : (isSelected ? selectedHours.toFixed(1) : '');
+            const hoursDisplay = entry ? entry.hours.toFixed(0) : (isSelected ? selectedHours.toFixed(0) : '');
             const hoursElement = (!this.readonly && isSelected) ?
-                `<input type="number" class="hours-input" value="${selectedHours}" min="0.5" max="24" step="0.5" data-date="${dateStr}">` :
+                `<input type="number" class="hours-input" value="${selectedHours}" min="0" max="8" step="4" data-date="${dateStr}">` :
                 `<div class="hours">${hoursDisplay}</div>`;
             return `
                             <div class="${dayClass} ${emptyClass} ${selectedClass} ${clickableClass}" data-date="${dateStr}">
@@ -288,6 +289,7 @@ export class PtoCalendar extends HTMLElement {
                 .type-Bereavement { background: ${PTO_TYPE_COLORS.Bereavement}; }
                 .type-Jury-Duty { background: ${PTO_TYPE_COLORS["Jury Duty"]}; }
                 .type-Planned-PTO { background: ${PTO_TYPE_COLORS["Planned PTO"]}; }
+                .type-Work-Day { background: ${PTO_TYPE_COLORS["Work Day"]}; border: 1px solid #e9ecef; }
 
                 /* Make text white on colored backgrounds for better contrast */
                 .type-PTO .date,
@@ -385,12 +387,42 @@ export class PtoCalendar extends HTMLElement {
                 e.preventDefault();
                 const date = (e.currentTarget as HTMLElement).dataset.date;
                 if (date && this.selectedPtoType) {
-                    if (this.selectedCells.has(date)) {
+                    // PTO request creation mode
+                    if (this.selectedPtoType === 'Work Day') {
+                        // Clear operation - remove any existing entry for this date
+                        const existingEntryIndex = this.entries.findIndex(entry => entry.date === date);
+                        if (existingEntryIndex >= 0) {
+                            this.entries.splice(existingEntryIndex, 1);
+                            this.setAttribute('entries', JSON.stringify(this.entries));
+                        }
+                        // Also clear from selected cells if it was selected
                         this.selectedCells.delete(date);
+                        this.render();
                     } else {
-                        this.selectedCells.set(date, 8); // Default 8 hours
+                        // Normal PTO type selection
+                        if (this.selectedCells.has(date)) {
+                            this.selectedCells.delete(date);
+                        } else {
+                            // Check if there's an existing entry for this date and use its hours
+                            const existingEntry = this.entries.find(entry => entry.date === date);
+                            const defaultHours = existingEntry ? existingEntry.hours : 8;
+                            this.selectedCells.set(date, defaultHours);
+                        }
+                        this.render();
                     }
-                    this.render();
+                } else if (date && !this.readonly) {
+                    // Hours editing mode - only allow editing existing entries
+                    const existingEntry = this.entries.find(entry => entry.date === date);
+                    if (existingEntry) {
+                        // Allow editing existing entries
+                        if (this.selectedCells.has(date)) {
+                            this.selectedCells.delete(date);
+                        } else {
+                            this.selectedCells.set(date, existingEntry.hours);
+                        }
+                        this.render();
+                    }
+                    // Empty cells without PTO type selected do nothing (no notification needed)
                 }
             });
         });
@@ -402,18 +434,40 @@ export class PtoCalendar extends HTMLElement {
                 const target = e.target as HTMLInputElement;
                 const date = target.dataset.date;
                 const value = parseFloat(target.value);
-                if (date && !isNaN(value) && value >= 0.5 && value <= 24) {
-                    this.selectedCells.set(date, value);
+                if (date && !isNaN(value) && (value === 0 || value === 4 || value === 8)) {
+                    if (value === 0) {
+                        // Clear operation - remove the entry
+                        const existingEntryIndex = this.entries.findIndex(entry => entry.date === date);
+                        if (existingEntryIndex >= 0) {
+                            this.entries.splice(existingEntryIndex, 1);
+                            this.setAttribute('entries', JSON.stringify(this.entries));
+                        }
+                        // Also clear from selected cells
+                        this.selectedCells.delete(date);
+                        this.render();
+                    } else {
+                        // Check if this is an existing entry
+                        const existingEntryIndex = this.entries.findIndex(entry => entry.date === date);
+                        if (existingEntryIndex >= 0) {
+                            // Update existing entry
+                            this.entries[existingEntryIndex].hours = value;
+                            this.setAttribute('entries', JSON.stringify(this.entries));
+                        } else {
+                            // Update selected cell
+                            this.selectedCells.set(date, value);
+                        }
+                    }
                 } else {
                     // Reset to previous value if invalid
-                    const currentValue = this.selectedCells.get(date!);
+                    const existingEntry = this.entries.find(entry => entry.date === date!);
+                    const currentValue = existingEntry ? existingEntry.hours : this.selectedCells.get(date!);
                     target.value = currentValue?.toString() || '8';
                 }
             });
             input.addEventListener('input', (e) => {
                 const target = e.target as HTMLInputElement;
                 const value = parseFloat(target.value);
-                if (isNaN(value) || value < 0.5 || value > 24) {
+                if (isNaN(value) || (value !== 0 && value !== 4 && value !== 8)) {
                     target.classList.add('invalid');
                 } else {
                     target.classList.remove('invalid');

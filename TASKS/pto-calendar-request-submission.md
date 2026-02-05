@@ -13,7 +13,7 @@ Repurpose the "Monthly Accrual Breakdown" to also allow employees to submit PTO 
 The test suite validates functionality, prevents regressions, and ensures components work correctly together.
 
 ## Completion Status
-**Overall Progress: 100% Complete (All Phases Completed + Bug Fix)**
+**Overall Progress: 100% Complete (All Phases Completed + 4 Bug Fixes)**
 
 **✅ Phase 1: Foundation - pto-accrual-card Updates COMPLETED**
 - [x] Modify pto-accrual-card to display all 12 months instead of only months with accrual data
@@ -122,11 +122,11 @@ Example: If annual allocation is 96 hours and total work days in year is 261, th
 - [x] Update components to handle submission response
 - [x] **✅ Run `npm run test` to validate changes**
 
-### ✅ Phase 7: Bug Fix - Event Bubbling in Hours Input COMPLETED
-**Goal**: Fix event bubbling issue where clicking hours input fields was deselecting cells
-- [x] Identify that input field clicks were propagating to parent cell click handler
-- [x] Add guard clause in cell click handler to ignore clicks from INPUT elements
-- [x] Prevent unintended deselection when editing hours in selected cells
-- [x] Maintain all existing interactive functionality
+### ✅ Phase 10: Bug Fix - Prevent Empty Cell Editing Without PTO Type COMPLETED
+**Goal**: Prevent hours input from appearing when clicking empty cells without PTO type selection
+- [x] Modify cell click handler to only allow editing existing entries when no PTO type is selected
+- [x] Prevent empty cells from becoming editable when clicked without PTO type selection
+- [x] Maintain existing behavior for PTO request creation (select type then paint cells)
+- [x] Allow editing of existing PTO entries by clicking on them directly
 - [x] **✅ Run `npm run test` to validate fix doesn't break existing functionality**
 <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/TASKS/pto-calendar-request-submission.md
