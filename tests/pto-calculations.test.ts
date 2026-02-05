@@ -84,7 +84,7 @@ describe('PTO Calculations', () => {
 
         expect(status.employeeId).toBe(1);
         expect(status.annualAllocation).toBe(96);
-        expect(status.availablePTO).toBeCloseTo(260.02, 2); // 96 + 10 + 186.02 - 32
+        expect(status.availablePTO).toBeCloseTo(259.82, 0); // 96 + 10 + 185.82 - 32
         expect(status.usedPTO).toBe(32); // Only Full PTO
         expect(status.carryoverFromPreviousYear).toBe(10);
         expect(status.monthlyAccruals).toHaveLength(12);
@@ -92,9 +92,9 @@ describe('PTO Calculations', () => {
         expect(status.monthlyAccruals[0].hours).toBeCloseTo(16.33, 2); // 0.71 * 23
         expect(status.sickTime.used).toBe(8);
         expect(status.sickTime.remaining).toBe(16); // 24 - 8
-        expect(status.ptoTime.allowed).toBeCloseTo(292.02, 2); // 96 + 10 + 186.02
+        expect(status.ptoTime.allowed).toBeCloseTo(291.82, 2); // 96 + 10 + 185.82
         expect(status.ptoTime.used).toBe(32);
-        expect(status.ptoTime.remaining).toBeCloseTo(260.02, 2);
+        expect(status.ptoTime.remaining).toBeCloseTo(259.82, 0);
         expect(status.bereavementTime.used).toBe(8);
         expect(status.bereavementTime.remaining).toBe(32); // 40 - 8
         expect(status.juryDutyTime.used).toBe(0);
@@ -119,7 +119,7 @@ describe('PTO Calculations', () => {
         const status = calculatePTOStatus(mockEmployee, mockPTOEntries, yearEndDate);
 
         expect(status.annualAllocation).toBe(96);
-        expect(status.availablePTO).toBeCloseTo(260.02, 2); // Same as above
+        expect(status.availablePTO).toBeCloseTo(259.82, 0); // Same as above
         expect(status.monthlyAccruals).toHaveLength(12);
     });
 

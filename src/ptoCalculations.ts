@@ -71,7 +71,7 @@ function calculateProratedAllocation(employee: Employee, year: number): number {
         if (hireMonth <= 1) {
             return employee.annual_allocation; // Hired in Jan or Feb, full allocation
         }
-        const monthsRemaining = 12 - hireMonth;
+        const monthsRemaining = 12 - hireMonth + 1;
         return employee.annual_allocation * (monthsRemaining / 12);
     } else {
         return 0; // Hired after the year
@@ -138,7 +138,7 @@ export function calculatePTOStatus(
         availablePTO: Math.max(0, availablePTO), // Don't allow negative PTO
         usedPTO,
         carryoverFromPreviousYear: employee.carryover_hours,
-        monthlyAccruals,
+        monthlyAccruals: filteredMonthlyAccruals,
         nextRolloverDate,
         sickTime: {
             allowed: 24,

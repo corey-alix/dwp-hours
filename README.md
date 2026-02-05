@@ -4,16 +4,16 @@ A Node.js application for tracking monthly hours worked and managing Paid Time O
 
 ## Description
 
-This application allows employees to log various types of time off (Sick, Full PTO, Partial PTO, Bereavement, Jury Duty) for specific date ranges, including total hours. Users can view their PTO status for the entire year, broken down by month. An admin panel provides oversight for managing users and reviewing PTO usage.
+This application allows employees to log various types of time off (Sick, PTO, Bereavement, Jury Duty) for specific date ranges, including total hours. Users can view their PTO status for the entire year, broken down by month. An admin panel provides oversight for managing users and reviewing PTO usage.
 
 **PTO Calculation Rules:**
-- Each employee begins the year with **24 hours of "Sick" time** and **96 hours of "PTO"** plus any **PTO carryover from the prior year**
-- "Sick" time is **reset to 24 hours at the start of each year**
+- At the start of each year, the system automatically debits PTO entries with **96 hours of "PTO"** and **24 hours of "Sick"** dated January 1st
+- PTO carryover from the prior year is added as an additional PTO entry on January 1st
+- "Sick" time is **reset to 24 hours at the start of each year** (no carryover for sick time)
 - In addition, employees **accrue pto_rate hours per work day** to their PTO balance throughout the year
 - **Work days** are the total non-weekend (Monday-Friday) days in each month
 - **Monthly accrual** = pto_rate × work_days_in_month
-- **Carryover** from previous years applies only to PTO
-- **Available PTO** = Starting PTO Balance + Accrued - Used PTO Hours
+- **Available PTO** = Sum of allocation entries + Accrued - Used PTO Hours
 - **Time Off Types**: "Sick", "PTO", "Bereavement", "Jury Duty" are all tracked as separate PTO types
 - Each type has its own balance and usage tracking
 - At year-end, usage reports must break down hours by type
@@ -23,7 +23,7 @@ The system ensures accurate tracking per employee with individual rates and carr
 ## Features
 
 - **Time Off Logging**: Submit time off entries via web UI or API
-  - Types: Sick, Full PTO, Partial PTO, Bereavement, Jury Duty
+  - Types: Sick, PTO, Bereavement, Jury Duty
   - Date range selection with total hours
 - **PTO Status Dashboard**: View annual PTO status by month
 - **Monthly Hours Review**: Submit and review monthly hours worked
@@ -163,9 +163,6 @@ export class Employee {
   @Column({ type: "real", default: 0.71 })
   pto_rate!: number;  // Hours per work day for accrual calculations
 
-  @Column({ type: "real", default: 96.0 })
-  annual_allocation!: number;  // Fixed annual PTO allocation (96 hours)
-
   @Column({ type: "real", default: 0 })
   carryover_hours!: number;
 
@@ -207,7 +204,7 @@ export class PtoEntry {
   end_date!: Date;
 
   @Column({ type: "text" })
-  type!: "Sick" | "Full PTO" | "Partial PTO" | "Bereavement" | "Jury Duty";
+  type!: "Sick" | "PTO" | "Bereavement" | "Jury Duty";
 
   @Column({ type: "real" })
   hours!: number;

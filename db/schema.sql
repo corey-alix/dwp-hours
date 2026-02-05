@@ -7,7 +7,6 @@ CREATE TABLE IF NOT EXISTS employees (
   name TEXT NOT NULL,
   identifier TEXT UNIQUE NOT NULL,
   pto_rate REAL DEFAULT 0.71,
-  annual_allocation REAL DEFAULT 96.0,
   carryover_hours REAL DEFAULT 0,
   hire_date DATE NOT NULL,
   role TEXT DEFAULT 'Employee',
@@ -20,7 +19,7 @@ CREATE TABLE IF NOT EXISTS pto_entries (
   employee_id INTEGER NOT NULL,
   start_date DATE NOT NULL,
   end_date DATE NOT NULL,
-  type TEXT NOT NULL CHECK (type IN ('Sick', 'Full PTO', 'Partial PTO', 'Bereavement', 'Jury Duty')),
+  type TEXT NOT NULL CHECK (type IN ('Sick', 'PTO', 'Bereavement', 'Jury Duty')),
   hours REAL NOT NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
