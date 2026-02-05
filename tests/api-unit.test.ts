@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import request from 'supertest';
-import express from 'express';
+import express, { Request, Response } from 'express';
 import initSqlJs from 'sql.js';
 import fs from 'fs';
 import path from 'path';
@@ -96,7 +96,7 @@ beforeEach(async () => {
 function setupTestRoutes(app: express.Application, deps: { sendMagicLinkEmail: (to: string, magicLink: string) => Promise<unknown> }) {
     app.post('/api/auth/request-link', [
         body('identifier').isEmail().normalizeEmail().withMessage('Valid email address required')
-    ], async (req, res) => {
+    ], async (req: Request, res: Response) => {
         try {
             const errors = validationResult(req);
             if (!errors.isEmpty()) {

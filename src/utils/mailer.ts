@@ -1,4 +1,5 @@
 import nodemailer, { Transporter } from "nodemailer";
+import SMTPTransport from "nodemailer/lib/smtp-transport";
 
 type MailerConfig = {
     host: string;
@@ -55,19 +56,18 @@ export function getMailerConfigFromEnv(): MailerConfig {
 }
 
 export function createTransporter(config: MailerConfig): Transporter {
-    const transportOptions: Parameters<typeof nodemailer.createTransport>[0] = {
+    const transportOptions = {
         host: config.host,
         port: config.port,
         secure: config.secure,
         auth: {
             user: config.user,
             pass: config.pass
-        }
-    };
-
-    if (config.allowInvalidTls && process.env.NODE_ENV !== "production") {
-        transportOptions.tls = { rejectUnauthorized: false };
-    }
+        },
+        ...(config.allowInvalidTls && process.env.NODE_ENV !== "production"
+            ? { tls: { rejectUnauthorized: false } }
+            : {})
+    } as SMTPTransport.Options;
 
     return nodemailer.createTransport(transportOptions);
 }
