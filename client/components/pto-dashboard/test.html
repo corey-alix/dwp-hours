@@ -4,21 +4,108 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PTO Dashboard Components Test</title>
+    <style>
+        .request-mode-indicator {
+            background: #e8f4fd;
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+            text-align: center;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .submission-log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 12px;
+            margin: 16px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .workflow-instructions {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 12px;
+            margin: 16px 0;
+        }
+    </style>
 </head>
 <body>
     <h1>PTO Dashboard Components Test</h1>
+
+    <div class="request-mode-indicator">
+        🔄 PTO REQUEST MODE ENABLED - Interactive Calendar Testing
+    </div>
+
+    <div class="workflow-instructions">
+        <strong>Testing Workflow:</strong>
+        1. Click a month button (✏️) in the accrual card to select a month
+        2. Click a PTO type in the calendar legend to select it
+        3. Click weekday cells to "paint" them with the selected PTO type
+        4. Edit hours in the bottom-right corner of selected cells (default: 8)
+        5. Click "Submit PTO Request" to see the submission data
+    </div>
+
     <div id="test-output" style="display: grid; gap: 12px; padding: 10px; border: 1px solid #ccc; margin: 10px 0;">
         <pto-summary-card></pto-summary-card>
-        <pto-accrual-card></pto-accrual-card>
+        <pto-accrual-card
+            request-mode="true"
+            annual-allocation="96"
+            accruals='[{"month": 1, "hours": 8.0}, {"month": 2, "hours": 7.2}]'
+            usage='[{"month": 1, "hours": 4.0}, {"month": 2, "hours": 2.0}]'
+            calendar='{"2": {"5": {"type": "PTO", "hours": 8}, "12": {"type": "Sick", "hours": 4}}}'
+            year="2026">
+        </pto-accrual-card>
         <pto-sick-card></pto-sick-card>
         <pto-bereavement-card></pto-bereavement-card>
         <pto-jury-duty-card></pto-jury-duty-card>
         <pto-employee-info-card></pto-employee-info-card>
     </div>
 
+    <div class="submission-log" id="submission-log">
+        <strong>PTO Request Submissions:</strong>
+        (No submissions yet)
+    </div>
+
     <script type="module">
         import { ptoDashboard } from "/app.js";
+
+        // Initialize dashboard
         ptoDashboard();
+
+        // Mock submission handler
+        function handlePtoRequestSubmit(event) {
+            const { requests } = event.detail;
+            const logElement = document.getElementById('submission-log');
+
+            const timestamp = new Date().toLocaleTimeString();
+            const submissionText = `
+[${timestamp}] PTO Request Submitted:
+${requests.map(req => `  - ${req.date}: ${req.hours} hours (${req.type})`).join('\n')}
+
+Total Requests: ${requests.length}
+`;
+
+            logElement.textContent += submissionText;
+
+            // Visual feedback
+            logElement.style.background = '#d4edda';
+            logElement.style.borderColor = '#c3e6cb';
+            setTimeout(() => {
+                logElement.style.background = '#f8f9fa';
+                logElement.style.borderColor = '#dee2e6';
+            }, 2000);
+        }
+
+        // Listen for PTO request submissions from the accrual card
+        document.addEventListener('pto-request-submit', handlePtoRequestSubmit);
+
+        // Add some helpful logging for testing
+        console.log('PTO Request Test Page Loaded');
+        console.log('Instructions: Select a month, choose PTO type, paint cells, edit hours, submit');
     </script>
 </body>
 </html>
