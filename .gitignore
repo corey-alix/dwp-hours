@@ -6,3 +6,5 @@ logs/*.log
 .DS_Store
 *.js
 *.js.map
+private
+*.private
