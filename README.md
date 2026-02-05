@@ -121,26 +121,48 @@ dwp-hours-tracker/
 
 ### For Admins
 
-1. Access the admin panel
-2. Manage employee records (add, edit, delete)
-3. Review PTO usage reports by employee and time period
-4. Adjust PTO rates and carryover as needed
-5. Monitor acknowledgement status and send reminders
-6. Generate reports on monthly hours submissions
+1. Access the admin panel (if you have admin role)
+2. **Currently available:** Basic admin navigation
+3. **Planned features (not yet implemented):**
+   - Manage employee records (add, edit, delete)
+   - Review PTO usage reports by employee and time period
+   - Adjust PTO rates and carryover as needed
+   - Monitor acknowledgement status and send reminders
+   - Generate reports on monthly hours submissions
 
 ## API Endpoints
 
-- `POST /api/pto`: Submit a new PTO entry
-- `GET /api/pto/:employeeId`: Retrieve PTO entries for an employee
-- `GET /api/pto/status/:employeeId`: Get PTO status summary
-- `POST /api/monthly-hours`: Submit monthly hours worked
-- `GET /api/monthly-hours/:employeeId/:month`: Get monthly hours for an employee
+**Note: The following endpoints are actually implemented in the current codebase. Previous documentation listed some endpoints that do not exist or have different paths.**
+
+### Authentication
+- `POST /api/auth/request-link`: Send magic link authentication email to employee identifier
+- `GET /api/auth/validate`: Validate authentication token from magic link
+
+### PTO Management
+- `GET /api/pto`: Retrieve all PTO entries (admin) or filtered entries
+- `POST /api/pto`: Submit a new PTO entry for time off request
+- `PUT /api/pto/:id`: Update an existing PTO entry (admin only)
+- `DELETE /api/pto/:id`: Delete/cancel a PTO entry (admin only)
+- `GET /api/pto/status/:employeeId`: Get comprehensive PTO status summary including balances, accruals, and usage by type
+
+### Monthly Hours Tracking
+- `POST /api/hours`: Submit monthly hours worked for an employee
+- `GET /api/hours/:employeeId`: Retrieve monthly hours submissions for an employee
+
+### Acknowledgement System
 - `POST /api/acknowledgements`: Submit monthly review acknowledgement
-- `GET /api/acknowledgements/:employeeId/:month`: Check acknowledgement status
-- `POST /api/employees`: Add a new employee (admin only)
-- `PUT /api/employees/:id`: Update employee information (admin only)
-- `GET /api/employees/:id/pto-report`: Generate PTO report (admin only)
-- `GET /api/reminders/unacknowledged`: Get list of employees needing reminders (admin only)
+- `GET /api/acknowledgements/:employeeId`: Check acknowledgement status for an employee
+
+### Employee Management (Admin Only)
+- `GET /api/employees`: List all employees with optional search/filtering
+- `GET /api/employees/:id`: Get detailed information for a specific employee
+- `PUT /api/employees/:id`: Update employee information (name, PTO rate, carryover, etc.)
+- `DELETE /api/employees/:id`: Remove an employee from the system
+
+**Missing from documentation but needed for full functionality:**
+- `POST /api/employees`: Add a new employee (currently missing)
+- `GET /api/employees/:id/pto-report`: Generate detailed PTO usage report (currently missing)
+- `GET /api/reminders/unacknowledged`: Get list of employees needing monthly reminders (currently missing)
 
 ## TypeORM Entities
 
@@ -269,8 +291,14 @@ export class Acknowledgement {
 
 ## Admin Panel
 
-The admin panel provides:
+**Status: Partially Implemented** - Basic UI structure exists but functionality is not yet complete.
 
+Currently provides:
+- Basic admin panel navigation (visible to admin users)
+- Placeholder buttons for "Manage Employees" and "View Reports"
+- Role-based access control (admin vs employee roles)
+
+**Planned features (not yet implemented):**
 - Employee CRUD operations
 - PTO usage analytics and reports
 - Monthly and yearly PTO summaries
@@ -283,26 +311,28 @@ Access requires admin privileges.
 
 ## Monthly Review & Acknowledgement System
 
-At the end of each month, the system automatically:
+**Status: Partially Implemented** - Basic acknowledgement functionality exists but automated reminders are not yet implemented.
 
-1. **Sends Reminders**: Notifies all employees to review and submit their monthly hours worked
-2. **Tracks Submissions**: Records monthly hours submissions and PTO entries
-3. **Requires Acknowledgement**: Employees must acknowledge they've reviewed their status
-4. **Daily Follow-ups**: Sends daily reminders to employees who haven't acknowledged
-5. **Admin Monitoring**: Provides admins with visibility into acknowledgement status
+Currently provides:
+- Manual submission of monthly acknowledgements via API
+- Tracking of acknowledgement timestamps
+- Basic acknowledgement status checking
+
+**Planned automated features (not yet implemented):**
+- Automatic reminders at month-end
+- Daily follow-up reminders for unacknowledged reviews
+- Automated reminder scheduler system
 
 ### Acknowledgement Process
 
-- Employees receive a monthly reminder to review their hours and PTO
-- If no changes are needed, they submit an acknowledgement confirming review completion
+- Employees can manually submit acknowledgements via the API
 - The system tracks acknowledgement timestamps
-- Unacknowledged employees receive daily reminders until they respond
+- **Automated reminders are planned but not yet implemented**
 
 ### Reminder Workflow
 
-- **Month-end**: Initial reminder sent to all employees
-- **Daily (if unacknowledged)**: Follow-up reminders sent automatically
-- **Admin Dashboard**: View acknowledgement status and manually send reminders if needed
+**Current state:** Manual acknowledgement only
+**Planned:** Automated monthly and daily reminder system
 
 ## Similar Projects/Solutions
 
