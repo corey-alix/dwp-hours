@@ -8,6 +8,19 @@ You are assisting with the DWP Hours Tracker, a Node.js/TypeScript application f
 - **Testing**: Vitest (unit), Playwright (E2E)
 - **Development**: http-serve for dev server
 
+## Development Workflow
+
+### Server Management
+**Important**: Avoid starting the development server within this environment. The current workflow of starting a blocking dev server and then running tests creates conflicts where tests may kill or interfere with the server process.
+
+**Recommended Approach**:
+- Run `npm run start` (or `npm run dev`) in a separate terminal outside of this environment
+- When server issues occur, restart the external server manually
+- For E2E testing, ensure the server is running on port 3000 before executing tests
+- Use `npm run dev:kill` if you need to kill a server process, but prefer manual server management
+
+This approach prevents the disruptive pattern where server startup and test execution interfere with each other.
+
 ## Task Management System
 The project uses a structured task system in the `TASKS/` folder. Always reference and follow these guidelines:
 

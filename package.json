@@ -6,6 +6,7 @@
     "main": "src/server.mts",
     "scripts": {
         "dev": "npm run build:test-assets && http-serve public -p 3000 -o",
+        "dev:kill": "lsof -ti:3000 | xargs kill -9 || true",
         "build": "npm-run-all -p build:client build:server",
         "build:client": "npm-run-all build:client:js build:client:assets",
         "build:client:js": "esbuild client/app.ts --bundle --outfile=public/app.js --format=esm --sourcemap",
