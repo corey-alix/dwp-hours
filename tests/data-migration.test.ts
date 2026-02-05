@@ -687,6 +687,84 @@ describe('Data Migration POC - Excel Parsing', () => {
         // Assert that the hire date is "2/13/23"
         expect(hireDateValue).toBe('Hire Date: 2/13/23');
     });
+
+    it('should analyze and document D42-W53 data section with headers in rows 40-41', async () => {
+        const filePath = path.join(process.cwd(), 'private', 'Corey Alix 2025.xlsx');
+
+        if (!fs.existsSync(filePath)) {
+            console.warn('Excel file not found, skipping test. Please provide "Corey Alix 2025.xlsx"');
+            return;
+        }
+
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.readFile(filePath);
+
+        const worksheet = workbook.getWorksheet(1);
+        if (!worksheet) {
+            throw new Error('Worksheet not found');
+        }
+
+        console.log('=== D42-W53 DATA SECTION ANALYSIS ===');
+
+        // Extract headers from rows 40-41 (0-based: 39-40)
+        console.log('Headers in rows 40-41:');
+        for (let row = 40; row <= 41; row++) {
+            console.log(`Row ${row}:`);
+            for (let col = 4; col <= 23; col++) { // D=4, W=23
+                const cell = worksheet.getCell(row, col);
+                const value = cell.value;
+                if (value) {
+                    const colLetter = String.fromCharCode(64 + col);
+                    console.log(`  ${colLetter}${row}: ${value}`);
+                }
+            }
+        }
+
+        // Extract data from D42-W53 (rows 42-53, columns 4-23)
+        console.log('\nData in D42-W53:');
+        const dataSection: any[][] = [];
+
+        for (let row = 42; row <= 53; row++) {
+            const rowData: any[] = [];
+            console.log(`Row ${row}:`);
+            for (let col = 4; col <= 23; col++) { // D=4, W=23
+                const cell = worksheet.getCell(row, col);
+                const value = cell.value || cell.result;
+                rowData.push(value);
+
+                if (value !== null && value !== undefined && value !== '') {
+                    const colLetter = String.fromCharCode(64 + col);
+                    console.log(`  ${colLetter}${row}: ${value}`);
+                }
+            }
+            dataSection.push(rowData);
+        }
+
+        // Analyze the structure
+        console.log('\n=== STRUCTURE ANALYSIS ===');
+        console.log(`Data section dimensions: ${dataSection.length} rows x ${dataSection[0]?.length || 0} columns`);
+
+        // Count non-empty cells per column
+        const columnCounts: { [key: number]: number } = {};
+        for (let col = 0; col < (dataSection[0]?.length || 0); col++) {
+            columnCounts[col] = 0;
+            for (let row = 0; row < dataSection.length; row++) {
+                if (dataSection[row][col] !== null && dataSection[row][col] !== undefined && dataSection[row][col] !== '') {
+                    columnCounts[col]++;
+                }
+            }
+        }
+
+        console.log('Non-empty cells per column:');
+        Object.entries(columnCounts).forEach(([col, count]) => {
+            const colLetter = String.fromCharCode(68 + parseInt(col)); // D=68 in ASCII
+            console.log(`  Column ${colLetter} (${parseInt(col) + 4}): ${count} non-empty cells`);
+        });
+
+        // Assertions
+        expect(dataSection.length).toBe(12); // 12 rows (42-53)
+        expect(dataSection[0]?.length).toBe(20); // 20 columns (D-W)
+    });
 });
 
 // Helper function to determine if two colors match (allowing for slight variations)

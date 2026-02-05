@@ -62,6 +62,21 @@ This skill integrates with the data-migration task and provides foundational kno
 - **Month Range**: May through April (12 months of PTO data)
 - **Data Extraction**: Skip 2 header rows after section title, then parse monthly data rows
 
+### Detailed PTO Calculation Data Section
+- **Location**: D42-W53 (rows 42-53, columns 4-23)
+- **Headers**: Located in rows 40-41 (two-row header structure)
+- **Column Structure** (from sample "Corey Alix 2025.xlsx"):
+  - **D-E (Work Days in Month)**: Number of work days in each month
+  - **F-G (Daily Rate)**: Daily PTO accrual rate (e.g., 0.68, 0.71 hours per day)
+  - **J (Available PTO)**: Total available PTO hours before usage
+  - **L-M (Previous Month's Carryover)**: PTO hours carried over from previous month
+  - **O-P (Subtotal PTO hours)**: Subtotal of accrued + carryover hours
+  - **S-T (PTO hours per Month)**: PTO hours used/taken during the month
+  - **V-W (Total Available PTO)**: Final available PTO balance after usage
+- **Data Pattern**: Each row represents one month (May through April)
+- **Calculation Logic**: Shows the detailed breakdown of PTO accrual, carryover, and usage calculations
+- **Relationship**: This detailed section corresponds to the summary data in the main PTO calculation section above
+
 ### Acknowledgement Sections
 - **Admin Acknowledgements**: Column Y (25), Rows 42-53
   - **Purpose**: Records admin approval/acknowledgement for each month's PTO data
