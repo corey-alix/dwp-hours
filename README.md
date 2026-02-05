@@ -24,6 +24,9 @@ The system ensures accurate tracking per employee with individual rates and carr
 
 ## Features
 
+- **Secure Authentication**: Passwordless magic link authentication system
+  - Email-based login with secure temporal tokens
+  - No passwords required - enhanced security and user experience
 - **Time Off Logging**: Submit time off entries via web UI or API
   - Types: Sick, PTO, Bereavement, Jury Duty
   - Date range selection with total hours
@@ -118,12 +121,13 @@ dwp-hours-tracker/
 
 ### For Employees
 
-1. Log in with your employee identifier
-2. Navigate to the dashboard to view your PTO status
-3. Submit time off requests by selecting date ranges and types
-4. Submit monthly hours worked at the end of each month
-5. Review and acknowledge your monthly hours and PTO status
-6. Receive reminders if acknowledgement is pending
+1. Enter your employee identifier (email address) to receive a magic link
+2. Check your email and click the secure login link
+3. Navigate to the dashboard to view your PTO status
+4. Submit time off requests by selecting date ranges and types
+5. Submit monthly hours worked at the end of each month
+6. Review and acknowledge your monthly hours and PTO status
+7. Receive reminders if acknowledgement is pending
 
 ### For Admins
 
@@ -136,13 +140,41 @@ dwp-hours-tracker/
    - Monitor acknowledgement status and send reminders
    - Generate reports on monthly hours submissions
 
-## API Endpoints
+## Authentication System
+
+The application uses a secure magic link authentication system that eliminates the need for passwords:
+
+### Authentication Flow
+
+1. **Request Magic Link**
+   - Employee enters their identifier (email address) on the login page
+   - System looks up the employee by identifier in the `employees` table
+   - Generates a temporal token using the employee's stored hash
+   - Sends an email containing a secure link with the token
+
+2. **Token Validation**
+   - Employee clicks the magic link in their email
+   - Link contains a URL parameter with the temporal token
+   - Browser makes a `GET /api/auth/validate` request with the token
+   - Server validates the token against the employee's hash
+   - If valid, server responds with a public key written to an HTTP cookie
+
+3. **Authenticated Access**
+   - Browser now has the authentication cookie
+   - All subsequent API requests include this cookie
+   - Server validates the cookie for protected endpoints
+   - Employee gains access to their personal data and PTO management features
+
+### Security Details
+
+- **Temporal Tokens**: Short-lived tokens (typically expire in 15-30 minutes)
+- **Hash-Based**: Tokens are generated from employee-specific hashes stored in the database
+- **Cookie-Based**: Authentication state maintained via secure HTTP cookies
+- **No Passwords**: Eliminates password-related security risks
+
+### API Endpoints
 
 **Note: The following endpoints are actually implemented in the current codebase. Previous documentation listed some endpoints that do not exist or have different paths.**
-
-### Authentication
-- `POST /api/auth/request-link`: Send magic link authentication email to employee identifier
-- `GET /api/auth/validate`: Validate authentication token from magic link
 
 ### PTO Management
 - `GET /api/pto`: Retrieve all PTO entries (admin) or filtered entries
