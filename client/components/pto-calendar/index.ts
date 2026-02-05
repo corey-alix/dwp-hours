@@ -105,7 +105,7 @@ export class PtoCalendar extends HTMLElement {
         const calendarDays: { date: Date; isCurrentMonth: boolean; entry?: CalendarEntry }[] = [];
 
         for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-            const dateStr = d.toISOString().split('T')[0];
+            const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             const entry = this.entries.find(e => e.date === dateStr);
             calendarDays.push({
                 date: new Date(d),

@@ -90,6 +90,31 @@ The system ensures accurate tracking per employee with individual rates and carr
 - **ORM**: TypeORM with DataMapper pattern and sql.js driver for WSL compatibility
 - **Automated Systems**: Monthly reminder scheduler and daily follow-up system
 
+### Date Management
+
+This project uses a lightweight bespoke date management library to ensure consistency and avoid timezone-related issues. All dates are persisted in the database as strings in YYYY-MM-DD format (ISO 8601 date-only representation). This approach:
+
+- Eliminates timezone ambiguity
+- Simplifies date comparisons and calculations
+- Ensures compatibility across different environments
+- Avoids the complexities of Date objects in JavaScript
+
+Date parsing and formatting is handled through custom utility functions that work exclusively with YYYY-MM-DD strings, providing a reliable and performant date management system tailored to the application's needs.
+
+**Key Implementation Areas:**
+
+- **Database Layer**: All date fields are stored as TEXT columns containing YYYY-MM-DD formatted strings, ensuring timezone-agnostic storage.
+
+- **Server-side Calculations**: Functions in `workDays.ts` and `ptoCalculations.ts` perform date arithmetic using Date objects but convert results to string formats for consistency.
+
+- **Client-side Components**: Components like `pto-calendar` and `pto-dashboard` construct date strings directly from year, month, and day components to avoid timezone issues, as seen in the calendar rendering logic.
+
+- **API Endpoints**: Date parameters are accepted and returned as YYYY-MM-DD strings, maintaining consistency across the application.
+
+- **Test Data**: Seed files and test utilities use hardcoded date strings in YYYY-MM-DD format for predictable testing.
+
+This approach ensures that date handling is predictable, testable, and free from timezone-related bugs throughout the application.
+
 ## Getting Started
 
 ### Prerequisites

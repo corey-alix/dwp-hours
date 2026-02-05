@@ -1,0 +1,157 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - heading "PTO Dashboard Components Test" [level=1] [ref=e2]
+  - generic [ref=e3]:
+    - generic [ref=e5]:
+      - heading "Regular PTO" [level=4] [ref=e6]
+      - generic [ref=e7]:
+        - generic [ref=e8]: Annual Allocation
+        - generic [ref=e9]: 96 hours
+      - generic [ref=e10]:
+        - generic [ref=e11]: Available
+        - generic [ref=e12]: 112.00 hours
+      - generic [ref=e13]:
+        - generic [ref=e14]: Used
+        - generic [ref=e15]: 24.00 hours
+      - generic [ref=e16]:
+        - generic [ref=e17]: Carryover
+        - generic [ref=e18]: 40.00 hours
+    - generic [ref=e20]:
+      - heading "Monthly Accrual Breakdown" [level=4] [ref=e21]
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - generic [ref=e24]: Accrued
+          - generic [ref=e25]: Used
+        - generic [ref=e26]:
+          - generic [ref=e27]: January
+          - generic [ref=e28]: "8.5"
+          - generic [ref=e29]: "0.0"
+          - button "Show January calendar" [ref=e30] [cursor=pointer]: 📅
+        - generic [ref=e31]:
+          - generic [ref=e32]: February
+          - generic [ref=e33]: "7.4"
+          - generic [ref=e34]: "48.0"
+          - button "Show February calendar" [ref=e35] [cursor=pointer]: 📅
+        - generic [ref=e36]:
+          - generic [ref=e37]: March
+          - generic [ref=e38]: "7.7"
+          - generic [ref=e39]: "0.0"
+          - button "Show March calendar" [ref=e40] [cursor=pointer]: 📅
+      - generic [ref=e42]:
+        - generic [ref=e43]: February 2026
+        - generic [ref=e44]:
+          - generic [ref=e45]: Sun
+          - generic [ref=e46]: Mon
+          - generic [ref=e47]: Tue
+          - generic [ref=e48]: Wed
+          - generic [ref=e49]: Thu
+          - generic [ref=e50]: Fri
+          - generic [ref=e51]: Sat
+          - generic [ref=e53]: "1"
+          - generic [ref=e55]: "2"
+          - generic [ref=e57]: "3"
+          - generic [ref=e59]: "4"
+          - generic [ref=e61]: "5"
+          - generic [ref=e63]: "6"
+          - generic [ref=e65]: "7"
+          - generic [ref=e67]: "8"
+          - generic [ref=e69]: "9"
+          - generic [ref=e71]: "10"
+          - generic [ref=e73]: "11"
+          - generic [ref=e74]:
+            - generic [ref=e75]: "12"
+            - generic [ref=e76]: "8.0"
+          - generic [ref=e78]: "13"
+          - generic [ref=e79]:
+            - generic [ref=e80]: "14"
+            - generic [ref=e81]: "8.0"
+          - generic [ref=e83]: "15"
+          - generic [ref=e84]:
+            - generic [ref=e85]: "16"
+            - generic [ref=e86]: "8.0"
+          - generic [ref=e88]: "17"
+          - generic [ref=e90]: "18"
+          - generic [ref=e92]: "19"
+          - generic [ref=e93]:
+            - generic [ref=e94]: "20"
+            - generic [ref=e95]: "8.0"
+          - generic [ref=e97]: "21"
+          - generic [ref=e98]:
+            - generic [ref=e99]: "22"
+            - generic [ref=e100]: "8.0"
+          - generic [ref=e102]: "23"
+          - generic [ref=e103]:
+            - generic [ref=e104]: "24"
+            - generic [ref=e105]: "8.0"
+          - generic [ref=e107]: "25"
+          - generic [ref=e109]: "26"
+          - generic [ref=e111]: "27"
+          - generic [ref=e113]: "28"
+        - generic [ref=e114]:
+          - generic [ref=e117]: PTO
+          - generic [ref=e120]: Sick
+          - generic [ref=e123]: Bereavement
+          - generic [ref=e126]: Jury Duty
+          - generic [ref=e129]: Planned PTO
+    - generic [ref=e131]:
+      - heading "Sick Time" [level=4] [ref=e132]
+      - generic [ref=e133]:
+        - generic [ref=e134]: Allowed
+        - generic [ref=e135]: 24 hours
+      - generic [ref=e136]:
+        - generic [ref=e137]: Used
+        - generic [ref=e138]: 24.00 hours
+      - generic [ref=e139]:
+        - generic [ref=e140]: Remaining
+        - generic [ref=e141]: 0.00 hours
+      - generic [ref=e142]:
+        - generic [ref=e143]: Dates Used
+        - list [ref=e144]:
+          - listitem [ref=e145]:
+            - generic [ref=e146]: 2/13/2026
+            - generic [ref=e147]: 8.0 hours
+          - listitem [ref=e148]:
+            - generic [ref=e149]: 2/15/2026
+            - generic [ref=e150]: 8.0 hours
+          - listitem [ref=e151]:
+            - generic [ref=e152]: 2/17/2026
+            - generic [ref=e153]: 8.0 hours
+    - generic [ref=e155]:
+      - heading "Bereavement" [level=4] [ref=e156]
+      - generic [ref=e157]:
+        - generic [ref=e158]: Allowed
+        - generic [ref=e159]: 40 hours
+      - generic [ref=e160]:
+        - generic [ref=e161]: Used
+        - generic [ref=e162]: 0.00 hours
+      - generic [ref=e163]:
+        - generic [ref=e164]: Remaining
+        - generic [ref=e165]: 40.00 hours
+      - generic [ref=e166]:
+        - generic [ref=e167]: Dates Used
+        - generic [ref=e168]: No entries recorded.
+    - generic [ref=e170]:
+      - heading "Jury Duty" [level=4] [ref=e171]
+      - generic [ref=e172]:
+        - generic [ref=e173]: Allowed
+        - generic [ref=e174]: 40 hours
+      - generic [ref=e175]:
+        - generic [ref=e176]: Used
+        - generic [ref=e177]: 0.00 hours
+      - generic [ref=e178]:
+        - generic [ref=e179]: Remaining
+        - generic [ref=e180]: 40.00 hours
+      - generic [ref=e181]:
+        - generic [ref=e182]: Dates Used
+        - generic [ref=e183]: No entries recorded.
+    - generic [ref=e185]:
+      - heading "Employee Information" [level=4] [ref=e186]
+      - generic [ref=e187]:
+        - generic [ref=e188]: Hire Date
+        - generic [ref=e189]: 1/14/2020
+      - generic [ref=e190]:
+        - generic [ref=e191]: Next Rollover
+        - generic [ref=e192]: 1/1/2027
+```

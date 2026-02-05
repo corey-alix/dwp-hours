@@ -212,9 +212,9 @@ export class PtoAccrualCard extends PtoSectionCard {
         const calendarEntries: CalendarEntry[] = [];
         if (this.selectedMonth && this.calendarData[this.selectedMonth]) {
             Object.entries(this.calendarData[this.selectedMonth]).forEach(([day, entry]) => {
-                const date = new Date(this.year, this.selectedMonth! - 1, parseInt(day, 10));
+                const dateStr = `${this.year}-${String(this.selectedMonth).padStart(2, '0')}-${String(parseInt(day, 10)).padStart(2, '0')}`;
                 calendarEntries.push({
-                    date: date.toISOString().split('T')[0],
+                    date: dateStr,
                     hours: entry.hours,
                     type: entry.type
                 });
