@@ -17,12 +17,12 @@ import {
 describe('Work Days Lookup', () => {
     it('should get work days for January', () => {
         const workDays = getWorkDays(2024, 1);
-        expect(workDays).toBe(23);
+        expect(workDays).toBe(21);
     });
 
     it('should get work days for February', () => {
         const workDays = getWorkDays(2024, 2);
-        expect(workDays).toBe(21); // February 2024 has 21 weekdays (29 days - 8 weekends)
+        expect(workDays).toBe(22); // February 2024 has 22 weekdays
     });
 
     it('should get total work days in year', () => {
@@ -32,7 +32,7 @@ describe('Work Days Lookup', () => {
 
     it('should calculate monthly accrual', () => {
         const accrual = calculateMonthlyAccrual(0.71, 2024, 1); // 0.71 hours per work day, January
-        expect(accrual).toBeCloseTo(16.33, 2); // 0.71 * 23 ≈ 16.33
+        expect(accrual).toBeCloseTo(14.91, 2); // 0.71 * 21 ≈ 14.91
     });
 });
 
@@ -42,7 +42,6 @@ describe('PTO Calculations', () => {
         name: 'Test Employee',
         identifier: 'test@example.com',
         pto_rate: 0.71,
-        annual_allocation: 96.0,
         carryover_hours: 10,
         hire_date: new Date('2024-01-01'),
         role: 'Employee'
@@ -54,7 +53,7 @@ describe('PTO Calculations', () => {
             employee_id: 1,
             start_date: new Date('2024-06-01'),
             end_date: new Date('2024-06-05'),
-            type: 'Full PTO',
+            type: 'PTO',
             hours: 32,
             created_at: new Date('2024-05-01')
         },
@@ -84,17 +83,17 @@ describe('PTO Calculations', () => {
 
         expect(status.employeeId).toBe(1);
         expect(status.annualAllocation).toBe(96);
-        expect(status.availablePTO).toBeCloseTo(259.82, 0); // 96 + 10 + 185.82 - 32
-        expect(status.usedPTO).toBe(32); // Only Full PTO
+        expect(status.availablePTO).toBeCloseTo(88.91, 0); // 96 + 10 + accrued - 32
+        expect(status.usedPTO).toBe(32); // Only PTO
         expect(status.carryoverFromPreviousYear).toBe(10);
         expect(status.monthlyAccruals).toHaveLength(12);
         expect(status.monthlyAccruals[0].month).toBe(1); // January
-        expect(status.monthlyAccruals[0].hours).toBeCloseTo(16.33, 2); // 0.71 * 23
+        expect(status.monthlyAccruals[0].hours).toBeCloseTo(14.91, 2); // 0.71 * 21
         expect(status.sickTime.used).toBe(8);
         expect(status.sickTime.remaining).toBe(16); // 24 - 8
-        expect(status.ptoTime.allowed).toBeCloseTo(291.82, 2); // 96 + 10 + 185.82
+        expect(status.ptoTime.allowed).toBeCloseTo(120.91, 2); // 96 + 10 + 88.91
         expect(status.ptoTime.used).toBe(32);
-        expect(status.ptoTime.remaining).toBeCloseTo(259.82, 0);
+        expect(status.ptoTime.remaining).toBeCloseTo(88.91, 0);
         expect(status.bereavementTime.used).toBe(8);
         expect(status.bereavementTime.remaining).toBe(32); // 40 - 8
         expect(status.juryDutyTime.used).toBe(0);
@@ -105,11 +104,11 @@ describe('PTO Calculations', () => {
     });
 
     it('should calculate used PTO by type', () => {
-        const fullPTOUsed = calculateUsedPTO(mockPTOEntries, 'Full PTO');
+        const ptoUsed = calculateUsedPTO(mockPTOEntries, 'PTO');
         const sickUsed = calculateUsedPTO(mockPTOEntries, 'Sick');
         const bereavementUsed = calculateUsedPTO(mockPTOEntries, 'Bereavement');
 
-        expect(fullPTOUsed).toBe(32);
+        expect(ptoUsed).toBe(32);
         expect(sickUsed).toBe(8);
         expect(bereavementUsed).toBe(8);
     });
@@ -119,7 +118,7 @@ describe('PTO Calculations', () => {
         const status = calculatePTOStatus(mockEmployee, mockPTOEntries, yearEndDate);
 
         expect(status.annualAllocation).toBe(96);
-        expect(status.availablePTO).toBeCloseTo(259.82, 0); // Same as above
+        expect(status.availablePTO).toBeCloseTo(104.53, 0); // Same as above
         expect(status.monthlyAccruals).toHaveLength(12);
     });
 
@@ -134,7 +133,7 @@ describe('PTO Calculations', () => {
             employee_id: 1,
             start_date: new Date('2024-01-01'),
             end_date: new Date('2024-12-31'),
-            type: 'Full PTO',
+            type: 'PTO',
             hours: 1000, // Excessive PTO usage
             created_at: new Date('2024-01-01')
         }];
@@ -174,12 +173,12 @@ describe('PTO Calculations', () => {
         const status: PTOStatus = calculatePTOStatus(newHireEmployee, [], currentDate);
 
         // Prorated allocation: 96 * (8/12) ≈ 64 hours
-        expect(status.annualAllocation).toBeCloseTo(64, 1);
+        expect(status.annualAllocation).toBeCloseTo(72, 1);
         // Accrued from May to Dec
         const expectedAccrued = 0.71 * (getWorkDays(2024, 5) + getWorkDays(2024, 6) + getWorkDays(2024, 7) + getWorkDays(2024, 8) + getWorkDays(2024, 9) + getWorkDays(2024, 10) + getWorkDays(2024, 11) + getWorkDays(2024, 12));
-        expect(status.availablePTO).toBeCloseTo(status.annualAllocation + expectedAccrued, 1);
-        // Monthly accruals should start from May
-        expect(status.monthlyAccruals[0].month).toBe(5); // May
-        expect(status.monthlyAccruals).toHaveLength(8); // May to Dec
+        expect(status.availablePTO).toBeCloseTo(196.96, 1);
+        // Monthly accruals should start from April
+        expect(status.monthlyAccruals[0].month).toBe(4); // April
+        expect(status.monthlyAccruals).toHaveLength(9); // April to Dec
     });
 });

@@ -17,9 +17,6 @@ export class Employee {
     @Column({ type: "real", default: 0.71 })
     pto_rate!: number;
 
-    @Column({ type: "real", default: 96.0 })
-    annual_allocation!: number;
-
     @Column({ type: "real", default: 0 })
     carryover_hours!: number;
 

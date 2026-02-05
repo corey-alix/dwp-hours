@@ -40,11 +40,10 @@ describe('Database Schema and Persistence', () => {
                 [1, 'name', 'TEXT', 1, null, 0], // not null
                 [2, 'identifier', 'TEXT', 1, null, 0], // not null
                 [3, 'pto_rate', 'REAL', 0, '0.71', 0], // default
-                [4, 'annual_allocation', 'REAL', 0, '96.0', 0], // default
-                [5, 'carryover_hours', 'REAL', 0, '0', 0],
-                [6, 'hire_date', 'DATE', 1, null, 0], // not null
-                [7, 'role', 'TEXT', 0, "'Employee'", 0],
-                [8, 'hash', 'TEXT', 0, null, 0]
+                [4, 'carryover_hours', 'REAL', 0, '0', 0],
+                [5, 'hire_date', 'DATE', 1, null, 0], // not null
+                [6, 'role', 'TEXT', 0, "'Employee'", 0],
+                [7, 'hash', 'TEXT', 0, null, 0]
             ])
         );
 
@@ -112,9 +111,9 @@ describe('Database Schema and Persistence', () => {
 
         // Insert test data
         db.exec(`
-      INSERT INTO employees (name, identifier, annual_allocation, hire_date) VALUES
-      ('John Doe', 'JD001', 96.0, '2020-01-01'),
-      ('Jane Smith', 'JS002', 96.0, '2021-01-01');
+      INSERT INTO employees (name, identifier, hire_date) VALUES
+      ('John Doe', 'JD001', '2020-01-01'),
+      ('Jane Smith', 'JS002', '2021-01-01');
     `);
 
         // Query data

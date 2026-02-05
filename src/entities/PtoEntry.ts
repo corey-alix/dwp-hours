@@ -16,7 +16,7 @@ export class PtoEntry {
     end_date!: Date;
 
     @Column({ type: "text" })
-    type!: "Sick" | "Full PTO" | "Partial PTO" | "Bereavement" | "Jury Duty";
+    type!: "Sick" | "PTO" | "Bereavement" | "Jury Duty";
 
     @Column({ type: "real" })
     hours!: number;

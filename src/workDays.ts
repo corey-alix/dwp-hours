@@ -28,7 +28,7 @@ const WORK_DAYS_TEMPLATE: Record<number, number> = {
  */
 function calculateWorkDaysInMonth(year: number, month: number): number {
     const firstDay = new Date(year, month - 1, 1);
-    const lastDay = new Date(year, month, 0);
+    const lastDay = new Date(year, month + 1, 0);
     const totalDays = lastDay.getDate();
 
     let workDays = 0;

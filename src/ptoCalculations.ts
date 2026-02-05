@@ -41,7 +41,7 @@ export interface PTOEntry {
     employee_id: number;
     start_date: Date;
     end_date: Date;
-    type: 'Sick' | 'Full PTO' | 'Partial PTO' | 'Bereavement' | 'Jury Duty';
+    type: 'Sick' | 'PTO' | 'Bereavement' | 'Jury Duty';
     hours: number;
     created_at: Date;
 }
@@ -51,7 +51,6 @@ export interface Employee {
     name: string;
     identifier: string;
     pto_rate: number; // Hours per work day for accrual calculations
-    annual_allocation: number; // 96 hours per year
     carryover_hours: number;
     hire_date: Date;
     role: string;
@@ -65,14 +64,14 @@ export interface Employee {
  */
 function calculateProratedAllocation(employee: Employee, year: number): number {
     if (employee.hire_date.getFullYear() < year) {
-        return employee.annual_allocation;
+        return 96;
     } else if (employee.hire_date.getFullYear() === year) {
         const hireMonth = employee.hire_date.getMonth(); // 0-11
         if (hireMonth <= 1) {
-            return employee.annual_allocation; // Hired in Jan or Feb, full allocation
+            return 96; // Hired in Jan or Feb, full allocation
         }
         const monthsRemaining = 12 - hireMonth + 1;
-        return employee.annual_allocation * (monthsRemaining / 12);
+        return 96 * (monthsRemaining / 12);
     } else {
         return 0; // Hired after the year
     }
@@ -93,7 +92,7 @@ export function calculatePTOStatus(
     const currentYear = currentDate.getFullYear();
 
     // Calculate used hours by type
-    const usedPTO = calculateUsedPTO(ptoEntries, 'Full PTO', 'Partial PTO');
+    const usedPTO = calculateUsedPTO(ptoEntries, 'PTO');
     const usedSick = calculateUsedPTO(ptoEntries, 'Sick');
     const usedBereavement = calculateUsedPTO(ptoEntries, 'Bereavement');
     const usedJuryDuty = calculateUsedPTO(ptoEntries, 'Jury Duty');
@@ -178,8 +177,8 @@ export function calculateYearEndCarryover(
     carryoverLimit?: number
 ): number {
     // Calculate available PTO at year end
-    const usedPTO = calculateUsedPTO(ptoEntries, 'Full PTO', 'Partial PTO');
-    const startingPTOBalance = employee.annual_allocation + employee.carryover_hours;
+    const usedPTO = calculateUsedPTO(ptoEntries, 'PTO');
+    const startingPTOBalance = 96 + employee.carryover_hours;
     let accrued = 0;
     for (let month = 1; month <= 12; month++) {
         accrued += employee.pto_rate * getWorkDays(year, month);
