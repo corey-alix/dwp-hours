@@ -177,13 +177,14 @@ export class PtoAccrualCard extends PtoSectionCard {
 
                 .accrual-grid {
                     display: grid;
-                    gap: 8px;
+                    grid-template-columns: 1fr auto auto auto;
+                    gap: 8px 12px;
                 }
 
                 .accrual-row {
                     display: grid;
-                    grid-template-columns: 1fr auto auto auto;
-                    gap: 12px;
+                    grid-template-columns: subgrid;
+                    grid-column: 1 / -1;
                     align-items: center;
                     font-size: 14px;
                     color: #34495e;
