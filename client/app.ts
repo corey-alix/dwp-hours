@@ -388,12 +388,15 @@ class UIManager {
 
             const sickCard = document.createElement('pto-sick-card') as any;
             sickCard.bucket = status.sickTime;
+            sickCard.usageEntries = this.buildUsageEntries(entries, new Date().getFullYear(), 'Sick');
 
             const bereavementCard = document.createElement('pto-bereavement-card') as any;
             bereavementCard.bucket = status.bereavementTime;
+            bereavementCard.usageEntries = this.buildUsageEntries(entries, new Date().getFullYear(), 'Bereavement');
 
             const juryDutyCard = document.createElement('pto-jury-duty-card') as any;
             juryDutyCard.bucket = status.juryDutyTime;
+            juryDutyCard.usageEntries = this.buildUsageEntries(entries, new Date().getFullYear(), 'Jury Duty');
 
             const employeeInfoCard = document.createElement('pto-employee-info-card') as any;
             employeeInfoCard.info = { hireDate, nextRolloverDate };
@@ -448,6 +451,41 @@ class UIManager {
         }
 
         return calendar;
+    }
+
+    private buildUsageEntries(entries: any[], year: number, type: string): { date: string; hours: number }[] {
+        const safeEntries = Array.isArray(entries) ? entries : [];
+        const hoursByDate = new Map<string, number>();
+
+        for (const entry of safeEntries) {
+            if (entry.type !== type) {
+                continue;
+            }
+
+            const start = new Date(entry.start_date ?? entry.startDate);
+            const end = new Date(entry.end_date ?? entry.endDate ?? entry.start_date ?? entry.startDate);
+            if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+                continue;
+            }
+
+            const workdays = this.getWorkdaysBetween(start, end);
+            if (workdays.length === 0) {
+                continue;
+            }
+
+            const hoursPerDay = (entry.hours ?? 0) / workdays.length;
+            for (const day of workdays) {
+                if (day.getFullYear() !== year) {
+                    continue;
+                }
+                const dateKey = day.toISOString().slice(0, 10);
+                hoursByDate.set(dateKey, (hoursByDate.get(dateKey) ?? 0) + hoursPerDay);
+            }
+        }
+
+        return Array.from(hoursByDate.entries())
+            .map(([date, hours]) => ({ date, hours }))
+            .sort((a, b) => a.date.localeCompare(b.date));
     }
 
     private buildMonthlyUsage(entries: any[], year: number): { month: number; hours: number }[] {

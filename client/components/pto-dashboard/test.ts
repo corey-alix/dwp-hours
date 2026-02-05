@@ -37,8 +37,15 @@ export function playground(): void {
     accrual.setAttribute('year', new Date().getFullYear().toString());
 
     sick.setAttribute('data', JSON.stringify({ allowed: 24, used: 4, remaining: 20 }));
+    sick.setAttribute('entries', JSON.stringify([
+        { date: '2026-01-12', hours: 4 }
+    ]));
     bereavement.setAttribute('data', JSON.stringify({ allowed: 40, used: 0, remaining: 40 }));
+    bereavement.setAttribute('entries', JSON.stringify([]));
     jury.setAttribute('data', JSON.stringify({ allowed: 40, used: 8, remaining: 32 }));
+    jury.setAttribute('entries', JSON.stringify([
+        { date: '2026-02-03', hours: 8 }
+    ]));
 
     info.setAttribute('data', JSON.stringify({
         hireDate: '2/13/2023',

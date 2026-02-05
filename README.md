@@ -60,6 +60,7 @@ The system ensures accurate tracking per employee with individual rates and carr
   - Select start date and total hours, with automatic calculation of the date range covering the specified number of workdays
 - **PTO Status Dashboard**: View annual PTO status by month
    - **Monthly Accrual Breakdown UI**: Rendered as a two-column grid (month name on the left, hours on the right). Each row includes a clickable Calendar icon that reveals a month view. The month view uses legacy color coding for PTO types as documented in [`.github/skills/pto-spreadsheet-layout/SKILL.md`](.github/skills/pto-spreadsheet-layout/SKILL.md), and each day cell shows the number of hours in the bottom-right corner.
+   - **Sick/Bereavement/Jury Duty Detail**: Each of these cards must list the specific dates taken and the hours for each date, not just the totals.
    - **PTO Section Cards**: Each `pto-section` is a dedicated web component derived from a shared base card component (one component per PTO aspect: Regular PTO, Monthly Accruals, Sick Time, Bereavement, Jury Duty, Employee Info). This keeps dashboard rendering consistent and testable.
 - **Monthly Hours Review**: Submit and review monthly hours worked
 - **Acknowledgement System**: Monthly acknowledgement of hours review completion
@@ -473,9 +474,9 @@ Access requires admin privileges.
 - **report-generator**: Report UI for PTO usage summaries with filters and export controls.
 - **pto-summary-card**: Regular PTO balances (allocation, available, used, carryover).
 - **pto-accrual-card**: Monthly accrual breakdown grid with calendar drill-down and legacy PTO color coding.
-- **pto-sick-card**: Sick time allowance, used, remaining.
-- **pto-bereavement-card**: Bereavement allowance, used, remaining.
-- **pto-jury-duty-card**: Jury duty allowance, used, remaining.
+- **pto-sick-card**: Sick time allowance, used, remaining, plus a list of dates and hours for each sick entry.
+- **pto-bereavement-card**: Bereavement allowance, used, remaining, plus a list of dates and hours for each bereavement entry.
+- **pto-jury-duty-card**: Jury duty allowance, used, remaining, plus a list of dates and hours for each jury duty entry.
 - **pto-employee-info-card**: Hire date, next rollover, and related metadata.
 
 All PTO dashboard cards share a common base class for consistent layout and styling.
