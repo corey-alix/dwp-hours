@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Workflow Test</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <header>
+        <h1>DWP Hours Tracker - Employee Workflow Test</h1>
+    </header>
+
+    <main>
+        <!-- Login Section -->
+        <div id="login-section">
+            <h2>Login</h2>
+            <form id="login-form">
+                <label for="identifier">Email:</label>
+                <input type="email" id="identifier" required />
+                <button type="submit">Send Magic Link</button>
+            </form>
+            <div id="login-message" class="hidden"></div>
+        </div>
+
+        <!-- Dashboard Section -->
+        <div id="dashboard" class="hidden">
+            <h2>PTO Dashboard</h2>
+            <div id="pto-status"></div>
+            <button id="new-pto-btn">Submit Time Off</button>
+        </div>
+
+        <!-- PTO Form Section -->
+        <div id="pto-form" class="hidden">
+            <h2>Submit Time Off</h2>
+            <form id="pto-entry-form">
+                <label for="start-date">Start Date:</label>
+                <input type="date" id="start-date" required />
+                <label for="end-date">End Date:</label>
+                <input type="date" id="end-date" required />
+                <label for="pto-type">Type:</label>
+                <select id="pto-type" required>
+                    <option value="Sick">Sick</option>
+                    <option value="Full PTO">Full PTO</option>
+                    <option value="Partial PTO">Partial PTO</option>
+                    <option value="Bereavement">Bereavement</option>
+                    <option value="Jury Duty">Jury Duty</option>
+                </select>
+                <label for="hours">Hours:</label>
+                <input type="number" id="hours" step="0.5" required />
+                <button type="submit">Submit PTO</button>
+                <button type="button" id="cancel-pto">Cancel</button>
+            </form>
+        </div>
+
+        <!-- Logout Button -->
+        <button id="logout-btn" class="hidden">Logout</button>
+    </main>
+
+    <div id="test-output" style="display: block; padding: 10px; border: 1px solid #ccc; margin: 10px 0;"></div>
+
+    <script type="module">
+        // Mock API for testing - set this up before importing the app
+        window.testMode = true;
+
+        // Mock API responses
+        const mockAPI = {
+            post: async (endpoint, data) => {
+                console.log('Mock API POST:', endpoint, data);
+                if (endpoint === '/auth/request-link') {
+                    return {
+                        message: 'Magic link generated for testing',
+                        magicLink: 'http://localhost:3000/test?token=mocktoken123&ts=1640995200000'
+                    };
+                }
+                if (endpoint === '/pto') {
+                    return { success: true, id: 1 };
+                }
+                return { success: true };
+            },
+            get: async (endpoint) => {
+                console.log('Mock API GET:', endpoint);
+                if (endpoint.startsWith('/auth/validate')) {
+                    return {
+                        publicHash: 'mockhash123',
+                        employee: {
+                            id: 1,
+                            name: 'Test Employee',
+                            role: 'Employee'
+                        }
+                    };
+                }
+                if (endpoint.startsWith('/pto/status/')) {
+                    return {
+                        annualAllocation: 120,
+                        availablePTO: 95.64,
+                        usedPTO: 24.36,
+                        carryoverFromPreviousYear: 0,
+                        monthlyAccruals: [
+                            { month: 1, hours: 8.0 },
+                            { month: 2, hours: 8.0 }
+                        ],
+                        hireDate: '2023-02-13T00:00:00.000Z',
+                        nextRolloverDate: '2025-01-01T00:00:00.000Z'
+                    };
+                }
+                return {};
+            }
+        };
+
+        // Set the mock API before the app loads
+        window.api = mockAPI;
+
+        // Import and initialize the app
+        import('/app.js').then(() => {
+            console.log('Employee Workflow Test: App loaded successfully');
+
+            // Signal that the test is ready
+            const testOutput = document.getElementById('test-output');
+            testOutput.textContent = 'Test initialized successfully';
+        }).catch(error => {
+            console.error('Failed to load app:', error);
+            const testOutput = document.getElementById('test-output');
+            testOutput.textContent = 'Test failed to initialize: ' + error.message;
+        });
+    </script>
+</body>
+</html>

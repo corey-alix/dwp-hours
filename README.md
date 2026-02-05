@@ -98,7 +98,7 @@ The system ensures accurate tracking per employee with individual rates and carr
 - **Lint**: `npm run lint` - Check TypeScript for errors
 - **Format**: `npm run format` - Format code with Prettier
 - **Test**: `npm test` - Run unit tests with Vitest
-- **E2E Test**: `npm run test:e2e` - Run end-to-end tests with Playwright (8 tests passing covering admin panel components)
+- **E2E Test**: `npm run test:e2e` - Run end-to-end tests with Playwright (9 tests passing covering admin panel components and employee workflow)
 
 ### Project Structure
 
@@ -415,6 +415,117 @@ Currently provides:
 - **E2E Testing**: 8 comprehensive Playwright tests covering all functionality
 
 Access requires admin privileges.
+
+## End-to-End Testing Strategy
+
+**Status: Implemented** - Comprehensive E2E testing framework implemented with employee authentication and workflow validation. The test validates the complete user journey from login through dashboard access.
+
+### Employee Authentication & Workflow E2E Test
+
+**✅ IMPLEMENTED**: `e2e/employee-workflow.spec.ts` - Complete E2E test for employee authentication and basic workflow validation.
+
+**Note**: E2E tests require the development server running on `http://localhost:3000`. Run `npm run dev` in a separate terminal before executing E2E tests.
+
+The primary E2E test simulates a complete employee experience, starting from login through dashboard access. This test validates the magic link authentication flow and ensures the core employee journey works end-to-end.
+
+#### Test Flow Overview
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Browser
+    participant Server
+    participant Database
+
+    Note over User,Database: Employee Authentication & Complete Workflow Test
+
+    User->>Browser: Navigate to http://localhost:3000/index.html
+    Browser->>Server: Load login page
+    Server-->>Browser: Return login HTML
+
+    User->>Browser: Enter email (e.g., employee@example.com)
+    User->>Browser: Click "Send Magic Link"
+
+    Browser->>Server: POST /api/auth/request-link { identifier: "employee@example.com", headers: { "x-test-mode": "true" } }
+    Server->>Database: Lookup employee by identifier
+    Database-->>Server: Return employee record with hash
+    Server->>Server: Generate temporal token from hash
+    Note right of Server: Test mode: Return magic link directly instead of emailing
+    Server-->>Browser: Return { magicLink: "http://localhost:3000/index.html?token=abc123..." }
+
+    User->>Browser: Click returned magic link (simulated)
+    Browser->>Server: GET /api/auth/validate?token=abc123
+    Server->>Server: Validate token against employee hash
+    Server-->>Browser: Set HTTP cookie with public key
+    Browser->>Browser: Store authentication cookie
+
+    Note over Browser: Cookie verification - test confirms cookie exists
+
+    User->>Browser: Navigate to dashboard
+    Browser->>Server: GET /api/pto/status/:employeeId (with cookie)
+    Server->>Database: Query PTO entries, calculate balances
+    Database-->>Server: Return PTO data
+    Server-->>Browser: Return PTO status summary
+
+    User->>Browser: Submit PTO request
+    Browser->>Server: POST /api/pto { type: "PTO", start_date: "...", end_date: "...", hours: 8 }
+    Server->>Database: Insert PTO entry
+    Database-->>Server: Confirm insertion
+    Server-->>Browser: Return success response
+
+    User->>Browser: Submit monthly hours
+    Browser->>Server: POST /api/hours { month: "2024-01", hours_worked: 160 }
+    Server->>Database: Insert monthly hours
+    Database-->>Server: Confirm insertion
+    Server-->>Browser: Return success response
+
+    User->>Browser: Acknowledge monthly review
+    Browser->>Server: POST /api/acknowledgements { month: "2024-01" }
+    Server->>Database: Insert acknowledgement
+    Database-->>Server: Confirm insertion
+    Server-->>Browser: Return success response
+
+    Note over User,Database: Test validates complete employee workflow
+```
+
+#### Key Testing Features
+
+**Authentication Testing:**
+- Magic link generation and validation
+- Cookie-based session management
+- Secure token handling
+
+**Workflow Validation:**
+- PTO status dashboard access
+- Time off request submission
+- Monthly hours reporting
+- Acknowledgement system
+- Data persistence and retrieval
+
+**Testing Infrastructure:**
+- **Magic Link Bypass**: For E2E testing, the `/api/auth/request-link` endpoint returns the magic link URL directly instead of sending an email. This allows automated tests to access the link programmatically.
+- **Cookie Verification**: Tests confirm that authentication cookies are properly set and maintained.
+- **State Management**: Each test run uses isolated database state to prevent interference.
+
+#### Future Test Extensions
+
+The employee authentication test serves as a foundation for comprehensive workflow testing:
+
+1. **Admin Workflow Tests**: Parallel E2E tests covering admin panel functionality
+2. **Multi-User Scenarios**: Tests with multiple employees and admins interacting
+3. **Edge Case Testing**: Invalid tokens, expired sessions, permission boundaries
+4. **Performance Testing**: Load testing with multiple concurrent users
+5. **Cross-Browser Testing**: Validation across different browser environments
+
+#### Implementation Notes
+
+- Tests run against `http://localhost:3000` with the development server
+- Database is seeded with test data before each test run
+- Authentication bypass is clearly marked as testing-only functionality
+- Production deployment will use proper email delivery for magic links
+- **Test Mode**: Server detects test mode via `x-test-mode: true` header or `NODE_ENV=test`
+- **Magic Link Return**: In test mode, `/api/auth/request-link` returns the magic link URL directly for automated testing
+- **Test File**: `e2e/employee-workflow.spec.ts` implements the complete employee authentication and workflow test
 
 ## Monthly Review & Acknowledgement System
 

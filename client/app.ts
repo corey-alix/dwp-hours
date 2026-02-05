@@ -77,7 +77,7 @@ class APIClient {
     }
 }
 
-const api = new APIClient();
+const api = (window as any).api || new APIClient();
 
 // UI Manager
 class UIManager {

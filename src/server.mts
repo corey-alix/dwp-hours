@@ -184,6 +184,7 @@ initDatabase().then(async () => {
             }
 
             const { identifier } = req.body;
+            const isTestMode = req.headers['x-test-mode'] === 'true' || process.env.NODE_ENV === 'test';
 
             const employeeRepo = dataSource.getRepository(Employee);
             const employee = await employeeRepo.findOne({ where: { identifier } });
@@ -205,8 +206,18 @@ initDatabase().then(async () => {
             const timestamp = Date.now();
             const temporalHash = crypto.createHash('sha256').update(secretHash + timestamp).digest('hex');
 
-            // In a real app, send email with link: http://localhost:3000/?token=${temporalHash}&ts=${timestamp}
-            log(`Magic link for ${identifier}: http://localhost:3000/?token=${temporalHash}&ts=${timestamp}`);
+            const magicLink = `http://localhost:3000/?token=${temporalHash}&ts=${timestamp}`;
+
+            // In a real app, send email with link
+            log(`Magic link for ${identifier}: ${magicLink}`);
+
+            if (isTestMode) {
+                // For E2E testing, return the magic link directly
+                return res.json({
+                    message: 'Magic link generated for testing',
+                    magicLink: magicLink
+                });
+            }
 
             res.json({ message: 'If the email exists, a magic link has been sent.' });
         } catch (error) {
