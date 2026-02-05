@@ -22,18 +22,24 @@ test('pto-calendar component test', async ({ page }) => {
     const legendItems = await page.locator('pto-calendar').locator('.legend-item');
     await expect(legendItems).toHaveCount(5);
 
-    // Test readonly mode (default) - legend items should not be clickable
+    // Test editable mode (default) - legend items should be clickable
     const legendItem = await page.locator('pto-calendar').locator('.legend-item').first();
+    await expect(legendItem).toHaveClass(/clickable/);
+
+    // Test readonly mode - set readonly to true
+    await page.evaluate(() => {
+        const calendar = document.querySelector('pto-calendar') as any;
+        calendar.setReadonly(true);
+    });
+
+    // Now legend items should not be clickable
     await expect(legendItem).not.toHaveClass(/clickable/);
 
-    // Test editable mode - set readonly to false
+    // Test editable mode - set readonly back to false
     await page.evaluate(() => {
         const calendar = document.querySelector('pto-calendar') as any;
         calendar.setReadonly(false);
     });
-
-    // Now legend items should be clickable
-    await expect(legendItem).toHaveClass(/clickable/);
 
     // Test legend item selection
     await legendItem.click();

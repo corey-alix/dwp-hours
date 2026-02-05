@@ -168,7 +168,7 @@ export class PtoCalendar extends HTMLElement {
             const isSelected = this.selectedCells.has(dateStr);
             const selectedHours = this.selectedCells.get(dateStr) || 8;
             const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-            const dayClass = entry ? `day type-${entry.type.replace(/\s+/g, '-')}` : 'day';
+            const dayClass = entry ? `day type-${entry.type.replace(/\s+/g, '-')}` : (isSelected && this.selectedPtoType ? `day type-${this.selectedPtoType.replace(/\s+/g, '-')}` : 'day');
             const emptyClass = isCurrentMonth ? '' : 'empty';
             const selectedClass = isSelected ? 'selected' : '';
             const clickableClass = (!this.readonly && isCurrentMonth && !isWeekend) ? 'clickable' : '';
@@ -272,9 +272,9 @@ export class PtoCalendar extends HTMLElement {
                     height: 14px;
                     font-size: 10px;
                     text-align: center;
-                    border: 1px solid #ccc;
+                    border: 1px solid rgba(255,255,255,0.5);
                     border-radius: 2px;
-                    background: white;
+                    background: rgba(255,255,255,0.9);
                     color: #2c3e50;
                 }
 
@@ -288,6 +288,25 @@ export class PtoCalendar extends HTMLElement {
                 .type-Bereavement { background: ${PTO_TYPE_COLORS.Bereavement}; }
                 .type-Jury-Duty { background: ${PTO_TYPE_COLORS["Jury Duty"]}; }
                 .type-Planned-PTO { background: ${PTO_TYPE_COLORS["Planned PTO"]}; }
+
+                /* Make text white on colored backgrounds for better contrast */
+                .type-PTO .date,
+                .type-PTO .hours,
+                .type-PTO .hours-input,
+                .type-Sick .date,
+                .type-Sick .hours,
+                .type-Sick .hours-input,
+                .type-Bereavement .date,
+                .type-Bereavement .hours,
+                .type-Bereavement .hours-input,
+                .type-Jury-Duty .date,
+                .type-Jury-Duty .hours,
+                .type-Jury-Duty .hours-input,
+                .type-Planned-PTO .date,
+                .type-Planned-PTO .hours,
+                .type-Planned-PTO .hours-input {
+                    color: white;
+                }
 
                 .legend {
                     display: flex;

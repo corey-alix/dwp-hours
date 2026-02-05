@@ -14,12 +14,24 @@
 <body>
     <h1>PTO Calendar Component Test</h1>
 
+    <div class="instructions" style="margin: 20px 0; padding: 15px; background: #e8f4fd; border-left: 4px solid #007bff; border-radius: 4px;">
+        <h3>How to Test Interactive PTO Request Creation:</h3>
+        <ol>
+            <li><strong>Make calendar editable:</strong> Click "Toggle Readonly Mode" to enable editing</li>
+            <li><strong>Select PTO type:</strong> Click on a legend item below the calendar (PTO, Sick, etc.)</li>
+            <li><strong>Paint cells:</strong> Click on weekday cells (Mon-Fri) to apply the selected PTO type</li>
+            <li><strong>Edit hours:</strong> Click on the hours number in painted cells to change the hours</li>
+            <li><strong>Submit request:</strong> Click "Submit PTO Request" to submit your selections</li>
+        </ol>
+        <p><em>Note: Weekend cells (Sat/Sun) cannot be selected. Existing PTO entries are shown in color.</em></p>
+    </div>
+
     <div class="test-controls">
         <h3>Test Controls</h3>
         <button id="toggle-readonly">Toggle Readonly Mode</button>
         <button id="clear-selection">Clear Selection</button>
         <button id="get-selected">Get Selected Requests</button>
-        <div id="status" class="status">Status: Ready</div>
+        <div id="status" class="status">Status: Calendar is in editable mode - try clicking a legend item then painting cells!</div>
     </div>
 
     <div id="test-output" style="display: grid; gap: 12px; padding: 10px; border: 1px solid #ccc; margin: 10px 0;">
@@ -60,7 +72,7 @@
         document.getElementById('toggle-readonly').addEventListener('click', () => {
             const isReadonly = calendar.getAttribute('readonly') === 'true';
             calendar.setReadonly(!isReadonly);
-            status.textContent = `Status: Readonly mode ${!isReadonly ? 'disabled' : 'enabled'}`;
+            status.textContent = `Status: Calendar is now in ${!isReadonly ? 'readonly' : 'editable'} mode`;
         });
 
         document.getElementById('clear-selection').addEventListener('click', () => {
