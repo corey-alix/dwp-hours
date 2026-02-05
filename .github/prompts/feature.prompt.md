@@ -2,7 +2,6 @@
 description: Generate a new task file for adding a feature to the DWP Hours Tracker project, following the project's task management system.
 name: feature
 agent: agent
-model: Grok Code Fast 1
 tools: [read, edit, edit/createFile]
 ---
 

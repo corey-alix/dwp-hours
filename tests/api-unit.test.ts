@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import express from 'express';
 import initSqlJs from 'sql.js';
@@ -7,6 +7,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { DataSource } from 'typeorm';
 import { Employee, PtoEntry, MonthlyHours, Acknowledgement, AdminAcknowledgement } from '../src/entities/index.js';
+import crypto from 'crypto';
+import { body, validationResult } from 'express-validator';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,6 +28,7 @@ let testDb: initSqlJs.Database;
 let dataSource: DataSource;
 let app: express.Application;
 let server: any;
+const sendMagicLinkEmail = vi.fn().mockResolvedValue({ messageId: 'test-message' });
 
 beforeAll(async () => {
     // Initialize test database
@@ -48,6 +51,7 @@ beforeAll(async () => {
     });
 
     await dataSource.initialize();
+    process.env.HASH_SALT = process.env.HASH_SALT || 'test_salt';
 
     // Create test app with the same routes as the real server
     app = express();
@@ -55,7 +59,7 @@ beforeAll(async () => {
     app.use(express.urlencoded({ extended: true }));
 
     // Import and setup routes from server logic
-    setupTestRoutes(app);
+    setupTestRoutes(app, { sendMagicLinkEmail });
 
     // Start test server on a random port
     server = app.listen(0);
@@ -84,10 +88,56 @@ beforeEach(async () => {
     } catch (error) {
         // Tables might not exist yet, ignore
     }
+
+    sendMagicLinkEmail.mockClear();
 });
 
 // Extract route setup logic (simplified version of server routes)
-function setupTestRoutes(app: express.Application) {
+function setupTestRoutes(app: express.Application, deps: { sendMagicLinkEmail: (to: string, magicLink: string) => Promise<unknown> }) {
+    app.post('/api/auth/request-link', [
+        body('identifier').isEmail().normalizeEmail().withMessage('Valid email address required')
+    ], async (req, res) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ error: 'Invalid input', details: errors.array() });
+            }
+
+            const { identifier } = req.body;
+            const isTestMode = req.headers['x-test-mode'] === 'true' || process.env.NODE_ENV === 'test';
+
+            const employeeRepo = dataSource.getRepository(Employee);
+            const employee = await employeeRepo.findOne({ where: { identifier } });
+
+            if (!employee) {
+                return res.json({ message: 'If the email exists, a magic link has been sent.' });
+            }
+
+            let secretHash = employee.hash;
+            if (!secretHash) {
+                secretHash = crypto.createHash('sha256').update(identifier + (process.env.HASH_SALT || 'default_salt')).digest('hex');
+                employee.hash = secretHash;
+                await employeeRepo.save(employee);
+            }
+
+            const timestamp = Date.now();
+            const temporalHash = crypto.createHash('sha256').update(secretHash + timestamp).digest('hex');
+            const magicLink = `http://localhost:3000/?token=${temporalHash}&ts=${timestamp}`;
+
+            if (isTestMode) {
+                return res.json({
+                    message: 'Magic link generated for testing',
+                    magicLink
+                });
+            }
+
+            await deps.sendMagicLinkEmail(identifier, magicLink);
+            return res.json({ message: 'If the email exists, a magic link has been sent.' });
+        } catch (error) {
+            return res.status(500).json({ error: 'Internal server error' });
+        }
+    });
+
     // Monthly Hours routes
     app.post('/api/hours', async (req, res) => {
         try {
@@ -416,6 +466,56 @@ function setupTestRoutes(app: express.Application) {
         }
     });
 }
+
+describe('Auth magic link request', () => {
+    it('returns magic link in test mode without sending email', async () => {
+        const employee = dataSource.getRepository(Employee).create({
+            name: 'Magic Link User',
+            identifier: 'magiclink@example.com',
+            pto_rate: 0.71,
+            carryover_hours: 0,
+            hire_date: new Date('2024-01-01'),
+            role: 'Employee'
+        });
+        await dataSource.getRepository(Employee).save(employee);
+
+        const response = await request(app)
+            .post('/api/auth/request-link')
+            .set('x-test-mode', 'true')
+            .send({ identifier: 'magiclink@example.com' });
+
+        expect(response.status).toBe(200);
+        expect(response.body.magicLink).toContain('http://localhost:3000/?token=');
+        expect(sendMagicLinkEmail).not.toHaveBeenCalled();
+    });
+
+    it('sends email in non-test mode without returning magic link', async () => {
+        const originalNodeEnv = process.env.NODE_ENV;
+        process.env.NODE_ENV = 'development';
+
+        const employee = dataSource.getRepository(Employee).create({
+            name: 'Magic Link User 2',
+            identifier: 'magiclink2@example.com',
+            pto_rate: 0.71,
+            carryover_hours: 0,
+            hire_date: new Date('2024-01-01'),
+            role: 'Employee'
+        });
+        await dataSource.getRepository(Employee).save(employee);
+
+        const response = await request(app)
+            .post('/api/auth/request-link')
+            .send({ identifier: 'magiclink2@example.com' });
+
+        expect(response.status).toBe(200);
+        expect(response.body.magicLink).toBeUndefined();
+        expect(sendMagicLinkEmail).toHaveBeenCalledTimes(1);
+        expect(sendMagicLinkEmail.mock.calls[0]?.[0]).toBe('magiclink2@example.com');
+        expect(sendMagicLinkEmail.mock.calls[0]?.[1]).toContain('http://localhost:3000/?token=');
+
+        process.env.NODE_ENV = originalNodeEnv;
+    });
+});
 
 describe('API Endpoints', () => {
     describe('Monthly Hours API', () => {

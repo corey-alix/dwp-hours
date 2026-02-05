@@ -16,6 +16,7 @@ import { Employee, PtoEntry, MonthlyHours, Acknowledgement, AdminAcknowledgement
 import { calculatePTOStatus } from "./ptoCalculations.js";
 import { calculateEndDate } from "./workDays.js";
 import net from "net";
+import { sendMagicLinkEmail } from "./utils/mailer.js";
 
 dotenv.config();
 
@@ -209,8 +210,9 @@ initDatabase().then(async () => {
 
             const magicLink = `http://localhost:3000/?token=${temporalHash}&ts=${timestamp}`;
 
-            // In a real app, send email with link
-            log(`Magic link for ${identifier}: ${magicLink}`);
+            if (isTestMode || process.env.NODE_ENV !== 'production') {
+                log(`Magic link for ${identifier}: ${magicLink}`);
+            }
 
             if (isTestMode) {
                 // For E2E testing, return the magic link directly
@@ -218,6 +220,13 @@ initDatabase().then(async () => {
                     message: 'Magic link generated for testing',
                     magicLink: magicLink
                 });
+            }
+
+            try {
+                await sendMagicLinkEmail(identifier, magicLink);
+            } catch (emailError) {
+                log(`Error sending magic link email: ${emailError}`);
+                return res.status(500).json({ error: 'Failed to send magic link email' });
             }
 
             res.json({ message: 'If the email exists, a magic link has been sent.' });

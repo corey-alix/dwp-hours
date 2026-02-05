@@ -110,7 +110,20 @@ The system ensures accurate tracking per employee with individual rates and carr
    npm run db:init
    ```
 
-3. **Start Development Server**
+3. **Configure Email (Magic Link)**
+
+   Copy `.env.example` to `.env` and set SMTP credentials used to send magic links:
+
+   ```bash
+   SMTP_HOST=your-smtp-host
+   SMTP_PORT=587
+   SMTP_USER=your-smtp-username
+   SMTP_PASS=your-smtp-password
+   SENDER_NAME=Your App Name
+   SENDER_EMAIL=sender@example.com
+   ```
+
+4. **Start Development Server**
 
    ```bash
    npm run dev
