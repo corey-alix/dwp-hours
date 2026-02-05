@@ -1,7 +1,7 @@
 # Admin Review Acknowledgment
 
 ## Description
-Implement a feature where the administrator, after reviewing employee hours, can acknowledge the review and mark the month as reviewed, similar to how the employee must acknowledge their own hours. This mirrors the legacy Excel system where both employees (initials) and admins (name) acknowledge monthly data in separate columns.
+Implement a feature where the administrator, after reviewing employee hours and PTO usage breakdown by category (PTO, Sick, Bereavement, Jury Duty), can acknowledge the review and mark the month as reviewed, similar to how the employee must acknowledge their own hours. This mirrors the legacy Excel system where both employees (initials) and admins (name) acknowledge monthly data in separate columns.
 
 ## Priority
 🟡 Medium Priority

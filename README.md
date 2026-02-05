@@ -22,6 +22,34 @@ This application allows employees to log various types of time off (Sick, PTO, B
 
 The system ensures accurate tracking per employee with individual rates and carryover balances.
 
+## Screenshots
+
+### PTO Submission Form
+![PTO Submission Form](assets/pto-submission-form.png)
+
+*Submit time off requests by selecting a start date and total hours. The system automatically calculates the end date based on workdays.*
+
+### Admin Panel Components
+
+#### Admin Panel Overview
+![Admin Panel](assets/admin-panel-component.png)
+
+#### Employee Management
+![Employee Form](assets/employee-form-component.png)
+![Employee List](assets/employee-list-component.png)
+
+#### PTO Request Queue
+![PTO Request Queue](assets/pto-request-queue-component.png)
+
+#### Data Tables
+![Data Table](assets/data-table-component.png)
+
+#### Report Generation
+![Report Generator](assets/report-generator-component.png)
+
+#### Confirmation Dialogs
+![Confirmation Dialog](assets/confirmation-dialog-component.png)
+
 ## Features
 
 - **Secure Authentication**: Passwordless magic link authentication system
@@ -29,7 +57,7 @@ The system ensures accurate tracking per employee with individual rates and carr
   - No passwords required - enhanced security and user experience
 - **Time Off Logging**: Submit time off entries via web UI or API
   - Types: Sick, PTO, Bereavement, Jury Duty
-  - Date range selection with total hours
+  - Select start date and total hours, with automatic calculation of the date range covering the specified number of workdays
 - **PTO Status Dashboard**: View annual PTO status by month
 - **Monthly Hours Review**: Submit and review monthly hours worked
 - **Acknowledgement System**: Monthly acknowledgement of hours review completion
@@ -168,9 +196,9 @@ dwp-hours-tracker/
 1. Enter your employee identifier (email address) to receive a magic link
 2. Check your email and click the secure login link
 3. Navigate to the dashboard to view your PTO status
-4. Submit time off requests by selecting date ranges and types
+4. Submit time off requests by selecting a start date, total hours, and type (the system automatically calculates the end date based on workdays)
 5. Submit monthly hours worked at the end of each month
-6. Review and acknowledge your monthly hours and PTO status
+6. Review and acknowledge your monthly hours worked and PTO usage breakdown by category (PTO, Sick, Bereavement, Jury Duty)
 7. Receive reminders if acknowledgement is pending
 
 ### For Admins
@@ -220,7 +248,7 @@ The application uses a secure magic link authentication system that eliminates t
 
 ### PTO Management
 - `GET /api/pto`: Retrieve all PTO entries (admin) or filtered entries
-- `POST /api/pto`: Submit a new PTO entry for time off request
+- `POST /api/pto`: Submit a new PTO entry by providing start date, total hours, and type (end date is automatically calculated based on workdays)
 - `PUT /api/pto/:id`: Update an existing PTO entry (admin only)
 - `DELETE /api/pto/:id`: Delete/cancel a PTO entry (admin only)
 - `GET /api/pto/status/:employeeId`: Get comprehensive PTO status summary including balances, accruals, and usage by type
@@ -229,10 +257,13 @@ The application uses a secure magic link authentication system that eliminates t
 - `POST /api/hours`: Submit monthly hours worked for an employee
 - `GET /api/hours/:employeeId`: Retrieve monthly hours submissions for an employee
 
+### Monthly Summary
+- `GET /api/monthly-summary/:employeeId/:month`: Get monthly hours worked and PTO usage breakdown by category for acknowledgement review
+
 ### Acknowledgement System
-- `POST /api/acknowledgements`: Submit monthly review acknowledgement
+- `POST /api/acknowledgements`: Submit monthly review acknowledgement of hours worked and PTO usage breakdown by category
 - `GET /api/acknowledgements/:employeeId`: Check acknowledgement status for an employee
-- `POST /api/admin-acknowledgements`: Submit admin review acknowledgement for employee's monthly hours (admin only)
+- `POST /api/admin-acknowledgements`: Submit admin review acknowledgement of employee's monthly hours and PTO usage breakdown by category (admin only)
 - `GET /api/admin-acknowledgements/:employeeId`: Retrieve admin acknowledgements for an employee (admin only)
 
 ### Employee Management (Admin Only)
@@ -468,7 +499,7 @@ sequenceDiagram
     Server-->>Browser: Return PTO status summary
 
     User->>Browser: Submit PTO request
-    Browser->>Server: POST /api/pto { type: "PTO", start_date: "...", end_date: "...", hours: 8 }
+    Browser->>Server: POST /api/pto { type: "PTO", start_date: "...", hours: 40 } (end date calculated automatically)
     Server->>Database: Insert PTO entry
     Database-->>Server: Confirm insertion
     Server-->>Browser: Return success response
@@ -532,7 +563,7 @@ The employee authentication test serves as a foundation for comprehensive workfl
 **Status: Partially Implemented** - Basic acknowledgement functionality exists for both employees and admins, but automated reminders are not yet implemented.
 
 Currently provides:
-- Manual submission of monthly acknowledgements via API (employee and admin)
+- Manual submission of monthly acknowledgements via API (employee and admin), including review of hours worked and PTO usage breakdown by category (PTO, Sick, Bereavement, Jury Duty)
 - Tracking of acknowledgement timestamps for both types
 - Basic acknowledgement status checking
 - Admin panel integration for admin acknowledgments
@@ -544,7 +575,8 @@ Currently provides:
 
 ### Acknowledgement Process
 
-- Employees can manually submit acknowledgements via the API
+- Employees can manually submit acknowledgements via the API after reviewing their monthly hours worked and PTO usage breakdown by category
+- Admins can acknowledge employee submissions after reviewing the same breakdown
 - The system tracks acknowledgement timestamps
 - **Automated reminders are planned but not yet implemented**
 

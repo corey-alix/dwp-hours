@@ -14,6 +14,7 @@ import "reflect-metadata";
 import { DataSource, Not, IsNull, Between, Like } from "typeorm";
 import { Employee, PtoEntry, MonthlyHours, Acknowledgement, AdminAcknowledgement } from "./entities/index.js";
 import { calculatePTOStatus } from "./ptoCalculations.js";
+import { calculateEndDate } from "./workDays.js";
 import net from "net";
 
 dotenv.config();
@@ -494,6 +495,73 @@ initDatabase().then(async () => {
         }
     });
 
+    // Monthly summary for acknowledgements
+    app.get('/api/monthly-summary/:employeeId/:month', async (req, res) => {
+        try {
+            const { employeeId, month } = req.params;
+            const employeeIdNum = parseInt(employeeId);
+
+            if (isNaN(employeeIdNum)) {
+                return res.status(400).json({ error: 'Invalid employee ID' });
+            }
+
+            const employeeRepo = dataSource.getRepository(Employee);
+            const ptoEntryRepo = dataSource.getRepository(PtoEntry);
+            const monthlyHoursRepo = dataSource.getRepository(MonthlyHours);
+
+            const employee = await employeeRepo.findOne({ where: { id: employeeIdNum } });
+            if (!employee) {
+                return res.status(404).json({ error: 'Employee not found' });
+            }
+
+            // Parse month (expected format: YYYY-MM)
+            const monthDate = new Date(month + '-01');
+            if (isNaN(monthDate.getTime())) {
+                return res.status(400).json({ error: 'Invalid month format. Use YYYY-MM' });
+            }
+
+            // Get monthly hours for the month
+            const monthlyHours = await monthlyHoursRepo.findOne({
+                where: { employee_id: employeeIdNum, month: monthDate }
+            });
+
+            // Get PTO entries for the month
+            const startOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+            const endOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
+
+            const ptoEntries = await ptoEntryRepo.find({
+                where: {
+                    employee_id: employeeIdNum,
+                    start_date: Between(startOfMonth, endOfMonth)
+                }
+            });
+
+            // Calculate PTO usage by category
+            const ptoByCategory = {
+                PTO: 0,
+                Sick: 0,
+                Bereavement: 0,
+                'Jury Duty': 0
+            };
+
+            ptoEntries.forEach(entry => {
+                if (ptoByCategory.hasOwnProperty(entry.type)) {
+                    ptoByCategory[entry.type as keyof typeof ptoByCategory] += entry.hours;
+                }
+            });
+
+            res.json({
+                employeeId: employeeIdNum,
+                month,
+                hoursWorked: monthlyHours ? monthlyHours.hours_worked : 0,
+                ptoUsage: ptoByCategory
+            });
+        } catch (error) {
+            log(`Error getting monthly summary: ${error}`);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    });
+
     // Admin Acknowledgement routes
     app.post('/api/admin-acknowledgements', async (req, res) => {
         try {
@@ -742,10 +810,10 @@ initDatabase().then(async () => {
 
     app.post('/api/pto', async (req, res) => {
         try {
-            const { employeeId, startDate, endDate, type, hours } = req.body;
+            const { employeeId, start_date, hours, type } = req.body;
 
-            if (!employeeId || !startDate || !endDate || !type || hours === undefined) {
-                return res.status(400).json({ error: 'All fields are required: employeeId, startDate, endDate, type, hours' });
+            if (!employeeId || !start_date || hours === undefined || !type) {
+                return res.status(400).json({ error: 'All fields are required: employeeId, start_date, hours, type' });
             }
 
             const employeeIdNum = parseInt(employeeId);
@@ -777,16 +845,14 @@ initDatabase().then(async () => {
                 return res.status(404).json({ error: 'Employee not found' });
             }
 
-            const start = new Date(startDate);
-            const end = new Date(endDate);
-
-            if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-                return res.status(400).json({ error: 'Invalid date format' });
+            const start = new Date(start_date);
+            if (isNaN(start.getTime())) {
+                return res.status(400).json({ error: 'Invalid start date format' });
             }
 
-            if (start > end) {
-                return res.status(400).json({ error: 'Start date cannot be after end date' });
-            }
+            // Calculate end date based on workdays (assuming 8 hours per day)
+            const workDays = Math.ceil(hoursNum / 8);
+            const end = calculateEndDate(start, workDays);
 
             // Create PTO entry
             const newPtoEntry = ptoEntryRepo.create({

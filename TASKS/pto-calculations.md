@@ -24,7 +24,7 @@ Implement PTO balance calculations for an annual allocation system with monthly 
 - Annual resets (logic exists but no automated processing)
 
 **❌ Not Implemented / Needs Minor Updates:**
-- PTO submission endpoint and validation
+- PTO submission endpoint validation (endpoint exists but needs updates for start_date + hours format with auto end_date calculation)
 
 ## PTO Calculation Formula
 ```
@@ -125,9 +125,9 @@ Bereavement/Jury Duty = 40 Hours - Used Hours (resets annually)
   - New hires (prorated annual allocation) *[Implemented]*
   - Carryover limits and policies *[Need to implement]*
   - Year transitions and rollover timing *[Need to implement]*
-- [ ] Validate PTO submission doesn't exceed available balance *[No PTO submission endpoint exists]*
-- [ ] Validate sick time usage doesn't exceed 24 hours annually *[No validation in submission]*
-- [ ] Validate Bereavement/Jury Duty usage doesn't exceed 40 hours annually *[No validation in submission]*
+- [ ] Validate PTO submission doesn't exceed available balance *[Endpoint exists but validation needs implementation]*
+- [ ] Validate sick time usage doesn't exceed 24 hours annually *[Validation needs implementation in submission]*
+- [ ] Validate Bereavement/Jury Duty usage doesn't exceed 40 hours annually *[Validation needs implementation in submission]*
 - [ ] Add business logic for PTO approval workflows
 - [ ] Handle partial day calculations correctly *[May not be needed with fixed allocation]*
 - [ ] Ensure all leave types reset properly at year end *[Logic exists but no automated processing]*
@@ -177,7 +177,7 @@ Bereavement/Jury Duty = 40 Hours - Used Hours (resets annually)
   - Test Bereavement/Jury Duty display
   - Test rollover date display
 - [ ] Write unit tests for PTO submission validation
-  - Test balance limit enforcement
+  - Test balance limit enforcement *[Endpoint exists but validation needs tests]*
   - Test sick time limit validation
   - Test Bereavement/Jury Duty limit validation
 - [ ] Write unit tests for edge cases

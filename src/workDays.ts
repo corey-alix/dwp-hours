@@ -141,10 +141,23 @@ export function calculateWorkDays(year: number, month: number, holidays: string[
 }
 
 /**
- * Legacy function for backward compatibility
- * @param year - The year
- * @returns Empty array (holidays accounted for in work days)
+ * Calculate the end date given a start date and number of workdays
+ * @param startDate - The start date
+ * @param workDays - Number of workdays to add
+ * @returns The end date
  */
-export function getUSHolidays(year: number): string[] {
-    return []; // Holidays accounted for in work days calculation
+export function calculateEndDate(startDate: Date, workDays: number): Date {
+    let currentDate = new Date(startDate);
+    let daysAdded = 0;
+
+    while (daysAdded < workDays) {
+        currentDate.setDate(currentDate.getDate() + 1);
+        const dayOfWeek = currentDate.getDay();
+        // Monday (1) through Friday (5)
+        if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+            daysAdded++;
+        }
+    }
+
+    return currentDate;
 }

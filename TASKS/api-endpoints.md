@@ -13,6 +13,9 @@ Complete the API endpoints for monthly hours tracking, acknowledgements, and enh
 - [x] Add monthly hours validation (reasonable hour ranges)
 - [x] Implement hours submission deadlines/logic
 
+### Monthly Summary
+- [x] Create `GET /api/monthly-summary/:employeeId/:month` endpoint for acknowledgement review data
+
 ### Acknowledgement System
 - [x] Create `POST /api/acknowledgements` endpoint
 - [x] Create `GET /api/acknowledgements/:employeeId` endpoint
@@ -30,6 +33,7 @@ Complete the API endpoints for monthly hours tracking, acknowledgements, and enh
 - [x] Add `DELETE /api/pto/:id` endpoint for PTO cancellation
 - [x] Implement PTO approval workflow endpoints
 - [x] Add PTO reporting endpoints
+- [x] Update `POST /api/pto` to accept start_date, hours, and type, with automatic end_date calculation based on workdays
 
 ### Input Validation & Error Handling
 - [x] Add comprehensive input validation for all endpoints
