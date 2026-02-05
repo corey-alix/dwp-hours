@@ -1,6 +1,9 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import { body, validationResult } from "express-validator";
 import initSqlJs from "sql.js";
 import path from "path";
 import fs from "fs";
@@ -14,6 +17,17 @@ import { calculatePTOStatus } from "./ptoCalculations.js";
 
 dotenv.config();
 
+// Configuration validation
+const requiredEnvVars = ['HASH_SALT'];
+const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+
+if (missingEnvVars.length > 0) {
+    console.error('Missing required environment variables:', missingEnvVars);
+    console.error('Please set the following in your .env file:');
+    missingEnvVars.forEach(envVar => console.error(`- ${envVar}`));
+    process.exit(1);
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -21,9 +35,38 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
+}));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // limit each IP to 5 auth requests per windowMs
+  message: 'Too many authentication attempts, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use(limiter);
 app.use(cors());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, '..', 'public')));
@@ -84,13 +127,28 @@ async function initDatabase() {
 initDatabase().then(() => {
     log("Database initialized.");
 
-    // Auth routes
-    app.post('/api/auth/request-link', async (req, res) => {
+    // Health check endpoint
+    app.get('/api/health', (req, res) => {
+        res.json({
+            status: 'healthy',
+            timestamp: new Date().toISOString(),
+            uptime: process.uptime(),
+            version: '1.0.0'
+        });
+    });
+
+    // Auth routes (with stricter rate limiting)
+    app.use('/api/auth', authLimiter);
+    app.post('/api/auth/request-link', [
+        body('identifier').isEmail().normalizeEmail().withMessage('Valid email address required')
+    ], async (req: Request, res: Response) => {
         try {
-            const { identifier } = req.body;
-            if (!identifier) {
-                return res.status(400).json({ error: 'Identifier required' });
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ error: 'Invalid input', details: errors.array() });
             }
+
+            const { identifier } = req.body;
 
             const employeeRepo = dataSource.getRepository(Employee);
             const employee = await employeeRepo.findOne({ where: { identifier } });

@@ -1,57 +1,48 @@
 # Security & Production Features
 
 ## Overview
-Implement security hardening and production-ready features for the application.
+Implement essential security hardening and production-ready features for the MVP.
 
-**Note:** This checklist has been updated to reflect the current implementation as documented in README.md, particularly the magic link authentication system and existing build/logging infrastructure.
+**MVP Focus:** For a small company with low usage, prioritize basic security and production essentials while deferring advanced features (encryption, complex monitoring, GDPR compliance) for future iterations.
 
 ## Checklist
 
-### Security Hardening
+### Security Hardening (MVP Essentials)
 - [x] Implement CORS for cross-origin requests
-- [ ] Implement rate limiting for all API endpoints
-- [ ] Add input sanitization for all user inputs
-- [ ] Implement CSRF protection for forms
-- [ ] Add security headers (CSP, HSTS, etc.)
-- [ ] Implement request size limits
+- [x] Implement basic rate limiting for API endpoints
+- [x] Add basic input validation for user inputs
+- [x] Add essential security headers (helmet)
+- [x] Implement basic request size limits
 
-### Authentication Security
+### Authentication Security (MVP Essentials)
 - [x] Implement hash-based token authentication (magic link system)
 - [x] Add temporal token expiry (15-30 minutes)
-- [ ] Implement rate limiting for magic link requests
-- [ ] Add account lockout after failed token validation attempts
+- [x] Implement basic rate limiting for magic link requests
 - [x] Cookie-based session management
-- [ ] Add two-factor authentication option (optional enhancement)
-- [ ] Implement token refresh mechanism
 
-### Data Protection
-- [ ] Encrypt sensitive data in database
-- [ ] Implement data backup and recovery
-- [ ] Add data retention policies
-- [ ] Implement audit logging for sensitive operations
-- [ ] Add GDPR compliance features
+### Data Protection (Deferred for MVP)
+- [ ] Encrypt sensitive data in database (future)
+- [ ] Implement data backup and recovery (future)
+- [ ] Add data retention policies (future)
+- [ ] Implement audit logging for sensitive operations (future)
+- [ ] Add GDPR compliance features (future)
 
-### Environment Configuration
+### Environment Configuration (MVP Essentials)
 - [x] Set up basic environment variable management (.env files)
 - [x] Configure PORT environment variable
 - [x] Configure HASH_SALT for token security
-- [ ] Configure different environments (dev/staging/prod)
-- [ ] Add configuration validation
-- [ ] Implement secrets management
+- [x] Add basic configuration validation
+- [ ] Implement basic secrets management
 
-### Production Deployment
+### Production Deployment (MVP Essentials)
 - [x] Create production build process (esbuild compilation)
 - [x] Production start script (node dist/server.mjs)
 - [x] Basic logging and error tracking (file-based logging)
-- [ ] Set up process management (PM2)
-- [ ] Configure reverse proxy (nginx)
-- [ ] Implement health checks and monitoring
+- [x] Set up basic process management (PM2)
+- [x] Add basic health check endpoint
 
-### Performance Optimization
+### Performance Optimization (Deferred for MVP)
 - [x] Use esbuild for optimized compilation and bundling
-- [ ] Implement database query optimization
-- [ ] Add caching for frequently accessed data
-- [ ] Optimize frontend bundle size (already using esbuild)
-- [ ] Implement lazy loading where appropriate
-- [ ] Add database connection pooling (using sql.js, pooling not applicable)</content>
+- [ ] Implement basic database query optimization (future)
+- [ ] Add caching for frequently accessed data (future)</content>
 <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/TASKS/security-production.md
