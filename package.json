@@ -25,10 +25,11 @@
         "test:unit": "vitest --run",
         "test:e2e": "playwright test",
         "test": "npm-run-all lint build test:unit test:e2e",
-        "lint": "npm-run-all -p lint:server lint:client lint:test",
+        "lint": "npm-run-all -p lint:server lint:client lint:test lint:e2e",
         "lint:server": "tsc --noEmit --project tsconfig-server.json",
         "lint:client": "tsc --noEmit --project tsconfig-client.json",
         "lint:test": "tsc --noEmit --project tsconfig-test.json",
+        "lint:e2e": "tsc --noEmit --project tsconfig-e2e.json",
         "format": "prettier --write ."
     },
     "keywords": [

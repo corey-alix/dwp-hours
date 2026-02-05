@@ -20,9 +20,10 @@ test('report-generator component test', async ({ page }) => {
     try {
         const response = await page.request.get('/app.js');
         console.log('app.js status:', response.status());
-        console.log('app.js content length:', response.text().length);
+        const text = await response.text();
+        console.log('app.js content length:', text.length);
     } catch (error) {
-        console.log('Error fetching app.js:', error.message);
+        console.log('Error fetching app.js:', (error as Error).message);
     }
 
     // Wait for the page to load and component to initialize
