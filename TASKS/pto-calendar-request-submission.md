@@ -13,7 +13,7 @@ Repurpose the "Monthly Accrual Breakdown" to also allow employees to submit PTO 
 The test suite validates functionality, prevents regressions, and ensures components work correctly together.
 
 ## Completion Status
-**Overall Progress: 100% Complete (All Core Phases Completed + 4 Bug Fixes + Test Page Integration + E2E Testing)**
+**Overall Progress: 92% Complete (All Core Phases Completed + 4 Bug Fixes + Test Page Integration + E2E Testing + Main App Integration Planned)**
 
 **✅ Phase 1: Foundation - pto-accrual-card Updates COMPLETED**
 - [x] Modify pto-accrual-card to display all 12 months instead of only months with accrual data
@@ -147,4 +147,222 @@ Example: If annual allocation is 96 hours and total work days in year is 261, th
 - [x] Check for any test failures and address them if needed
 - [x] Ensure the e2e test covers the new interactive features (legend selection, cell painting, hours editing, submission)
 - [x] **✅ Run `npm run test` and e2e tests to validate complete functionality**
+
+### 🔄 Phase 13: Main Application Integration (IN PROGRESS)
+**Goal**: Enable PTO calendar request submission from the main index.html page with real server integration
+- [x] **handlePtoRequestSubmit already uses real API calls** - no changes needed
+- [ ] Modify pto-accrual-card in loadPTOStatus to enable request mode (request-mode="true")
+- [ ] Implement data refresh and component re-rendering after submissions
+- [ ] Add navigation button to dashboard: "Submit PTO Requests" (toggles request mode)
+- [ ] Implement E2E testing for real server integration
+- [ ] Test error scenarios and edge cases
+- [ ] **🔄 Run `npm run test` to validate all functionality works end-to-end**
+
+#### **Corrected Context and Complexity**
+The pto-calendar is already integrated within the pto-accrual-card component, which is created in the `loadPTOStatus()` method. The existing `handlePtoRequestSubmit()` method **already uses real API calls** and handles submission events correctly. We need to:
+
+1. **Enable Request Mode**: Set `request-mode="true"` on the pto-accrual-card to enable calendar editing
+2. **Data Refresh**: Implement full data refresh and component re-rendering after successful submissions
+3. **Navigation**: Add a button to toggle between view mode and request mode
+4. **State Management**: Ensure all PTO components update when data changes
+
+#### **Implementation Strategy Options**
+
+**Option A: Lightweight Bespoke Binding Library + Model**
+- Introduce a simple reactive model system for PTO data
+- Components subscribe to model changes for automatic re-rendering
+- Model handles API calls and state synchronization
+- Benefits: Clean separation of concerns, automatic UI updates, testable
+
+**Option B: Direct Component Coordination**
+- Extend UIManager to coordinate data refresh across components
+- Manual re-rendering of affected components after submissions
+- Direct API calls from submission handlers
+- Benefits: Simpler implementation, less abstraction
+
+**Chosen Approach: Hybrid Solution**
+- Start with direct component coordination (Option B) for immediate functionality
+- Introduce lightweight binding patterns where complexity emerges
+- Keep it simple but extensible for future enhancement
+
+#### **Detailed Implementation Steps**
+
+##### **Step 1: Enable Request Mode in loadPTOStatus**
+```typescript
+// In loadPTOStatus() method, modify pto-accrual-card creation:
+const accrualCard = document.createElement('pto-accrual-card') as any;
+accrualCard.monthlyAccruals = status.monthlyAccruals;
+accrualCard.calendar = calendarData;
+accrualCard.calendarYear = new Date().getFullYear();
+accrualCard.monthlyUsage = this.buildMonthlyUsage(entries, new Date().getFullYear());
+accrualCard.setAttribute('request-mode', 'true'); // Enable calendar editing
+accrualCard.setAttribute('annual-allocation', status.annualAllocation.toString());
+```
+
+##### **Step 2: Verify handlePtoRequestSubmit Uses Real API Calls**
+**Note**: The `handlePtoRequestSubmit` method in app.ts already correctly uses real API calls via `api.post('/pto', ...)`. No changes needed to this method.
+
+##### **Step 3: Implement Data Refresh and Re-rendering**
+```typescript
+private async refreshPTOData(): Promise<void> {
+    if (!this.currentUser) return;
+
+    try {
+        // Re-query PTO status from server
+        const status: PTOStatus = await api.get(`/pto/status/${this.currentUser.id}`);
+        const entries = await api.get(`/pto?employeeId=${this.currentUser.id}`);
+        const calendarData = this.buildCalendarData(entries, new Date().getFullYear());
+
+        // Re-render all PTO components with fresh data
+        await this.renderPTOStatus(status, entries, calendarData);
+
+    } catch (error) {
+        console.error("Failed to refresh PTO data:", error);
+        alert("Failed to refresh PTO data. Please refresh the page.");
+    }
+}
+
+private async renderPTOStatus(status: PTOStatus, entries: any[], calendarData: CalendarData): Promise<void> {
+    // Re-render the entire PTO status section with fresh data
+    const statusDiv = getElementById("pto-status");
+
+    // Clear existing content
+    statusDiv.innerHTML = '';
+
+    // Re-create all PTO components with fresh data
+    const summaryContainer = statusDiv.querySelector('.pto-summary') as HTMLElement;
+
+    const summaryCard = document.createElement('pto-summary-card') as any;
+    summaryCard.summary = {
+        annualAllocation: status.annualAllocation,
+        availablePTO: status.availablePTO,
+        usedPTO: status.usedPTO,
+        carryoverFromPreviousYear: status.carryoverFromPreviousYear
+    };
+
+    const accrualCard = document.createElement('pto-accrual-card') as any;
+    accrualCard.monthlyAccruals = status.monthlyAccruals;
+    accrualCard.calendar = calendarData;
+    accrualCard.calendarYear = new Date().getFullYear();
+    accrualCard.monthlyUsage = this.buildMonthlyUsage(entries, new Date().getFullYear());
+    accrualCard.setAttribute('request-mode', 'true');
+    accrualCard.setAttribute('annual-allocation', status.annualAllocation.toString());
+
+    // ... recreate all other PTO components with fresh data ...
+
+    summaryContainer.appendChild(summaryCard);
+    summaryContainer.appendChild(accrualCard);
+    // ... append all other components ...
+
+    // Re-attach event listeners for the newly created components
+    accrualCard.addEventListener('pto-request-submit', (e: any) => {
+        e.stopPropagation();
+        this.handlePtoRequestSubmit(e.detail.requests);
+    });
+}
+```
+
+##### **Step 4: Add Request Mode Toggle Button**
+```typescript
+// Add to index.html dashboard section:
+<button id="toggle-pto-request-mode">Submit PTO Requests</button>
+
+// Add to setupEventListeners()
+const toggleRequestModeBtn = getElementById<HTMLButtonElement>("toggle-pto-request-mode");
+addEventListener(toggleRequestModeBtn, "click", () => this.togglePTORequestMode());
+
+// Add method to UIManager
+private togglePTORequestMode(): void {
+    const accrualCard = document.querySelector('pto-accrual-card') as any;
+    if (accrualCard) {
+        const currentMode = accrualCard.getAttribute('request-mode') === 'true';
+        accrualCard.setAttribute('request-mode', (!currentMode).toString());
+
+        // Update button text
+        const button = getElementById("toggle-pto-request-mode");
+        button.textContent = currentMode ? 'Submit PTO Requests' : 'View PTO Status';
+    }
+}
+```
+
+##### **Step 5: E2E Testing for Real Server Integration**
+```typescript
+// In e2e test file (e.g., employee-workflow.spec.ts)
+test('should submit PTO requests via calendar and verify server persistence', async ({ page }) => {
+    // ... login and navigation setup ...
+
+    // Enable request mode
+    await page.click('#toggle-pto-request-mode');
+
+    // Select a month from accrual card
+    await page.click('.month-item[data-month="1"]'); // February
+
+    // Select PTO type from calendar legend
+    await page.click('.legend-item[data-type="PTO"]');
+
+    // Click on some weekday cells in calendar
+    await page.click('.calendar-cell[data-date="2024-02-05"]'); // Monday
+    await page.click('.calendar-cell[data-date="2024-02-06"]'); // Tuesday
+
+    // Edit hours if needed
+    await page.fill('.selected-cell input[type="number"]', '4');
+
+    // Submit the request
+    await page.click('#pto-submit-btn');
+
+    // Verify success message
+    await expect(page.locator('.success-message')).toBeVisible();
+
+    // Critical: Verify data was actually persisted by checking if it appears in PTO status
+    // This requires the page to refresh data and re-render components
+    await expect(page.locator('#pto-status')).toContainText('24.36'); // Updated used PTO
+
+    // Switch back to view mode and verify the submitted dates appear in calendar
+    await page.click('#toggle-pto-request-mode');
+    await page.click('.month-item[data-month="1"]'); // Re-select February
+    await expect(page.locator('.calendar-cell[data-date="2024-02-05"].pto')).toBeVisible();
+    await expect(page.locator('.calendar-cell[data-date="2024-02-06"].pto')).toBeVisible();
+});
+```
+
+#### **Key Technical Challenges and Solutions**
+
+##### **Challenge 1: Component Re-rendering After Data Changes**
+**Problem**: The existing pto-accrual-card needs to be re-created with fresh data after submissions
+**Solution**: Implement `renderPTOStatus()` method that re-creates all PTO components with updated data and re-attaches event listeners
+
+##### **Challenge 2: Request Mode State Management**
+**Problem**: Need to toggle between view mode and request mode while preserving the current month selection
+**Solution**: Add `request-mode` attribute toggle and ensure calendar state is maintained during mode switches
+
+##### **Challenge 3: Event Listener Re-attachment**
+**Problem**: When components are re-created, event listeners need to be re-attached
+**Solution**: Re-attach `pto-request-submit` event listener in `renderPTOStatus()` after component creation
+
+##### **Challenge 4: Data Consistency**
+**Problem**: Ensure all PTO components show consistent data after refresh
+**Solution**: Re-query all data (status, entries, calendarData) in `refreshPTOData()` and pass to all component recreations
+
+#### **Testing Requirements**
+- [ ] **Unit Tests**: Test data refresh methods, component re-rendering logic
+- [ ] **Integration Tests**: Test API submission and data refresh flow
+- [ ] **E2E Tests**: Full workflow from calendar selection to server persistence verification
+- [ ] **Error Scenarios**: Test submission failures, network errors, data refresh failures
+- [ ] **Performance**: Ensure re-rendering doesn't cause significant delays
+
+#### **Success Criteria**
+- [ ] PTO calendar request submission works from main application via existing pto-accrual-card
+- [ ] Submissions are persisted to server database through real API calls
+- [ ] All PTO components update automatically after submission via data refresh
+- [ ] Request mode can be toggled on/off while preserving calendar state
+- [ ] Error handling works for submission failures and data refresh failures
+- [ ] E2E tests verify complete data flow from UI to database persistence
+- [ ] User experience is smooth with proper loading states during data refresh
+- [ ] **✅ Run `npm run test` to validate all functionality works end-to-end**
+
+#### **Future Enhancements**
+- **Reactive Model**: If complexity grows, introduce a lightweight reactive model system
+- **Optimistic Updates**: Show immediate UI feedback before server confirmation
+- **Conflict Resolution**: Handle concurrent edits by multiple users
+- **Undo Functionality**: Allow users to undo recent submissions
 <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/TASKS/pto-calendar-request-submission.md
