@@ -77,7 +77,7 @@ Implement the admin panel functionality using web components architecture follow
 ## Implementation Guidelines
 
 ### Component File Structure
-- Components go under `./src/components`
+- Components go under `./client/components`
 - There is a folder for each component
 - In the component folder:
   - The component itself is `index.ts`
@@ -98,8 +98,8 @@ export function querySingle<T extends HTMLElement>(selector: string) {
 }
 ```
 
-- A master `index.ts` under `./src/components` re-exports all components, so `app.ts` only needs to import `./src/components/index.js`
-- A separate `test.ts` under `./src/components` exports the `playground()` functions for each component and is also imported by `app.ts` so the playground methods are in the build artifact, accessible to the various `test.html` pages.
+- A master `index.ts` under `./client/components` re-exports all components, so `app.ts` only needs to import `./client/components/index.js`
+- A separate `test.ts` under `./client/components` exports the `playground()` functions for each component and is also imported by `app.ts` so the playground methods are in the build artifact, accessible to the various `test.html` pages.
 
 ### Web Component Best Practices
 Follow the web-components-assistant skill pattern:

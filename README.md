@@ -102,18 +102,18 @@ dwp-hours-tracker/
 ├── client/              # Client-side source code
 │   ├── app.ts          # Main client entry point
 │   ├── index.html      # HTML template
-│   └── styles.css      # Styles
-├── src/                # Server-side source code and client components
+│   ├── styles.css      # Styles
+│   └── components/     # Web components for admin panel
+│       ├── index.ts    # Master component exports
+│       ├── test.ts     # Playground functions for testing
+│       ├── employee-list/
+│       │   ├── index.ts      # Employee list component
+│       │   ├── test.html     # Component test page
+│       │   └── test.ts       # Component playground
+│       └── ...               # Other component folders
+├── src/                # Server-side source code
 │   ├── server.mts      # Main server entry point
 │   ├── entities/       # Server entities
-│   ├── components/     # Web components for admin panel
-│   │   ├── index.ts    # Master component exports
-│   │   ├── test.ts     # Playground functions for testing
-│   │   ├── employee-list/
-│   │   │   ├── index.ts      # Employee list component
-│   │   │   ├── test.html     # Component test page
-│   │   │   └── test.ts       # Component playground
-│   │   └── ...               # Other component folders
 │   └── ...             # Other server files
 ├── public/             # Built client assets (served by dev server)
 │   ├── app.js          # Bundled client code

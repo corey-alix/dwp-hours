@@ -14,6 +14,7 @@ import "reflect-metadata";
 import { DataSource, Not, IsNull, Between, Like } from "typeorm";
 import { Employee, PtoEntry, MonthlyHours, Acknowledgement } from "./entities/index.js";
 import { calculatePTOStatus } from "./ptoCalculations.js";
+import net from "net";
 
 dotenv.config();
 
@@ -32,7 +33,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = parseInt(process.env.PORT || '3000', 10);
 
 // Middleware
 app.use(helmet({
@@ -40,7 +41,7 @@ app.use(helmet({
         directives: {
             defaultSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'"],
-            scriptSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
             imgSrc: ["'self'", "data:", "https:"],
         },
     },
@@ -68,6 +69,11 @@ app.use(cors());
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
+// Serve static files from client directory in development mode
+if (process.env.NODE_ENV !== 'production') {
+    app.use(express.static(path.join(__dirname, '..', 'client')));
+}
+
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
@@ -89,6 +95,20 @@ function log(message: string) {
     console.log(message);
 }
 
+// Check if port is in use
+function checkPortInUse(port: number): Promise<boolean> {
+    return new Promise((resolve) => {
+        const server = net.createServer();
+        server.listen(port, '127.0.0.1', () => {
+            server.close();
+            resolve(false);
+        });
+        server.on('error', () => {
+            resolve(true);
+        });
+    });
+}
+
 // Database connection
 let db: initSqlJs.Database;
 let SQL: initSqlJs.SqlJsStatic;
@@ -96,16 +116,27 @@ let dataSource: DataSource;
 
 async function initDatabase() {
     try {
+        log("Initializing SQL.js...");
         SQL = await initSqlJs();
+        log("SQL.js initialized successfully.");
 
+        log("Creating database instance...");
         db = new SQL.Database();
+        log("Database instance created.");
 
         // Read and execute schema
+        log("Reading database schema...");
         const schemaPath = path.join(__dirname, "..", "db", "schema.sql");
+        log(`Schema path: ${schemaPath}`);
         const schema = fs.readFileSync(schemaPath, "utf8");
+        log("Schema file read successfully.");
+
+        log("Executing schema...");
         db.exec(schema);
+        log("Schema executed successfully.");
 
         // Initialize TypeORM DataSource
+        log("Initializing TypeORM DataSource...");
         dataSource = new DataSource({
             type: "sqljs",
             location: DB_PATH,
@@ -115,17 +146,21 @@ async function initDatabase() {
             logging: false,
         });
 
+        log("Connecting to database with TypeORM...");
         await dataSource.initialize();
         log("Connected to SQLite database with TypeORM.");
     } catch (error) {
-        log(`Database connection error: ${error}`);
-        process.exit(1);
+        const err = error as Error;
+        log(`Database connection error: ${err}`);
+        log(`Error stack: ${err.stack}`);
+        throw err;
     }
 }
 
 // Initialize database on startup
-initDatabase().then(() => {
-    log("Database initialized.");
+log(`Starting server initialization on port ${PORT}...`);
+initDatabase().then(async () => {
+    log("Database initialized successfully.");
 
     // Health check endpoint
     app.get('/api/health', (req, res) => {
@@ -723,7 +758,45 @@ initDatabase().then(() => {
     });
 
     // Start server
-    app.listen(PORT, () => {
-        log(`Server running on port ${PORT}`);
+    log(`Checking if port ${PORT} is available...`);
+    const portInUse = await checkPortInUse(PORT);
+    if (portInUse) {
+        log(`Port ${PORT} is already in use. Please stop the other server or use a different port.`);
+        process.exit(1);
+    }
+
+    log(`Attempting to start server on port ${PORT}...`);
+    const server = app.listen(PORT, '0.0.0.0', () => {
+        log(`Server successfully listening on port ${PORT}`);
+        log(`Server available at:`);
+        log(`  http://localhost:${PORT}`);
+        log(`  http://127.0.0.1:${PORT}`);
+        log(`  http://0.0.0.0:${PORT}`);
     });
+
+    server.on('error', (error) => {
+        log(`Server failed to start: ${error.message}`);
+        process.exit(1);
+    });
+
+    // Handle process termination
+    process.on('SIGTERM', () => {
+        log('SIGTERM received, shutting down gracefully');
+        server.close(() => {
+            log('Server closed');
+            process.exit(0);
+        });
+    });
+
+    process.on('SIGINT', () => {
+        log('SIGINT received, shutting down gracefully');
+        server.close(() => {
+            log('Server closed');
+            process.exit(0);
+        });
+    });
+}).catch((error) => {
+    log(`Database initialization failed: ${error.message}`);
+    log(`Stack trace: ${error.stack}`);
+    process.exit(1);
 });

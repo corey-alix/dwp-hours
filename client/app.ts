@@ -9,6 +9,12 @@ interface Employee {
     hash: string;
 }
 
+// Import components and test utilities
+import './components/index.js';
+
+// Re-export playground for testing
+export * from './components/test.js';
+
 interface PTOEntry {
     id: number;
     employeeId: number;
@@ -337,5 +343,4 @@ class UIManager {
     }
 }
 
-// Initialize the application
-new UIManager();
+export { UIManager };
