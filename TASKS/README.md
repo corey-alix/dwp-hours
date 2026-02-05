@@ -48,10 +48,9 @@ database-schema.md
 - PTO calculations and status logic
 - Core API endpoints implementation (some admin endpoints still missing)
 - Comprehensive testing suite (unit, integration, E2E)
+- Data migration tools (legacy spreadsheet import)
 
 ### 🚧 In Progress
-- Testing suite implementation (comprehensive unit and integration tests complete, E2E tests working)
-- Data migration tools
 - Security hardening
 
 ### ❌ Not Started
@@ -90,7 +89,7 @@ database-schema.md
 3. ✅ **pto-calculations.md** - core business logic completed
 4. ✅ **api-endpoints.md** - core backend functionality completed (some admin endpoints missing)
 5. ✅ **testing-suite.md** - comprehensive testing suite implemented
-6. Handle **data-migration.md** - legacy data transition (reference [`.github/skills/pto-spreadsheet-layout/SKILL.md`](../.github/skills/pto-spreadsheet-layout/SKILL.md) for spreadsheet structure)
+6. ✅ **data-migration.md** - legacy data migration completed
 7. Finish **security-production.md** - production readiness
 8. Build **admin-panel.md** - admin UI features
 9. Implement **admin-review-acknowledgment.md** - admin review UI

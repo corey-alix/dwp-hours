@@ -12,6 +12,7 @@
         "start": "nodemon",
         "start:prod": "node dist/server.mjs",
         "db:init": "echo 'Database initialized by server startup'",
+        "migrate": "node scripts/migrate.js",
         "test:unit": "vitest --run",
         "test:e2e": "playwright test",
         "test": "npm-run-all lint build test:unit test:e2e",
