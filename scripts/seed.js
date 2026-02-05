@@ -29,7 +29,25 @@ try {
     process.exit(1);
 }
 
-// Seed data
+// Seed PTO entries
+const seedPTOEntries = [
+    // Sick time for coreyalix@gmail.com (employee_id: 1) - limited to 3 entries per policy
+    { employee_id: 1, start_date: '2026-02-13', end_date: '2026-02-13', type: 'Sick', hours: 8 },
+    { employee_id: 1, start_date: '2026-02-15', end_date: '2026-02-15', type: 'Sick', hours: 8 },
+    { employee_id: 1, start_date: '2026-02-17', end_date: '2026-02-17', type: 'Sick', hours: 8 },
+
+    // PTO for coreyalix@gmail.com - non-overlapping dates
+    { employee_id: 1, start_date: '2026-02-21', end_date: '2026-02-21', type: 'PTO', hours: 8 },
+    { employee_id: 1, start_date: '2026-02-23', end_date: '2026-02-23', type: 'PTO', hours: 8 },
+    { employee_id: 1, start_date: '2026-02-25', end_date: '2026-02-25', type: 'PTO', hours: 8 },
+
+    // Some PTO entries for other employees
+    { employee_id: 2, start_date: '2026-01-15', end_date: '2026-01-15', type: 'PTO', hours: 8 },
+    { employee_id: 2, start_date: '2026-01-17', end_date: '2026-01-17', type: 'PTO', hours: 8 },
+    { employee_id: 3, start_date: '2026-01-10', end_date: '2026-01-10', type: 'PTO', hours: 8 }
+];
+
+// Seed employees
 const seedEmployees = [
     {
         name: "John Doe",
@@ -61,9 +79,23 @@ const seedEmployees = [
 ];
 
 try {
+    // Truncate all tables for clean test data
+    db.exec(`
+        DELETE FROM admin_acknowledgements;
+        DELETE FROM acknowledgements;
+        DELETE FROM monthly_hours;
+        DELETE FROM pto_entries;
+        DELETE FROM employees;
+        DELETE FROM sqlite_sequence WHERE name='employees';
+        DELETE FROM sqlite_sequence WHERE name='pto_entries';
+        DELETE FROM sqlite_sequence WHERE name='monthly_hours';
+        DELETE FROM sqlite_sequence WHERE name='acknowledgements';
+        DELETE FROM sqlite_sequence WHERE name='admin_acknowledgements';
+    `);
+
     // Insert seed employees
     const stmt = db.prepare(`
-        INSERT OR IGNORE INTO employees (name, identifier, pto_rate, carryover_hours, hire_date, role, hash)
+        INSERT INTO employees (name, identifier, pto_rate, carryover_hours, hire_date, role, hash)
         VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
 
@@ -81,6 +113,24 @@ try {
 
     stmt.free();
 
+    // Insert seed PTO entries
+    const ptoStmt = db.prepare(`
+        INSERT INTO pto_entries (employee_id, start_date, end_date, type, hours)
+        VALUES (?, ?, ?, ?, ?)
+    `);
+
+    for (const entry of seedPTOEntries) {
+        ptoStmt.run([
+            entry.employee_id,
+            entry.start_date,
+            entry.end_date,
+            entry.type,
+            entry.hours
+        ]);
+    }
+
+    ptoStmt.free();
+
     // Save database
     const data = db.export();
     const buffer = Buffer.from(data);
@@ -91,6 +141,7 @@ try {
     seedEmployees.forEach(emp => {
         console.log(`  - ${emp.name} (${emp.identifier}) - ${emp.role}`);
     });
+    console.log(`PTO entries added: ${seedPTOEntries.length}`);
 
 } catch (error) {
     console.error("Failed to seed database:", error);

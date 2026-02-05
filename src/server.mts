@@ -805,6 +805,8 @@ initDatabase().then(async () => {
                 relations: ['employee']
             });
 
+            console.log(`PTO entries for employee ${employeeId}:`, ptoEntries.map(e => ({ start_date: e.start_date, type: e.type })));
+
             res.json(ptoEntries);
         } catch (error) {
             log(`Error getting PTO entries: ${error}`);

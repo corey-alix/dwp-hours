@@ -462,30 +462,25 @@ class UIManager {
                 continue;
             }
 
-            const start = new Date(entry.start_date ?? entry.startDate);
-            const end = new Date(entry.end_date ?? entry.endDate ?? entry.start_date ?? entry.startDate);
-            if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+            const startDateStr = entry.start_date ?? entry.startDate;
+            const [year, month, day] = startDateStr.split('-').map(Number);
+            const start = new Date(year, month - 1, day);
+            if (Number.isNaN(start.getTime())) {
                 continue;
             }
 
-            const workdays = this.getWorkdaysBetween(start, end);
-            if (workdays.length === 0) {
+            if (start.getFullYear() !== year) {
                 continue;
             }
 
-            const hoursPerDay = (entry.hours ?? 0) / workdays.length;
-            for (const day of workdays) {
-                if (day.getFullYear() !== year) {
-                    continue;
-                }
-                const dateKey = day.toISOString().slice(0, 10);
-                hoursByDate.set(dateKey, (hoursByDate.get(dateKey) ?? 0) + hoursPerDay);
-            }
+            const dateKey = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+            hoursByDate.set(dateKey, (hoursByDate.get(dateKey) ?? 0) + (entry.hours ?? 0));
         }
 
-        return Array.from(hoursByDate.entries())
+        const result = Array.from(hoursByDate.entries())
             .map(([date, hours]) => ({ date, hours }))
             .sort((a, b) => a.date.localeCompare(b.date));
+        return result;
     }
 
     private buildMonthlyUsage(entries: any[], year: number): { month: number; hours: number }[] {

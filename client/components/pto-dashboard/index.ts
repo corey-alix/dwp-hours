@@ -492,7 +492,8 @@ class SimplePtoBucketCard extends PtoSectionCard {
 
         const rows = this.entries
             .map((entry) => {
-                const parsedDate = new Date(entry.date);
+                const [year, month, day] = entry.date.split('-').map(Number);
+                const parsedDate = new Date(year, month - 1, day);
                 const label = Number.isNaN(parsedDate.getTime())
                     ? entry.date
                     : parsedDate.toLocaleDateString();

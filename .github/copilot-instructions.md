@@ -1,5 +1,7 @@
 # GitHub Copilot Custom Instructions - DWP Hours Tracker
 
+> **⚠️ CRITICAL: Do NOT attempt to start the development server within this environment.** The workflow requires running `npm run dev` in a separate terminal outside of this environment to avoid conflicts with test execution. See "Server Management" section below for details.
+
 ## Project Context
 You are assisting with the DWP Hours Tracker, a Node.js/TypeScript application for managing employee PTO and hours tracking. The project uses:
 - **Backend**: Node.js, Express.js, SQLite (sql.js for WSL compatibility)
