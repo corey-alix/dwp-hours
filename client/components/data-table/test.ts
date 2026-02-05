@@ -7,14 +7,14 @@ export function playground() {
 
     // Sample table data
     const sampleData = [
-        { id: 1, name: 'John Doe', department: 'Engineering', salary: 75000, hireDate: '2020-01-15' },
-        { id: 2, name: 'Jane Smith', department: 'Marketing', salary: 65000, hireDate: '2019-03-22' },
-        { id: 3, name: 'Bob Johnson', department: 'Engineering', salary: 80000, hireDate: '2018-11-08' },
-        { id: 4, name: 'Alice Wilson', department: 'HR', salary: 60000, hireDate: '2021-07-12' },
-        { id: 5, name: 'Charlie Brown', department: 'Sales', salary: 55000, hireDate: '2022-02-28' },
-        { id: 6, name: 'Diana Prince', department: 'Engineering', salary: 85000, hireDate: '2017-09-15' },
-        { id: 7, name: 'Edward Norton', department: 'Marketing', salary: 70000, hireDate: '2020-05-03' },
-        { id: 8, name: 'Fiona Green', department: 'HR', salary: 62000, hireDate: '2021-11-20' }
+        { id: 1, name: 'John Doe', department: 'Engineering', hireDate: '2020-01-15' },
+        { id: 2, name: 'Jane Smith', department: 'Marketing', hireDate: '2019-03-22' },
+        { id: 3, name: 'Bob Johnson', department: 'Engineering', hireDate: '2018-11-08' },
+        { id: 4, name: 'Alice Wilson', department: 'HR', hireDate: '2021-07-12' },
+        { id: 5, name: 'Charlie Brown', department: 'Sales', hireDate: '2022-02-28' },
+        { id: 6, name: 'Diana Prince', department: 'Engineering', hireDate: '2017-09-15' },
+        { id: 7, name: 'Edward Norton', department: 'Marketing', hireDate: '2020-05-03' },
+        { id: 8, name: 'Fiona Green', department: 'HR', hireDate: '2021-11-20' }
     ];
 
     // Table columns configuration
@@ -22,7 +22,6 @@ export function playground() {
         { key: 'id', label: 'ID', width: '60px' },
         { key: 'name', label: 'Name', sortable: true },
         { key: 'department', label: 'Department', sortable: true },
-        { key: 'salary', label: 'Salary', sortable: true },
         { key: 'hireDate', label: 'Hire Date', sortable: true }
     ];
 
@@ -54,7 +53,6 @@ export function playground() {
             id: 9,
             name: 'George Lucas',
             department: 'Engineering',
-            salary: 90000,
             hireDate: '2016-12-01'
         }];
         dataTable.data = updatedData;

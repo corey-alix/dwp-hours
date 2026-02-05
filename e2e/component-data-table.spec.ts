@@ -31,7 +31,7 @@ test('data-table component test', async ({ page }) => {
 
     // Check table headers
     const headers = table.locator('th');
-    await expect(headers).toHaveCount(5); // Based on sample data columns
+    await expect(headers).toHaveCount(4); // Based on sample data columns
 
     // Check table body
     const body = table.locator('tbody');
@@ -45,7 +45,7 @@ test('data-table component test', async ({ page }) => {
         // Check that rows contain data
         const firstRow = rows.first();
         const cells = firstRow.locator('td');
-        await expect(cells).toHaveCount(5);
+        await expect(cells).toHaveCount(4);
 
         // Test sorting functionality
         const sortableHeader = headers.filter({ hasText: 'Name' });
