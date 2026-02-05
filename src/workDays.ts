@@ -3,6 +3,8 @@
  * Calculates the number of work days (Monday-Friday) in a month
  */
 
+import { getDaysInMonth, getDayOfWeek, formatDate } from './dateUtils.js';
+
 // Fallback work days per month for 2026 (accounting for holidays)
 // This ensures we get the exact values provided by the user
 const WORK_DAYS_TEMPLATE: Record<number, number> = {
@@ -27,15 +29,13 @@ const WORK_DAYS_TEMPLATE: Record<number, number> = {
  * @returns Number of work days in the month
  */
 function calculateWorkDaysInMonth(year: number, month: number): number {
-    const firstDay = new Date(year, month - 1, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const totalDays = lastDay.getDate();
+    const totalDays = getDaysInMonth(year, month);
 
     let workDays = 0;
 
     for (let day = 1; day <= totalDays; day++) {
-        const date = new Date(year, month - 1, day);
-        const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+        const dateStr = formatDate(year, month, day);
+        const dayOfWeek = getDayOfWeek(dateStr); // 0 = Sunday, 6 = Saturday
 
         // Count Monday (1) through Friday (5)
         if (dayOfWeek >= 1 && dayOfWeek <= 5) {

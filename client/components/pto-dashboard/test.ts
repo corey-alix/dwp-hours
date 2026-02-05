@@ -9,7 +9,7 @@ const seedEmployees = [
         identifier: "coreyalix@gmail.com",
         pto_rate: 0.71,
         carryover_hours: 40,
-        hire_date: new Date("2020-01-15"),
+        hire_date: "2020-01-15",
         role: "Employee",
         hash: "test-hash-1"
     }
@@ -46,8 +46,8 @@ for (let month = 1; month <= 12; month++) {
 const monthlyUsage: { month: number; hours: number }[] = [];
 for (let month = 1; month <= 12; month++) {
     const monthEntries = seedPTOEntries.filter(entry => {
-        const date = new Date(entry.start_date);
-        return date.getMonth() + 1 === month;
+        const entryMonth = parseInt(entry.start_date.substring(5, 7));
+        return entryMonth === month;
     });
     const hours = monthEntries.reduce((sum, entry) => sum + entry.hours, 0);
     monthlyUsage.push({ month, hours });
@@ -56,9 +56,8 @@ for (let month = 1; month <= 12; month++) {
 // Build calendar data
 const calendarData: Record<number, Record<number, { type: string; hours: number }>> = {};
 seedPTOEntries.forEach(entry => {
-    const date = new Date(entry.start_date);
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
+    const month = parseInt(entry.start_date.substring(5, 7));
+    const day = parseInt(entry.start_date.substring(8, 10));
     if (!calendarData[month]) calendarData[month] = {};
     calendarData[month][day] = { type: entry.type, hours: entry.hours };
 });
@@ -81,6 +80,12 @@ const sickEntries = seedPTOEntries.filter(e => e.type === 'Sick').map(e => ({
 // Bereavement and Jury entries (none in seed)
 const bereavementEntries: { date: string; hours: number }[] = [];
 const juryEntries: { date: string; hours: number }[] = [];
+
+// Helper function to format YYYY-MM-DD to MM/DD/YYYY
+function formatDateForDisplay(dateStr: string): string {
+    const [year, month, day] = dateStr.split('-');
+    return `${parseInt(month)}/${parseInt(day)}/${year}`;
+}
 
 export function playground(): void {
     console.log('Starting PTO dashboard playground test with seed data...');
@@ -114,8 +119,8 @@ export function playground(): void {
     jury.setAttribute('entries', JSON.stringify(juryEntries));
 
     info.setAttribute('data', JSON.stringify({
-        hireDate: employee.hire_date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' }),
-        nextRolloverDate: new Date(currentYear + 1, 0, 1).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })
+        hireDate: formatDateForDisplay(employee.hire_date),
+        nextRolloverDate: formatDateForDisplay(`${currentYear + 1}-01-01`)
     }));
 
     console.log('PTO dashboard playground test initialized with seed data');

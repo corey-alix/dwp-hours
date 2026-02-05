@@ -1,5 +1,3 @@
-import { PtoEntry } from "../../../src/entities/index.js";
-
 const monthNames = [
     "January",
     "February",

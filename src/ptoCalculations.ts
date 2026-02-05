@@ -4,16 +4,17 @@
  */
 
 import { getWorkDays, getTotalWorkDaysInYear, calculateMonthlyAccrual } from './workDays.js';
+import { parseDate, formatDate } from './dateUtils.js';
 
 export interface PTOStatus {
     employeeId: number;
-    hireDate: Date;
+    hireDate: string;
     annualAllocation: number; // 96 hours PTO
     availablePTO: number;
     usedPTO: number;
     carryoverFromPreviousYear: number;
     monthlyAccruals: { month: number; hours: number }[]; // For display
-    nextRolloverDate: Date;
+    nextRolloverDate: string;
     sickTime: {
         allowed: number;
         used: number;
@@ -39,11 +40,11 @@ export interface PTOStatus {
 export interface PTOEntry {
     id: number;
     employee_id: number;
-    start_date: Date;
-    end_date: Date;
+    start_date: string;
+    end_date: string;
     type: 'Sick' | 'PTO' | 'Bereavement' | 'Jury Duty';
     hours: number;
-    created_at: Date;
+    created_at: string;
 }
 
 export interface Employee {
@@ -52,7 +53,7 @@ export interface Employee {
     identifier: string;
     pto_rate: number; // Hours per work day for accrual calculations
     carryover_hours: number;
-    hire_date: Date;
+    hire_date: string;
     role: string;
 }
 
@@ -63,14 +64,14 @@ export interface Employee {
  * @returns Prorated allocation amount
  */
 function calculateProratedAllocation(employee: Employee, year: number): number {
-    if (employee.hire_date.getFullYear() < year) {
+    const hireDate = parseDate(employee.hire_date);
+    if (hireDate.year < year) {
         return 96;
-    } else if (employee.hire_date.getFullYear() === year) {
-        const hireMonth = employee.hire_date.getMonth(); // 0-11
-        if (hireMonth <= 1) {
+    } else if (hireDate.year === year) {
+        if (hireDate.month <= 2) { // Jan or Feb (1-based months)
             return 96; // Hired in Jan or Feb, full allocation
         }
-        const monthsRemaining = 12 - hireMonth; // Months from hire month to Dec
+        const monthsRemaining = 12 - hireDate.month + 1; // Months from hire month to Dec
         return 96 * (monthsRemaining / 12);
     } else {
         return 0; // Hired after the year
@@ -81,15 +82,16 @@ function calculateProratedAllocation(employee: Employee, year: number): number {
  * Calculate PTO status for an employee using annual allocation system
  * @param employee - Employee data
  * @param ptoEntries - All PTO entries for the employee
- * @param currentDate - Current date (defaults to today)
+ * @param currentDate - Current date as YYYY-MM-DD string (defaults to today)
  * @returns PTOStatus object
  */
 export function calculatePTOStatus(
     employee: Employee,
     ptoEntries: PTOEntry[],
-    currentDate: Date = new Date()
+    currentDate: string = formatDate(new Date().getFullYear(), new Date().getMonth() + 1, new Date().getDate())
 ): PTOStatus {
-    const currentYear = currentDate.getFullYear();
+    const currentDateComponents = parseDate(currentDate);
+    const currentYear = currentDateComponents.year;
 
     // Calculate used hours by type
     const usedPTO = calculateUsedPTO(ptoEntries, 'PTO');
@@ -118,13 +120,14 @@ export function calculatePTOStatus(
 
     // For new hires in current year, only show accruals from hire month onwards
     let filteredMonthlyAccruals = monthlyAccruals;
-    if (employee.hire_date.getFullYear() === currentYear) {
-        const hireMonth = employee.hire_date.getMonth() + 1; // Convert to 1-based
+    const hireDate = parseDate(employee.hire_date);
+    if (hireDate.year === currentYear) {
+        const hireMonth = hireDate.month; // Already 1-based
         filteredMonthlyAccruals = monthlyAccruals.filter(accrual => accrual.month >= hireMonth);
     }
 
     // Next rollover is January 1st of next year
-    const nextRolloverDate = new Date(currentYear + 1, 0, 1);
+    const nextRolloverDate = formatDate(currentYear + 1, 1, 1);
 
     return {
         employeeId: employee.id,
@@ -176,7 +179,8 @@ export function calculateYearEndCarryover(
     const usedPTO = calculateUsedPTO(ptoEntries, 'PTO', year);
 
     // Starting balance: annual allocation + carryover from previous year
-    const annualAllocation = employee.hire_date.getFullYear() <= year ? 96 : 0;
+    const hireDate = parseDate(employee.hire_date);
+    const annualAllocation = hireDate.year <= year ? 96 : 0;
     const startingBalance = annualAllocation + employee.carryover_hours;
 
     // Available at year end = starting balance - used PTO
@@ -200,7 +204,10 @@ export function calculateUsedPTO(ptoEntries: PTOEntry[], ...types: (string | num
 
     let filteredEntries = ptoEntries.filter(entry => filteredTypes.includes(entry.type));
     if (year !== undefined) {
-        filteredEntries = filteredEntries.filter(entry => entry.start_date.getFullYear() === year);
+        filteredEntries = filteredEntries.filter(entry => {
+            const entryDate = parseDate(entry.start_date);
+            return entryDate.year === year;
+        });
     }
 
     return filteredEntries.reduce((total, entry) => total + entry.hours, 0);

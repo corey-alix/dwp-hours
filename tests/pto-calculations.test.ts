@@ -17,12 +17,12 @@ import {
 describe('Work Days Lookup', () => {
     it('should get work days for January', () => {
         const workDays = getWorkDays(2024, 1);
-        expect(workDays).toBe(21);
+        expect(workDays).toBe(23); // January 2024 has 23 weekdays
     });
 
     it('should get work days for February', () => {
         const workDays = getWorkDays(2024, 2);
-        expect(workDays).toBe(22); // February 2024 has 22 weekdays
+        expect(workDays).toBe(21); // February 2024 has 21 weekdays
     });
 
     it('should get total work days in year', () => {
@@ -32,7 +32,7 @@ describe('Work Days Lookup', () => {
 
     it('should calculate monthly accrual', () => {
         const accrual = calculateMonthlyAccrual(0.71, 2024, 1); // 0.71 hours per work day, January
-        expect(accrual).toBeCloseTo(14.91, 2); // 0.71 * 21 ≈ 14.91
+        expect(accrual).toBeCloseTo(16.33, 2); // 0.71 * 23 ≈ 16.33
     });
 });
 
@@ -43,7 +43,7 @@ describe('PTO Calculations', () => {
         identifier: 'test@example.com',
         pto_rate: 0.71,
         carryover_hours: 10,
-        hire_date: new Date('2024-01-01'),
+        hire_date: '2024-01-01',
         role: 'Employee'
     };
 
@@ -51,34 +51,34 @@ describe('PTO Calculations', () => {
         {
             id: 1,
             employee_id: 1,
-            start_date: new Date('2024-06-01'),
-            end_date: new Date('2024-06-05'),
+            start_date: '2024-06-01',
+            end_date: '2024-06-05',
             type: 'PTO',
             hours: 32,
-            created_at: new Date('2024-05-01')
+            created_at: '2024-05-01'
         },
         {
             id: 2,
             employee_id: 1,
-            start_date: new Date('2024-08-01'),
-            end_date: new Date('2024-08-01'),
+            start_date: '2024-08-01',
+            end_date: '2024-08-01',
             type: 'Sick',
             hours: 8,
-            created_at: new Date('2024-07-01')
+            created_at: '2024-07-01'
         },
         {
             id: 3,
             employee_id: 1,
-            start_date: new Date('2024-09-01'),
-            end_date: new Date('2024-09-01'),
+            start_date: '2024-09-01',
+            end_date: '2024-09-01',
             type: 'Bereavement',
             hours: 8,
-            created_at: new Date('2024-08-01')
+            created_at: '2024-08-01'
         }
     ];
 
     it('should calculate PTO status correctly', () => {
-        const currentDate = new Date('2024-12-01');
+        const currentDate = '2024-12-01';
         const status: PTOStatus = calculatePTOStatus(mockEmployee, mockPTOEntries, currentDate);
 
         expect(status.employeeId).toBe(1);
@@ -88,7 +88,7 @@ describe('PTO Calculations', () => {
         expect(status.carryoverFromPreviousYear).toBe(10);
         expect(status.monthlyAccruals).toHaveLength(12);
         expect(status.monthlyAccruals[0].month).toBe(1); // January
-        expect(status.monthlyAccruals[0].hours).toBeCloseTo(7.69, 2); // 96/262 * 21 ≈ 7.69
+        expect(status.monthlyAccruals[0].hours).toBeCloseTo(8.43, 2); // 96/262 * 23 ≈ 8.43
         expect(status.sickTime.used).toBe(8);
         expect(status.sickTime.remaining).toBe(16); // 24 - 8
         expect(status.ptoTime.allowed).toBe(106); // 96 + 10
@@ -98,9 +98,7 @@ describe('PTO Calculations', () => {
         expect(status.bereavementTime.remaining).toBe(32); // 40 - 8
         expect(status.juryDutyTime.used).toBe(0);
         expect(status.juryDutyTime.remaining).toBe(40);
-        expect(status.nextRolloverDate.getFullYear()).toBe(2025);
-        expect(status.nextRolloverDate.getMonth()).toBe(0); // January
-        expect(status.nextRolloverDate.getDate()).toBe(1);
+        expect(status.nextRolloverDate).toBe('2025-01-01');
     });
 
     it('should calculate used PTO by type', () => {
@@ -114,7 +112,7 @@ describe('PTO Calculations', () => {
     });
 
     it('should handle year-end calculations', () => {
-        const yearEndDate = new Date('2024-12-31');
+        const yearEndDate = '2024-12-31';
         const status = calculatePTOStatus(mockEmployee, mockPTOEntries, yearEndDate);
 
         expect(status.annualAllocation).toBe(96);
@@ -131,11 +129,11 @@ describe('PTO Calculations', () => {
         const excessivePTO: PTOEntry[] = [{
             id: 1,
             employee_id: 1,
-            start_date: new Date('2024-01-01'),
-            end_date: new Date('2024-12-31'),
+            start_date: '2024-01-01',
+            end_date: '2024-12-31',
             type: 'PTO',
             hours: 1000, // Excessive PTO usage
-            created_at: new Date('2024-01-01')
+            created_at: '2024-01-01'
         }];
 
         const status = calculatePTOStatus(overUsedEmployee, excessivePTO);
@@ -165,11 +163,11 @@ describe('PTO Calculations', () => {
     it('should calculate prorated allocation for new hires', () => {
         const newHireEmployee: Employee = {
             ...mockEmployee,
-            hire_date: new Date(2024, 5, 1), // Hired in June (month 5 is June)
+            hire_date: '2024-06-01', // Hired in June
             carryover_hours: 0 // No carryover for new hire
         };
 
-        const currentDate = new Date('2024-12-01');
+        const currentDate = '2024-12-01';
         const status: PTOStatus = calculatePTOStatus(newHireEmployee, [], currentDate);
 
         // Prorated allocation: 96 * (7/12) = 56 hours (hired in June, months remaining)

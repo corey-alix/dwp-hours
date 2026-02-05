@@ -14,6 +14,7 @@ import { DataSource, Not, IsNull, Between, Like } from "typeorm";
 import { Employee, PtoEntry, MonthlyHours, Acknowledgement, AdminAcknowledgement } from "./entities/index.js";
 import { calculatePTOStatus } from "./ptoCalculations.js";
 import { calculateEndDate } from "./workDays.js";
+import { dateToString } from "./dateUtils.js";
 import net from "net";
 import { sendMagicLinkEmail } from "./utils/mailer.js";
 
@@ -295,18 +296,18 @@ initDatabase().then(async () => {
                 identifier: employee.identifier,
                 pto_rate: employee.pto_rate,
                 carryover_hours: employee.carryover_hours,
-                hire_date: hireDate,
+                hire_date: dateToString(hireDate),
                 role: employee.role
             };
 
             const ptoEntriesData = ptoEntries.map(entry => ({
                 id: entry.id,
                 employee_id: entry.employee_id,
-                start_date: entry.start_date instanceof Date ? entry.start_date : new Date(entry.start_date as any),
-                end_date: entry.end_date instanceof Date ? entry.end_date : new Date(entry.end_date as any),
+                start_date: dateToString(entry.start_date instanceof Date ? entry.start_date : new Date(entry.start_date as any)),
+                end_date: dateToString(entry.end_date instanceof Date ? entry.end_date : new Date(entry.end_date as any)),
                 type: entry.type,
                 hours: entry.hours,
-                created_at: entry.created_at instanceof Date ? entry.created_at : new Date(entry.created_at as any)
+                created_at: dateToString(entry.created_at instanceof Date ? entry.created_at : new Date(entry.created_at as any))
             }));
 
             const status = calculatePTOStatus(employeeData, ptoEntriesData);
