@@ -2,6 +2,8 @@
 
 A Node.js application for tracking monthly hours worked and managing Paid Time Off (PTO) for employees. This project migrates from a legacy Excel spreadsheet system to a modern web application with a user-friendly interface and API.
 
+**📋 Migration Reference**: For detailed information about the legacy Excel spreadsheet structure, see [`.github/skills/pto-spreadsheet-layout/SKILL.md`](.github/skills/pto-spreadsheet-layout/SKILL.md).
+
 ## Description
 
 This application allows employees to log various types of time off (Sick, PTO, Bereavement, Jury Duty) for specific date ranges, including total hours. Users can view their PTO status for the entire year, broken down by month. An admin panel provides oversight for managing users and reviewing PTO usage.
@@ -94,6 +96,10 @@ The system ensures accurate tracking per employee with individual rates and carr
 
 ```
 dwp-hours-tracker/
+├── .github/
+│   └── skills/          # AI assistant skills and knowledge
+│       └── pto-spreadsheet-layout/
+│           └── SKILL.md # Legacy Excel spreadsheet structure reference
 ├── src/                 # TypeScript source files
 ├── public/              # Static web assets
 ├── db/                  # Database files and schema
@@ -376,3 +382,5 @@ This application replaces the manual Excel spreadsheet tracking (see `legacy.spr
 - Converting spreadsheet entries to database records
 - Setting up individual PTO rates and carryover balances
 - Training users on the new interface
+
+**📋 Migration Reference**: For detailed information about the legacy Excel spreadsheet structure, see [`.github/skills/pto-spreadsheet-layout/SKILL.md`](.github/skills/pto-spreadsheet-layout/SKILL.md) which provides comprehensive documentation of all spreadsheet sections, data layouts, and extraction patterns.

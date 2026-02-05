@@ -13,7 +13,7 @@ This document outlines all remaining tasks to complete the DWP Hours Tracker app
 
 ### 🟡 Medium Priority (Backend/API Core Features)
 5. **[testing-suite.md](testing-suite.md)** - Testing implementation
-6. **[data-migration.md](data-migration.md)** - Legacy data migration
+6. **[data-migration.md](data-migration.md)** - Legacy data migration (see [`.github/skills/pto-spreadsheet-layout/SKILL.md`](../.github/skills/pto-spreadsheet-layout/SKILL.md) for spreadsheet structure reference)
 7. **[security-production.md](security-production.md)** - Security & production features
 
 ### 🟢 Low Priority (Frontend/UI Features)
@@ -90,7 +90,7 @@ database-schema.md
 3. ✅ **pto-calculations.md** - core business logic completed
 4. ✅ **api-endpoints.md** - core backend functionality completed (some admin endpoints missing)
 5. ✅ **testing-suite.md** - comprehensive testing suite implemented
-6. Handle **data-migration.md** - legacy data transition
+6. Handle **data-migration.md** - legacy data transition (reference [`.github/skills/pto-spreadsheet-layout/SKILL.md`](../.github/skills/pto-spreadsheet-layout/SKILL.md) for spreadsheet structure)
 7. Finish **security-production.md** - production readiness
 8. Build **admin-panel.md** - admin UI features
 9. Implement **admin-review-acknowledgment.md** - admin review UI
