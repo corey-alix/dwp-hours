@@ -59,6 +59,8 @@ The system ensures accurate tracking per employee with individual rates and carr
   - Types: Sick, PTO, Bereavement, Jury Duty
   - Select start date and total hours, with automatic calculation of the date range covering the specified number of workdays
 - **PTO Status Dashboard**: View annual PTO status by month
+   - **Monthly Accrual Breakdown UI**: Rendered as a two-column grid (month name on the left, hours on the right). Each row includes a clickable Calendar icon that reveals a month view. The month view uses legacy color coding for PTO types as documented in [`.github/skills/pto-spreadsheet-layout/SKILL.md`](.github/skills/pto-spreadsheet-layout/SKILL.md), and each day cell shows the number of hours in the bottom-right corner.
+   - **PTO Section Cards**: Each `pto-section` is a dedicated web component derived from a shared base card component (one component per PTO aspect: Regular PTO, Monthly Accruals, Sick Time, Bereavement, Jury Duty, Employee Info). This keeps dashboard rendering consistent and testable.
 - **Monthly Hours Review**: Submit and review monthly hours worked
 - **Acknowledgement System**: Monthly acknowledgement of hours review completion
   - Automatic reminders at month-end
@@ -459,6 +461,23 @@ Currently provides:
 - **E2E Testing**: 8 comprehensive Playwright tests covering all functionality
 
 Access requires admin privileges.
+
+## Web Components Summary
+
+- **admin-panel**: Container for admin-only views and navigation between employee management, PTO requests, and reports.
+- **confirmation-dialog**: Modal dialog for confirm/cancel actions used across destructive workflows.
+- **data-table**: Reusable, sortable, paginated table component for employee and PTO datasets.
+- **employee-form**: Form UI for creating and editing employees (name, identifier, PTO rate, carryover, hire date, role).
+- **employee-list**: List/table view of employees with edit/delete actions.
+- **pto-request-queue**: Queue view for reviewing submitted PTO requests with approve/reject actions.
+- **report-generator**: Report UI for PTO usage summaries with filters and export controls.
+- **pto-section-card** (planned): Base card component used by all PTO dashboard sections.
+- **pto-summary-card** (planned): Regular PTO balances (allocation, available, used, carryover).
+- **pto-accrual-card** (planned): Monthly accrual breakdown grid with calendar drill-down.
+- **pto-sick-card** (planned): Sick time allowance, used, remaining.
+- **pto-bereavement-card** (planned): Bereavement allowance, used, remaining.
+- **pto-jury-duty-card** (planned): Jury duty allowance, used, remaining.
+- **pto-employee-info-card** (planned): Hire date, next rollover, and related metadata.
 
 ## End-to-End Testing Strategy
 

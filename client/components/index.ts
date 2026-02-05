@@ -6,3 +6,11 @@ export { EmployeeForm } from './employee-form/index.js';
 export { PtoRequestQueue } from './pto-request-queue/index.js';
 export { DataTable } from './data-table/index.js';
 export { ReportGenerator } from './report-generator/index.js';
+export {
+    PtoSummaryCard,
+    PtoAccrualCard,
+    PtoSickCard,
+    PtoBereavementCard,
+    PtoJuryDutyCard,
+    PtoEmployeeInfoCard
+} from './pto-dashboard/index.js';

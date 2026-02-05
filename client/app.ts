@@ -56,6 +56,13 @@ interface PTOStatus {
     };
 }
 
+type CalendarDay = {
+    type: string;
+    hours: number;
+};
+
+type CalendarData = Record<number, Record<number, CalendarDay>>;
+
 // API client
 class APIClient {
     private baseURL = "/api";
@@ -347,6 +354,8 @@ class UIManager {
 
         try {
             const status: PTOStatus = await api.get(`/pto/status/${this.currentUser.id}`);
+            const entries = await api.get(`/pto?employeeId=${this.currentUser.id}`);
+            const calendarData = this.buildCalendarData(entries, new Date().getFullYear());
 
             const statusDiv = document.getElementById("pto-status")!;
             const hireDate = new Date(status.hireDate).toLocaleDateString();
@@ -356,51 +365,44 @@ class UIManager {
                 day: 'numeric'
             });
 
-            // Create monthly accrual display
-            const monthlyDisplay = status.monthlyAccruals.map(accrual => {
-                const monthName = new Date(2024, accrual.month - 1, 1).toLocaleString('default', { month: 'short' });
-                return `<span>${monthName}: ${accrual.hours.toFixed(1)}h</span>`;
-            }).join(', ');
-
             statusDiv.innerHTML = `
                 <h3>Your PTO Status</h3>
-                <div class="pto-summary">
-                    <div class="pto-section">
-                        <h4>Regular PTO</h4>
-                        <p><strong>Annual Allocation:</strong> ${status.annualAllocation} hours</p>
-                        <p><strong>Available:</strong> ${status.availablePTO.toFixed(2)} hours</p>
-                        <p><strong>Used:</strong> ${status.usedPTO.toFixed(2)} hours</p>
-                        <p><strong>Carryover from Previous Year:</strong> ${status.carryoverFromPreviousYear.toFixed(2)} hours</p>
-                    </div>
-                    <div class="pto-section">
-                        <h4>Monthly Accrual Breakdown</h4>
-                        <p><small>${monthlyDisplay}</small></p>
-                    </div>
-                    <div class="pto-section">
-                        <h4>Sick Time</h4>
-                        <p><strong>Allowed:</strong> ${status.sickTime.allowed} hours</p>
-                        <p><strong>Used:</strong> ${status.sickTime.used.toFixed(2)} hours</p>
-                        <p><strong>Remaining:</strong> ${status.sickTime.remaining.toFixed(2)} hours</p>
-                    </div>
-                    <div class="pto-section">
-                        <h4>Bereavement</h4>
-                        <p><strong>Allowed:</strong> ${status.bereavementTime.allowed} hours</p>
-                        <p><strong>Used:</strong> ${status.bereavementTime.used.toFixed(2)} hours</p>
-                        <p><strong>Remaining:</strong> ${status.bereavementTime.remaining.toFixed(2)} hours</p>
-                    </div>
-                    <div class="pto-section">
-                        <h4>Jury Duty</h4>
-                        <p><strong>Allowed:</strong> ${status.juryDutyTime.allowed} hours</p>
-                        <p><strong>Used:</strong> ${status.juryDutyTime.used.toFixed(2)} hours</p>
-                        <p><strong>Remaining:</strong> ${status.juryDutyTime.remaining.toFixed(2)} hours</p>
-                    </div>
-                    <div class="pto-section">
-                        <h4>Employee Information</h4>
-                        <p><strong>Hire Date:</strong> ${hireDate}</p>
-                        <p><strong>Next Rollover:</strong> ${nextRolloverDate}</p>
-                    </div>
-                </div>
+                <div class="pto-summary"></div>
             `;
+
+            const summaryContainer = statusDiv.querySelector('.pto-summary') as HTMLElement;
+
+            const summaryCard = document.createElement('pto-summary-card') as any;
+            summaryCard.summary = {
+                annualAllocation: status.annualAllocation,
+                availablePTO: status.availablePTO,
+                usedPTO: status.usedPTO,
+                carryoverFromPreviousYear: status.carryoverFromPreviousYear
+            };
+
+            const accrualCard = document.createElement('pto-accrual-card') as any;
+            accrualCard.monthlyAccruals = status.monthlyAccruals;
+            accrualCard.calendar = calendarData;
+            accrualCard.calendarYear = new Date().getFullYear();
+
+            const sickCard = document.createElement('pto-sick-card') as any;
+            sickCard.bucket = status.sickTime;
+
+            const bereavementCard = document.createElement('pto-bereavement-card') as any;
+            bereavementCard.bucket = status.bereavementTime;
+
+            const juryDutyCard = document.createElement('pto-jury-duty-card') as any;
+            juryDutyCard.bucket = status.juryDutyTime;
+
+            const employeeInfoCard = document.createElement('pto-employee-info-card') as any;
+            employeeInfoCard.info = { hireDate, nextRolloverDate };
+
+            summaryContainer.appendChild(summaryCard);
+            summaryContainer.appendChild(accrualCard);
+            summaryContainer.appendChild(sickCard);
+            summaryContainer.appendChild(bereavementCard);
+            summaryContainer.appendChild(juryDutyCard);
+            summaryContainer.appendChild(employeeInfoCard);
         } catch (error) {
             console.error("Failed to load PTO status:", error);
             const statusDiv = document.getElementById("pto-status")!;
@@ -409,6 +411,60 @@ class UIManager {
                 <p>Error loading PTO status. Please try again later.</p>
             `;
         }
+    }
+
+    private buildCalendarData(entries: any[], year: number): CalendarData {
+        const calendar: CalendarData = {};
+        const safeEntries = Array.isArray(entries) ? entries : [];
+
+        for (const entry of safeEntries) {
+            const start = new Date(entry.start_date ?? entry.startDate);
+            const end = new Date(entry.end_date ?? entry.endDate ?? entry.start_date ?? entry.startDate);
+            if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+                continue;
+            }
+
+            const workdays = this.getWorkdaysBetween(start, end);
+            if (workdays.length === 0) {
+                continue;
+            }
+
+            const hoursPerDay = (entry.hours ?? 0) / workdays.length;
+            for (const day of workdays) {
+                if (day.getFullYear() !== year) {
+                    continue;
+                }
+                const month = day.getMonth() + 1;
+                const date = day.getDate();
+                if (!calendar[month]) {
+                    calendar[month] = {};
+                }
+                if (!calendar[month][date]) {
+                    calendar[month][date] = { type: entry.type, hours: 0 };
+                }
+                calendar[month][date].hours += hoursPerDay;
+            }
+        }
+
+        return calendar;
+    }
+
+    private getWorkdaysBetween(startDate: Date, endDate: Date): Date[] {
+        const days: Date[] = [];
+        const current = new Date(startDate);
+        current.setHours(0, 0, 0, 0);
+        const end = new Date(endDate);
+        end.setHours(0, 0, 0, 0);
+
+        while (current <= end) {
+            const dayOfWeek = current.getDay();
+            if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+                days.push(new Date(current));
+            }
+            current.setDate(current.getDate() + 1);
+        }
+
+        return days;
     }
 }
 
