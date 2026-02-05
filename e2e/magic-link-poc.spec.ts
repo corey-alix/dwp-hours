@@ -13,5 +13,9 @@ test.describe('Magic link POC', () => {
         const magicLink = page.locator('#login-message a');
         await expect(magicLink).toBeVisible();
         await expect(magicLink).toHaveAttribute('href', /token=.+&ts=\d+/);
+
+        await magicLink.click();
+        await expect(page.locator('#dashboard')).toBeVisible();
+        await expect(page.locator('#pto-status')).toBeVisible();
     });
 });

@@ -285,24 +285,28 @@ initDatabase().then(async () => {
             const ptoEntries = await ptoEntryRepo.find({ where: { employee_id: employeeIdNum } });
 
             // Convert to PTO calculation format
+            const hireDate = employee.hire_date instanceof Date
+                ? employee.hire_date
+                : new Date(employee.hire_date as any);
+
             const employeeData = {
                 id: employee.id,
                 name: employee.name,
                 identifier: employee.identifier,
                 pto_rate: employee.pto_rate,
                 carryover_hours: employee.carryover_hours,
-                hire_date: employee.hire_date,
+                hire_date: hireDate,
                 role: employee.role
             };
 
             const ptoEntriesData = ptoEntries.map(entry => ({
                 id: entry.id,
                 employee_id: entry.employee_id,
-                start_date: entry.start_date,
-                end_date: entry.end_date,
+                start_date: entry.start_date instanceof Date ? entry.start_date : new Date(entry.start_date as any),
+                end_date: entry.end_date instanceof Date ? entry.end_date : new Date(entry.end_date as any),
                 type: entry.type,
                 hours: entry.hours,
-                created_at: entry.created_at
+                created_at: entry.created_at instanceof Date ? entry.created_at : new Date(entry.created_at as any)
             }));
 
             const status = calculatePTOStatus(employeeData, ptoEntriesData);
