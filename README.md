@@ -471,13 +471,14 @@ Access requires admin privileges.
 - **employee-list**: List/table view of employees with edit/delete actions.
 - **pto-request-queue**: Queue view for reviewing submitted PTO requests with approve/reject actions.
 - **report-generator**: Report UI for PTO usage summaries with filters and export controls.
-- **pto-section-card** (planned): Base card component used by all PTO dashboard sections.
-- **pto-summary-card** (planned): Regular PTO balances (allocation, available, used, carryover).
-- **pto-accrual-card** (planned): Monthly accrual breakdown grid with calendar drill-down.
-- **pto-sick-card** (planned): Sick time allowance, used, remaining.
-- **pto-bereavement-card** (planned): Bereavement allowance, used, remaining.
-- **pto-jury-duty-card** (planned): Jury duty allowance, used, remaining.
-- **pto-employee-info-card** (planned): Hire date, next rollover, and related metadata.
+- **pto-summary-card**: Regular PTO balances (allocation, available, used, carryover).
+- **pto-accrual-card**: Monthly accrual breakdown grid with calendar drill-down and legacy PTO color coding.
+- **pto-sick-card**: Sick time allowance, used, remaining.
+- **pto-bereavement-card**: Bereavement allowance, used, remaining.
+- **pto-jury-duty-card**: Jury duty allowance, used, remaining.
+- **pto-employee-info-card**: Hire date, next rollover, and related metadata.
+
+All PTO dashboard cards share a common base class for consistent layout and styling.
 
 ## End-to-End Testing Strategy
 

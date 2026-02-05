@@ -384,6 +384,7 @@ class UIManager {
             accrualCard.monthlyAccruals = status.monthlyAccruals;
             accrualCard.calendar = calendarData;
             accrualCard.calendarYear = new Date().getFullYear();
+            accrualCard.monthlyUsage = this.buildMonthlyUsage(entries, new Date().getFullYear());
 
             const sickCard = document.createElement('pto-sick-card') as any;
             sickCard.bucket = status.sickTime;
@@ -447,6 +448,44 @@ class UIManager {
         }
 
         return calendar;
+    }
+
+    private buildMonthlyUsage(entries: any[], year: number): { month: number; hours: number }[] {
+        const usageByMonth = new Map<number, number>();
+        for (let month = 1; month <= 12; month += 1) {
+            usageByMonth.set(month, 0);
+        }
+
+        const safeEntries = Array.isArray(entries) ? entries : [];
+        for (const entry of safeEntries) {
+            if (entry.type !== 'PTO') {
+                continue;
+            }
+
+            const start = new Date(entry.start_date ?? entry.startDate);
+            const end = new Date(entry.end_date ?? entry.endDate ?? entry.start_date ?? entry.startDate);
+            if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+                continue;
+            }
+
+            const workdays = this.getWorkdaysBetween(start, end);
+            if (workdays.length === 0) {
+                continue;
+            }
+
+            const hoursPerDay = (entry.hours ?? 0) / workdays.length;
+            for (const day of workdays) {
+                if (day.getFullYear() !== year) {
+                    continue;
+                }
+                const month = day.getMonth() + 1;
+                usageByMonth.set(month, (usageByMonth.get(month) ?? 0) + hoursPerDay);
+            }
+        }
+
+        return Array.from(usageByMonth.entries())
+            .map(([month, hours]) => ({ month, hours }))
+            .sort((a, b) => a.month - b.month);
     }
 
     private getWorkdaysBetween(startDate: Date, endDate: Date): Date[] {

@@ -17,6 +17,11 @@ type AccrualData = {
     hours: number;
 };
 
+type UsageData = {
+    month: number;
+    hours: number;
+};
+
 type TimeBucketData = {
     allowed: number;
     used: number;
@@ -143,12 +148,13 @@ export class PtoSummaryCard extends PtoSectionCard {
 
 export class PtoAccrualCard extends PtoSectionCard {
     private accruals: AccrualData[] = [];
+    private usage: UsageData[] = [];
     private calendarData: CalendarData = {};
     private selectedMonth: number | null = null;
     private year: number = new Date().getFullYear();
 
     static get observedAttributes() {
-        return ["accruals", "calendar", "year"];
+        return ["accruals", "usage", "calendar", "year"];
     }
 
     connectedCallback() {
@@ -158,6 +164,9 @@ export class PtoAccrualCard extends PtoSectionCard {
     attributeChangedCallback(name: string, _oldValue: string, newValue: string) {
         if (name === "accruals") {
             this.accruals = JSON.parse(newValue) as AccrualData[];
+        }
+        if (name === "usage") {
+            this.usage = JSON.parse(newValue) as UsageData[];
         }
         if (name === "calendar") {
             this.calendarData = JSON.parse(newValue) as CalendarData;
@@ -170,6 +179,11 @@ export class PtoAccrualCard extends PtoSectionCard {
 
     set monthlyAccruals(value: AccrualData[]) {
         this.accruals = value;
+        this.render();
+    }
+
+    set monthlyUsage(value: UsageData[]) {
+        this.usage = value;
         this.render();
     }
 
@@ -233,13 +247,16 @@ export class PtoAccrualCard extends PtoSectionCard {
     }
 
     private render() {
+        const usageByMonth = new Map(this.usage.map((entry) => [entry.month, entry.hours]));
         const rows = this.accruals
             .map((accrual) => {
                 const monthName = monthNames[accrual.month - 1] ?? `Month ${accrual.month}`;
+                const usedHours = usageByMonth.get(accrual.month);
                 return `
                     <div class="accrual-row">
                         <span class="month">${monthName}</span>
                         <span class="hours">${accrual.hours.toFixed(1)}</span>
+                        <span class="used">${usedHours !== undefined ? usedHours.toFixed(1) : "—"}</span>
                         <button class="calendar-button" data-month="${accrual.month}" aria-label="Show ${monthName} calendar">📅</button>
                     </div>
                 `;
@@ -248,7 +265,15 @@ export class PtoAccrualCard extends PtoSectionCard {
 
         const body = `
             <div class="accrual-grid">
-                ${rows || '<div class="empty">No accrual data available.</div>'}
+                ${rows ? `
+                    <div class="accrual-row header">
+                        <span></span>
+                        <span class="label">Accrued</span>
+                        <span class="label">Used</span>
+                        <span></span>
+                    </div>
+                    ${rows}
+                ` : '<div class="empty">No accrual data available.</div>'}
             </div>
             ${this.renderCalendar()}
         `;
@@ -280,15 +305,31 @@ export class PtoAccrualCard extends PtoSectionCard {
 
                 .accrual-row {
                     display: grid;
-                    grid-template-columns: 1fr auto auto;
+                    grid-template-columns: 1fr auto auto auto;
                     gap: 12px;
                     align-items: center;
                     font-size: 14px;
                     color: #34495e;
                 }
 
+                .accrual-row.header {
+                    font-size: 12px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.04em;
+                    color: #6c757d;
+                }
+
+                .accrual-row.header .label {
+                    text-align: right;
+                }
+
                 .accrual-row .month {
                     font-weight: 600;
+                }
+
+                .accrual-row .hours,
+                .accrual-row .used {
+                    text-align: right;
                 }
 
                 .calendar-button {

@@ -1,12 +1,13 @@
 import { querySingle } from '../test-utils.js';
+import { PtoAccrualCard, PtoBereavementCard, PtoSickCard, PtoSummaryCard } from './index.js';
 
 export function playground(): void {
     console.log('Starting PTO dashboard playground test...');
 
-    const summary = querySingle('pto-summary-card') as any;
-    const accrual = querySingle('pto-accrual-card') as any;
-    const sick = querySingle('pto-sick-card') as any;
-    const bereavement = querySingle('pto-bereavement-card') as any;
+    const summary = querySingle<PtoSummaryCard>('pto-summary-card');
+    const accrual = querySingle<PtoAccrualCard>('pto-accrual-card');
+    const sick = querySingle<PtoSickCard>('pto-sick-card');
+    const bereavement = querySingle<PtoBereavementCard>('pto-bereavement-card');
     const jury = querySingle('pto-jury-duty-card') as any;
     const info = querySingle('pto-employee-info-card') as any;
 
@@ -21,6 +22,11 @@ export function playground(): void {
         { month: 1, hours: 8.4 },
         { month: 2, hours: 7.3 },
         { month: 3, hours: 7.7 }
+    ]));
+    accrual.setAttribute('usage', JSON.stringify([
+        { month: 1, hours: 4.0 },
+        { month: 2, hours: 0.0 },
+        { month: 3, hours: 2.5 }
     ]));
     accrual.setAttribute('calendar', JSON.stringify({
         1: {
