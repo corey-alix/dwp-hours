@@ -99,19 +99,26 @@ The system ensures accurate tracking per employee with individual rates and carr
 
 ```
 dwp-hours-tracker/
-├── .github/
-│   └── skills/          # AI assistant skills and knowledge
-│       └── pto-spreadsheet-layout/
-│           └── SKILL.md # Legacy Excel spreadsheet structure reference
-├── src/                 # TypeScript source files
-├── public/              # Static web assets
-├── db/                  # Database files and schema
-├── scripts/             # Utility scripts
-├── docs/                # Documentation
-├── dist/                # Compiled JavaScript (generated)
-├── logs/                # Application logs
-├── package.json         # Project configuration
-├── tsconfig.json        # TypeScript configuration
+├── client/              # Client-side source code
+│   ├── app.ts          # Main client entry point
+│   ├── index.html      # HTML template
+│   └── styles.css      # Styles
+├── src/                # Server-side source code
+│   ├── server.mts      # Main server entry point
+│   ├── entities/       # Server entities
+│   └── ...             # Other server files
+├── public/             # Built client assets (served by dev server)
+│   ├── app.js          # Bundled client code
+│   ├── index.html      # Copied HTML
+│   └── styles.css      # Copied styles
+├── dist/               # Built server assets
+│   └── server.mjs      # Bundled server code
+├── db/                 # Database files and schema
+├── scripts/            # Utility scripts
+├── docs/               # Documentation
+├── logs/               # Application logs
+├── package.json        # Project configuration
+├── tsconfig.json       # TypeScript configuration
 └── README.md           # This file
 ```
 
