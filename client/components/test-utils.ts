@@ -6,16 +6,17 @@
 /**
  * Finds a single element by selector with error logging.
  * @param selector - CSS selector string
+ * @param scope - Optional scope element to search within (defaults to document)
  * @returns The found element
  * @throws Error if element is not found
  */
-export function querySingle<T extends HTMLElement>(selector: string): T {
-    const item = document.querySelector<T>(selector);
+export function querySingle<T extends HTMLElement>(selector: string, scope?: Element): T {
+    const item = (scope || document).querySelector<T>(selector);
     if (item) {
-        console.log(`✅ Found ${selector} element:`, item);
+        console.log(`✅ Found ${selector} element${scope ? ' in scope' : ''}:`, item);
         return item;
     } else {
-        console.error(`❌ ${selector} element not found in DOM`);
+        console.error(`❌ ${selector} element not found${scope ? ' in scope' : ' in DOM'}`);
         throw new Error(`${selector} element not found`);
     }
 }
@@ -23,16 +24,17 @@ export function querySingle<T extends HTMLElement>(selector: string): T {
 /**
  * Finds multiple elements by selector with error logging.
  * @param selector - CSS selector string
+ * @param scope - Optional scope element to search within (defaults to document)
  * @returns Array of found elements
  * @throws Error if no elements are found
  */
-export function queryMultiple<T extends HTMLElement>(selector: string): T[] {
-    const items = Array.from(document.querySelectorAll<T>(selector));
+export function queryMultiple<T extends HTMLElement>(selector: string, scope?: Element): T[] {
+    const items = Array.from((scope || document).querySelectorAll<T>(selector));
     if (items.length > 0) {
-        console.log(`✅ Found ${items.length} ${selector} elements`);
+        console.log(`✅ Found ${items.length} ${selector} elements${scope ? ' in scope' : ''}`);
         return items;
     } else {
-        console.error(`❌ No ${selector} elements found in DOM`);
+        console.error(`❌ No ${selector} elements found${scope ? ' in scope' : ' in DOM'}`);
         throw new Error(`No ${selector} elements found`);
     }
 }

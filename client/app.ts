@@ -11,8 +11,9 @@ interface Employee {
 
 // Import components and test utilities
 import './components/index.js';
-import { CalendarEntry } from './components/pto-calendar/index.js';
-import { getElementById, addEventListener, querySingle } from './components/test-utils.js';
+import type { PtoAccrualCard, PtoSickCard, PtoSummaryCard } from './components/index.js';
+import type { CalendarEntry } from './components/pto-calendar/index.js';
+import { getElementById, addEventListener, querySingle, createElement } from './components/test-utils.js';
 
 // Re-export playground for testing
 export * from './components/test.js';
@@ -310,18 +311,18 @@ class UIManager {
             const messageDiv = getElementById("login-message")!;
             messageDiv.textContent = response.message;
             messageDiv.innerHTML = "";
-            const messageText = document.createElement("div");
+            const messageText = createElement("div");
             messageText.textContent = response.message;
             messageDiv.appendChild(messageText);
             messageDiv.classList.remove("hidden");
             if (response.magicLink) {
-                const link = document.createElement("a");
+                const link = createElement("a") as HTMLAnchorElement;
                 link.href = response.magicLink;
                 link.textContent = response.magicLink;
                 link.rel = "noopener noreferrer";
                 link.target = "_self";
 
-                const linkWrapper = document.createElement("div");
+                const linkWrapper = createElement("div") as HTMLDivElement;
                 linkWrapper.style.marginTop = "8px";
                 linkWrapper.appendChild(link);
                 messageDiv.appendChild(linkWrapper);
@@ -386,14 +387,16 @@ class UIManager {
     }
 
     private togglePTORequestMode(): void {
-        const accrualCard = document.querySelector('pto-accrual-card') as any;
-        if (accrualCard) {
+        try {
+            const accrualCard = querySingle('pto-accrual-card') as any;
             const currentMode = accrualCard.getAttribute('request-mode') === 'true';
             accrualCard.setAttribute('request-mode', (!currentMode).toString());
 
             // Update button text
             const button = getElementById("toggle-pto-request-mode");
             button.textContent = currentMode ? 'Submit PTO Requests' : 'View PTO Status';
+        } catch (error) {
+            // Element doesn't exist in test environment, skip
         }
     }
 
@@ -479,9 +482,9 @@ class UIManager {
                 <div class="pto-summary"></div>
             `;
 
-            const summaryContainer = statusDiv.querySelector('.pto-summary') as HTMLElement;
+            const summaryContainer = querySingle('.pto-summary', statusDiv) as HTMLElement;
 
-            const summaryCard = document.createElement('pto-summary-card') as any;
+            const summaryCard = createElement<PtoSummaryCard>('pto-summary-card');
             summaryCard.summary = {
                 annualAllocation: status.annualAllocation,
                 availablePTO: status.availablePTO,
@@ -489,7 +492,7 @@ class UIManager {
                 carryoverFromPreviousYear: status.carryoverFromPreviousYear
             };
 
-            const accrualCard = document.createElement('pto-accrual-card') as any;
+            const accrualCard = createElement<PtoAccrualCard>('pto-accrual-card');
             accrualCard.monthlyAccruals = status.monthlyAccruals;
             accrualCard.calendar = calendarData;
             accrualCard.calendarYear = new Date().getFullYear();
@@ -497,19 +500,19 @@ class UIManager {
             accrualCard.setAttribute('request-mode', 'true'); // Enable calendar editing
             accrualCard.setAttribute('annual-allocation', status.annualAllocation.toString());
 
-            const sickCard = document.createElement('pto-sick-card') as any;
+            const sickCard = createElement<PtoSickCard>('pto-sick-card');
             sickCard.bucket = status.sickTime;
             sickCard.usageEntries = this.buildUsageEntries(entries, new Date().getFullYear(), 'Sick');
 
-            const bereavementCard = document.createElement('pto-bereavement-card') as any;
+            const bereavementCard = createElement('pto-bereavement-card') as any;
             bereavementCard.bucket = status.bereavementTime;
             bereavementCard.usageEntries = this.buildUsageEntries(entries, new Date().getFullYear(), 'Bereavement');
 
-            const juryDutyCard = document.createElement('pto-jury-duty-card') as any;
+            const juryDutyCard = createElement('pto-jury-duty-card') as any;
             juryDutyCard.bucket = status.juryDutyTime;
             juryDutyCard.usageEntries = this.buildUsageEntries(entries, new Date().getFullYear(), 'Jury Duty');
 
-            const employeeInfoCard = document.createElement('pto-employee-info-card') as any;
+            const employeeInfoCard = createElement('pto-employee-info-card') as any;
             employeeInfoCard.info = { hireDate, nextRolloverDate };
 
             summaryContainer.appendChild(summaryCard);
@@ -710,10 +713,16 @@ class UIManager {
         // Clear existing content
         statusDiv.innerHTML = '';
 
-        // Re-create all PTO components with fresh data
-        const summaryContainer = statusDiv.querySelector('.pto-summary') as HTMLElement;
+        // Recreate the HTML structure
+        statusDiv.innerHTML = `
+            <h3>Your PTO Status</h3>
+            <div class="pto-summary"></div>
+        `;
 
-        const summaryCard = document.createElement('pto-summary-card') as any;
+        // Re-create all PTO components with fresh data
+        const summaryContainer = querySingle('.pto-summary', statusDiv);
+
+        const summaryCard = createElement('pto-summary-card') as any;
         summaryCard.summary = {
             annualAllocation: status.annualAllocation,
             availablePTO: status.availablePTO,
@@ -721,7 +730,7 @@ class UIManager {
             carryoverFromPreviousYear: status.carryoverFromPreviousYear
         };
 
-        const accrualCard = document.createElement('pto-accrual-card') as any;
+        const accrualCard = createElement('pto-accrual-card') as any;
         accrualCard.monthlyAccruals = status.monthlyAccruals;
         accrualCard.calendar = calendarData;
         accrualCard.calendarYear = new Date().getFullYear();
@@ -729,19 +738,19 @@ class UIManager {
         accrualCard.setAttribute('request-mode', 'true');
         accrualCard.setAttribute('annual-allocation', status.annualAllocation.toString());
 
-        const sickCard = document.createElement('pto-sick-card') as any;
+        const sickCard = createElement('pto-sick-card') as any;
         sickCard.bucket = status.sickTime;
         sickCard.usageEntries = this.buildUsageEntries(entries, new Date().getFullYear(), 'Sick');
 
-        const bereavementCard = document.createElement('pto-bereavement-card') as any;
+        const bereavementCard = createElement('pto-bereavement-card') as any;
         bereavementCard.bucket = status.bereavementTime;
         bereavementCard.usageEntries = this.buildUsageEntries(entries, new Date().getFullYear(), 'Bereavement');
 
-        const juryDutyCard = document.createElement('pto-jury-duty-card') as any;
+        const juryDutyCard = createElement('pto-jury-duty-card') as any;
         juryDutyCard.bucket = status.juryDutyTime;
         juryDutyCard.usageEntries = this.buildUsageEntries(entries, new Date().getFullYear(), 'Jury Duty');
 
-        const employeeInfoCard = document.createElement('pto-employee-info-card') as any;
+        const employeeInfoCard = createElement('pto-employee-info-card') as any;
         employeeInfoCard.info = {
             hireDate: new Date(status.hireDate).toLocaleDateString(), nextRolloverDate: new Date(status.nextRolloverDate).toLocaleDateString('en-US', {
                 year: 'numeric',
