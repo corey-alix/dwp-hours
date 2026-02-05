@@ -36,11 +36,14 @@ export class PtoSummaryCard extends PtoSectionCard {
             return;
         }
 
+        const formatValue = (val: number) => val < 0 ? `(${val.toFixed(2)})` : val.toFixed(2);
+
         const body = `
-            <div class="row"><span class="label">Annual Allocation</span><span>${this.data.annualAllocation} hours</span></div>
-            <div class="row"><span class="label">Available</span><span>${this.data.availablePTO.toFixed(2)} hours</span></div>
-            <div class="row"><span class="label">Used</span><span>${this.data.usedPTO.toFixed(2)} hours</span></div>
-            <div class="row"><span class="label">Carryover</span><span>${this.data.carryoverFromPreviousYear.toFixed(2)} hours</span></div>
+            <div class="row"><span class="label">Carryover</span><span>${formatValue(this.data.carryoverFromPreviousYear)} hours</span></div>
+            <div class="row"><span class="label">Annual Allocated</span><span>${formatValue(this.data.annualAllocation)} hours</span></div>
+            <div class="row"><span class="label">Used</span><span>${formatValue(this.data.usedPTO)} hours</span></div>
+            <hr>
+            <div class="row"><span class="label">Available</span><span>${formatValue(this.data.availablePTO)} hours</span></div>
         `;
 
         this.renderCard("Regular PTO", body);
