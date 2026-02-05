@@ -23,6 +23,12 @@ export function playground(): HTMLElement {
     calendar.setMonth(1); // February (0-indexed)
     calendar.setYear(2024);
     calendar.setEntries(sampleEntries);
+    // Keep readonly by default for testing
+
+    // Add event listener for PTO request submission
+    calendar.addEventListener('pto-request-submit', (event: any) => {
+        console.log('PTO Request Submitted:', event.detail);
+    });
 
     container.appendChild(calendar);
 

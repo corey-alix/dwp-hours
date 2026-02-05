@@ -11,6 +11,7 @@ interface Employee {
 
 // Import components and test utilities
 import './components/index.js';
+import { CalendarEntry } from './components/pto-calendar/index.js';
 
 // Re-export playground for testing
 export * from './components/test.js';
@@ -407,6 +408,12 @@ class UIManager {
             summaryContainer.appendChild(bereavementCard);
             summaryContainer.appendChild(juryDutyCard);
             summaryContainer.appendChild(employeeInfoCard);
+
+            // Handle PTO request submission
+            accrualCard.addEventListener('pto-request-submit', (e: any) => {
+                e.stopPropagation();
+                this.handlePtoRequestSubmit(e.detail.requests);
+            });
         } catch (error) {
             console.error("Failed to load PTO status:", error);
             const statusDiv = document.getElementById("pto-status")!;
@@ -537,6 +544,34 @@ class UIManager {
         }
 
         return days;
+    }
+
+    private async handlePtoRequestSubmit(requests: CalendarEntry[]): Promise<void> {
+        if (!this.currentUser) {
+            alert('You must be logged in to submit PTO requests');
+            return;
+        }
+
+        try {
+            // Submit each request
+            for (const request of requests) {
+                await api.post('/pto', {
+                    employeeId: this.currentUser.id,
+                    startDate: request.date,
+                    endDate: request.date, // Single day requests
+                    type: request.type,
+                    hours: request.hours
+                });
+            }
+
+            alert(`Successfully submitted ${requests.length} PTO request(s)!`);
+
+            // Reload PTO status to reflect changes
+            await this.loadPTOStatus();
+        } catch (error) {
+            console.error('Error submitting PTO request:', error);
+            alert('Failed to submit PTO request. Please try again.');
+        }
     }
 }
 

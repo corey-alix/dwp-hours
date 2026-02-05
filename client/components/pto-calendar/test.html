@@ -4,17 +4,75 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PTO Calendar Component Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-controls { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+        .test-controls button { margin: 5px; padding: 8px 16px; }
+        .status { margin: 10px 0; padding: 10px; background: #f0f0f0; }
+    </style>
 </head>
 <body>
     <h1>PTO Calendar Component Test</h1>
+
+    <div class="test-controls">
+        <h3>Test Controls</h3>
+        <button id="toggle-readonly">Toggle Readonly Mode</button>
+        <button id="clear-selection">Clear Selection</button>
+        <button id="get-selected">Get Selected Requests</button>
+        <div id="status" class="status">Status: Ready</div>
+    </div>
+
     <div id="test-output" style="display: grid; gap: 12px; padding: 10px; border: 1px solid #ccc; margin: 10px 0;">
         <!-- Calendar component will be inserted here by the playground function -->
     </div>
 
+    <!-- Submit button for the calendar -->
+    <button id="submit-pto" style="margin: 10px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px;">Submit PTO Request</button>
+
     <script type="module">
         import { ptoCalendar } from "/app.js";
         const output = document.getElementById('test-output');
-        output.appendChild(ptoCalendar());
+        const status = document.getElementById('status');
+
+        // Get the calendar component
+        const calendarContainer = ptoCalendar();
+        output.appendChild(calendarContainer);
+
+        const calendar = calendarContainer.querySelector('pto-calendar');
+
+        // Assign submit button to the calendar's submit slot
+        const submitButton = document.getElementById('submit-pto');
+        submitButton.setAttribute('slot', 'submit');
+        calendar.appendChild(submitButton);
+
+        // Add click handler to the submit button
+        submitButton.addEventListener('click', () => {
+            calendar.submitRequest();
+        });
+
+        // Add event listener for PTO request submission
+        calendar.addEventListener('pto-request-submit', (e) => {
+            status.textContent = `Status: PTO Request Submitted - ${e.detail.requests.length} requests`;
+            console.log('PTO Request:', e.detail.requests);
+        });
+
+        // Test controls
+        document.getElementById('toggle-readonly').addEventListener('click', () => {
+            const isReadonly = calendar.getAttribute('readonly') === 'true';
+            calendar.setReadonly(!isReadonly);
+            status.textContent = `Status: Readonly mode ${!isReadonly ? 'disabled' : 'enabled'}`;
+        });
+
+        document.getElementById('clear-selection').addEventListener('click', () => {
+            calendar.clearSelection();
+            status.textContent = 'Status: Selection cleared';
+        });
+
+        document.getElementById('get-selected').addEventListener('click', () => {
+            const requests = calendar.getSelectedRequests();
+            status.textContent = `Status: ${requests.length} requests selected`;
+            console.log('Selected requests:', requests);
+        });
     </script>
 </body>
 </html>

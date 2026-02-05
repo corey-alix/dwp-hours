@@ -152,7 +152,9 @@ export class PtoAccrualCard extends PtoSectionCard {
                 </div>
                 ${rows}
             </div>
-            ${this.selectedMonth ? `<pto-calendar month="${this.selectedMonth - 1}" year="${this.year}" entries='${JSON.stringify(calendarEntries)}' selected-month="${this.selectedMonth}" readonly="${!this._requestMode}"></pto-calendar>` : ''}
+            ${this.selectedMonth ? `<pto-calendar month="${this.selectedMonth - 1}" year="${this.year}" entries='${JSON.stringify(calendarEntries)}' selected-month="${this.selectedMonth}" readonly="${!this._requestMode}">
+                ${this._requestMode ? '<button slot="submit" class="submit-button">Submit PTO Request</button>' : ''}
+            </pto-calendar>` : ''}
         `;
 
         this.shadow.innerHTML = `
@@ -247,6 +249,26 @@ export class PtoAccrualCard extends PtoSectionCard {
                     color: #6c757d;
                     font-size: 13px;
                 }
+
+                .submit-button {
+                    background: #007bff;
+                    color: white;
+                    border: none;
+                    padding: 8px 16px;
+                    border-radius: 4px;
+                    font-size: 14px;
+                    cursor: pointer;
+                    transition: background-color 0.2s;
+                }
+
+                .submit-button:hover {
+                    background: #0056b3;
+                }
+
+                .submit-button:disabled {
+                    background: #6c757d;
+                    cursor: not-allowed;
+                }
             </style>
             <div class="card">
                 <h4>${this._requestMode ? 'PTO Request - Select Month' : 'Monthly Accrual Breakdown'}</h4>
@@ -261,6 +283,30 @@ export class PtoAccrualCard extends PtoSectionCard {
                 this.render();
             });
         });
+
+        // Handle PTO request submission
+        const calendar = this.shadow.querySelector('pto-calendar') as any;
+        if (calendar) {
+            calendar.addEventListener('pto-request-submit', (e: any) => {
+                e.stopPropagation();
+                this.handlePtoRequestSubmit(e.detail.requests);
+            });
+        }
+    }
+
+    private async handlePtoRequestSubmit(requests: CalendarEntry[]) {
+        try {
+            // Dispatch event to parent component for API submission
+            const event = new CustomEvent('pto-request-submit', {
+                detail: { requests },
+                bubbles: true,
+                composed: true
+            });
+            this.dispatchEvent(event);
+        } catch (error) {
+            console.error('Error submitting PTO request:', error);
+            // Could add error display here
+        }
     }
 }
 
