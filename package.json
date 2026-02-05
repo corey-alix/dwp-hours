@@ -21,6 +21,7 @@
         "pm2:delete": "pm2 delete ecosystem.config.json",
         "pm2:logs": "pm2 logs dwp-hours-tracker",
         "db:init": "echo 'Database initialized by server startup'",
+        "seed": "node scripts/seed.js",
         "migrate": "node scripts/migrate.js",
         "test:unit": "vitest --run",
         "test:e2e": "playwright test",

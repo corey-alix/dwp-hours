@@ -207,7 +207,23 @@ class UIManager {
             const response = await api.post("/auth/request-link", { identifier });
             const messageDiv = document.getElementById("login-message")!;
             messageDiv.textContent = response.message;
+            messageDiv.innerHTML = "";
+            const messageText = document.createElement("div");
+            messageText.textContent = response.message;
+            messageDiv.appendChild(messageText);
             messageDiv.classList.remove("hidden");
+            if (response.magicLink) {
+                const link = document.createElement("a");
+                link.href = response.magicLink;
+                link.textContent = response.magicLink;
+                link.rel = "noopener noreferrer";
+                link.target = "_self";
+
+                const linkWrapper = document.createElement("div");
+                linkWrapper.style.marginTop = "8px";
+                linkWrapper.appendChild(link);
+                messageDiv.appendChild(linkWrapper);
+            }
         } catch (error) {
             alert("Failed to send magic link. Please try again.");
         }
@@ -397,3 +413,8 @@ class UIManager {
 }
 
 export { UIManager };
+
+const loginForm = document.getElementById("login-form");
+if (loginForm) {
+    (window as any).app = new UIManager();
+}

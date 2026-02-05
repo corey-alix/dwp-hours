@@ -14,6 +14,7 @@ type MailerConfig = {
 
 type SendEmailOptions = {
     to: string;
+    cc?: string | string[];
     subject: string;
     text: string;
     html?: string;
@@ -88,6 +89,7 @@ export async function sendEmail(options: SendEmailOptions) {
     return transporter.sendMail({
         from: `${config.senderName} <${config.senderEmail}>`,
         to: options.to,
+        cc: options.cc,
         subject: options.subject,
         text: options.text,
         html: options.html

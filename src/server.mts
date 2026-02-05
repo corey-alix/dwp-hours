@@ -2,7 +2,6 @@ import express, { Request, Response } from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 import helmet from "helmet";
-import rateLimit from "express-rate-limit";
 import { body, validationResult } from "express-validator";
 import initSqlJs from "sql.js";
 import path from "path";
@@ -49,24 +48,6 @@ app.use(helmet({
     },
 }));
 
-// Rate limiting
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
-    message: 'Too many requests from this IP, please try again later.',
-    standardHeaders: true,
-    legacyHeaders: false,
-});
-
-const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // limit each IP to 5 auth requests per windowMs
-    message: 'Too many authentication attempts, please try again later.',
-    standardHeaders: true,
-    legacyHeaders: false,
-});
-
-app.use(limiter);
 app.use(cors());
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
@@ -174,8 +155,7 @@ initDatabase().then(async () => {
         });
     });
 
-    // Auth routes (with stricter rate limiting)
-    app.use('/api/auth', authLimiter);
+    // Auth routes
     app.post('/api/auth/request-link', [
         body('identifier').isEmail().normalizeEmail().withMessage('Valid email address required')
     ], async (req: Request, res: Response) => {
@@ -187,11 +167,22 @@ initDatabase().then(async () => {
 
             const { identifier } = req.body;
             const isTestMode = req.headers['x-test-mode'] === 'true' || process.env.NODE_ENV === 'test';
+            const isDirectMagicLink = process.env.MAGIC_LINK_DIRECT === 'true';
+            const shouldReturnMagicLink = isTestMode || isDirectMagicLink || process.env.NODE_ENV !== 'production';
 
             const employeeRepo = dataSource.getRepository(Employee);
             const employee = await employeeRepo.findOne({ where: { identifier } });
 
             if (!employee) {
+                if (shouldReturnMagicLink) {
+                    const timestamp = Date.now();
+                    const magicLink = `http://localhost:3000/?token=missing-user&ts=${timestamp}`;
+                    log(`Magic link for ${identifier}: ${magicLink}`);
+                    return res.json({
+                        message: 'Magic link generated',
+                        magicLink
+                    });
+                }
                 // For security, don't reveal if user exists
                 return res.json({ message: 'If the email exists, a magic link has been sent.' });
             }
@@ -210,14 +201,14 @@ initDatabase().then(async () => {
 
             const magicLink = `http://localhost:3000/?token=${temporalHash}&ts=${timestamp}`;
 
-            if (isTestMode || process.env.NODE_ENV !== 'production') {
+            if (shouldReturnMagicLink) {
                 log(`Magic link for ${identifier}: ${magicLink}`);
             }
 
-            if (isTestMode) {
-                // For E2E testing, return the magic link directly
+            if (shouldReturnMagicLink) {
+                // For testing or POC, return the magic link directly
                 return res.json({
-                    message: 'Magic link generated for testing',
+                    message: 'Magic link generated',
                     magicLink: magicLink
                 });
             }
