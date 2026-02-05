@@ -1,64 +1,15 @@
-// Type definitions
-interface Employee {
-    id: number;
-    name: string;
-    identifier: string;
-    ptoRate: number;
-    carryoverHours: number;
-    role: string;
-    hash: string;
-}
+// Import API types
+import type * as ApiTypes from './api-types.js';
 
 // Import components and test utilities
 import './components/index.js';
-import type { PtoAccrualCard, PtoSickCard, PtoSummaryCard } from './components/index.js';
+import { PtoAccrualCard, PtoBereavementCard, PtoEmployeeInfoCard, PtoJuryDutyCard, PtoSickCard, PtoSummaryCard } from './components/index.js';
 import type { CalendarEntry } from './components/pto-calendar/index.js';
 import { getElementById, addEventListener, querySingle, createElement } from './components/test-utils.js';
 
 // Re-export playground for testing
 export * from './components/test.js';
 export { TestWorkflow } from './test.js';
-
-interface PTOEntry {
-    id: number;
-    employeeId: number;
-    startDate: string;
-    endDate: string;
-    type: string;
-    hours: number;
-    createdAt: string;
-}
-
-interface PTOStatus {
-    employeeId: number;
-    hireDate: string;
-    annualAllocation: number;
-    availablePTO: number;
-    usedPTO: number;
-    carryoverFromPreviousYear: number;
-    monthlyAccruals: { month: number; hours: number }[];
-    nextRolloverDate: string;
-    sickTime: {
-        allowed: number;
-        used: number;
-        remaining: number;
-    };
-    ptoTime: {
-        allowed: number;
-        used: number;
-        remaining: number;
-    };
-    bereavementTime: {
-        allowed: number;
-        used: number;
-        remaining: number;
-    };
-    juryDutyTime: {
-        allowed: number;
-        used: number;
-        remaining: number;
-    };
-}
 
 type CalendarDay = {
     type: string;
@@ -173,7 +124,7 @@ const notifications = new NotificationManager();
 
 // UI Manager
 class UIManager {
-    private currentUser: Employee | null = null;
+    private currentUser: { id: number; name: string; role: string } | null = null;
 
     constructor() {
         this.init();
@@ -191,10 +142,10 @@ class UIManager {
         const ts = urlParams.get('ts');
         if (token && ts) {
             try {
-                const response = await api.get(`/auth/validate?token=${token}&ts=${ts}`);
+                const response = await api.get(`/auth/validate?token=${token}&ts=${ts}`) as ApiTypes.AuthValidateResponse;
                 this.setAuthCookie(response.publicHash);
                 localStorage.setItem('currentUser', JSON.stringify(response.employee));
-                this.currentUser = response.employee;
+                this.currentUser = response.employee as ApiTypes.Employee; // Cast to full Employee if needed, but actually it's partial
                 this.showDashboard();
                 await this.loadPTOStatus();
                 // Clean URL
@@ -307,7 +258,7 @@ class UIManager {
         ).value;
 
         try {
-            const response = await api.post("/auth/request-link", { identifier });
+            const response = await api.post("/auth/request-link", { identifier }) as ApiTypes.AuthRequestLinkResponse;
             const messageDiv = getElementById("login-message")!;
             messageDiv.textContent = response.message;
             messageDiv.innerHTML = "";
@@ -465,8 +416,8 @@ class UIManager {
         if (!this.currentUser) return;
 
         try {
-            const status: PTOStatus = await api.get(`/pto/status/${this.currentUser.id}`);
-            const entries = await api.get(`/pto?employeeId=${this.currentUser.id}`);
+            const status = await api.get(`/pto/status/${this.currentUser.id}`) as ApiTypes.PTOStatusResponse;
+            const entries = await api.get(`/pto?employeeId=${this.currentUser.id}`) as ApiTypes.PTOEntry[];
             const calendarData = this.buildCalendarData(entries, new Date().getFullYear());
 
             const statusDiv = getElementById("pto-status");
@@ -537,13 +488,13 @@ class UIManager {
         }
     }
 
-    private buildCalendarData(entries: any[], year: number): CalendarData {
+    private buildCalendarData(entries: ApiTypes.PTOEntry[], year: number): CalendarData {
         const calendar: CalendarData = {};
         const safeEntries = Array.isArray(entries) ? entries : [];
 
         for (const entry of safeEntries) {
-            const start = new Date(entry.start_date ?? entry.startDate);
-            const end = new Date(entry.end_date ?? entry.endDate ?? entry.start_date ?? entry.startDate);
+            const start = new Date(entry.startDate);
+            const end = new Date(entry.endDate ?? entry.startDate);
             if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
                 continue;
             }
@@ -573,7 +524,7 @@ class UIManager {
         return calendar;
     }
 
-    private buildUsageEntries(entries: any[], year: number, type: string): { date: string; hours: number }[] {
+    private buildUsageEntries(entries: ApiTypes.PTOEntry[], year: number, type: string): { date: string; hours: number }[] {
         const safeEntries = Array.isArray(entries) ? entries : [];
         const hoursByDate = new Map<string, number>();
 
@@ -582,9 +533,9 @@ class UIManager {
                 continue;
             }
 
-            const startDateStr = entry.start_date ?? entry.startDate;
-            const [year, month, day] = startDateStr.split('-').map(Number);
-            const start = new Date(year, month - 1, day);
+            const startDateStr = entry.startDate;
+            const [yearNum, month, day] = startDateStr.split('-').map(Number);
+            const start = new Date(yearNum, month - 1, day);
             if (Number.isNaN(start.getTime())) {
                 continue;
             }
@@ -594,7 +545,7 @@ class UIManager {
             }
 
             const dateKey = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
-            hoursByDate.set(dateKey, (hoursByDate.get(dateKey) ?? 0) + (entry.hours ?? 0));
+            hoursByDate.set(dateKey, (hoursByDate.get(dateKey) ?? 0) + entry.hours);
         }
 
         const result = Array.from(hoursByDate.entries())
@@ -603,7 +554,7 @@ class UIManager {
         return result;
     }
 
-    private buildMonthlyUsage(entries: any[], year: number): { month: number; hours: number }[] {
+    private buildMonthlyUsage(entries: ApiTypes.PTOEntry[], year: number): { month: number; hours: number }[] {
         const usageByMonth = new Map<number, number>();
         for (let month = 1; month <= 12; month += 1) {
             usageByMonth.set(month, 0);
@@ -615,8 +566,8 @@ class UIManager {
                 continue;
             }
 
-            const start = new Date(entry.start_date ?? entry.startDate);
-            const end = new Date(entry.end_date ?? entry.endDate ?? entry.start_date ?? entry.startDate);
+            const start = new Date(entry.startDate);
+            const end = new Date(entry.endDate ?? entry.startDate);
             if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
                 continue;
             }
@@ -693,8 +644,8 @@ class UIManager {
 
         try {
             // Re-query PTO status from server
-            const status: PTOStatus = await api.get(`/pto/status/${this.currentUser.id}`);
-            const entries = await api.get(`/pto?employeeId=${this.currentUser.id}`);
+            const status = await api.get(`/pto/status/${this.currentUser.id}`) as ApiTypes.PTOStatusResponse;
+            const entries = await api.get(`/pto?employeeId=${this.currentUser.id}`) as ApiTypes.PTOEntry[];
             const calendarData = this.buildCalendarData(entries, new Date().getFullYear());
 
             // Re-render all PTO components with fresh data
@@ -706,7 +657,7 @@ class UIManager {
         }
     }
 
-    private async renderPTOStatus(status: PTOStatus, entries: any[], calendarData: CalendarData): Promise<void> {
+    private async renderPTOStatus(status: ApiTypes.PTOStatusResponse, entries: ApiTypes.PTOEntry[], calendarData: CalendarData): Promise<void> {
         // Re-render the entire PTO status section with fresh data
         const statusDiv = getElementById("pto-status");
 
@@ -722,7 +673,7 @@ class UIManager {
         // Re-create all PTO components with fresh data
         const summaryContainer = querySingle('.pto-summary', statusDiv);
 
-        const summaryCard = createElement('pto-summary-card') as any;
+        const summaryCard = createElement<PtoSummaryCard>('pto-summary-card');
         summaryCard.summary = {
             annualAllocation: status.annualAllocation,
             availablePTO: status.availablePTO,
@@ -730,7 +681,7 @@ class UIManager {
             carryoverFromPreviousYear: status.carryoverFromPreviousYear
         };
 
-        const accrualCard = createElement('pto-accrual-card') as any;
+        const accrualCard = createElement<PtoAccrualCard>('pto-accrual-card');
         accrualCard.monthlyAccruals = status.monthlyAccruals;
         accrualCard.calendar = calendarData;
         accrualCard.calendarYear = new Date().getFullYear();
@@ -738,19 +689,19 @@ class UIManager {
         accrualCard.setAttribute('request-mode', 'true');
         accrualCard.setAttribute('annual-allocation', status.annualAllocation.toString());
 
-        const sickCard = createElement('pto-sick-card') as any;
+        const sickCard = createElement<PtoSickCard>('pto-sick-card');
         sickCard.bucket = status.sickTime;
         sickCard.usageEntries = this.buildUsageEntries(entries, new Date().getFullYear(), 'Sick');
 
-        const bereavementCard = createElement('pto-bereavement-card') as any;
+        const bereavementCard = createElement<PtoBereavementCard>('pto-bereavement-card');
         bereavementCard.bucket = status.bereavementTime;
         bereavementCard.usageEntries = this.buildUsageEntries(entries, new Date().getFullYear(), 'Bereavement');
 
-        const juryDutyCard = createElement('pto-jury-duty-card') as any;
+        const juryDutyCard = createElement<PtoJuryDutyCard>('pto-jury-duty-card');
         juryDutyCard.bucket = status.juryDutyTime;
         juryDutyCard.usageEntries = this.buildUsageEntries(entries, new Date().getFullYear(), 'Jury Duty');
 
-        const employeeInfoCard = createElement('pto-employee-info-card') as any;
+        const employeeInfoCard = createElement<PtoEmployeeInfoCard>('pto-employee-info-card');
         employeeInfoCard.info = {
             hireDate: new Date(status.hireDate).toLocaleDateString(), nextRolloverDate: new Date(status.nextRolloverDate).toLocaleDateString('en-US', {
                 year: 'numeric',
