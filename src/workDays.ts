@@ -5,23 +5,6 @@
 
 import { getDaysInMonth, getDayOfWeek, formatDate } from './dateUtils.js';
 
-// Fallback work days per month for 2026 (accounting for holidays)
-// This ensures we get the exact values provided by the user
-const WORK_DAYS_TEMPLATE: Record<number, number> = {
-    1: 23,  // January
-    2: 20,  // February
-    3: 21,  // March
-    4: 22,  // April
-    5: 22,  // May
-    6: 21,  // June
-    7: 23,  // July
-    8: 21,  // August
-    9: 22,  // September
-    10: 23, // October
-    11: 20, // November
-    12: 23  // December
-};
-
 /**
  * Calculate the number of work days (Monday-Friday) in a given month and year
  * @param year - The year
@@ -48,7 +31,7 @@ function calculateWorkDaysInMonth(year: number, month: number): number {
 
 /**
  * Get work days for a given month
- * Uses provided values for 2026, calculates dynamically for other years
+ * Calculates dynamically for any year (raw weekdays, no holiday adjustment)
  * @param year - The year
  * @param month - The month (1-12)
  * @returns Number of work days in the month
@@ -58,12 +41,7 @@ export function getWorkDays(year: number, month: number): number {
         throw new Error(`Invalid month: ${month}. Must be 1-12.`);
     }
 
-    // Use fixed values for 2026 as specified in requirements
-    if (year === 2026) {
-        return WORK_DAYS_TEMPLATE[month];
-    }
-
-    // For other years, calculate dynamically (raw weekdays, no holiday adjustment)
+    // Calculate dynamically for any year (raw weekdays, no holiday adjustment)
     return calculateWorkDaysInMonth(year, month);
 }
 
@@ -115,7 +93,7 @@ export interface WorkDaysResult {
  * Legacy function for backward compatibility
  * @param year - The year
  * @param month - The month (1-12)
- * @param holidays - Ignored (holidays accounted for in 2026 data)
+ * @param holidays - Ignored (no holiday adjustment in current implementation)
  * @returns WorkDaysResult with work days calculation
  */
 export function calculateWorkDays(year: number, month: number, holidays: string[] = []): WorkDaysResult {
@@ -136,7 +114,7 @@ export function calculateWorkDays(year: number, month: number, holidays: string[
         workDays,
         totalDays,
         weekends,
-        holidays: [] // Holidays accounted for in work days calculation
+        holidays: [] // No holiday adjustment in current implementation
     };
 }
 

@@ -1,5 +1,6 @@
 import { PtoSectionCard, monthNames } from "../utils/pto-card-base.js";
 import { PtoCalendar, CalendarEntry } from "../pto-calendar/index.js";
+import { getWorkDays, getTotalWorkDaysInYear, getAllocationRate } from "../../../src/workDays.js";
 
 type CalendarData = Record<number, Record<number, { type: string; hours: number }>>;
 
@@ -19,9 +20,11 @@ export class PtoAccrualCard extends PtoSectionCard {
     private calendarData: CalendarData = {};
     private selectedMonth: number | null = null;
     private year: number = new Date().getFullYear();
+    private _requestMode: boolean = false;
+    private _annualAllocation: number = 96; // Default 96 hours annual PTO
 
     static get observedAttributes() {
-        return ["accruals", "usage", "calendar", "year"];
+        return ["accruals", "usage", "calendar", "year", "request-mode", "annual-allocation"];
     }
 
     connectedCallback() {
@@ -40,6 +43,12 @@ export class PtoAccrualCard extends PtoSectionCard {
         }
         if (name === "year") {
             this.year = parseInt(newValue, 10) || this.year;
+        }
+        if (name === "request-mode") {
+            this._requestMode = newValue === "true";
+        }
+        if (name === "annual-allocation") {
+            this._annualAllocation = parseFloat(newValue) || 96;
         }
         this.render();
     }
@@ -64,22 +73,61 @@ export class PtoAccrualCard extends PtoSectionCard {
         this.render();
     }
 
+    set requestMode(value: boolean) {
+        this._requestMode = value;
+        this.setAttribute("request-mode", value.toString());
+    }
+
+    set annualAllocation(value: number) {
+        this._annualAllocation = value;
+        this.setAttribute("annual-allocation", value.toString());
+    }
+
     private render() {
+        // Create maps for quick lookup
+        const accrualByMonth = new Map(this.accruals.map((entry) => [entry.month, entry.hours]));
         const usageByMonth = new Map(this.usage.map((entry) => [entry.month, entry.hours]));
-        const rows = this.accruals
-            .map((accrual) => {
-                const monthName = monthNames[accrual.month - 1] ?? `Month ${accrual.month}`;
-                const usedHours = usageByMonth.get(accrual.month);
-                return `
-                    <div class="accrual-row">
-                        <span class="month">${monthName}</span>
-                        <span class="hours">${accrual.hours.toFixed(1)}</span>
-                        <span class="used">${usedHours !== undefined ? usedHours.toFixed(1) : "—"}</span>
-                        <button class="calendar-button" data-month="${accrual.month}" aria-label="Show ${monthName} calendar">📅</button>
-                    </div>
-                `;
-            })
-            .join("");
+
+        // Generate rows for all 12 months
+        const currentDate = new Date();
+        const currentMonth = currentDate.getMonth() + 1; // 1-based
+        const currentYear = currentDate.getFullYear();
+
+        // Calculate PTO rate for projected accruals
+        const totalWorkDaysInYear = getTotalWorkDaysInYear(this.year);
+        const ptoRate = this._annualAllocation / totalWorkDaysInYear;
+
+        const rows = Array.from({ length: 12 }, (_, i) => {
+            const month = i + 1; // 1-based month
+            const monthName = monthNames[month - 1];
+            const accruedHours = accrualByMonth.get(month);
+            const usedHours = usageByMonth.get(month);
+
+            // Determine if this is a future month for projected data
+            const isFutureMonth = this.year > currentYear || (this.year === currentYear && month > currentMonth);
+            const isCurrentMonth = this.year === currentYear && month === currentMonth;
+
+            // Calculate projected accrual for future months
+            let displayAccrued: string;
+            if (accruedHours !== undefined) {
+                displayAccrued = accruedHours.toFixed(1);
+            } else if (isFutureMonth) {
+                const workDaysInMonth = getWorkDays(this.year, month);
+                const projectedAccrual = ptoRate * workDaysInMonth;
+                displayAccrued = `${projectedAccrual.toFixed(1)}`; // css renders the ~ for future dates
+            } else {
+                displayAccrued = "0.0";
+            }
+
+            return `
+                <div class="accrual-row ${isFutureMonth ? 'projected' : ''} ${isCurrentMonth ? 'current' : ''}">
+                    <span class="month">${monthName}</span>
+                    <span class="hours">${displayAccrued}</span>
+                    <span class="used">${usedHours !== undefined ? usedHours.toFixed(1) : "—"}</span>
+                    <button class="calendar-button ${this._requestMode ? 'request-mode' : ''}" data-month="${month}" aria-label="${this._requestMode ? 'Request PTO for' : 'Show'} ${monthName} calendar">${this._requestMode ? '✏️' : '📅'}</button>
+                </div>
+            `;
+        }).join("");
 
         // Convert calendarData to CalendarEntry format for the calendar component
         const calendarEntries: CalendarEntry[] = [];
@@ -96,17 +144,15 @@ export class PtoAccrualCard extends PtoSectionCard {
 
         const body = `
             <div class="accrual-grid">
-                ${rows ? `
-                    <div class="accrual-row header">
-                        <span></span>
-                        <span class="label">Accrued</span>
-                        <span class="label">Used</span>
-                        <span></span>
-                    </div>
-                    ${rows}
-                ` : '<div class="empty">No accrual data available.</div>'}
+                <div class="accrual-row header">
+                    <span></span>
+                    <span class="label">Accrued</span>
+                    <span class="label">Used</span>
+                    <span></span>
+                </div>
+                ${rows}
             </div>
-            ${this.selectedMonth ? `<pto-calendar month="${this.selectedMonth - 1}" year="${this.year}" entries='${JSON.stringify(calendarEntries)}' selected-month="${this.selectedMonth}"></pto-calendar>` : ''}
+            ${this.selectedMonth ? `<pto-calendar month="${this.selectedMonth - 1}" year="${this.year}" entries='${JSON.stringify(calendarEntries)}' selected-month="${this.selectedMonth}" readonly="${!this._requestMode}"></pto-calendar>` : ''}
         `;
 
         this.shadow.innerHTML = `
@@ -158,6 +204,22 @@ export class PtoAccrualCard extends PtoSectionCard {
                     font-weight: 600;
                 }
 
+                .accrual-row.projected {
+                    opacity: 0.7;
+                }
+
+                .accrual-row.projected .hours::before {
+                    content: "~";
+                    opacity: 0.6;
+                }
+
+                .accrual-row.current {
+                    background: #e8f4fd;
+                    border-radius: 4px;
+                    padding: 4px 8px;
+                    margin: 0 -8px;
+                }
+
                 .accrual-row .hours,
                 .accrual-row .used {
                     text-align: right;
@@ -171,13 +233,22 @@ export class PtoAccrualCard extends PtoSectionCard {
                     cursor: pointer;
                 }
 
+                .calendar-button.request-mode {
+                    background: #007bff;
+                    color: white;
+                }
+
+                .calendar-button.request-mode:hover {
+                    background: #0056b3;
+                }
+
                 .empty {
                     color: #6c757d;
                     font-size: 13px;
                 }
             </style>
             <div class="card">
-                <h4>Monthly Accrual Breakdown</h4>
+                <h4>${this._requestMode ? 'PTO Request - Select Month' : 'Monthly Accrual Breakdown'}</h4>
                 ${body}
             </div>
         `;
