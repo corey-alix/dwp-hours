@@ -19,6 +19,9 @@ describe('Data Migration POC - Excel Parsing', () => {
         await workbook.xlsx.readFile(filePath);
 
         const worksheet = workbook.getWorksheet(1); // First worksheet
+        if (!worksheet) {
+            throw new Error('Worksheet not found');
+        }
 
         // Convert to JSON for easier parsing
         const jsonData: any[][] = [];
@@ -113,13 +116,20 @@ describe('Data Migration POC - Excel Parsing', () => {
 
         const worksheet = workbook.getWorksheet(1);
 
-        // Check for conditional formatting rules
-        const conditionalFormattings = worksheet.conditionalFormattings || [];
+        // Check for conditional formatting rules (commented out - property not available in ExcelJS)
+        // const conditionalFormattings = worksheet.conditionalFormattings || [];
+        // console.log('Conditional formatting rules found:', conditionalFormattings.length);
+        // conditionalFormattings.forEach((cf: any, index: number) => {
+        //     console.log(`Rule ${index}:`, cf);
+        // });
 
-        console.log('Conditional formatting rules found:', conditionalFormattings.length);
-        conditionalFormattings.forEach((cf, index) => {
-            console.log(`Rule ${index}:`, cf);
-        });
+        if (!worksheet) {
+            throw new Error('Worksheet not found');
+        }
+
+        if (!worksheet) {
+            throw new Error('Worksheet not found');
+        }
 
         // Since conditional formatting rules are 0, colors are applied directly to cells
         // Let's look for cells with fills in the calendar area
@@ -130,7 +140,7 @@ describe('Data Migration POC - Excel Parsing', () => {
             for (let col = 1; col <= 25; col++) {
                 const cell = worksheet.getCell(row, col);
                 if (cell.fill && cell.fill.type === 'pattern' && cell.fill.fgColor) {
-                    const color = cell.fill.fgColor.argb || cell.fill.fgColor.rgb;
+                    const color = cell.fill.fgColor.argb;
                     if (color) {
                         coloredCells.push({
                             address: `${String.fromCharCode(64 + col)}${row}`,
@@ -162,6 +172,9 @@ describe('Data Migration POC - Excel Parsing', () => {
         await workbook.xlsx.readFile(filePath);
 
         const worksheet = workbook.getWorksheet(1);
+        if (!worksheet) {
+            throw new Error('Worksheet not found');
+        }
 
         // Helper function to find cell for a specific date
         const findCellForDate = (month: string, day: number): ExcelJS.Cell => {
@@ -232,6 +245,9 @@ describe('Data Migration POC - Excel Parsing', () => {
         await workbook.xlsx.readFile(filePath);
 
         const worksheet = workbook.getWorksheet(1);
+        if (!worksheet) {
+            throw new Error('Worksheet not found');
+        }
 
         // Find the Legend section
         let legendRow = -1;
@@ -260,7 +276,7 @@ describe('Data Migration POC - Excel Parsing', () => {
         for (let i = 0; i < ptoTypes.length; i++) {
             const cell = worksheet.getCell(legendRow + i + 1, legendCol); // +1 to skip "Legend" row
             if (cell.fill && cell.fill.type === 'pattern' && cell.fill.fgColor) {
-                const color = cell.fill.fgColor.argb || cell.fill.fgColor.rgb;
+                const color = cell.fill.fgColor.argb;
                 if (color) {
                     // Map Full PTO and Partial PTO to just "PTO"
                     const ptoType = ptoTypes[i] === 'Full PTO' || ptoTypes[i] === 'Partial PTO' ? 'PTO' : ptoTypes[i];
@@ -289,7 +305,7 @@ describe('Data Migration POC - Excel Parsing', () => {
             for (let col = 2; col <= 24; col++) { // B=2, X=24
                 const cell = worksheet.getCell(row, col);
                 if (cell.fill && cell.fill.type === 'pattern' && cell.fill.fgColor) {
-                    const cellColor = cell.fill.fgColor.argb || cell.fill.fgColor.rgb;
+                    const cellColor = cell.fill.fgColor.argb;
                     if (cellColor) {
                         console.log(`Cell ${String.fromCharCode(64 + col)}${row}: color ${cellColor}, value: ${cell.value}`);
                         // Find the closest matching PTO type color
@@ -328,6 +344,9 @@ describe('Data Migration POC - Excel Parsing', () => {
         await workbook.xlsx.readFile(filePath);
 
         const worksheet = workbook.getWorksheet(1);
+        if (!worksheet) {
+            throw new Error('Worksheet not found');
+        }
 
         console.log('=== SPREADSHEET LAYOUT ANALYSIS ===');
 
@@ -354,7 +373,7 @@ describe('Data Migration POC - Excel Parsing', () => {
             for (let i = 0; i < ptoTypes.length; i++) {
                 const cell = worksheet.getCell(legendRow + i + 1, legendCol);
                 if (cell.fill && cell.fill.type === 'pattern' && cell.fill.fgColor) {
-                    const color = cell.fill.fgColor.argb || cell.fill.fgColor.rgb;
+                    const color = cell.fill.fgColor.argb;
                     if (color) {
                         console.log(`     ${ptoTypes[i]}: ${color}`);
                     }
@@ -424,7 +443,7 @@ describe('Data Migration POC - Excel Parsing', () => {
             for (let i = 0; i < ptoTypes.length; i++) {
                 const cell = worksheet.getCell(legendRow + i + 1, legendCol);
                 if (cell.fill && cell.fill.type === 'pattern' && cell.fill.fgColor) {
-                    const color = (cell.fill.fgColor.argb || cell.fill.fgColor.rgb || '').toUpperCase().replace(/^FF/, '');
+                    const color = (cell.fill.fgColor.argb || '').toUpperCase().replace(/^FF/, '');
                     const ptoType = ptoTypes[i] === 'Full PTO' || ptoTypes[i] === 'Partial PTO' ? 'PTO' : ptoTypes[i];
                     if (color && !ptoTypeByColor[color]) {
                         ptoTypeByColor[color] = ptoType;
@@ -438,7 +457,7 @@ describe('Data Migration POC - Excel Parsing', () => {
             for (let col = 2; col <= 24; col++) {
                 const cell = worksheet.getCell(row, col);
                 if (cell.fill && cell.fill.type === 'pattern' && cell.fill.fgColor) {
-                    const color = (cell.fill.fgColor.argb || cell.fill.fgColor.rgb || '').toUpperCase().replace(/^FF/, '');
+                    const color = (cell.fill.fgColor.argb || '').toUpperCase().replace(/^FF/, '');
                     if (color) {
                         colorCounts[color] = (colorCounts[color] || 0) + 1;
                     }
@@ -470,7 +489,7 @@ describe('Data Migration POC - Excel Parsing', () => {
                 for (let row = 6; row <= 37; row++) {
                     const cell = worksheet.getCell(row, col);
                     if (cell.fill && cell.fill.type === 'pattern' && cell.fill.fgColor) {
-                        const color = (cell.fill.fgColor.argb || cell.fill.fgColor.rgb || '').toUpperCase().replace(/^FF/, '');
+                        const color = (cell.fill.fgColor.argb || '').toUpperCase().replace(/^FF/, '');
                         const ptoType = ptoTypeByColor[color];
                         if (ptoType) {
                             monthlyPtoCounts[month][ptoType]++;
@@ -497,6 +516,9 @@ describe('Data Migration POC - Excel Parsing', () => {
         await workbook.xlsx.readFile(filePath);
 
         const worksheet = workbook.getWorksheet(1);
+        if (!worksheet) {
+            throw new Error('Worksheet not found');
+        }
 
         console.log('=== MONTH LOCATION SCAN ===');
 
@@ -557,6 +579,86 @@ describe('Data Migration POC - Excel Parsing', () => {
         if (missingMonths.length > 0) {
             console.warn('Missing months:', missingMonths);
         }
+    });
+
+    it('should scan and document acknowledgement sections', async () => {
+        const filePath = path.join(process.cwd(), 'private', 'Corey Alix 2025.xlsx');
+
+        if (!fs.existsSync(filePath)) {
+            console.warn('Excel file not found, skipping test. Please provide "Corey Alix 2025.xlsx"');
+            return;
+        }
+
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.readFile(filePath);
+
+        const worksheet = workbook.getWorksheet(1);
+        if (!worksheet) {
+            throw new Error('Worksheet not found');
+        }
+
+        console.log('=== ACKNOWLEDGEMENT SECTIONS SCAN ===');
+
+        // Scan admin acknowledgements (Y42-Y53, column 25)
+        console.log('\n1. ADMIN ACKNOWLEDGEMENTS (Column Y, Rows 42-53):');
+        const adminAcknowledgements: { row: number, value: any, cell: string }[] = [];
+
+        for (let row = 42; row <= 53; row++) {
+            const cell = worksheet.getCell(row, 25); // Column Y = 25
+            const value = cell.value;
+            const cellRef = `${String.fromCharCode(64 + 25)}${row}`;
+            adminAcknowledgements.push({ row, value, cell: cellRef });
+
+            if (value !== null && value !== undefined && value !== '') {
+                console.log(`  Row ${row} (${cellRef}): ${value}`);
+            } else {
+                console.log(`  Row ${row} (${cellRef}): [empty]`);
+            }
+        }
+
+        // Scan employee acknowledgements (X42-X53, column 24)
+        console.log('\n2. EMPLOYEE ACKNOWLEDGEMENTS (Column X, Rows 42-53):');
+        const employeeAcknowledgements: { row: number, value: any, cell: string }[] = [];
+
+        for (let row = 42; row <= 53; row++) {
+            const cell = worksheet.getCell(row, 24); // Column X = 24
+            const value = cell.value;
+            const cellRef = `${String.fromCharCode(64 + 24)}${row}`;
+            employeeAcknowledgements.push({ row, value, cell: cellRef });
+
+            if (value !== null && value !== undefined && value !== '') {
+                console.log(`  Row ${row} (${cellRef}): ${value}`);
+            } else {
+                console.log(`  Row ${row} (${cellRef}): [empty]`);
+            }
+        }
+
+        // Analyze the acknowledgement data
+        console.log('\n3. ACKNOWLEDGEMENT ANALYSIS:');
+
+        // Find non-empty admin acknowledgements
+        const nonEmptyAdmin = adminAcknowledgements.filter(a => a.value !== null && a.value !== undefined && a.value !== '');
+        console.log(`  Admin acknowledgements found: ${nonEmptyAdmin.length}`);
+        if (nonEmptyAdmin.length > 0) {
+            console.log(`  Admin name: ${nonEmptyAdmin[0].value}`);
+        }
+
+        // Find non-empty employee acknowledgements
+        const nonEmptyEmployee = employeeAcknowledgements.filter(a => a.value !== null && a.value !== undefined && a.value !== '');
+        console.log(`  Employee acknowledgements found: ${nonEmptyEmployee.length}`);
+        if (nonEmptyEmployee.length > 0) {
+            console.log(`  Employee name: ${nonEmptyEmployee[0].value}`);
+        }
+
+        console.log('\n=== END ACKNOWLEDGEMENT SCAN ===');
+
+        // Assertions
+        expect(adminAcknowledgements.length).toBe(12); // 12 rows
+        expect(employeeAcknowledgements.length).toBe(12); // 12 rows
+
+        // Should have at least one admin and one employee acknowledgement
+        expect(nonEmptyAdmin.length).toBeGreaterThan(0);
+        expect(nonEmptyEmployee.length).toBeGreaterThan(0);
     });
 });
 

@@ -62,6 +62,17 @@ This skill integrates with the data-migration task and provides foundational kno
 - **Month Range**: May through April (12 months of PTO data)
 - **Data Extraction**: Skip 2 header rows after section title, then parse monthly data rows
 
+### Acknowledgement Sections
+- **Admin Acknowledgements**: Column Y (25), Rows 42-53
+  - **Purpose**: Records admin approval/acknowledgement for each month's PTO data
+  - **Sample Data**: "Mandi" (appears in all 12 rows)
+  - **Structure**: One acknowledgement per month, corresponding to months in column B
+- **Employee Acknowledgements**: Column X (24), Rows 42-53
+  - **Purpose**: Records employee acknowledgement/approval for each month's PTO data
+  - **Sample Data**: "CA" (Corey Alix, appears in all 12 rows)
+  - **Structure**: One acknowledgement per month, corresponding to months in column B
+- **Relationship**: Both acknowledgement columns align with the monthly data in the PTO calculation section
+
 ### Color Coding System
 - **Direct Cell Fills**: Colors are applied directly to calendar cells (no conditional formatting rules found)
 - **Actual Usage in Sample**: Only yellow (FFFF00/FFFFFF00) is used for PTO days (24 cells total)
