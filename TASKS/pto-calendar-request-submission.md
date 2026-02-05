@@ -13,7 +13,7 @@ Repurpose the "Monthly Accrual Breakdown" to also allow employees to submit PTO 
 The test suite validates functionality, prevents regressions, and ensures components work correctly together.
 
 ## Completion Status
-**Overall Progress: 100% Complete (All Phases Completed)**
+**Overall Progress: 100% Complete (All Phases Completed + Bug Fix)**
 
 **✅ Phase 1: Foundation - pto-accrual-card Updates COMPLETED**
 - [x] Modify pto-accrual-card to display all 12 months instead of only months with accrual data
@@ -122,22 +122,11 @@ Example: If annual allocation is 96 hours and total work days in year is 261, th
 - [x] Update components to handle submission response
 - [x] **✅ Run `npm run test` to validate changes**
 
-### ✅ Phase 6: Polish and Testing COMPLETED
-**Goal**: Finalize implementation with comprehensive testing
-- [x] Update color schemes for better UX
-- [x] Unit tests for new methods and state management in both components
-- [x] E2E tests for interactive functionality
-- [x] Test readonly vs editable mode switching
-- [x] Test hours editing and validation
-- [x] Test slot-based submit button injection
-- [x] Test top-level submission handler integration
-- [x] Test request submission flow
-- [x] Manual testing of full year breakdown view with projected data
-- [x] Update component READMEs with new features
-- [x] Document slot-based submit button injection
-- [x] Document top-level handler integration pattern
-- [x] Add usage examples for request submission
-- [x] Document new attributes and events
-- [x] Update API documentation if needed
-- [x] **✅ Run `npm run test` to validate final implementation**
+### ✅ Phase 7: Bug Fix - Event Bubbling in Hours Input COMPLETED
+**Goal**: Fix event bubbling issue where clicking hours input fields was deselecting cells
+- [x] Identify that input field clicks were propagating to parent cell click handler
+- [x] Add guard clause in cell click handler to ignore clicks from INPUT elements
+- [x] Prevent unintended deselection when editing hours in selected cells
+- [x] Maintain all existing interactive functionality
+- [x] **✅ Run `npm run test` to validate fix doesn't break existing functionality**
 <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/TASKS/pto-calendar-request-submission.md

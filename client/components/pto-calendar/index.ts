@@ -378,6 +378,10 @@ export class PtoCalendar extends HTMLElement {
         const calendarCells = this.shadow.querySelectorAll('.day.clickable');
         calendarCells.forEach(cell => {
             cell.addEventListener('click', (e) => {
+                // Ignore clicks on input fields to prevent toggling when editing hours
+                if ((e.target as HTMLElement).tagName === 'INPUT') {
+                    return;
+                }
                 e.preventDefault();
                 const date = (e.currentTarget as HTMLElement).dataset.date;
                 if (date && this.selectedPtoType) {
