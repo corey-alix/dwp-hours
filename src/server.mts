@@ -814,10 +814,13 @@ initDatabase().then(async () => {
 
     app.post('/api/pto', async (req, res) => {
         try {
-            const { employeeId, start_date, hours, type } = req.body;
+            const { employeeId, start_date, startDate, end_date, endDate, hours, type } = req.body;
+            const normalizedStartDate = start_date ?? startDate;
+            const normalizedEndDate = end_date ?? endDate;
+            const normalizedType = type === 'Full PTO' || type === 'Partial PTO' ? 'PTO' : type;
 
-            if (!employeeId || !start_date || hours === undefined || !type) {
-                return res.status(400).json({ error: 'All fields are required: employeeId, start_date, hours, type' });
+            if (!employeeId || !normalizedStartDate || hours === undefined || !normalizedType) {
+                return res.status(400).json({ error: 'All fields are required: employeeId, start_date/startDate, hours, type' });
             }
 
             const employeeIdNum = parseInt(employeeId);
@@ -829,15 +832,15 @@ initDatabase().then(async () => {
 
             // Validate PTO type
             const validTypes = ['PTO', 'Sick', 'Bereavement', 'Jury Duty'];
-            if (!validTypes.includes(type)) {
+            if (!validTypes.includes(normalizedType)) {
                 return res.status(400).json({ error: 'Invalid PTO type' });
             }
 
             // Validate hours based on type
-            if (type === 'Sick' && hoursNum > 24) {
+            if (normalizedType === 'Sick' && hoursNum > 24) {
                 return res.status(400).json({ error: 'Sick time cannot exceed 24 hours annually' });
             }
-            if ((type === 'Bereavement' || type === 'Jury Duty') && hoursNum > 40) {
+            if ((normalizedType === 'Bereavement' || normalizedType === 'Jury Duty') && hoursNum > 40) {
                 return res.status(400).json({ error: 'Bereavement/Jury Duty cannot exceed 40 hours annually' });
             }
 
@@ -849,9 +852,16 @@ initDatabase().then(async () => {
                 return res.status(404).json({ error: 'Employee not found' });
             }
 
-            const start = new Date(start_date);
+            const start = new Date(normalizedStartDate);
             if (isNaN(start.getTime())) {
                 return res.status(400).json({ error: 'Invalid start date format' });
+            }
+
+            if (normalizedEndDate) {
+                const endDateValue = new Date(normalizedEndDate);
+                if (isNaN(endDateValue.getTime())) {
+                    return res.status(400).json({ error: 'Invalid end date format' });
+                }
             }
 
             // Calculate end date based on workdays (assuming 8 hours per day)
@@ -863,7 +873,7 @@ initDatabase().then(async () => {
                 employee_id: employeeIdNum,
                 start_date: start,
                 end_date: end,
-                type,
+                type: normalizedType,
                 hours: hoursNum
             });
 

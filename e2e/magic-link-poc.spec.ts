@@ -17,5 +17,21 @@ test.describe('Magic link POC', () => {
         await magicLink.click();
         await expect(page.locator('#dashboard')).toBeVisible();
         await expect(page.locator('#pto-status')).toBeVisible();
+
+        await page.click('#new-pto-btn');
+        await expect(page.locator('#pto-form')).toBeVisible();
+
+        await page.fill('#start-date', '2026-02-05');
+        await page.fill('#end-date', '2026-02-05');
+        await page.selectOption('#pto-type', 'Full PTO');
+        await page.fill('#hours', '8');
+
+        const ptoResponsePromise = page.waitForResponse(
+            (response) => response.url().includes('/api/pto') && response.request().method() === 'POST' && response.status() === 201
+        );
+        await page.click('#pto-entry-form button[type="submit"]');
+        await ptoResponsePromise;
+
+        await expect(page.locator('#dashboard')).toBeVisible();
     });
 });
