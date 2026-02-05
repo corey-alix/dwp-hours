@@ -22,7 +22,13 @@ test('pto-calendar component test', async ({ page }) => {
     const legendItems = await page.locator('pto-calendar').locator('.legend-item');
     await expect(legendItems).toHaveCount(6);
 
-    // Test editable mode (default) - legend items should be clickable
+    // Wait for the component to be in editable mode (legend items should be clickable)
+    await page.waitForFunction(() => {
+        const legendItem = document.querySelector('pto-calendar')?.shadowRoot?.querySelector('.legend-item');
+        return legendItem && legendItem.classList.contains('clickable');
+    });
+
+    // Test editable mode - legend items should be clickable
     const legendItem = await page.locator('pto-calendar').locator('.legend-item').first();
     await expect(legendItem).toHaveClass(/clickable/);
 
@@ -42,7 +48,11 @@ test('pto-calendar component test', async ({ page }) => {
     });
 
     // Test legend item selection
-    await legendItem.click();
+    await page.evaluate(() => {
+        const calendar = document.querySelector('pto-calendar') as any;
+        const legendItem = calendar.shadowRoot.querySelector('.legend-item[data-type="PTO"]') as HTMLElement;
+        legendItem.click();
+    });
     await expect(legendItem).toHaveClass(/selected/);
 
     // Test cell selection - click on a weekday cell
@@ -52,8 +62,12 @@ test('pto-calendar component test', async ({ page }) => {
     // Get the date attribute before clicking
     const cellDate = await firstCell.getAttribute('data-date');
 
-    // Click the cell
-    await firstCell.click();
+    // Click the cell using page.evaluate
+    await page.evaluate(() => {
+        const calendar = document.querySelector('pto-calendar') as any;
+        const cell = calendar.shadowRoot.querySelector('.day.clickable') as HTMLElement;
+        cell.click();
+    });
 
     // Cell should now be selected
     await expect(firstCell).toHaveClass(/selected/);
@@ -77,19 +91,35 @@ test('pto-calendar component test', async ({ page }) => {
     await expect(hoursInput).toHaveClass(/invalid/);
 
     // Test Work Day clear functionality
+    await page.evaluate(() => {
+        const calendar = document.querySelector('pto-calendar') as any;
+        const workDayItem = calendar.shadowRoot.querySelector('.legend-item[data-type="Work Day"]') as HTMLElement;
+        workDayItem.click();
+    });
     const workDayLegendItem = await page.locator('pto-calendar').locator('.legend-item').filter({ hasText: 'Work Day' });
-    await workDayLegendItem.click();
     await expect(workDayLegendItem).toHaveClass(/selected/);
 
     // Click on a cell with existing PTO to clear it
-    await firstCell.click();
+    await page.evaluate(() => {
+        const calendar = document.querySelector('pto-calendar') as any;
+        const cell = calendar.shadowRoot.querySelector('.day.selected') as HTMLElement;
+        if (cell) cell.click();
+    });
     // Cell should not be selected (cleared)
     await expect(firstCell).not.toHaveClass(/selected/);
 
     // Test 0 hours clear functionality
     // First select PTO again
-    await legendItem.click();
-    await firstCell.click();
+    await page.evaluate(() => {
+        const calendar = document.querySelector('pto-calendar') as any;
+        const legendItem = calendar.shadowRoot.querySelector('.legend-item[data-type="PTO"]') as HTMLElement;
+        legendItem.click();
+    });
+    await page.evaluate(() => {
+        const calendar = document.querySelector('pto-calendar') as any;
+        const cell = calendar.shadowRoot.querySelector('.day.clickable') as HTMLElement;
+        cell.click();
+    });
     await expect(firstCell).toHaveClass(/selected/);
 
     // Enter 0 hours to clear

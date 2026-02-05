@@ -75,6 +75,20 @@
             </form>
         </div>
 
+        <!-- PTO Calendar Request Section -->
+        <div id="pto-calendar-section" class="hidden">
+            <h2>Submit PTO Request</h2>
+            <div id="pto-calendar-container">
+                <!-- PTO Accrual Card for month selection -->
+                <pto-accrual-card id="pto-accrual-card" annual-allocation="96"></pto-accrual-card>
+
+                <!-- PTO Calendar for request creation -->
+                <pto-calendar id="pto-calendar" readonly="false">
+                    <button slot="submit" id="pto-submit-btn">Submit PTO Request</button>
+                </pto-calendar>
+            </div>
+        </div>
+
         <!-- Logout Button -->
         <button id="logout-btn" class="hidden">Logout</button>
 
@@ -82,274 +96,22 @@
         <div id="test-progress" style="margin-top: 20px; padding: 10px; background: #f0f0f0; border-radius: 5px;">
             <h3>Test Progress</h3>
             <div id="progress-steps"></div>
+            <div id="test-output" style="margin-top: 10px; font-weight: bold;"></div>
         </div>
 
     <script type="module">
-        // Mock API for testing - set this up before importing the app
-        window.testMode = true;
-
-        // Mock API responses
-        const mockAPI = {
-            post: async (endpoint, data) => {
-                console.log('Mock API POST:', endpoint, data);
-                if (endpoint === '/api/auth/request-link') {
-                    return {
-                        message: 'Magic link generated for testing',
-                        magicLink: 'http://localhost:3000/test.html?token=mocktoken123&ts=1640995200000'
-                    };
-                }
-                if (endpoint === '/api/pto') {
-                    return { success: true, id: 1 };
-                }
-                if (endpoint === '/api/hours') {
-                    return { success: true, id: 1 };
-                }
-                if (endpoint === '/api/acknowledgements') {
-                    return { success: true, id: 1 };
-                }
-                return { success: true };
-            },
-            get: async (endpoint) => {
-                console.log('Mock API GET:', endpoint);
-                if (endpoint.startsWith('/api/auth/validate')) {
-                    return {
-                        publicHash: 'mockhash123',
-                        employee: {
-                            id: 1,
-                            name: 'Test Employee',
-                            role: 'Employee'
-                        }
-                    };
-                }
-                if (endpoint.startsWith('/api/pto/status/')) {
-                    return {
-                        annualAllocation: 120,
-                        availablePTO: 95.64,
-                        usedPTO: 24.36,
-                        carryoverFromPreviousYear: 0,
-                        monthlyAccruals: [
-                            { month: 1, hours: 8.0 },
-                            { month: 2, hours: 8.0 }
-                        ],
-                        hireDate: '2023-02-13T00:00:00.000Z',
-                        nextRolloverDate: '2025-01-01T00:00:00.000Z'
-                    };
-                }
-                return {};
-            }
-        };
-
-        // Set the mock API before the app loads
-        window.api = mockAPI;
-
-        // Test workflow state
-        let currentStep = 0;
-        const testSteps = [
-            'Initialize test environment',
-            'Load login page',
-            'Enter email and request magic link',
-            'Receive magic link response',
-            'Click magic link (simulated)',
-            'Validate token and set cookie',
-            'Navigate to dashboard',
-            'Load PTO status',
-            'Submit PTO request',
-            'Submit monthly hours',
-            'Acknowledge monthly review',
-            'Complete workflow test'
-        ];
-
-        function updateProgress(step, status = 'pending') {
-            const progressDiv = document.getElementById('progress-steps');
-            const stepDiv = document.createElement('div');
-            stepDiv.id = `step-${step}`;
-            stepDiv.textContent = `${step + 1}. ${testSteps[step]} - ${status}`;
-            stepDiv.style.margin = '5px 0';
-            stepDiv.style.padding = '5px';
-            stepDiv.style.borderRadius = '3px';
-
-            if (status === 'completed') {
-                stepDiv.style.backgroundColor = '#d4edda';
-                stepDiv.style.color = '#155724';
-            } else if (status === 'in-progress') {
-                stepDiv.style.backgroundColor = '#fff3cd';
-                stepDiv.style.color = '#856404';
-            } else {
-                stepDiv.style.backgroundColor = '#f8f9fa';
-                stepDiv.style.color = '#6c757d';
-            }
-
-            const existingStep = document.getElementById(`step-${step}`);
-            if (existingStep) {
-                existingStep.replaceWith(stepDiv);
-            } else {
-                progressDiv.appendChild(stepDiv);
-            }
-        }
-
-        function markStepCompleted(step) {
-            updateProgress(step, 'completed');
-            currentStep = step + 1;
-            if (currentStep < testSteps.length) {
-                updateProgress(currentStep, 'in-progress');
-            }
-        }
-
-        // Automated workflow execution
-        async function runWorkflowTest() {
-            try {
-                // Step 0: Initialize
-                updateProgress(0, 'in-progress');
-                await new Promise(resolve => setTimeout(resolve, 500));
-                markStepCompleted(0);
-
-                // Step 1: Load login page (already loaded)
-                markStepCompleted(1);
-
-                // Step 2: Enter email and request magic link
-                updateProgress(2, 'in-progress');
-                const identifierInput = document.getElementById('identifier');
-                identifierInput.value = 'employee@example.com';
-                const loginForm = document.getElementById('login-form');
-                loginForm.dispatchEvent(new Event('submit', { bubbles: true }));
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                markStepCompleted(2);
-
-                // Step 3: Receive magic link response (handled by form submission)
-                markStepCompleted(3);
-
-                // Step 4: Click magic link (simulated)
-                updateProgress(4, 'in-progress');
-                // Simulate clicking the magic link by setting the URL parameter
-                window.history.pushState({}, '', '?token=mocktoken123&ts=1640995200000');
-                // Trigger token validation
-                if (window.app && window.app.handleTokenValidation) {
-                    await window.app.handleTokenValidation();
-                }
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                markStepCompleted(4);
-
-                // Step 5: Validate token and set cookie
-                markStepCompleted(5);
-
-                // Step 6: Navigate to dashboard
-                updateProgress(6, 'in-progress');
-                document.getElementById('dashboard').classList.remove('hidden');
-                document.getElementById('login-section').classList.add('hidden');
-                await new Promise(resolve => setTimeout(resolve, 500));
-                markStepCompleted(6);
-
-                // Step 7: Load PTO status
-                updateProgress(7, 'in-progress');
-                if (window.app && window.app.loadPTOStatus) {
-                    await window.app.loadPTOStatus();
-                }
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                markStepCompleted(7);
-
-                // Step 8: Submit PTO request
-                updateProgress(8, 'in-progress');
-                document.getElementById('new-pto-btn').click();
-                await new Promise(resolve => setTimeout(resolve, 500));
-
-                // Fill and submit PTO form
-                document.getElementById('start-date').value = '2024-03-01';
-                document.getElementById('end-date').value = '2024-03-01';
-                document.getElementById('pto-type').value = 'PTO';
-                document.getElementById('hours').value = '8';
-
-                const ptoForm = document.getElementById('pto-entry-form');
-                ptoForm.dispatchEvent(new Event('submit', { bubbles: true }));
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                markStepCompleted(8);
-
-                // Step 9: Submit monthly hours
-                updateProgress(9, 'in-progress');
-                document.getElementById('monthly-hours-section').classList.remove('hidden');
-                await new Promise(resolve => setTimeout(resolve, 500));
-
-                document.getElementById('month').value = '2024-02';
-                document.getElementById('hours-worked').value = '160';
-
-                const hoursForm = document.getElementById('monthly-hours-form');
-                hoursForm.dispatchEvent(new Event('submit', { bubbles: true }));
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                markStepCompleted(9);
-
-                // Step 10: Acknowledge monthly review
-                updateProgress(10, 'in-progress');
-                document.getElementById('acknowledgement-section').classList.remove('hidden');
-                await new Promise(resolve => setTimeout(resolve, 500));
-
-                document.getElementById('ack-month').value = '2024-02';
-
-                const ackForm = document.getElementById('acknowledgement-form');
-                ackForm.dispatchEvent(new Event('submit', { bubbles: true }));
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                markStepCompleted(10);
-
-                // Step 11: Complete
-                updateProgress(11, 'completed');
-
-                document.getElementById('test-output').textContent = '✅ All workflow steps completed successfully!';
-
-            } catch (error) {
-                console.error('Workflow test failed:', error);
-                document.getElementById('test-output').textContent = '❌ Workflow test failed: ' + error.message;
-            }
-        }
-
-        // Import and initialize the app
-        import('/app.js').then(() => {
+        // Import and initialize the test workflow
+        import('/app.js').then(({ TestWorkflow }) => {
             console.log('Employee Workflow Test: App loaded successfully');
 
-            // Add event handlers for new forms
-            document.getElementById('monthly-hours-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                const data = {
-                    month: formData.get('month'),
-                    hours_worked: parseFloat(formData.get('hours-worked'))
-                };
-
-                try {
-                    const response = await mockAPI.post('/api/hours', data);
-                    console.log('Monthly hours submitted:', response);
-                    alert('Monthly hours submitted successfully!');
-                } catch (error) {
-                    console.error('Failed to submit monthly hours:', error);
-                    alert('Failed to submit monthly hours');
-                }
-            });
-
-            document.getElementById('acknowledgement-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                const data = {
-                    month: formData.get('ack-month')
-                };
-
-                try {
-                    const response = await mockAPI.post('/api/acknowledgements', data);
-                    console.log('Acknowledgement submitted:', response);
-                    alert('Monthly review acknowledged successfully!');
-                } catch (error) {
-                    console.error('Failed to submit acknowledgement:', error);
-                    alert('Failed to submit acknowledgement');
-                }
-            });
-
-            // Initialize progress display
-            for (let i = 0; i < testSteps.length; i++) {
-                updateProgress(i, i === 0 ? 'in-progress' : 'pending');
-            }
-
-            // Start the automated workflow test
-            runWorkflowTest();
+            // Initialize the test workflow
+            new TestWorkflow();
         }).catch(error => {
             console.error('Failed to load app:', error);
             const testOutput = document.getElementById('test-output');
-            testOutput.textContent = 'Test failed to initialize: ' + error.message;
+            if (testOutput) {
+                testOutput.textContent = 'Test failed to initialize: ' + error.message;
+            }
         });
     </script>
 </body>

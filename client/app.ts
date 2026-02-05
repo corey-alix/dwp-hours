@@ -12,9 +12,11 @@ interface Employee {
 // Import components and test utilities
 import './components/index.js';
 import { CalendarEntry } from './components/pto-calendar/index.js';
+import { getElementById, addEventListener, querySingle } from './components/test-utils.js';
 
 // Re-export playground for testing
 export * from './components/test.js';
+export { TestWorkflow } from './test.js';
 
 interface PTOEntry {
     id: number;
@@ -153,48 +155,50 @@ class UIManager {
 
     private setupEventListeners(): void {
         // Login form
-        const loginForm = document.getElementById("login-form") as HTMLFormElement;
-        loginForm.addEventListener("submit", (e) => this.handleLogin(e));
+        const loginForm = getElementById<HTMLFormElement>("login-form");
+        addEventListener(loginForm, "submit", (e) => this.handleLogin(e));
 
         // PTO form
-        const ptoForm = document.getElementById(
-            "pto-entry-form",
-        ) as HTMLFormElement;
-        ptoForm.addEventListener("submit", (e) => this.handlePTO(e));
+        const ptoForm = getElementById<HTMLFormElement>("pto-entry-form");
+        addEventListener(ptoForm, "submit", (e) => this.handlePTO(e));
 
-        const cancelBtn = document.getElementById(
-            "cancel-pto",
-        ) as HTMLButtonElement;
-        cancelBtn.addEventListener("click", () => this.showDashboard());
+        const cancelBtn = getElementById<HTMLButtonElement>("cancel-pto");
+        addEventListener(cancelBtn, "click", () => this.showDashboard());
 
         // Logout
-        const logoutBtn = document.getElementById("logout-btn") as HTMLButtonElement;
-        logoutBtn.addEventListener("click", () => this.handleLogout());
+        const logoutBtn = getElementById<HTMLButtonElement>("logout-btn");
+        addEventListener(logoutBtn, "click", () => this.handleLogout());
 
         // Navigation
-        const newPTOBtn = document.getElementById(
-            "new-pto-btn",
-        ) as HTMLButtonElement;
-        newPTOBtn.addEventListener("click", () => this.showPTOForm());
+        const newPTOBtn = getElementById<HTMLButtonElement>("new-pto-btn");
+        addEventListener(newPTOBtn, "click", () => this.showPTOForm());
 
-        // Admin buttons
-        const manageBtn = document.getElementById(
-            "manage-employees-btn",
-        ) as HTMLButtonElement;
-        manageBtn.addEventListener("click", () => this.showEmployeeManagement());
+        // Admin buttons (only if they exist - for test.html compatibility)
+        try {
+            const manageBtn = getElementById<HTMLButtonElement>("manage-employees-btn");
+            addEventListener(manageBtn, "click", () => this.showEmployeeManagement());
+        } catch (error) {
+            // Element doesn't exist in test environment, skip
+        }
 
-        const reportsBtn = document.getElementById(
-            "view-reports-btn",
-        ) as HTMLButtonElement;
-        reportsBtn.addEventListener("click", () => this.showReports());
+        try {
+            const reportsBtn = getElementById<HTMLButtonElement>("view-reports-btn");
+            addEventListener(reportsBtn, "click", () => this.showReports());
+        } catch (error) {
+            // Element doesn't exist in test environment, skip
+        }
 
-        // Admin panel events
-        const adminPanel = document.querySelector('admin-panel') as any;
-        if (adminPanel) {
-            adminPanel.addEventListener('add-employee', () => this.handleAddEmployee());
-            adminPanel.addEventListener('employee-edit', (e: CustomEvent) => this.handleEditEmployee(e.detail.employeeId));
-            adminPanel.addEventListener('employee-delete', (e: CustomEvent) => this.handleDeleteEmployee(e.detail.employeeId));
-            adminPanel.addEventListener('employee-acknowledge', (e: CustomEvent) => this.handleAcknowledgeEmployee(e.detail.employeeId));
+        // Admin panel events (only if it exists)
+        try {
+            const adminPanel = querySingle('admin-panel') as any;
+            if (adminPanel) {
+                addEventListener(adminPanel, 'add-employee', () => this.handleAddEmployee());
+                addEventListener(adminPanel, 'employee-edit', (e: CustomEvent) => this.handleEditEmployee(e.detail.employeeId));
+                addEventListener(adminPanel, 'employee-delete', (e: CustomEvent) => this.handleDeleteEmployee(e.detail.employeeId));
+                addEventListener(adminPanel, 'employee-acknowledge', (e: CustomEvent) => this.handleAcknowledgeEmployee(e.detail.employeeId));
+            }
+        } catch (error) {
+            // admin-panel element doesn't exist in test environment, skip
         }
     }
 
@@ -208,12 +212,12 @@ class UIManager {
     private async handleLogin(e: Event): Promise<void> {
         e.preventDefault();
         const identifier = (
-            document.getElementById("identifier") as HTMLInputElement
+            getElementById<HTMLInputElement>("identifier")
         ).value;
 
         try {
             const response = await api.post("/auth/request-link", { identifier });
-            const messageDiv = document.getElementById("login-message")!;
+            const messageDiv = getElementById("login-message")!;
             messageDiv.textContent = response.message;
             messageDiv.innerHTML = "";
             const messageText = document.createElement("div");
@@ -242,14 +246,14 @@ class UIManager {
         if (!this.currentUser) return;
 
         const startDate = (
-            document.getElementById("start-date") as HTMLInputElement
+            getElementById<HTMLInputElement>("start-date")
         ).value;
-        const endDate = (document.getElementById("end-date") as HTMLInputElement)
+        const endDate = (getElementById<HTMLInputElement>("end-date"))
             .value;
-        const type = (document.getElementById("pto-type") as HTMLSelectElement)
+        const type = (getElementById<HTMLSelectElement>("pto-type"))
             .value;
         const hours = parseFloat(
-            (document.getElementById("hours") as HTMLInputElement).value,
+            (getElementById<HTMLInputElement>("hours")).value,
         );
 
         try {
@@ -271,22 +275,22 @@ class UIManager {
 
     private showLogin(): void {
         this.hideAllSections();
-        document.getElementById("login-section")!.classList.remove("hidden");
-        document.getElementById("logout-btn")!.classList.add("hidden");
+        getElementById("login-section").classList.remove("hidden");
+        getElementById("logout-btn").classList.add("hidden");
     }
 
     private showDashboard(): void {
         this.hideAllSections();
-        document.getElementById("dashboard")!.classList.remove("hidden");
+        getElementById("dashboard").classList.remove("hidden");
         if (this.currentUser?.role === "Admin") {
-            document.getElementById("admin-panel")!.classList.remove("hidden");
+            getElementById("admin-panel").classList.remove("hidden");
         }
-        document.getElementById("logout-btn")!.classList.remove("hidden");
+        getElementById("logout-btn").classList.remove("hidden");
     }
 
     private showPTOForm(): void {
         this.hideAllSections();
-        document.getElementById("pto-form")!.classList.remove("hidden");
+        getElementById("pto-form").classList.remove("hidden");
     }
 
     private showEmployeeManagement(): void {
@@ -346,7 +350,7 @@ class UIManager {
     private hideAllSections(): void {
         const sections = ["login-section", "dashboard", "pto-form", "admin-panel"];
         sections.forEach((id) => {
-            document.getElementById(id)!.classList.add("hidden");
+            getElementById(id).classList.add("hidden");
         });
     }
 
@@ -358,7 +362,7 @@ class UIManager {
             const entries = await api.get(`/pto?employeeId=${this.currentUser.id}`);
             const calendarData = this.buildCalendarData(entries, new Date().getFullYear());
 
-            const statusDiv = document.getElementById("pto-status")!;
+            const statusDiv = getElementById("pto-status");
             const hireDate = new Date(status.hireDate).toLocaleDateString();
             const nextRolloverDate = new Date(status.nextRolloverDate).toLocaleDateString('en-US', {
                 year: 'numeric',
@@ -416,7 +420,7 @@ class UIManager {
             });
         } catch (error) {
             console.error("Failed to load PTO status:", error);
-            const statusDiv = document.getElementById("pto-status")!;
+            const statusDiv = getElementById("pto-status");
             statusDiv.innerHTML = `
                 <h3>PTO Status</h3>
                 <p>Error loading PTO status. Please try again later.</p>

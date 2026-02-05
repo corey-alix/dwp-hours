@@ -147,6 +147,41 @@ Date parsing and formatting is handled through custom utility functions that wor
 
 This approach ensures that date handling is predictable, testable, and free from timezone-related bugs throughout the application.
 
+## DOM Utilities
+
+This project uses a lightweight bespoke DOM utility library (`client/components/test-utils.ts`) to facilitate robust DOM manipulation with enhanced error logging and debugging capabilities. Direct use of native DOM APIs like `document.getElementById()`, `document.querySelector()`, etc. is discouraged in favor of utility functions that provide:
+
+- **Automatic error logging** when elements are not found
+- **Type-safe element queries** with TypeScript generics
+- **Consistent error handling** across the application
+- **Debug-friendly console output** for development
+
+**Key Utility Functions:**
+
+- **`querySingle<T>(selector: string): T`** - Finds a single element by selector, throws descriptive error if not found
+- **`queryMultiple<T>(selector: string): T[]`** - Finds multiple elements by selector, throws error if none found
+- **`getElementById<T>(id: string): T`** - Finds element by ID with error logging
+- **`addEventListener(element, event, handler, options?)`** - Safely adds event listeners with error handling
+- **`createElement<T>(tagName, attributes?)`** - Creates elements with optional attributes
+
+**Usage Examples:**
+```typescript
+// ❌ Avoid direct DOM queries
+const button = document.getElementById('my-button') as HTMLButtonElement;
+if (!button) {
+    console.error('Button not found');
+    throw new Error('Button not found');
+}
+button.addEventListener('click', handler);
+
+// ✅ Use DOM utilities
+import { getElementById, addEventListener } from './components/test-utils.js';
+const button = getElementById<HTMLButtonElement>('my-button');
+addEventListener(button, 'click', handler);
+```
+
+This approach ensures reliable DOM interactions, easier debugging during development, and consistent error handling patterns throughout the codebase.
+
 ## Getting Started
 
 ### Prerequisites

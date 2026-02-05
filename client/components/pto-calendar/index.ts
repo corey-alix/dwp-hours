@@ -54,6 +54,10 @@ export class PtoCalendar extends HTMLElement {
         return ['month', 'year', 'entries', 'selected-month', 'readonly'];
     }
 
+    connectedCallback() {
+        this.render();
+    }
+
     attributeChangedCallback(name: string, oldValue: string, newValue: string) {
         if (oldValue === newValue) return;
 
