@@ -73,6 +73,12 @@ This skill integrates with the data-migration task and provides foundational kno
   - **Structure**: One acknowledgement per month, corresponding to months in column B
 - **Relationship**: Both acknowledgement columns align with the monthly data in the PTO calculation section
 
+### Employee Information Section
+- **Hire Date**: Cell R2 (Row 2, Column 18)
+  - **Format**: "Hire Date: <date>"
+  - **Sample Data**: "Hire Date: 2/13/23"
+  - **Purpose**: Records the employee's hire date for HR and payroll purposes
+
 ### Color Coding System
 - **Direct Cell Fills**: Colors are applied directly to calendar cells (no conditional formatting rules found)
 - **Actual Usage in Sample**: Only yellow (FFFF00/FFFFFF00) is used for PTO days (24 cells total)

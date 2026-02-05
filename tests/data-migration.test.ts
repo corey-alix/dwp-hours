@@ -660,6 +660,33 @@ describe('Data Migration POC - Excel Parsing', () => {
         expect(nonEmptyAdmin.length).toBeGreaterThan(0);
         expect(nonEmptyEmployee.length).toBeGreaterThan(0);
     });
+
+    it('should identify and validate hire date in cell R2', async () => {
+        const filePath = path.join(process.cwd(), 'private', 'Corey Alix 2025.xlsx');
+
+        if (!fs.existsSync(filePath)) {
+            console.warn('Excel file not found, skipping test. Please provide "Corey Alix 2025.xlsx"');
+            return;
+        }
+
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.readFile(filePath);
+
+        const worksheet = workbook.getWorksheet(1);
+        if (!worksheet) {
+            throw new Error('Worksheet not found');
+        }
+
+        // Cell R2 is row 2, column 18 (R is the 18th letter)
+        const hireDateCell = worksheet.getCell(2, 18);
+        const hireDateValue = hireDateCell.value;
+
+        console.log('=== HIRE DATE VALIDATION ===');
+        console.log(`Cell R2 value: ${hireDateValue}`);
+
+        // Assert that the hire date is "2/13/23"
+        expect(hireDateValue).toBe('Hire Date: 2/13/23');
+    });
 });
 
 // Helper function to determine if two colors match (allowing for slight variations)
