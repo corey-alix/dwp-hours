@@ -224,13 +224,13 @@ export class EmployeeList extends HTMLElement {
                     border-color: #bbb;
                 }
 
-                .action-btn.edit {
-                    border-color: #3498db;
-                    color: #3498db;
+                .action-btn.acknowledge {
+                    border-color: #27ae60;
+                    color: #27ae60;
                 }
 
-                .action-btn.edit:hover {
-                    background: #3498db;
+                .action-btn.acknowledge:hover {
+                    background: #27ae60;
                     color: white;
                 }
 
@@ -301,6 +301,7 @@ export class EmployeeList extends HTMLElement {
                 </div>
 
                 <div class="employee-actions">
+                    <button class="action-btn acknowledge" data-action="acknowledge" data-employee-id="${employee.id}">Acknowledge</button>
                     <button class="action-btn edit" data-action="edit" data-employee-id="${employee.id}">Edit</button>
                     <button class="action-btn delete" data-action="delete" data-employee-id="${employee.id}">Delete</button>
                 </div>

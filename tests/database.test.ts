@@ -24,7 +24,7 @@ describe('Database Schema and Persistence', () => {
         const tables = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
         const tableNames = tables[0].values.map(row => row[0]).sort();
 
-        expect(tableNames).toEqual(['acknowledgements', 'employees', 'monthly_hours', 'pto_entries']);
+        expect(tableNames).toEqual(['acknowledgements', 'admin_acknowledgements', 'employees', 'monthly_hours', 'pto_entries']);
 
         db.close();
     });
@@ -53,6 +53,9 @@ describe('Database Schema and Persistence', () => {
         expect(indexNames).toEqual([
             'idx_acknowledgements_employee_id',
             'idx_acknowledgements_month',
+            'idx_admin_acknowledgements_admin_id',
+            'idx_admin_acknowledgements_employee_id',
+            'idx_admin_acknowledgements_month',
             'idx_monthly_hours_employee_id',
             'idx_monthly_hours_month',
             'idx_pto_entries_employee_id',

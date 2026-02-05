@@ -12,7 +12,7 @@ import dotenv from "dotenv";
 import crypto from "crypto";
 import "reflect-metadata";
 import { DataSource, Not, IsNull, Between, Like } from "typeorm";
-import { Employee, PtoEntry, MonthlyHours, Acknowledgement } from "./entities/index.js";
+import { Employee, PtoEntry, MonthlyHours, Acknowledgement, AdminAcknowledgement } from "./entities/index.js";
 import { calculatePTOStatus } from "./ptoCalculations.js";
 import net from "net";
 
@@ -141,7 +141,7 @@ async function initDatabase() {
             type: "sqljs",
             location: DB_PATH,
             autoSave: true,
-            entities: [Employee, PtoEntry, MonthlyHours, Acknowledgement],
+            entities: [Employee, PtoEntry, MonthlyHours, Acknowledgement, AdminAcknowledgement],
             synchronize: false, // Schema is managed manually
             logging: false,
         });
@@ -479,6 +479,102 @@ initDatabase().then(async () => {
             res.json({ employeeId: employeeIdNum, acknowledgements });
         } catch (error) {
             log(`Error getting acknowledgements: ${error}`);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    });
+
+    // Admin Acknowledgement routes
+    app.post('/api/admin-acknowledgements', async (req, res) => {
+        try {
+            const { employeeId, month, adminId } = req.body;
+
+            if (!employeeId || !month || !adminId) {
+                return res.status(400).json({ error: 'Employee ID, month, and admin ID are required' });
+            }
+
+            const employeeIdNum = parseInt(employeeId);
+            const adminIdNum = parseInt(adminId);
+
+            if (isNaN(employeeIdNum) || isNaN(adminIdNum)) {
+                return res.status(400).json({ error: 'Invalid employee or admin ID' });
+            }
+
+            const employeeRepo = dataSource.getRepository(Employee);
+            const adminAckRepo = dataSource.getRepository(AdminAcknowledgement);
+
+            const employee = await employeeRepo.findOne({ where: { id: employeeIdNum } });
+            if (!employee) {
+                return res.status(404).json({ error: 'Employee not found' });
+            }
+
+            const admin = await employeeRepo.findOne({ where: { id: adminIdNum } });
+            if (!admin || admin.role !== 'Admin') {
+                return res.status(403).json({ error: 'Admin privileges required' });
+            }
+
+            // Parse month (expected format: YYYY-MM)
+            const monthStr = month;
+            if (!/^\d{4}-\d{2}$/.test(monthStr)) {
+                return res.status(400).json({ error: 'Invalid month format. Use YYYY-MM' });
+            }
+
+            // Check if admin acknowledgement already exists for this month
+            const existingAck = await adminAckRepo.findOne({
+                where: { employee_id: employeeIdNum, month: monthStr }
+            });
+
+            if (existingAck) {
+                return res.status(409).json({ error: 'Admin acknowledgement already exists for this month' });
+            }
+
+            // Create new admin acknowledgement
+            const newAck = adminAckRepo.create({
+                employee_id: employeeIdNum,
+                month: monthStr,
+                admin_id: adminIdNum
+            });
+            await adminAckRepo.save(newAck);
+
+            res.status(201).json({ message: 'Admin acknowledgement submitted successfully', acknowledgement: newAck });
+        } catch (error) {
+            log(`Error submitting admin acknowledgement: ${error}`);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    });
+
+    app.get('/api/admin-acknowledgements/:employeeId', async (req, res) => {
+        try {
+            const { employeeId } = req.params;
+            const { adminId } = req.query;
+            const employeeIdNum = parseInt(employeeId);
+            const adminIdNum = parseInt(adminId as string);
+
+            if (isNaN(employeeIdNum) || isNaN(adminIdNum)) {
+                return res.status(400).json({ error: 'Invalid employee or admin ID' });
+            }
+
+            const employeeRepo = dataSource.getRepository(Employee);
+            const adminAckRepo = dataSource.getRepository(AdminAcknowledgement);
+
+            const admin = await employeeRepo.findOne({ where: { id: adminIdNum } });
+            if (!admin || admin.role !== 'Admin') {
+                return res.status(403).json({ error: 'Admin privileges required' });
+            }
+
+            const employee = await employeeRepo.findOne({ where: { id: employeeIdNum } });
+            if (!employee) {
+                return res.status(404).json({ error: 'Employee not found' });
+            }
+
+            const acknowledgements = await adminAckRepo.find({
+                where: { employee_id: employeeIdNum },
+                order: { month: 'DESC' },
+                relations: ['admin']
+            });
+
+            res.json({ employeeId: employeeIdNum, acknowledgements });
+        } catch (error) {
+            log(`Error getting admin acknowledgements: ${error}`);
             res.status(500).json({ error: 'Internal server error' });
         }
     });

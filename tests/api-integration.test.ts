@@ -6,7 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { DataSource } from 'typeorm';
-import { Employee, PtoEntry, MonthlyHours, Acknowledgement } from '../src/entities/index.js';
+import { Employee, PtoEntry, MonthlyHours, Acknowledgement, AdminAcknowledgement } from '../src/entities/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -41,7 +41,7 @@ beforeAll(async () => {
     dataSource = new DataSource({
         type: 'sqljs',
         database: new Uint8Array(testDb.export()),
-        entities: [Employee, PtoEntry, MonthlyHours, Acknowledgement],
+        entities: [Employee, PtoEntry, MonthlyHours, Acknowledgement, AdminAcknowledgement],
         synchronize: false, // Schema is managed manually like in server
         logging: false,
         autoSave: false,
@@ -80,6 +80,7 @@ beforeEach(async () => {
         await dataSource.getRepository(PtoEntry).clear();
         await dataSource.getRepository(MonthlyHours).clear();
         await dataSource.getRepository(Acknowledgement).clear();
+        await dataSource.getRepository(AdminAcknowledgement).clear();
         await dataSource.getRepository(Employee).clear();
     } catch (error) {
         // Tables might not exist yet, ignore

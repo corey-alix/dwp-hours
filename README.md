@@ -232,6 +232,8 @@ The application uses a secure magic link authentication system that eliminates t
 ### Acknowledgement System
 - `POST /api/acknowledgements`: Submit monthly review acknowledgement
 - `GET /api/acknowledgements/:employeeId`: Check acknowledgement status for an employee
+- `POST /api/admin-acknowledgements`: Submit admin review acknowledgement for employee's monthly hours (admin only)
+- `GET /api/admin-acknowledgements/:employeeId`: Retrieve admin acknowledgements for an employee (admin only)
 
 ### Employee Management (Admin Only)
 - `GET /api/employees`: List all employees with optional search/filtering
@@ -369,6 +371,36 @@ export class Acknowledgement {
 }
 ```
 
+### AdminAcknowledgement Entity
+
+```typescript
+@Entity("admin_acknowledgements")
+export class AdminAcknowledgement {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column({ type: "integer" })
+  employee_id!: number;
+
+  @Column({ type: "date" })
+  month!: Date;
+
+  @Column({ type: "integer" })
+  admin_id!: number;
+
+  @Column({ type: "datetime", default: () => "CURRENT_TIMESTAMP" })
+  acknowledged_at!: Date;
+
+  @ManyToOne(() => Employee, employee => employee.acknowledgedByAdmins)
+  @JoinColumn({ name: "employee_id" })
+  employee!: Employee;
+
+  @ManyToOne(() => Employee, employee => employee.adminAcknowledgements)
+  @JoinColumn({ name: "admin_id" })
+  admin!: Employee;
+}
+```
+
 ## Admin Panel
 
 **Status: Fully Implemented** - Complete web components implementation with comprehensive E2E testing.
@@ -386,12 +418,13 @@ Access requires admin privileges.
 
 ## Monthly Review & Acknowledgement System
 
-**Status: Partially Implemented** - Basic acknowledgement functionality exists but automated reminders are not yet implemented.
+**Status: Partially Implemented** - Basic acknowledgement functionality exists for both employees and admins, but automated reminders are not yet implemented.
 
 Currently provides:
-- Manual submission of monthly acknowledgements via API
-- Tracking of acknowledgement timestamps
+- Manual submission of monthly acknowledgements via API (employee and admin)
+- Tracking of acknowledgement timestamps for both types
 - Basic acknowledgement status checking
+- Admin panel integration for admin acknowledgments
 
 **Planned automated features (not yet implemented):**
 - Automatic reminders at month-end

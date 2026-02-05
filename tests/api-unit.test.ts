@@ -6,7 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { DataSource } from 'typeorm';
-import { Employee, PtoEntry, MonthlyHours, Acknowledgement } from '../src/entities/index.js';
+import { Employee, PtoEntry, MonthlyHours, Acknowledgement, AdminAcknowledgement } from '../src/entities/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -41,7 +41,7 @@ beforeAll(async () => {
     dataSource = new DataSource({
         type: 'sqljs',
         database: new Uint8Array(testDb.export()),
-        entities: [Employee, PtoEntry, MonthlyHours, Acknowledgement],
+        entities: [Employee, PtoEntry, MonthlyHours, Acknowledgement, AdminAcknowledgement],
         synchronize: true,
         logging: false,
         autoSave: false,
@@ -79,6 +79,7 @@ beforeEach(async () => {
         await dataSource.getRepository(PtoEntry).clear();
         await dataSource.getRepository(MonthlyHours).clear();
         await dataSource.getRepository(Acknowledgement).clear();
+        await dataSource.getRepository(AdminAcknowledgement).clear();
         await dataSource.getRepository(Employee).clear();
     } catch (error) {
         // Tables might not exist yet, ignore
@@ -321,6 +322,96 @@ function setupTestRoutes(app: express.Application) {
             res.status(201).json({ message: 'PTO entry created successfully', ptoEntry: newPtoEntry });
         } catch (error) {
             console.error('Error creating PTO entry:', error);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    });
+
+    // Admin Acknowledgement routes
+    app.post('/api/admin-acknowledgements', async (req, res) => {
+        try {
+            const { employeeId, month, adminId } = req.body;
+
+            if (!employeeId || !month || !adminId) {
+                return res.status(400).json({ error: 'Employee ID, month, and admin ID are required' });
+            }
+
+            const employeeIdNum = parseInt(employeeId);
+            const adminIdNum = parseInt(adminId);
+
+            if (isNaN(employeeIdNum) || isNaN(adminIdNum)) {
+                return res.status(400).json({ error: 'Invalid employee or admin ID' });
+            }
+
+            const employee = await dataSource.getRepository(Employee).findOne({ where: { id: employeeIdNum } });
+            if (!employee) {
+                return res.status(404).json({ error: 'Employee not found' });
+            }
+
+            const admin = await dataSource.getRepository(Employee).findOne({ where: { id: adminIdNum } });
+            if (!admin || admin.role !== 'Admin') {
+                return res.status(403).json({ error: 'Admin privileges required' });
+            }
+
+            // Parse month (expected format: YYYY-MM)
+            const monthStr = month;
+            if (!/^\d{4}-\d{2}$/.test(monthStr)) {
+                return res.status(400).json({ error: 'Invalid month format. Use YYYY-MM' });
+            }
+
+            // Check if admin acknowledgement already exists for this month
+            const existingAck = await dataSource.getRepository(AdminAcknowledgement).findOne({
+                where: { employee_id: employeeIdNum, month: monthStr }
+            });
+
+            if (existingAck) {
+                return res.status(409).json({ error: 'Admin acknowledgement already exists for this month' });
+            }
+
+            // Create new admin acknowledgement
+            const newAck = dataSource.getRepository(AdminAcknowledgement).create({
+                employee_id: employeeIdNum,
+                month: monthStr,
+                admin_id: adminIdNum
+            });
+            await dataSource.getRepository(AdminAcknowledgement).save(newAck);
+
+            res.status(201).json({ message: 'Admin acknowledgement submitted successfully', acknowledgement: newAck });
+        } catch (error) {
+            console.error('Error submitting admin acknowledgement:', error);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    });
+
+    app.get('/api/admin-acknowledgements/:employeeId', async (req, res) => {
+        try {
+            const { employeeId } = req.params;
+            const { adminId } = req.query;
+            const employeeIdNum = parseInt(employeeId);
+            const adminIdNum = parseInt(adminId as string);
+
+            if (isNaN(employeeIdNum) || isNaN(adminIdNum)) {
+                return res.status(400).json({ error: 'Invalid employee or admin ID' });
+            }
+
+            const admin = await dataSource.getRepository(Employee).findOne({ where: { id: adminIdNum } });
+            if (!admin || admin.role !== 'Admin') {
+                return res.status(403).json({ error: 'Admin privileges required' });
+            }
+
+            const employee = await dataSource.getRepository(Employee).findOne({ where: { id: employeeIdNum } });
+            if (!employee) {
+                return res.status(404).json({ error: 'Employee not found' });
+            }
+
+            const acknowledgements = await dataSource.getRepository(AdminAcknowledgement).find({
+                where: { employee_id: employeeIdNum },
+                order: { month: 'DESC' },
+                relations: ['admin']
+            });
+
+            res.json({ employeeId: employeeIdNum, acknowledgements });
+        } catch (error) {
+            console.error('Error getting admin acknowledgements:', error);
             res.status(500).json({ error: 'Internal server error' });
         }
     });
@@ -587,6 +678,185 @@ describe('API Endpoints', () => {
             expect(response.status).toBe(200);
             expect(response.body).toHaveLength(1);
             expect(response.body[0].employee_id).toBe(employee.id);
+        });
+    });
+
+    describe('Admin Acknowledgement API', () => {
+        it('should create admin acknowledgement successfully', async () => {
+            const employee = await dataSource.getRepository(Employee).save({
+                name: 'Test Employee',
+                identifier: 'test@example.com',
+                pto_rate: 0.71,
+                carryover_hours: 0,
+                hire_date: new Date('2023-01-01'),
+                role: 'Employee'
+            });
+
+            const admin = await dataSource.getRepository(Employee).save({
+                name: 'Test Admin',
+                identifier: 'admin@example.com',
+                pto_rate: 0.71,
+                carryover_hours: 0,
+                hire_date: new Date('2023-01-01'),
+                role: 'Admin'
+            });
+
+            const response = await request(app)
+                .post('/api/admin-acknowledgements')
+                .send({
+                    employeeId: employee.id,
+                    month: '2024-01',
+                    adminId: admin.id
+                });
+
+            expect(response.status).toBe(201);
+            expect(response.body.message).toBe('Admin acknowledgement submitted successfully');
+            expect(response.body.acknowledgement).toBeDefined();
+            expect(response.body.acknowledgement.employee_id).toBe(employee.id);
+            expect(response.body.acknowledgement.admin_id).toBe(admin.id);
+            expect(new Date(response.body.acknowledgement.month).toISOString().slice(0, 10)).toBe('2024-01-01');
+        });
+
+        it('should reject admin acknowledgement with invalid employee', async () => {
+            const admin = await dataSource.getRepository(Employee).save({
+                name: 'Test Admin 2',
+                identifier: 'admin2@example.com',
+                pto_rate: 0.71,
+                carryover_hours: 0,
+                hire_date: new Date('2023-01-01'),
+                role: 'Admin'
+            });
+
+            const response = await request(app)
+                .post('/api/admin-acknowledgements')
+                .send({
+                    employeeId: 999,
+                    month: '2024-01',
+                    adminId: admin.id
+                });
+
+            expect(response.status).toBe(404);
+            expect(response.body.error).toBe('Employee not found');
+        });
+
+        it('should reject admin acknowledgement with non-admin user', async () => {
+            const employee = await dataSource.getRepository(Employee).save({
+                name: 'Test Employee 2',
+                identifier: 'test2@example.com',
+                pto_rate: 0.71,
+                carryover_hours: 0,
+                hire_date: new Date('2023-01-01'),
+                role: 'Employee'
+            });
+
+            const nonAdmin = await dataSource.getRepository(Employee).save({
+                name: 'Test Non-Admin',
+                identifier: 'nonadmin@example.com',
+                pto_rate: 0.71,
+                carryover_hours: 0,
+                hire_date: new Date('2023-01-01'),
+                role: 'Employee'
+            });
+
+            const response = await request(app)
+                .post('/api/admin-acknowledgements')
+                .send({
+                    employeeId: employee.id,
+                    month: '2024-01',
+                    adminId: nonAdmin.id
+                });
+
+            expect(response.status).toBe(403);
+            expect(response.body.error).toBe('Admin privileges required');
+        });
+
+        it('should prevent duplicate admin acknowledgements for same month', async () => {
+            const employee = await dataSource.getRepository(Employee).save({
+                name: 'Test Employee 3',
+                identifier: 'test3@example.com',
+                pto_rate: 0.71,
+                carryover_hours: 0,
+                hire_date: new Date('2023-01-01'),
+                role: 'Employee'
+            });
+
+            const admin = await dataSource.getRepository(Employee).save({
+                name: 'Test Admin 3',
+                identifier: 'admin3@example.com',
+                pto_rate: 0.71,
+                carryover_hours: 0,
+                hire_date: new Date('2023-01-01'),
+                role: 'Admin'
+            });
+
+            // Create first acknowledgement
+            const firstResponse = await request(app)
+                .post('/api/admin-acknowledgements')
+                .send({
+                    employeeId: employee.id,
+                    month: '2024-01',
+                    adminId: admin.id
+                });
+
+            expect(firstResponse.status).toBe(201); // Ensure first one succeeds
+
+            // Check that it was actually saved
+            const savedAcks = await dataSource.getRepository(AdminAcknowledgement).find({
+                where: { employee_id: employee.id }
+            });
+            expect(savedAcks).toHaveLength(1);
+
+            // Try to create duplicate
+            const response = await request(app)
+                .post('/api/admin-acknowledgements')
+                .send({
+                    employeeId: employee.id,
+                    month: '2024-01',
+                    adminId: admin.id
+                });
+
+            expect(response.status).toBe(409);
+            expect(response.body.error).toBe('Admin acknowledgement already exists for this month');
+        });
+
+        it('should retrieve admin acknowledgements for employee', async () => {
+            const employee = await dataSource.getRepository(Employee).save({
+                name: 'Test Employee 4',
+                identifier: 'test4@example.com',
+                pto_rate: 0.71,
+                carryover_hours: 0,
+                hire_date: new Date('2023-01-01'),
+                role: 'Employee'
+            });
+
+            const admin = await dataSource.getRepository(Employee).save({
+                name: 'Test Admin 4',
+                identifier: 'admin4@example.com',
+                pto_rate: 0.71,
+                carryover_hours: 0,
+                hire_date: new Date('2023-01-01'),
+                role: 'Admin'
+            });
+
+            // Create acknowledgement
+            await request(app)
+                .post('/api/admin-acknowledgements')
+                .send({
+                    employeeId: employee.id,
+                    month: '2024-01',
+                    adminId: admin.id
+                });
+
+            const response = await request(app)
+                .get(`/api/admin-acknowledgements/${employee.id}?adminId=${admin.id}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body.employeeId).toBe(employee.id);
+            expect(response.body.acknowledgements).toHaveLength(1);
+            expect(response.body.acknowledgements[0].employee_id).toBe(employee.id);
+            expect(response.body.acknowledgements[0].admin_id).toBe(admin.id);
+            expect(response.body.acknowledgements[0].admin).toBeDefined();
+            expect(response.body.acknowledgements[0].admin.name).toBe('Test Admin 4');
         });
     });
 });

@@ -49,6 +49,12 @@ test('employee-list component test', async ({ page }) => {
     const clearedCount = await employeeCards.count();
     expect(clearedCount).toBe(initialCount);
 
+    // Test acknowledge button presence
+    const firstCard = employeeCards.first();
+    const acknowledgeButton = firstCard.locator('.action-btn.acknowledge');
+    await expect(acknowledgeButton).toBeVisible();
+    await expect(acknowledgeButton).toContainText('Acknowledge');
+
     // Ensure no console errors throughout the test
     const finalErrors = consoleMessages.filter(msg => msg.type === 'error');
     expect(finalErrors).toHaveLength(0);

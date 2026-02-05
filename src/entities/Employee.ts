@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
 import { PtoEntry } from "./PtoEntry.js";
 import { MonthlyHours } from "./MonthlyHours.js";
 import { Acknowledgement } from "./Acknowledgement.js";
+import { AdminAcknowledgement } from "./AdminAcknowledgement.js";
 
 @Entity("employees")
 export class Employee {
@@ -37,4 +38,10 @@ export class Employee {
 
     @OneToMany(() => Acknowledgement, acknowledgement => acknowledgement.employee)
     acknowledgements!: Acknowledgement[];
+
+    @OneToMany(() => AdminAcknowledgement, adminAck => adminAck.employee)
+    acknowledgedByAdmins!: AdminAcknowledgement[];
+
+    @OneToMany(() => AdminAcknowledgement, adminAck => adminAck.admin)
+    adminAcknowledgements!: AdminAcknowledgement[];
 }

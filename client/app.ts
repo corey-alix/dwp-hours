@@ -179,6 +179,15 @@ class UIManager {
             "view-reports-btn",
         ) as HTMLButtonElement;
         reportsBtn.addEventListener("click", () => this.showReports());
+
+        // Admin panel events
+        const adminPanel = document.querySelector('admin-panel') as any;
+        if (adminPanel) {
+            adminPanel.addEventListener('add-employee', () => this.handleAddEmployee());
+            adminPanel.addEventListener('employee-edit', (e: CustomEvent) => this.handleEditEmployee(e.detail.employeeId));
+            adminPanel.addEventListener('employee-delete', (e: CustomEvent) => this.handleDeleteEmployee(e.detail.employeeId));
+            adminPanel.addEventListener('employee-acknowledge', (e: CustomEvent) => this.handleAcknowledgeEmployee(e.detail.employeeId));
+        }
     }
 
     private handleLogout(): void {
@@ -264,6 +273,50 @@ class UIManager {
     private showReports(): void {
         // TODO: Implement reports UI
         alert("Reports coming soon!");
+    }
+
+    private handleAddEmployee(): void {
+        // TODO: Implement add employee dialog
+        alert("Add employee coming soon!");
+    }
+
+    private handleEditEmployee(employeeId: number): void {
+        // TODO: Implement edit employee dialog
+        alert(`Edit employee ${employeeId} coming soon!`);
+    }
+
+    private handleDeleteEmployee(employeeId: number): void {
+        // TODO: Implement delete employee confirmation
+        if (confirm(`Are you sure you want to delete employee ${employeeId}?`)) {
+            // TODO: Call API to delete
+            alert(`Delete employee ${employeeId} coming soon!`);
+        }
+    }
+
+    private handleAcknowledgeEmployee(employeeId: number): void {
+        // Show month selection dialog for acknowledgment
+        const month = prompt("Enter month to acknowledge (YYYY-MM):", new Date().toISOString().slice(0, 7));
+        if (month) {
+            this.submitAdminAcknowledgment(employeeId, month);
+        }
+    }
+
+    private async submitAdminAcknowledgment(employeeId: number, month: string): Promise<void> {
+        try {
+            if (!this.currentUser) {
+                alert("Not logged in");
+                return;
+            }
+            const response = await api.post('/admin-acknowledgements', {
+                employeeId,
+                month,
+                adminId: this.currentUser.id
+            });
+            alert(response.message);
+        } catch (error: any) {
+            console.error("Failed to submit admin acknowledgment:", error);
+            alert("Failed to submit acknowledgment: " + (error.message || "Unknown error"));
+        }
     }
 
     private hideAllSections(): void {

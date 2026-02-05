@@ -14,6 +14,7 @@ export class AdminPanel extends HTMLElement {
     connectedCallback() {
         this.render();
         this.setupEventListeners();
+        this.setupChildEventListeners();
     }
 
     attributeChangedCallback(name: string, oldValue: string, newValue: string) {
@@ -201,6 +202,25 @@ export class AdminPanel extends HTMLElement {
             default:
                 return '<div style="padding: 20px;">Select a view from the sidebar</div>';
         }
+    }
+
+    private setupChildEventListeners() {
+        // Handle events from child components
+        this.shadow.addEventListener('add-employee', () => {
+            this.dispatchEvent(new CustomEvent('add-employee'));
+        });
+
+        this.shadow.addEventListener('employee-edit', ((e: Event) => {
+            this.dispatchEvent(new CustomEvent('employee-edit', { detail: (e as CustomEvent).detail }));
+        }) as EventListener);
+
+        this.shadow.addEventListener('employee-delete', ((e: Event) => {
+            this.dispatchEvent(new CustomEvent('employee-delete', { detail: (e as CustomEvent).detail }));
+        }) as EventListener);
+
+        this.shadow.addEventListener('employee-acknowledge', ((e: Event) => {
+            this.dispatchEvent(new CustomEvent('employee-acknowledge', { detail: (e as CustomEvent).detail }));
+        }) as EventListener);
     }
 
     private setupEventListeners() {

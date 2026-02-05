@@ -56,3 +56,19 @@ CREATE INDEX IF NOT EXISTS idx_monthly_hours_month ON monthly_hours(month);
 -- Create indexes for acknowledgements
 CREATE INDEX IF NOT EXISTS idx_acknowledgements_employee_id ON acknowledgements(employee_id);
 CREATE INDEX IF NOT EXISTS idx_acknowledgements_month ON acknowledgements(month);
+
+-- Create admin acknowledgements table
+CREATE TABLE IF NOT EXISTS admin_acknowledgements (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  employee_id INTEGER NOT NULL,
+  month TEXT NOT NULL,
+  admin_id INTEGER NOT NULL,
+  acknowledged_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+  FOREIGN KEY (admin_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+-- Create indexes for admin acknowledgements
+CREATE INDEX IF NOT EXISTS idx_admin_acknowledgements_employee_id ON admin_acknowledgements(employee_id);
+CREATE INDEX IF NOT EXISTS idx_admin_acknowledgements_month ON admin_acknowledgements(month);
+CREATE INDEX IF NOT EXISTS idx_admin_acknowledgements_admin_id ON admin_acknowledgements(admin_id);
