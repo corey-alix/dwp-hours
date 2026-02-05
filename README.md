@@ -470,6 +470,7 @@ Access requires admin privileges.
 - **data-table**: Reusable, sortable, paginated table component for employee and PTO datasets.
 - **employee-form**: Form UI for creating and editing employees (name, identifier, PTO rate, carryover, hire date, role).
 - **employee-list**: List/table view of employees with edit/delete actions.
+- **pto-calendar**: Calendar component for displaying PTO entries with color-coded days and legend.
 - **pto-request-queue**: Queue view for reviewing submitted PTO requests with approve/reject actions.
 - **report-generator**: Report UI for PTO usage summaries with filters and export controls.
 - **pto-summary-card**: Regular PTO balances (allocation, available, used, carryover).

@@ -1,9 +1,6 @@
-type CalendarDay = {
-    type: string;
-    hours: number;
-};
+import { PtoCalendar, CalendarEntry } from "../pto-calendar/index.js";
 
-type CalendarData = Record<number, Record<number, CalendarDay>>;
+type CalendarData = Record<number, Record<number, { type: string; hours: number }>>;
 
 type SummaryData = {
     annualAllocation: number;
@@ -52,14 +49,6 @@ const monthNames = [
     "November",
     "December"
 ];
-
-const PTO_TYPE_COLORS: Record<string, string> = {
-    PTO: "#FFFF00",
-    Sick: "#00B050",
-    Bereavement: "#BFBFBF",
-    "Jury Duty": "#FF0000",
-    "Planned PTO": "#00B0F0"
-};
 
 class PtoSectionCard extends HTMLElement {
     protected shadow: ShadowRoot;
@@ -202,55 +191,6 @@ export class PtoAccrualCard extends PtoSectionCard {
         this.render();
     }
 
-    private renderCalendar() {
-        if (!this.selectedMonth) {
-            return "";
-        }
-
-        const monthIndex = this.selectedMonth - 1;
-        const firstDay = new Date(this.year, monthIndex, 1);
-        const daysInMonth = new Date(this.year, monthIndex + 1, 0).getDate();
-        const startDay = firstDay.getDay();
-        const cells: string[] = [];
-
-        for (let i = 0; i < startDay; i += 1) {
-            cells.push('<div class="day empty"></div>');
-        }
-
-        for (let day = 1; day <= daysInMonth; day += 1) {
-            const dayInfo = this.calendarData?.[this.selectedMonth]?.[day];
-            const typeClass = dayInfo ? `type-${dayInfo.type.replace(/\s+/g, "-")}` : "";
-            const hoursLabel = dayInfo ? `<span class="hours">${dayInfo.hours.toFixed(1)}</span>` : "";
-            cells.push(`
-                <div class="day ${typeClass}">
-                    <span class="date">${day}</span>
-                    ${hoursLabel}
-                </div>
-            `);
-        }
-
-        return `
-            <div class="calendar">
-                <div class="calendar-header">${monthNames[monthIndex]} ${this.year}</div>
-                <div class="calendar-grid">
-                    <div class="weekday">Sun</div>
-                    <div class="weekday">Mon</div>
-                    <div class="weekday">Tue</div>
-                    <div class="weekday">Wed</div>
-                    <div class="weekday">Thu</div>
-                    <div class="weekday">Fri</div>
-                    <div class="weekday">Sat</div>
-                    ${cells.join("")}
-                </div>
-                <div class="legend">
-                    ${Object.entries(PTO_TYPE_COLORS)
-                .map(([type, color]) => `<span class="legend-item"><span class="legend-swatch" style="background:${color}"></span>${type}</span>`)
-                .join("")}
-                </div>
-            </div>
-        `;
-    }
-
     private render() {
         const usageByMonth = new Map(this.usage.map((entry) => [entry.month, entry.hours]));
         const rows = this.accruals
@@ -268,6 +208,19 @@ export class PtoAccrualCard extends PtoSectionCard {
             })
             .join("");
 
+        // Convert calendarData to CalendarEntry format for the calendar component
+        const calendarEntries: CalendarEntry[] = [];
+        if (this.selectedMonth && this.calendarData[this.selectedMonth]) {
+            Object.entries(this.calendarData[this.selectedMonth]).forEach(([day, entry]) => {
+                const date = new Date(this.year, this.selectedMonth! - 1, parseInt(day, 10));
+                calendarEntries.push({
+                    date: date.toISOString().split('T')[0],
+                    hours: entry.hours,
+                    type: entry.type
+                });
+            });
+        }
+
         const body = `
             <div class="accrual-grid">
                 ${rows ? `
@@ -280,7 +233,7 @@ export class PtoAccrualCard extends PtoSectionCard {
                     ${rows}
                 ` : '<div class="empty">No accrual data available.</div>'}
             </div>
-            ${this.renderCalendar()}
+            ${this.selectedMonth ? `<pto-calendar month="${this.selectedMonth - 1}" year="${this.year}" entries='${JSON.stringify(calendarEntries)}' selected-month="${this.selectedMonth}"></pto-calendar>` : ''}
         `;
 
         this.shadow.innerHTML = `
@@ -343,85 +296,6 @@ export class PtoAccrualCard extends PtoSectionCard {
                     border-radius: 6px;
                     padding: 4px 8px;
                     cursor: pointer;
-                }
-
-                .calendar {
-                    margin-top: 16px;
-                    border-top: 1px solid #eef0f2;
-                    padding-top: 12px;
-                }
-
-                .calendar-header {
-                    font-weight: 600;
-                    margin-bottom: 8px;
-                }
-
-                .calendar-grid {
-                    display: grid;
-                    grid-template-columns: repeat(7, 1fr);
-                    gap: 4px;
-                }
-
-                .weekday {
-                    font-size: 11px;
-                    font-weight: 600;
-                    color: #6c757d;
-                    text-align: center;
-                }
-
-                .day {
-                    position: relative;
-                    min-height: 50px;
-                    border-radius: 6px;
-                    background: #f8f9fa;
-                    padding: 4px;
-                    font-size: 12px;
-                }
-
-                .day.empty {
-                    background: transparent;
-                    border: none;
-                }
-
-                .day .date {
-                    font-weight: 600;
-                    color: #34495e;
-                }
-
-                .day .hours {
-                    position: absolute;
-                    bottom: 4px;
-                    right: 6px;
-                    font-size: 10px;
-                    color: #2c3e50;
-                }
-
-                .type-PTO { background: ${PTO_TYPE_COLORS.PTO}; }
-                .type-Sick { background: ${PTO_TYPE_COLORS.Sick}; }
-                .type-Bereavement { background: ${PTO_TYPE_COLORS.Bereavement}; }
-                .type-Jury-Duty { background: ${PTO_TYPE_COLORS["Jury Duty"]}; }
-                .type-Planned-PTO { background: ${PTO_TYPE_COLORS["Planned PTO"]}; }
-
-                .legend {
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 8px 12px;
-                    margin-top: 12px;
-                    font-size: 12px;
-                    color: #6c757d;
-                }
-
-                .legend-item {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 6px;
-                }
-
-                .legend-swatch {
-                    width: 10px;
-                    height: 10px;
-                    border-radius: 2px;
-                    border: 1px solid #d0d7de;
                 }
 
                 .empty {
