@@ -50,23 +50,100 @@ Date operations in the application are inconsistent due to mixing local time and
 4. Are there existing tests that cover different timezone scenarios?
 5. What temporal library options are being considered (date-fns, dayjs, Temporal API)?
 
-**Investigation Checklist:**
-- [ ] Audit all date creation and serialization code for timezone issues
-- [ ] Test date operations in different timezone environments
-- [ ] Check if database Date storage is timezone-aware
-- [ ] Review existing tests for timezone coverage
-- [ ] Identify all places using `new Date()` with date strings
-- [ ] Evaluate lightweight temporal libraries for replacement
+## Phase 1: Investigation and Audit
 
-**Suggested Debugging Steps:**
-1. Add logging to show local vs UTC date values during creation/serialization
-2. Create test cases with different server timezones
-3. Use a consistent UTC-only approach for all date operations
-4. Consider replacing `dateUtils.ts` with a proven temporal library
-5. Update all date parsing to use UTC consistently
+**Goal:** Complete comprehensive audit of date handling issues and establish root causes.
+
+**Checklist:**
+- [ ] Audit all date creation and serialization code for timezone issues
+- [ ] Test date operations in different timezone environments (UTC, UTC+10, UTC-5)
+- [ ] Check if database Date storage is timezone-aware and document behavior
+- [ ] Review existing tests for timezone coverage and identify gaps
+- [ ] Identify all places using `new Date()` with date strings vs dateUtils.ts
+- [ ] Document findings, root causes, and impact assessment
+- [ ] Create test cases that reproduce the timezone shift issue
+
+**Success Criteria:**
+- Complete understanding of all timezone issues in the codebase
+- Documented list of affected code locations
+- Reproducible test cases for the regression
+- Clear root cause analysis
+
+## Phase 2: Integration Study
+
+**Goal:** Analyze how `dateUtils.ts` can leverage `shared/date-fns.ts` for enhanced functionality.
+
+**Checklist:**
+- [ ] Analyze `dateUtils.ts` functions and identify candidates for date-fns enhancement
+- [ ] Compare `shared/date-fns.ts` and `dateUtils.ts` APIs for compatibility
+- [ ] Determine which operations should remain in `dateUtils.ts` vs use `shared/date-fns.ts`
+- [ ] Establish integration patterns and usage guidelines for each utility
+- [ ] Evaluate bundle size impact of different integration approaches
+- [ ] Document integration recommendations with pros/cons analysis
+
+**Success Criteria:**
+- Clear guidelines on when to use each date utility
+- Documented integration patterns
+- Bundle size analysis completed
+- Recommendation for implementation approach
+
+## Phase 3: Implementation
+
+**Goal:** Implement the chosen integration approach with backward compatibility.
+
+**Checklist:**
+- [ ] Move `dateUtils.ts` to `shared/` for client/server access if needed
+- [ ] Update `dateUtils.ts` to leverage `shared/date-fns.ts` functions where beneficial
+- [ ] Add new functions needed for PTO calculations using appropriate utilities
+- [ ] Update all import paths throughout codebase to use correct date utilities
+- [ ] Ensure backward compatibility with existing date strings and APIs
+- [ ] Update TypeScript types if needed for date operations
+
+**Success Criteria:**
+- All existing code continues to work without changes
+- New date operations available using appropriate utilities
+- Consistent import patterns across codebase
+- No breaking changes to existing APIs
+
+## Phase 4: Testing and Validation
+
+**Goal:** Add comprehensive testing and validate the solution works across timezones.
+
+**Checklist:**
+- [ ] Add comprehensive timezone testing to test suite (multiple TZ environments)
+- [ ] Create integration tests for `dateUtils.ts` and `shared/date-fns.ts` interaction
+- [ ] Test bundle size impact and verify tree-shaking effectiveness
+- [ ] Validate all existing date operations continue to work correctly
+- [ ] Run full test suite in multiple timezone environments
+- [ ] Test PTO form enhancements with new date utilities
+- [ ] Verify database operations handle dates correctly across timezones
+
+**Success Criteria:**
+- All tests pass in multiple timezone environments
+- Bundle size within acceptable limits
+- No regressions in existing functionality
+- PTO calculations work correctly with new utilities
+
+## Phase 5: Deployment and Monitoring
+
+**Goal:** Deploy changes safely and establish monitoring for date-related issues.
+
+**Checklist:**
+- [ ] Deploy changes to staging environment and test thoroughly
+- [ ] Monitor for timezone-related issues in production deployment
+- [ ] Update documentation with new date handling guidelines
+- [ ] Train development team on new integration patterns
+- [ ] Establish monitoring/alerts for date-related regressions
+- [ ] Create runbook for troubleshooting date timezone issues
+
+**Success Criteria:**
+- Successful production deployment without date-related issues
+- Team trained on new patterns
+- Monitoring in place for future regressions
+- Documentation updated and accessible
 
 **Proposed Solution:**
-Replace the custom `dateUtils.ts` with a lightweight temporal library like `date-fns` or `dayjs` that provides consistent, timezone-safe date operations. This would eliminate the mixing of local/UTC operations and provide reliable date handling.
+Keep the existing `dateUtils.ts` but enhance the application's date handling by leveraging the new `shared/date-fns.ts` facade. Study how `dateUtils.ts` can make use of `shared/date-fns.ts` for improved reliability while maintaining backward compatibility. This approach preserves the lightweight nature of `dateUtils.ts` while providing access to proven date-fns functionality for complex operations.
 
 **Library Evaluation:**
 - **date-fns**: Comprehensive, tree-shakable, 100+ functions, ~50KB minified. Excellent for complex date operations, supports UTC operations.
@@ -75,24 +152,27 @@ Replace the custom `dateUtils.ts` with a lightweight temporal library like `date
 - **Luxon**: Feature-rich, ~60KB, built on Intl API. Good timezone support but heavier.
 - **Current dateUtils.ts**: Custom string-based approach avoids timezone issues but limited functionality and inconsistent usage across codebase.
 
-**Recommendation:** Start with `date-fns` for its comprehensive feature set and tree-shaking capabilities. If bundle size becomes a concern, consider `dayjs` with necessary plugins. Move `dateUtils.ts` to `shared/` and create client/server variants if needed.
+**Recommendation:** We have chosen `date-fns` for its comprehensive feature set and tree-shaking capabilities. The facade implementation in `shared/date-fns.ts` maintains backward compatibility while providing enhanced functionality.
 
-**Implementation Plan:**
-1. Evaluate temporal libraries for size, API compatibility, and features
-2. Replace `dateUtils.ts` functions with library equivalents
-3. Update all date operations in DAL and utilities to use the new library
-4. Add comprehensive timezone testing
-5. Ensure backward compatibility with existing date strings
+**Overall Timeline:**
+- Phase 1 (Investigation): 2-3 days
+- Phase 2 (Integration Study): 1-2 days
+- Phase 3 (Implementation): 2-3 days
+- Phase 4 (Testing): 2-3 days
+- Phase 5 (Deployment): 1-2 days
+- Total: ~8-13 days
 
-**Dependencies:**
-- Requires updating all code that imports from `dateUtils.ts`
-- May need to update TypeScript types for date operations
-- Testing suite needs timezone-aware test cases
+**Key Dependencies:**
+- Access to multiple timezone test environments
+- date-fns library integration (Phase 0 completed)
+- Team availability for code review and testing
+- Database access for testing date storage behavior
 
-**Risks:**
-- Breaking changes if library API differs significantly
-- Bundle size increase (though libraries like `dayjs` are very small)
-- Need to ensure all date operations are migrated consistently
+**Risk Mitigation:**
+- Phased approach allows for validation at each step
+- Comprehensive testing in multiple timezones
+- Backward compatibility maintained throughout
+- Rollback plan available if issues discovered
 
 **Priority: High** - Date handling is fundamental to the application and current bugs affect core functionality.
 
@@ -118,17 +198,13 @@ Replace the custom `dateUtils.ts` with a lightweight temporal library like `date
 5. Are there existing client-side date utilities that conflict with dateUtils.ts?
 
 **Recommended Approach:**
-- **Immediate Fix**: Audit and fix inconsistent date operations to use dateUtils.ts exclusively
-- **Short-term**: Extend dateUtils.ts with needed functions for PTO calculations
-- **Long-term**: Evaluate library adoption if date operations become more complex
+- **Immediate Fix**: Audit and fix inconsistent date operations to use `dateUtils.ts` exclusively where possible
+- **Integration Study**: Analyze how `shared/date-fns.ts` can complement `dateUtils.ts` for complex operations
+- **Hybrid Solution**: Use `dateUtils.ts` for simple operations and `shared/date-fns.ts` for advanced features
 - **Testing**: Add timezone-aware tests and ensure CI runs in multiple timezone environments
 
-**Next Steps:**
-1. Complete audit of all date operations in the codebase
-2. Identify specific locations where local/UTC mixing occurs
-3. Create shared dateUtils.ts with enhanced functionality
-4. Add comprehensive timezone testing
-5. Implement PTO form enhancements using the improved date utilities
+**Implementation Approach:**
+The solution follows a phased approach to ensure thorough investigation, careful integration, and comprehensive testing. Phase 0 (date-fns foundation) has been completed. Begin with Phase 1 and progress through each phase, ensuring all checklist items are completed before moving to the next phase.
 
 ## Phase 0: date-fns Foundation Setup
 
@@ -145,6 +221,8 @@ Replace the custom `dateUtils.ts` with a lightweight temporal library like `date
 - [x] Test timezone safety of new implementation
 - [x] Update issue status and document any findings
 
+**Phase 0 Status:** Completed - date-fns has been successfully integrated with a facade pattern in `shared/date-fns.ts`, maintaining backward compatibility and providing timezone-safe operations.
+
 **Implementation Notes (Phase 0):**
 - The facade is implemented in [shared/date-fns.ts](shared/date-fns.ts) and preserves the existing YYYY-MM-DD string API.
 - date-fns is consumed from TypeScript source via a repo-local symlink at [shared/date-fns](shared/date-fns) pointing to `node_modules/date-fns/src`.
@@ -160,153 +238,6 @@ Replace the custom `dateUtils.ts` with a lightweight temporal library like `date
 - Bundle size increase is acceptable (< 20KB)
 - No breaking changes to existing code
 
-## date-fns Integration Strategy
-
-**Overview:**
-Integrate date-fns from GitHub source while maintaining backward compatibility by using `dateUtils.ts` as a proxy/wrapper. This approach provides the robustness of a proven library while preserving the existing API.
-
-**Integration Options:**
-
-### Option A: npm install from GitHub (Recommended)
-```bash
-npm install github:date-fns/date-fns#v4.1.0
-```
-
-**Pros:**
-- Seamless npm integration
-- Automatic esbuild bundling and tree-shaking
-- Easy version management
-- No build configuration changes needed
-
-**Cons:**
-- Depends on GitHub availability
-- Full package download (though tree-shakable)
-
-**Implementation:**
-1. Install: `npm install github:date-fns/date-fns#v4.1.0`
-2. Update `dateUtils.ts` to import and wrap date-fns functions
-3. Move `dateUtils.ts` to `shared/` for client/server access
-4. Update import paths throughout codebase
-
-### Option B: Git Submodule
-```bash
-git submodule add https://github.com/date-fns/date-fns.git vendor/date-fns
-cd vendor/date-fns && git checkout v4.1.0
-```
-
-**Pros:**
-- Full source control and local modifications
-- Precise version pinning
-- No external network dependency
-
-**Cons:**
-- Complex setup and maintenance
-- Manual update process
-- Requires esbuild path configuration
-
-**Implementation:**
-1. Add submodule to `vendor/date-fns`
-2. Configure esbuild to resolve date-fns imports to local path
-3. Update `dateUtils.ts` to import from local submodule
-
-### Option C: Manual Integration
-1. Download date-fns v4.1.0 ZIP from GitHub releases
-2. Extract to `vendor/date-fns`
-3. Configure esbuild path mapping
-
-**Pros:**
-- Maximum control
-- No git complexity
-
-**Cons:**
-- Manual update process
-- No version management
-- Easy to get out of sync
-
-**Recommended Approach: Option A (npm from GitHub)**
-
-**Wrapper Implementation Strategy:**
-
-**Current dateUtils.ts Structure:**
-- Pure functions with YYYY-MM-DD string inputs/outputs
-- No external dependencies
-- Focused API for application needs
-
-**Migration Plan:**
-1. **Phase 1: Install and Wrap**
-   ```typescript
-   // shared/dateUtils.ts
-   import { 
-     addDays as dfAddDays, 
-     format, 
-     parseISO, 
-     isValid,
-     addBusinessDays,
-     isWeekend as dfIsWeekend 
-   } from 'date-fns';
-
-   // Keep existing API but use date-fns internally
-   export function addDays(dateStr: string, days: number): string {
-     const date = parseISO(dateStr);
-     const newDate = dfAddDays(date, days);
-     return format(newDate, 'yyyy-MM-dd');
-   }
-
-   // Add new functions needed for PTO calculations
-   export function nextBusinessDay(dateStr: string): string {
-     const date = parseISO(dateStr);
-     const nextDay = addBusinessDays(date, 1);
-     return format(nextDay, 'yyyy-MM-dd');
-   }
-
-   export function countWeekdays(startDateStr: string, endDateStr: string): number {
-     // Implementation using date-fns
-   }
-   ```
-
-2. **Phase 2: Enhanced Functionality**
-   - Add business day calculations for PTO spillover
-   - Implement weekend-aware date operations
-   - Add validation functions using date-fns
-
-3. **Phase 3: Migration**
-   - Move `dateUtils.ts` from `server/` to `shared/`
-   - Update all import statements
-   - Add client-side specific functions if needed
-
-**Build Integration:**
-
-**esbuild Configuration:**
-- No changes needed for npm approach
-- date-fns will be automatically bundled and tree-shaken
-- Client bundle will include only used functions
-
-**Bundle Size Impact:**
-- date-fns full: ~50KB minified
-- With tree-shaking: ~10-20KB (estimated for typical usage)
-- Current dateUtils.ts: ~2KB
-- Net increase: ~8-18KB (acceptable for improved reliability)
-
-**Testing Strategy:**
-- Keep existing tests passing
-- Add new tests for enhanced functions
-- Add timezone-specific test cases
-- Test in different timezone environments
-
-**Risk Mitigation:**
-- Wrapper approach maintains API compatibility
-- Gradual migration allows rollback if issues
-- Comprehensive testing before deployment
-
-**Timeline:**
-- Phase 1 (Install & Wrap): 1-2 days
-- Phase 2 (Enhanced Functions): 2-3 days  
-- Phase 3 (Migration & Testing): 2-3 days
-- Total: ~1 week
-
-**Dependencies:**
-- Update package.json with date-fns dependency
-- Move dateUtils.ts to shared/
-- Update import paths in ~10-15 files
-- Add timezone testing to CI pipeline</content>
+**Technical Foundation:**
+Phase 0 established date-fns integration via `shared/date-fns.ts` facade. The implementation uses Option A (npm install from GitHub) with per-function imports for optimal tree-shaking. Integration patterns will be determined in Phase 2.</content>
 <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/TASKS/issue-date-handling-regression.md
