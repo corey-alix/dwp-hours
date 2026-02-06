@@ -223,6 +223,90 @@ notifications.warning('Session will expire in 5 minutes.');
 
 This system ensures a smooth user experience and reliable automated testing without modal interruptions.
 
+## Theming System
+
+This project implements a comprehensive theming system using vanilla CSS that provides both light and dark theme support, automatically honoring the user's system preferences. The application seamlessly adapts to the operating system's color scheme settings without requiring manual theme selection.
+
+**Theme Behavior:**
+- **System Preference Detection**: Uses CSS `prefers-color-scheme` media query to detect the user's system theme setting
+- **Automatic Switching**: 
+  - If system is set to dark mode → Uses dark theme
+  - If system is set to light mode → Uses light theme  
+  - If no system preference is set → Defaults to light theme
+- **Real-time Updates**: Themes switch automatically when the user changes their system theme settings
+
+**Implementation Details:**
+- **Semantic Color Naming**: Colors are named by their semantic purpose (e.g., `--color-primary`, `--color-error`) rather than appearance (e.g., `--color-blue`, `--color-red`), following CSS-Tricks best practices for maintainable theming
+- **CSS Custom Properties Structure**: Theme variables are organized hierarchically:
+  - **Base Colors**: Raw color values (e.g., `--color-gray-100: #f5f5f5`)
+  - **Semantic Mappings**: Purpose-based color assignments (e.g., `--color-primary: var(--color-blue-500)`)
+  - **Theme Overrides**: Light/dark specific adjustments using `@media (prefers-color-scheme: dark)`
+- **Media Query Integration**: `@media (prefers-color-scheme: dark)` queries apply dark theme styles automatically
+- **Fallback Support**: Light theme serves as the default fallback when no preference is detected
+- **Accessibility**: All themes maintain proper contrast ratios and accessibility standards
+- **Performance**: Zero JavaScript overhead - theming is handled entirely through CSS
+
+**CSS Structure Example:**
+```css
+:root {
+  /* Base color palette */
+  --color-gray-50: #fafafa;
+  --color-gray-100: #f5f5f5;
+  --color-blue-500: #3b82f6;
+  --color-red-500: #ef4444;
+  
+  /* Semantic color mappings */
+  --color-primary: var(--color-blue-500);
+  --color-error: var(--color-red-500);
+  --color-background: var(--color-gray-50);
+  --color-surface: var(--color-gray-100);
+  --color-text: #1f2937;
+}
+
+/* Dark theme overrides */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: #1f2937;
+    --color-surface: #374151;
+    --color-text: #f9fafb;
+  }
+}
+```
+
+**Key Features:**
+- **Seamless Integration**: No theme toggle buttons or manual selection required
+- **Consistent Experience**: All components and UI elements adapt automatically
+- **Battery Friendly**: Respects system settings that may optimize for battery life in dark mode
+- **Cross-Platform**: Works consistently across different operating systems and browsers
+- **Maintainable**: Semantic naming and hierarchical structure make theme updates easy
+
+**Component Adaptation Plan:**
+Each web component must be updated to use semantic CSS custom properties instead of hardcoded colors. The following plan outlines the theming adaptation for each component:
+
+- **admin-panel**: Update navigation background, borders, and text colors to use `--color-surface`, `--color-primary`, and `--color-text`
+- **confirmation-dialog**: Adapt modal background, button colors, and text to use `--color-surface`, `--color-primary`, `--color-error`, and `--color-text`
+- **data-table**: Update table headers, rows, borders, and hover states to use `--color-surface`, `--color-text`, and `--color-primary` variants
+- **employee-form**: Adapt form inputs, labels, borders, and validation states to use `--color-surface`, `--color-text`, `--color-primary`, and `--color-error`
+- **employee-list**: Update list items, action buttons, and status indicators to use `--color-surface`, `--color-text`, and `--color-primary`
+- **pto-calendar**: Adapt calendar grid, day cells, and PTO type color coding to use `--color-surface`, `--color-text`, and semantic PTO colors
+- **pto-request-queue**: Update request cards, status badges, and action buttons to use `--color-surface`, `--color-text`, `--color-primary`, and `--color-error`
+- **report-generator**: Adapt filter controls, export buttons, and report tables to use `--color-surface`, `--color-text`, and `--color-primary`
+- **pto-summary-card**: Update card background, text, and accent colors to use `--color-surface`, `--color-text`, and `--color-primary`
+- **pto-accrual-card**: Adapt grid layout, calendar icons, and accrual indicators to use `--color-surface`, `--color-text`, and `--color-primary`
+- **pto-sick-card**: Update card styling and date/hour list formatting to use `--color-surface`, `--color-text`, and `--color-error` for sick-specific theming
+- **pto-bereavement-card**: Adapt card background and bereavement entry styling to use `--color-surface`, `--color-text`, and bereavement-specific semantic colors
+- **pto-jury-duty-card**: Update card theming and jury duty entry formatting to use `--color-surface`, `--color-text`, and jury duty-specific colors
+- **pto-employee-info-card**: Adapt info display and metadata styling to use `--color-surface`, `--color-text`, and `--color-primary`
+
+**Implementation Steps:**
+1. **Audit Current Styles**: Review each component's CSS for hardcoded colors and identify semantic replacements
+2. **Define Missing Variables**: Add any component-specific semantic color variables to the theme system (e.g., `--color-pto-sick`, `--color-pto-bereavement`)
+3. **Update Component Styles**: Replace hardcoded colors with CSS custom property references
+4. **Test Theme Switching**: Verify all components adapt properly when system theme changes
+5. **Validate Accessibility**: Ensure contrast ratios remain compliant in both light and dark themes
+
+This approach ensures all components maintain visual consistency while automatically adapting to user theme preferences.
+
 ## Getting Started
 
 ### Prerequisites
