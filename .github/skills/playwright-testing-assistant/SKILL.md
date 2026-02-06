@@ -8,7 +8,7 @@ Activated when users mention Playwright testing, E2E testing, browser automation
 
 ## Response Pattern
 1. Assess current testing setup and identify gaps in E2E coverage
-2. Recommend test structure following Playwright best practices (page objects, test isolation, descriptive naming)
+2. Recommend test structure following Playwright best practices (page objects, test isolation, descriptive naming, and test.step() for logical grouping of actions)
 3. Guide implementation of specific test scenarios with proper selectors and assertions
 4. Suggest debugging approaches for flaky tests and CI/CD integration
 5. Ensure tests align with project quality gates and TASKS/testing-suite.md requirements
@@ -22,3 +22,5 @@ Activated when users mention Playwright testing, E2E testing, browser automation
 
 ## Additional Context
 This skill integrates with the existing testing strategy defined in TASKS/testing-suite.md and follows Playwright's official best practices. Focuses on reliable, maintainable E2E tests that complement the existing Vitest unit testing setup. Prioritizes test stability, proper isolation, and clear reporting for CI/CD pipelines.
+
+Understands and promotes the use of `test.step()` for organizing test actions into logical, reportable steps that improve test readability and debugging. `test.step()` allows nesting of steps, returns values from the step body, and supports options like `box` to point errors to the step call site instead of internal actions, enhancing error reporting clarity.
