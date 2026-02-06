@@ -68,8 +68,8 @@ export class PtoRequestQueue extends HTMLElement {
                     justify-content: space-between;
                     align-items: center;
                     padding: 20px;
-                    border-bottom: 1px solid #e9ecef;
-                    background: white;
+                    border-bottom: 1px solid var(--color-border);
+                    background: var(--color-surface);
                 }
 
                 .queue-title {
@@ -111,17 +111,17 @@ export class PtoRequestQueue extends HTMLElement {
                 }
 
                 .request-card {
-                    background: white;
+                    background: var(--color-surface);
                     border-radius: 8px;
                     padding: 20px;
                     margin-bottom: 16px;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                    border: 1px solid #e9ecef;
+                    box-shadow: var(--shadow-md);
+                    border: 1px solid var(--color-border);
                     transition: box-shadow 0.3s ease;
                 }
 
                 .request-card:hover {
-                    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+                    box-shadow: var(--shadow-lg);
                 }
 
                 .request-header {

@@ -59,11 +59,11 @@ Implement comprehensive light/dark mode support across all web components in the
 - [x] Update pto-calendar component documentation
 
 ### Phase 8: PTO Request Queue Component
-- [ ] Audit pto-request-queue component for hardcoded colors
-- [ ] Update request cards, status badges, and action buttons to use --color-surface, --color-text, --color-primary, --color-error
-- [ ] Test queue filtering and approval/rejection workflows
-- [ ] Validate status badge readability
-- [ ] Update pto-request-queue component documentation
+- [x] Audit pto-request-queue component for hardcoded colors
+- [x] Update request cards, status badges, and action buttons to use --color-surface, --color-text, --color-primary, --color-error
+- [x] Test queue filtering and approval/rejection workflows
+- [x] Validate status badge readability
+- [x] Update pto-request-queue component documentation
 
 ### Phase 9: Report Generator Component
 - [ ] Audit report-generator component for hardcoded colors
