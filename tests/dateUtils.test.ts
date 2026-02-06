@@ -17,7 +17,7 @@ import {
     endOfMonth,
     getDaysInMonth,
     dateToString
-} from '../server/dateUtils.js';
+} from '../shared/dateUtils.js';
 
 describe('Date Utils', () => {
     describe('isValidDateString', () => {
