@@ -127,7 +127,7 @@ export class EmployeeList extends HTMLElement {
 
                 .btn-primary {
                     background: var(--color-primary);
-                    color: white;
+                    color: var(--color-on-primary);
                 }
 
                 .btn-primary:hover {
@@ -176,7 +176,7 @@ export class EmployeeList extends HTMLElement {
 
                 .employee-role {
                     background: var(--color-primary);
-                    color: white;
+                    color: var(--color-on-primary);
                     padding: 2px 8px;
                     border-radius: 12px;
                     font-size: 12px;
@@ -238,7 +238,7 @@ export class EmployeeList extends HTMLElement {
 
                 .action-btn.acknowledge:hover {
                     background: var(--color-success);
-                    color: white;
+                    color: var(--color-on-success);
                 }
 
                 .action-btn.delete {
@@ -248,7 +248,7 @@ export class EmployeeList extends HTMLElement {
 
                 .action-btn.delete:hover {
                     background: var(--color-error);
-                    color: white;
+                    color: var(--color-on-error);
                 }
 
                 .empty-state {

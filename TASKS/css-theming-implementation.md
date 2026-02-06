@@ -45,11 +45,11 @@ Implement comprehensive light/dark mode support across all web components in the
 - [x] Update employee-form component documentation
 
 ### Phase 6: Employee List Component
-- [ ] Audit employee-list component for hardcoded colors
-- [ ] Update list items, action buttons, and status indicators to use --color-surface, --color-text, --color-primary
-- [ ] Test list interactions and hover states
-- [ ] Validate status indicator visibility
-- [ ] Update employee-list component documentation
+- [x] Audit employee-list component for hardcoded colors
+- [x] Update list items, action buttons, and status indicators to use --color-surface, --color-text, --color-primary
+- [x] Test list interactions and hover states
+- [x] Validate status indicator visibility
+- [x] Update employee-list component documentation
 
 ### Phase 7: PTO Calendar Component
 - [ ] Audit pto-calendar component for hardcoded colors

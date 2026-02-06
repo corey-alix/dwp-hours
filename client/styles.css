@@ -95,6 +95,11 @@
   --color-info: var(--color-blue-500);
   --color-info-light: var(--color-blue-50);
 
+  /* Text colors on colored backgrounds */
+  --color-on-primary: white;
+  --color-on-success: white;
+  --color-on-error: white;
+
   /* Surface and text colors */
   --color-background: var(--color-gray-50);
   --color-surface: var(--color-gray-100);

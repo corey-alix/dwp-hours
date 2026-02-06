@@ -33,6 +33,9 @@ The component uses the following semantic color variables for consistent theming
 - `--color-success`: Acknowledge button borders and hover
 - `--color-error`: Delete button borders and hover
 - `--color-surface-hover`: Button hover backgrounds
+- `--color-on-primary`: Text color on primary colored backgrounds
+- `--color-on-success`: Text color on success colored backgrounds
+- `--color-on-error`: Text color on error colored backgrounds
 
 #### Shadow Effects
 - `--color-shadow`: Card shadows

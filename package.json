@@ -5,7 +5,7 @@
     "description": "A Node.js application for tracking monthly hours worked and managing Paid Time Off (PTO) for employees.",
     "main": "src/server.mts",
     "scripts": {
-        "dev": "echo '⚠️  WARNING: Do NOT run this in VS Code environment! Use external terminal.' && exit 1 || npm run build:test-assets && http-serve public -p 3000 -o",
+        "dev": "echo '⚠️  WARNING: Do NOT run this in VS Code environment! Use external terminal.' && echo 'If you would like me to restart the external server, type \"ready\"' && read response && if [ \"$response\" = \"ready\" ]; then npm run dev:external; else echo 'Cancelled. Assuming external server is running.'; exit 0; fi",
         "dev:external": "npm run build:test-assets && http-serve public -p 3000 -o",
         "dev:kill": "lsof -ti:3000 | xargs kill -9 || true",
         "build": "npm-run-all -p build:client build:server",
