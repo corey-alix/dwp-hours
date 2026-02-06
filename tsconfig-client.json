@@ -3,6 +3,6 @@
   "compilerOptions": {
     "lib": ["ES2020", "DOM"]
   },
-  "include": ["client/**/*"],
+  "include": ["client/**/*", "shared/**/*"],
   "exclude": ["node_modules", "dist"]
 }

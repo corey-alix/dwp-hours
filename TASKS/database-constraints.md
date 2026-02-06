@@ -13,23 +13,23 @@ Business rules should also be shared with the client so the same constraints can
 🔥 High Priority
 
 ## Checklist
-- [ ] Design the Data Access Layer (DAL) architecture and interfaces
-- [ ] Define a shared TypeScript module for business rules/validation metadata (client + server)
-- [ ] Implement validation logic for hours claimed (only 4 or 8, whole integers)
-- [ ] Implement date validation to restrict to weekdays (Monday-Friday)
-- [ ] Implement uniqueness check for PTO entries (no duplicates on employee_id, date, type)
-- [ ] Create DAL methods for inserting/updating PTO entries with validations
-- [ ] Update existing API endpoints to use DAL validations
-- [ ] Expose shared business rules to the client (importable TypeScript file)
-- [ ] Ensure client validation aligns with shared business rules (optional UI checks)
-- [ ] Write unit tests for DAL validation functions
-- [ ] Write unit tests for shared business rule helpers
-- [ ] Add integration tests for API endpoints with constraint violations
-- [ ] Write E2E tests for PTO entry creation with various constraint scenarios
-- [ ] Update API documentation to reflect new constraints
-- [ ] Manual testing of constraint enforcement in frontend forms
-- [ ] Code review and linting for DAL implementation
-- [ ] Ensure build passes with new DAL code
+- [x] Design the Data Access Layer (DAL) architecture and interfaces
+- [x] Define a shared TypeScript module for business rules/validation metadata (client + server)
+- [x] Implement validation logic for hours claimed (only 4 or 8, whole integers)
+- [x] Implement date validation to restrict to weekdays (Monday-Friday)
+- [x] Implement uniqueness check for PTO entries (no duplicates on employee_id, date, type)
+- [x] Create DAL methods for inserting/updating PTO entries with validations
+- [x] Update existing API endpoints to use DAL validations
+- [x] Expose shared business rules to the client (importable TypeScript file)
+- [x] Ensure client validation aligns with shared business rules (optional UI checks)
+- [x] Write unit tests for DAL validation functions
+- [x] Write unit tests for shared business rule helpers
+- [x] Add integration tests for API endpoints with constraint violations
+- [x] Write E2E tests for PTO entry creation with various constraint scenarios
+- [x] Update API documentation to reflect new constraints
+- [x] Manual testing of constraint enforcement in frontend forms
+- [x] Code review and linting for DAL implementation
+- [x] Ensure build passes with new DAL code
 
 ## Implementation Notes
 - Design the DAL as a separate module or class to encapsulate database operations and validations.

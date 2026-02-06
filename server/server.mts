@@ -17,6 +17,8 @@ import { calculateEndDate } from "./workDays.js";
 import { dateToString } from "./dateUtils.js";
 import net from "net";
 import { sendMagicLinkEmail } from "./utils/mailer.js";
+import { PtoEntryDAL } from "./dal/PtoEntryDAL.js";
+import { VALIDATION_MESSAGES, MessageKey } from "../shared/businessRules.js";
 
 dotenv.config();
 
@@ -97,6 +99,7 @@ function checkPortInUse(port: number): Promise<boolean> {
 let db: initSqlJs.Database;
 let SQL: initSqlJs.SqlJsStatic;
 let dataSource: DataSource;
+let ptoEntryDAL: PtoEntryDAL;
 
 async function initDatabase() {
     try {
@@ -133,6 +136,10 @@ async function initDatabase() {
         log("Connecting to database with TypeORM...");
         await dataSource.initialize();
         log("Connected to SQLite database with TypeORM.");
+
+        // Initialize DAL
+        ptoEntryDAL = new PtoEntryDAL(dataSource);
+        log("PTO Entry DAL initialized.");
     } catch (error) {
         const err = error as Error;
         log(`Database connection error: ${err}`);
@@ -822,9 +829,8 @@ initDatabase().then(async () => {
     app.post('/api/pto', async (req, res) => {
         try {
             const { employeeId, date, hours, type } = req.body;
-            const normalizedType = type === 'Full PTO' || type === 'Partial PTO' ? 'PTO' : type;
 
-            if (!employeeId || !date || hours === undefined || !normalizedType) {
+            if (!employeeId || !date || hours === undefined || !type) {
                 return res.status(400).json({ error: 'All fields are required: employeeId, date, hours, type' });
             }
 
@@ -835,44 +841,22 @@ initDatabase().then(async () => {
                 return res.status(400).json({ error: 'Invalid employee ID or hours' });
             }
 
-            // Validate PTO type
-            const validTypes = ['PTO', 'Sick', 'Bereavement', 'Jury Duty'];
-            if (!validTypes.includes(normalizedType)) {
-                return res.status(400).json({ error: 'Invalid PTO type' });
-            }
-
-            // Validate hours based on type
-            if (normalizedType === 'Sick' && hoursNum > 24) {
-                return res.status(400).json({ error: 'Sick time cannot exceed 24 hours annually' });
-            }
-            if ((normalizedType === 'Bereavement' || normalizedType === 'Jury Duty') && hoursNum > 40) {
-                return res.status(400).json({ error: 'Bereavement/Jury Duty cannot exceed 40 hours annually' });
-            }
-
-            const employeeRepo = dataSource.getRepository(Employee);
-            const ptoEntryRepo = dataSource.getRepository(PtoEntry);
-
-            const employee = await employeeRepo.findOne({ where: { id: employeeIdNum } });
-            if (!employee) {
-                return res.status(404).json({ error: 'Employee not found' });
-            }
-
-            const ptoDate = new Date(date);
-            if (isNaN(ptoDate.getTime())) {
-                return res.status(400).json({ error: 'Invalid date format' });
-            }
-
-            // Create PTO entry for individual day
-            const newPtoEntry = ptoEntryRepo.create({
-                employee_id: employeeIdNum,
-                date: ptoDate,
-                type: normalizedType,
-                hours: hoursNum
+            const result = await ptoEntryDAL.createPtoEntry({
+                employeeId: employeeIdNum,
+                date: date,
+                hours: hoursNum,
+                type: type
             });
 
-            await ptoEntryRepo.save(newPtoEntry);
+            if (!result.success) {
+                const fieldErrors = result.errors.map(err => ({
+                    field: err.field,
+                    message: VALIDATION_MESSAGES[err.messageKey as MessageKey]
+                }));
+                return res.status(400).json({ error: 'validation_failed', fieldErrors });
+            }
 
-            res.status(201).json({ message: 'PTO entry created successfully', ptoEntry: newPtoEntry });
+            res.status(201).json({ message: 'PTO entry created successfully', ptoEntry: result.ptoEntry });
         } catch (error) {
             log(`Error creating PTO entry: ${error}`);
             res.status(500).json({ error: 'Internal server error' });
@@ -890,21 +874,22 @@ initDatabase().then(async () => {
 
             const { date, type, hours } = req.body;
 
-            const ptoEntryRepo = dataSource.getRepository(PtoEntry);
-            const ptoEntry = await ptoEntryRepo.findOne({ where: { id: ptoIdNum } });
+            const updateData: any = {};
+            if (date !== undefined) updateData.date = date;
+            if (type !== undefined) updateData.type = type;
+            if (hours !== undefined) updateData.hours = parseFloat(hours);
 
-            if (!ptoEntry) {
-                return res.status(404).json({ error: 'PTO entry not found' });
+            const result = await ptoEntryDAL.updatePtoEntry(ptoIdNum, updateData);
+
+            if (!result.success) {
+                const fieldErrors = result.errors.map(err => ({
+                    field: err.field,
+                    message: VALIDATION_MESSAGES[err.messageKey as MessageKey]
+                }));
+                return res.status(400).json({ error: 'validation_failed', fieldErrors });
             }
 
-            // Update fields if provided
-            if (date) ptoEntry.date = new Date(date);
-            if (type) ptoEntry.type = type;
-            if (hours !== undefined) ptoEntry.hours = parseFloat(hours);
-
-            await ptoEntryRepo.save(ptoEntry);
-
-            res.json({ message: 'PTO entry updated successfully', ptoEntry });
+            res.json({ message: 'PTO entry updated successfully', ptoEntry: result.ptoEntry });
         } catch (error) {
             log(`Error updating PTO entry: ${error}`);
             res.status(500).json({ error: 'Internal server error' });

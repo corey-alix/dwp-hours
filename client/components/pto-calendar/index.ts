@@ -1,3 +1,5 @@
+import { validateHours, validateWeekday, validatePTOType, VALIDATION_MESSAGES, MessageKey } from '../../../shared/businessRules.js';
+
 const monthNames = [
     "January",
     "February",
@@ -140,6 +142,36 @@ export class PtoCalendar extends HTMLElement {
         console.log('PtoCalendar.submitRequest called, requests:', requests);
         if (requests.length === 0) {
             console.log('No requests to submit');
+            return;
+        }
+
+        // Client-side validation
+        const validationErrors: string[] = [];
+        for (const request of requests) {
+            const hoursError = validateHours(request.hours);
+            if (hoursError) {
+                validationErrors.push(`${request.date}: ${VALIDATION_MESSAGES[hoursError.messageKey as MessageKey]}`);
+            }
+            const [year, month, day] = request.date.split('-').map(Number);
+            const dateObj = new Date(year, month - 1, day);
+            const weekdayError = validateWeekday(dateObj);
+            if (weekdayError) {
+                validationErrors.push(`${request.date}: ${VALIDATION_MESSAGES[weekdayError.messageKey as MessageKey]}`);
+            }
+            const typeError = validatePTOType(request.type);
+            if (typeError) {
+                validationErrors.push(`${request.date}: ${VALIDATION_MESSAGES[typeError.messageKey as MessageKey]}`);
+            }
+        }
+
+        if (validationErrors.length > 0) {
+            // Dispatch validation error event
+            const errorEvent = new CustomEvent('pto-validation-error', {
+                detail: { errors: validationErrors },
+                bubbles: true,
+                composed: true
+            });
+            this.dispatchEvent(errorEvent);
             return;
         }
 
