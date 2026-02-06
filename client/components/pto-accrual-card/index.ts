@@ -206,6 +206,7 @@ export class PtoAccrualCard extends PtoSectionCard {
                     align-items: center;
                     font-size: 14px;
                     color: #34495e;
+                    cursor: pointer;
                 }
 
                 .accrual-row.header {
@@ -241,6 +242,10 @@ export class PtoAccrualCard extends PtoSectionCard {
                     border-radius: 4px;
                     padding: 4px 8px;
                     margin: 0 -8px;
+                }
+
+                .accrual-row:hover {
+                    background-color: #f0f8ff !important;
                 }
 
                 .accrual-row .hours,
@@ -305,11 +310,22 @@ export class PtoAccrualCard extends PtoSectionCard {
         }
 
         this.shadow.querySelectorAll<HTMLButtonElement>(".calendar-button").forEach((button) => {
-            button.addEventListener("click", () => {
+            button.addEventListener("click", (e) => {
+                e.stopPropagation();
                 const month = parseInt(button.dataset.month || "", 10);
                 console.log('PtoAccrualCard: calendar button clicked, month:', month);
                 this.selectedMonth = Number.isFinite(month) ? month : null;
                 console.log('PtoAccrualCard: set selectedMonth to:', this.selectedMonth);
+                this.render();
+            });
+        });
+
+        // Add row click handlers
+        this.shadow.querySelectorAll<HTMLDivElement>(".accrual-row.data-row").forEach((row, index) => {
+            row.addEventListener("click", () => {
+                const month = index + 1;
+                console.log('PtoAccrualCard: row clicked, month:', month);
+                this.selectedMonth = month;
                 this.render();
             });
         });
