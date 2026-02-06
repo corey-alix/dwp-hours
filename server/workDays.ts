@@ -3,7 +3,7 @@
  * Calculates the number of work days (Monday-Friday) in a month
  */
 
-import { getDaysInMonth, getDayOfWeek, formatDate } from './dateUtils.js';
+import { getDaysInMonth, getDayOfWeek, formatDate } from '../shared/dateUtils.js';
 
 /**
  * Calculate the number of work days (Monday-Friday) in a given month and year

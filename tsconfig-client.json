@@ -1,13 +1,18 @@
 {
   "extends": "./tsconfig-base.json",
   "compilerOptions": {
-    "lib": ["ES2020", "DOM"],
+    "lib": [
+      "ES2020",
+      "DOM"
+    ],
     "moduleResolution": "Bundler"
   },
-  "include": ["client/**/*", "shared/**/*"],
+  "include": [
+    "client/**/*",
+    "shared/**/*"
+  ],
   "exclude": [
     "node_modules",
-    "dist",
-    "shared/date-fns/**"
+    "dist"
   ]
 }

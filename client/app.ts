@@ -3,7 +3,7 @@ import type * as ApiTypes from './api-types.js';
 import { APIClient } from './APIClient.js';
 
 // Import date utilities
-import { addDays, isWeekend } from '../server/dateUtils.js';
+import { addDays, isWeekend } from '../shared/dateUtils.js';
 
 // Import components and test utilities
 import './components/index.js';
