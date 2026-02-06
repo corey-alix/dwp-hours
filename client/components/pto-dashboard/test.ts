@@ -265,7 +265,7 @@ export function playground(): void {
         carryoverFromPreviousYear: ptoStatus.carryoverFromPreviousYear
     };
 
-    accrual.monthlyAccruals = ptoStatus.monthlyAccruals.slice(0, 3); // First 3 months
+    accrual.monthlyAccruals = ptoStatus.monthlyAccruals;
     accrual.monthlyUsage = monthlyUsage;
     console.log('Setting ptoEntries on accrual');
     accrual.ptoEntries = fullPtoEntries;

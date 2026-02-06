@@ -289,6 +289,14 @@ export class PtoAccrualCard extends PtoSectionCard {
             </div>
         `;
 
+        // Scroll calendar into view if it's newly displayed
+        if (this.selectedMonth) {
+            const calendar = this.shadow.querySelector('pto-calendar') as HTMLElement;
+            if (calendar) {
+                calendar.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
         this.shadow.querySelectorAll<HTMLButtonElement>(".calendar-button").forEach((button) => {
             button.addEventListener("click", () => {
                 const month = parseInt(button.dataset.month || "", 10);
