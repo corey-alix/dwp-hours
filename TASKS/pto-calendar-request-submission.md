@@ -365,4 +365,179 @@ test('should submit PTO requests via calendar and verify server persistence', as
 - **Optimistic Updates**: Show immediate UI feedback before server confirmation
 - **Conflict Resolution**: Handle concurrent edits by multiple users
 - **Undo Functionality**: Allow users to undo recent submissions
+
+## Design Refactor
+
+### Overview
+This section documents the design refactor to eliminate the `CalendarData` middleman and allow the `pto-calendar` component to accept `PTOEntry` objects directly. Additionally, this refactor includes a fundamental change to the PTO data model to store individual day records instead of date ranges.
+
+### Current Data Flow
+1. `app.ts` converts `PTOEntry[]` to `CalendarData` (Record<number, Record<number, CalendarDay>>)
+2. `pto-accrual-card` converts `CalendarData` to `CalendarEntry[]` ({date, hours, type}[])
+3. `pto-calendar` accepts `CalendarEntry[]` and renders the calendar
+
+### Proposed Data Flow
+1. `app.ts` passes `PTOEntry[]` directly to `pto-accrual-card`
+2. `pto-accrual-card` passes `PTOEntry[]` directly to `pto-calendar`
+3. `pto-calendar` renders `PTOEntry[]` directly (no expansion needed)
+
+### Refactor Phases
+
+#### ✅ Phase 1: Database Schema Migration COMPLETED
+**Goal**: Change the database schema to store individual day records instead of date ranges
+
+**Implementation Steps:**
+1. **Backup existing data** - Create full database backup before migration
+2. **Create new table with updated schema**:
+   ```sql
+   CREATE TABLE pto_entries_new (
+     id INTEGER PRIMARY KEY AUTOINCREMENT,
+     employee_id INTEGER NOT NULL,
+     date DATE NOT NULL,  -- Changed from start_date
+     type TEXT NOT NULL CHECK (type IN ('Sick', 'PTO', 'Bereavement', 'Jury Duty')),
+     hours REAL NOT NULL,
+     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+     FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
+   );
+   ```
+3. **Migrate data**: For each existing range (start_date to end_date), create individual records for each weekday
+4. **Update indexes**: Create `idx_pto_entries_date` for the new date column
+5. **Drop old table and rename new table**
+6. **Update schema.sql** to reflect the new structure
+
+**Success Criteria:**
+- [x] Database schema updated to use single `date` column instead of `start_date`/`end_date`
+- [x] All existing PTO data migrated to individual day records
+- [x] Database integrity maintained (foreign keys, constraints)
+- [x] **✅ Run database migration script and verify data integrity**
+
+#### ✅ Phase 2: API Interface Updates COMPLETED
+**Goal**: Update TypeScript interfaces to reflect the new data model
+
+**Implementation Steps:**
+1. **Update PTOEntry interface in api-types.d.ts**:
+   ```typescript
+   export interface PTOEntry {
+       id: number;
+       employeeId: number;
+       date: string; // Changed from startDate/endDate
+       type: "PTO" | "Sick" | "Bereavement" | "Jury Duty";
+       hours: number;
+       createdAt: string;
+       employee?: Employee;
+   }
+   ```
+2. **Update all imports and usages** throughout the codebase
+3. **Update API response types** to match new interface
+4. **Update test files** with new interface expectations
+
+**Success Criteria:**
+- [x] No TypeScript compilation errors
+- [x] All interface references updated
+- [x] API types match database schema
+- [x] **✅ Run `npm run build` to validate TypeScript compilation**
+
+#### ✅ Phase 3: pto-calendar Component Refactor COMPLETED
+**Goal**: Modify pto-calendar to accept PTOEntry[] directly instead of CalendarEntry[]
+
+**Implementation Steps:**
+1. **Change attribute from `entries` to `pto-entries`**
+2. **Update observedAttributes array**
+3. **Modify attributeChangedCallback** to parse PTOEntry[] instead of CalendarEntry[]
+4. **Update setEntries() to setPtoEntries()**
+5. **Remove expandPtoEntries() method** (no longer needed with individual records)
+6. **Update renderCalendar()** to use PTOEntry[] directly for rendering
+7. **Update event handlers** to work with PTOEntry objects
+
+**Success Criteria:**
+- [x] pto-calendar accepts `pto-entries` attribute with PTOEntry[] data
+- [x] Calendar renders correctly with individual day records
+- [x] Interactive features (selection, editing) work with new data structure
+- [x] **✅ Run component tests and visual verification**
+
+#### ✅ Phase 4: pto-accrual-card Component Refactor COMPLETED
+**Goal**: Update pto-accrual-card to pass PTOEntry[] directly to pto-calendar
+
+**Implementation Steps:**
+1. **Change attribute from `calendar` to `pto-entries`**
+2. **Update observedAttributes and attributeChangedCallback**
+3. **Remove CalendarData conversion logic**
+4. **Update render() method** to pass PTOEntry[] directly to pto-calendar
+5. **Update property setters** (setCalendar → setPtoEntries)
+6. **Remove buildCalendarData() usage**
+
+**Success Criteria:**
+- [x] pto-accrual-card accepts `pto-entries` attribute
+- [x] Calendar component receives correct data format
+- [x] Month selection and calendar display work correctly
+- [x] **✅ Run component integration tests**
+
+#### ✅ Phase 5: Client-side Application Updates COMPLETED
+**Goal**: Update app.ts and related client code to work with new data flow
+
+**Implementation Steps:**
+1. **Remove buildCalendarData() method** from UIManager
+2. **Update loadPTOStatus()** to pass PTOEntry[] directly to pto-accrual-card
+3. **Update handlePtoRequestSubmit()** to create individual day records instead of ranges
+4. **Update buildUsageEntries() and buildMonthlyUsage()** to work with individual day records
+5. **Update renderPTOStatus()** to pass PTOEntry[] instead of CalendarData
+6. **Remove CalendarData type definitions** where no longer needed
+
+**Success Criteria:**
+- [x] Application loads PTO data correctly
+- [x] PTO request submission creates individual day records
+- [x] Calendar displays existing PTO entries correctly
+- [x] **✅ Run `npm run test` to validate functionality**
+
+#### ✅ Phase 6: Server-side Code Updates COMPLETED
+**Goal**: Update backend APIs and database operations for individual day records
+
+**Implementation Steps:**
+1. **Update PTO creation API** to accept individual dates instead of date ranges
+2. **Modify database queries** to work with single date column
+3. **Update PTO retrieval endpoints** to return individual day records
+4. **Update data validation** for individual records
+5. **Update business logic** for PTO calculations and conflict detection
+6. **Update database migration scripts**
+
+**Success Criteria:**
+- [x] API endpoints accept and return individual day records
+- [x] Database queries work with new schema
+- [x] PTO calculations and validations work correctly
+- [x] **✅ Run API tests and database integration tests**
+
+#### ✅ Phase 7: Testing and Validation COMPLETED
+**Goal**: Comprehensive testing to ensure the refactor works correctly
+
+**Implementation Steps:**
+1. **Unit tests** for all modified components and functions
+2. **Integration tests** for data flow between components
+3. **API tests** for server endpoints
+4. **E2E tests** for complete user workflows
+5. **Database tests** for data integrity
+6. **Performance tests** to ensure no degradation
+7. **Migration tests** to validate data conversion
+
+**Success Criteria:**
+- [x] All existing functionality preserved
+- [x] New data model works correctly
+- [x] No data loss or corruption during migration
+- [x] Performance meets requirements
+- [x] **✅ Run full test suite and validate all functionality**
+
+**Overall Refactor Validation: Run `npm run test` to ensure all refactor changes work correctly and did not break the application.**
+
+### Benefits
+- Eliminates unnecessary data transformation layers
+- Simplifies the data flow and reduces complexity
+- Makes the calendar component more flexible and reusable
+- Reduces the risk of data inconsistencies during conversions
+- Simplifies date range calculations and conflict detection
+- Makes it easier to handle partial day PTO or complex scheduling scenarios
+
+### Migration Considerations
+- **Data Volume**: Individual day records will increase database size (e.g., a 5-day PTO becomes 5 records)
+- **Performance**: May require additional indexes and query optimization
+- **Backwards Compatibility**: Need to handle existing range-based data during migration
+- **Testing**: Comprehensive testing required for all PTO-related functionality
 <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/TASKS/pto-calendar-request-submission.md
