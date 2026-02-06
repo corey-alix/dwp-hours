@@ -101,21 +101,21 @@ export class ReportGenerator extends HTMLElement {
                 }
 
                 .report-header {
-                    padding: 20px;
-                    border-bottom: 1px solid #e9ecef;
-                    background: #f8f9fa;
+                    padding: var(--space-xl);
+                    border-bottom: var(--border-width) var(--border-style-solid) var(--color-border);
+                    background: var(--color-surface);
                 }
 
                 .report-title {
-                    font-size: 24px;
-                    font-weight: 600;
-                    color: #2c3e50;
-                    margin: 0 0 16px;
+                    font-size: var(--font-size-2xl);
+                    font-weight: var(--font-weight-bold);
+                    color: var(--color-text);
+                    margin: 0 0 var(--space-lg);
                 }
 
                 .report-controls {
                     display: flex;
-                    gap: 16px;
+                    gap: var(--space-lg);
                     align-items: center;
                     flex-wrap: wrap;
                 }
@@ -123,96 +123,99 @@ export class ReportGenerator extends HTMLElement {
                 .control-group {
                     display: flex;
                     flex-direction: column;
-                    gap: 4px;
+                    gap: var(--space-xs);
                 }
 
                 .control-label {
-                    font-size: 12px;
-                    font-weight: 500;
-                    color: #6c757d;
+                    font-size: var(--font-size-xs);
+                    font-weight: var(--font-weight-medium);
+                    color: var(--color-text-muted);
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
                 }
 
                 .control-input {
-                    padding: 8px 12px;
-                    border: 1px solid #ddd;
-                    border-radius: 4px;
-                    font-size: 14px;
+                    padding: var(--space-sm) var(--space-md);
+                    border: var(--border-width) var(--border-style-solid) var(--color-border);
+                    border-radius: var(--border-radius);
+                    font-size: var(--font-size-sm);
+                    background: var(--color-background);
+                    color: var(--color-text);
                 }
 
                 .control-select {
-                    padding: 8px 12px;
-                    border: 1px solid #ddd;
-                    border-radius: 4px;
-                    background: white;
-                    font-size: 14px;
+                    padding: var(--space-sm) var(--space-md);
+                    border: var(--border-width) var(--border-style-solid) var(--color-border);
+                    border-radius: var(--border-radius);
+                    background: var(--color-background);
+                    font-size: var(--font-size-sm);
+                    color: var(--color-text);
                 }
 
                 .action-buttons {
                     display: flex;
-                    gap: 8px;
+                    gap: var(--space-sm);
                 }
 
                 .btn {
-                    padding: 8px 16px;
+                    padding: var(--space-sm) var(--space-lg);
                     border: none;
-                    border-radius: 4px;
+                    border-radius: var(--border-radius);
                     cursor: pointer;
-                    font-size: 14px;
-                    font-weight: 500;
+                    font-size: var(--font-size-sm);
+                    font-weight: var(--font-weight-medium);
                     transition: all 0.3s ease;
                 }
 
                 .btn-primary {
-                    background: #3498db;
-                    color: white;
+                    background: var(--color-primary);
+                    color: var(--color-on-primary);
                 }
 
                 .btn-primary:hover {
-                    background: #2980b9;
+                    background: var(--color-primary-hover);
                 }
 
                 .btn-secondary {
-                    background: #95a5a6;
-                    color: white;
+                    background: var(--color-secondary);
+                    color: var(--color-background);
                 }
 
                 .btn-secondary:hover {
-                    background: #7f8c8d;
+                    background: var(--color-secondary-hover);
                 }
 
                 .report-content {
                     flex: 1;
                     overflow-y: auto;
-                    padding: 20px;
+                    padding: var(--space-xl);
                 }
 
                 .summary-cards {
                     display: grid;
                     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                    gap: 16px;
-                    margin-bottom: 24px;
+                    gap: var(--space-lg);
+                    margin-bottom: var(--space-2xl);
                 }
 
                 .summary-card {
-                    background: white;
-                    border: 1px solid #e9ecef;
-                    border-radius: 8px;
-                    padding: 16px;
+                    background: var(--color-background);
+                    border: var(--border-width) var(--border-style-solid) var(--color-border);
+                    border-radius: var(--border-radius-lg);
+                    padding: var(--space-lg);
                     text-align: center;
                 }
 
                 .card-value {
-                    font-size: 24px;
-                    font-weight: 700;
-                    color: #3498db;
-                    margin-bottom: 4px;
+                    font-size: var(--font-size-2xl);
+                    font-weight: var(--font-weight-bold);
+                    color: var(--color-primary);
+                    margin-bottom: var(--space-xs);
                 }
 
                 .card-label {
-                    font-size: 12px;
-                    color: #6c757d;
+                    font-size: var(--font-size-xs);
+                    color: var(--color-text-muted);
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
                 }
@@ -220,52 +223,52 @@ export class ReportGenerator extends HTMLElement {
                 .report-table {
                     width: 100%;
                     border-collapse: collapse;
-                    background: white;
-                    border-radius: 8px;
+                    background: var(--color-background);
+                    border-radius: var(--border-radius-lg);
                     overflow: hidden;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    box-shadow: var(--shadow-md);
                 }
 
                 .report-table th,
                 .report-table td {
-                    padding: 12px 16px;
+                    padding: var(--space-md) var(--space-lg);
                     text-align: left;
-                    border-bottom: 1px solid #e9ecef;
+                    border-bottom: var(--border-width) var(--border-style-solid) var(--color-border);
                 }
 
                 .report-table th {
-                    background: #f8f9fa;
-                    font-weight: 600;
-                    color: #2c3e50;
-                    border-bottom: 2px solid #dee2e6;
+                    background: var(--color-surface);
+                    font-weight: var(--font-weight-semibold);
+                    color: var(--color-text);
+                    border-bottom: var(--border-width-thick) var(--border-style-solid) var(--color-border-hover);
                 }
 
                 .report-table tbody tr:hover {
-                    background: #f8f9fa;
+                    background: var(--color-surface-hover);
                 }
 
                 .hours-cell {
-                    font-weight: 500;
+                    font-weight: var(--font-weight-medium);
                 }
 
                 .hours-positive {
-                    color: #27ae60;
+                    color: var(--color-success);
                 }
 
                 .hours-negative {
-                    color: #e74c3c;
+                    color: var(--color-error);
                 }
 
                 .empty-state {
                     text-align: center;
-                    padding: 40px;
-                    color: #6c757d;
+                    padding: var(--space-2xl) * 2;
+                    color: var(--color-text-muted);
                 }
 
                 .empty-state h3 {
-                    margin: 0 0 8px;
-                    font-size: 18px;
-                    color: #495057;
+                    margin: 0 0 var(--space-sm);
+                    font-size: var(--font-size-lg);
+                    color: var(--color-text);
                 }
             </style>
 

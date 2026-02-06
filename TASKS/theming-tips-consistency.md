@@ -9,32 +9,32 @@ Implement the theming tips for consistency guidelines across the DWP Hours Track
 ## Checklist
 
 ### Phase 1: Design Tokens Establishment
-- [ ] Audit existing CSS variables in styles.css for completeness
-- [ ] Add missing design tokens: `--font-size-base: 1rem; --border-width: 1px; --border-radius: 4px;`
-- [ ] Group tokens by category: fonts, borders, spacing (e.g., `--space-xs: 4px; --space-md: 16px;`)
-- [ ] Implement theme extensions using `light-dark()` where appropriate
-- [ ] Document all design tokens in a centralized location
+- [x] Audit existing CSS variables in styles.css for completeness
+- [x] Add missing design tokens: `--font-size-base: 1rem; --border-width: 1px; --border-radius: 4px;`
+- [x] Group tokens by category: fonts, borders, spacing (e.g., `--space-xs: 4px; --space-md: 16px;`)
+- [x] Implement theme extensions using `light-dark()` where appropriate
+- [x] Document all design tokens in a centralized location
 
 ### Phase 2: Units and Scaling Standardization
-- [ ] Audit all CSS for pixel usage and replace with `rem` for fonts/sizes
-- [ ] Convert component-specific measurements to `em` for borders/radii
-- [ ] Ensure responsive scaling works across different font sizes
-- [ ] Update component stylesheets to follow the new unit conventions
-- [ ] Test responsiveness across different screen sizes and zoom levels
+- [x] Audit all CSS for pixel usage and replace with `rem` for fonts/sizes
+- [x] Convert component-specific measurements to `em` for borders/radii
+- [x] Ensure responsive scaling works across different font sizes
+- [x] Update component stylesheets to follow the new unit conventions
+- [x] Test responsiveness across different screen sizes and zoom levels
 
 ### Phase 3: Naming and Structure Improvements
-- [ ] Implement consistent naming: Prefix with category (e.g., `--font-family-heading`, `--border-style-solid`)
-- [ ] Separate tokens.css from component styles (create dedicated tokens file)
-- [ ] Restructure CSS custom properties for better organization
-- [ ] Update all component imports to use the new token structure
-- [ ] Document the naming conventions in the README
+- [x] Implement consistent naming: Prefix with category (e.g., `--font-family-heading`, `--border-style-solid`)
+- [x] Separate tokens.css from component styles (create dedicated tokens file)
+- [x] Restructure CSS custom properties for better organization
+- [x] Update all component imports to use the new token structure
+- [x] Document the naming conventions in the README
 
 ### Phase 4: Enforcement Mechanisms
-- [ ] Configure Stylelint rules to ban hard-coded values and enforce var() usage
-- [ ] Set up automated audits using tools like Theo or Tokens Studio
-- [ ] Implement JS integration for dynamic theme swaps where needed
-- [ ] Add pre-commit hooks to enforce theming standards
-- [ ] Create validation scripts for token consistency
+- [x] Configure Stylelint rules to ban hard-coded values and enforce var() usage
+- [x] Set up automated audits using tools like Theo or Tokens Studio
+- [x] Implement JS integration for dynamic theme swaps where needed
+- [x] Add pre-commit hooks to enforce theming standards
+- [x] Create validation scripts for token consistency
 
 ### Phase 5: Best Practices Implementation
 - [ ] Update web components to properly inherit via `:host`

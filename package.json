@@ -27,11 +27,12 @@
         "test:unit": "vitest --run",
         "test:e2e": "playwright test",
         "test": "npm-run-all lint build seed test:unit test:e2e",
-        "lint": "npm-run-all -p lint:server lint:client lint:test lint:e2e",
+        "lint": "npm-run-all -p lint:server lint:client lint:test lint:e2e lint:css",
         "lint:server": "tsc --noEmit --project tsconfig-server.json",
         "lint:client": "tsc --noEmit --project tsconfig-client.json",
         "lint:test": "tsc --noEmit --project tsconfig-test.json",
         "lint:e2e": "tsc --noEmit --project tsconfig-e2e.json",
+        "lint:css": "stylelint 'client/**/*.css'",
         "format": "prettier --write ."
     },
     "keywords": [
@@ -72,6 +73,8 @@
         "playwright": "^1.58.1",
         "pm2": "^6.0.14",
         "prettier": "^3.8.1",
+        "stylelint": "^17.1.1",
+        "stylelint-config-standard": "^40.0.0",
         "supertest": "^7.2.2",
         "tsx": "^4.21.0",
         "typescript": "^5.9.3",

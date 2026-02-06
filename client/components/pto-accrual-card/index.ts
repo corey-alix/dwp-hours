@@ -180,23 +180,24 @@ export class PtoAccrualCard extends PtoSectionCard {
                 }
 
                 .card {
-                    background: #ffffff;
-                    border: 1px solid #e9ecef;
-                    border-radius: 8px;
-                    padding: 16px;
-                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+                    background: var(--color-background);
+                    border: var(--border-width) var(--border-style-solid) var(--color-border);
+                    border-radius: var(--border-radius-lg);
+                    padding: var(--space-lg);
+                    box-shadow: var(--shadow-md);
                 }
 
                 h4 {
-                    margin: 0 0 12px 0;
-                    font-size: 16px;
-                    color: #2c3e50;
+                    margin: 0 0 var(--space-md) 0;
+                    font-size: var(--font-size-lg);
+                    color: var(--color-text);
+                    font-weight: var(--font-weight-semibold);
                 }
 
                 .accrual-grid {
                     display: grid;
                     grid-template-columns: 1fr auto auto auto;
-                    gap: 8px 12px;
+                    gap: var(--space-sm) var(--space-md);
                 }
 
                 .accrual-row {
@@ -204,16 +205,16 @@ export class PtoAccrualCard extends PtoSectionCard {
                     grid-template-columns: subgrid;
                     grid-column: 1 / -1;
                     align-items: center;
-                    font-size: 14px;
-                    color: #34495e;
+                    font-size: var(--font-size-sm);
+                    color: var(--color-text-secondary);
                     cursor: pointer;
                 }
 
                 .accrual-row.header {
-                    font-size: 12px;
+                    font-size: var(--font-size-xs);
                     text-transform: uppercase;
                     letter-spacing: 0.04em;
-                    color: #6c757d;
+                    color: var(--color-text-muted);
                 }
 
                 .accrual-row.header .label {
@@ -221,7 +222,7 @@ export class PtoAccrualCard extends PtoSectionCard {
                 }
 
                 .accrual-row .month {
-                    font-weight: 600;
+                    font-weight: var(--font-weight-semibold);
                 }
 
                 .accrual-row.projected {
@@ -234,18 +235,18 @@ export class PtoAccrualCard extends PtoSectionCard {
                 }
 
                 .accrual-grid.wide .data-row.alt {
-                    background-color: #f8f9fa;
+                    background-color: var(--color-surface);
                 }
 
                 .accrual-row.current {
-                    background: #e8f4fd;
-                    border-radius: 4px;
-                    padding: 4px 8px;
-                    margin: 0 -8px;
+                    background: var(--color-primary-light);
+                    border-radius: var(--border-radius);
+                    padding: var(--space-xs) var(--space-sm);
+                    margin: 0 calc(-1 * var(--space-sm));
                 }
 
                 .accrual-row:hover {
-                    background-color: #f0f8ff !important;
+                    background-color: var(--color-surface-hover) !important;
                 }
 
                 .accrual-row .hours,
@@ -255,43 +256,44 @@ export class PtoAccrualCard extends PtoSectionCard {
 
                 .calendar-button {
                     border: none;
-                    background: #f2f4f7;
-                    border-radius: 6px;
-                    padding: 4px 8px;
+                    background: var(--color-surface);
+                    border-radius: var(--border-radius);
+                    padding: var(--space-xs) var(--space-sm);
                     cursor: pointer;
+                    color: var(--color-text);
                 }
 
                 .calendar-button.request-mode {
-                    background: #007bff;
-                    color: white;
+                    background: var(--color-primary);
+                    color: var(--color-on-primary);
                 }
 
                 .calendar-button.request-mode:hover {
-                    background: #0056b3;
+                    background: var(--color-primary-hover);
                 }
 
                 .empty {
-                    color: #6c757d;
-                    font-size: 13px;
+                    color: var(--color-text-muted);
+                    font-size: var(--font-size-xs);
                 }
 
                 .submit-button {
-                    background: #007bff;
-                    color: white;
+                    background: var(--color-primary);
+                    color: var(--color-on-primary);
                     border: none;
-                    padding: 8px 16px;
-                    border-radius: 4px;
-                    font-size: 14px;
+                    padding: var(--space-sm) var(--space-lg);
+                    border-radius: var(--border-radius);
+                    font-size: var(--font-size-sm);
                     cursor: pointer;
                     transition: background-color 0.2s;
                 }
 
                 .submit-button:hover {
-                    background: #0056b3;
+                    background: var(--color-primary-hover);
                 }
 
                 .submit-button:disabled {
-                    background: #6c757d;
+                    background: var(--color-text-muted);
                     cursor: not-allowed;
                 }
             </style>

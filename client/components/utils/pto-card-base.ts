@@ -29,30 +29,32 @@ export class PtoSectionCard extends HTMLElement {
                 }
 
                 .card {
-                    background: #ffffff;
-                    border: 1px solid #e9ecef;
-                    border-radius: 8px;
-                    padding: 16px;
-                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+                    background: var(--color-background);
+                    border: var(--border-width) var(--border-style-solid) var(--color-border);
+                    border-radius: var(--border-radius-lg);
+                    padding: var(--space-lg);
+                    box-shadow: var(--shadow-md);
                 }
 
                 .card h4 {
-                    margin: 0 0 12px 0;
-                    font-size: 16px;
-                    color: #2c3e50;
+                    margin: 0 0 var(--space-md) 0;
+                    font-size: var(--font-size-lg);
+                    color: var(--color-text);
+                    font-weight: var(--font-weight-semibold);
                 }
 
                 .card .row {
                     display: flex;
                     justify-content: space-between;
-                    gap: 16px;
-                    margin: 6px 0;
-                    font-size: 14px;
-                    color: #34495e;
+                    gap: var(--space-lg);
+                    margin: var(--space-xs) 0;
+                    font-size: var(--font-size-sm);
+                    color: var(--color-text-secondary);
                 }
 
                 .card .label {
-                    font-weight: 600;
+                    font-weight: var(--font-weight-semibold);
+                    color: var(--color-text);
                 }
             </style>
             <div class="card">
@@ -140,45 +142,47 @@ export class SimplePtoBucketCard extends PtoSectionCard {
                 }
 
                 .card {
-                    background: #ffffff;
-                    border: 1px solid #e9ecef;
-                    border-radius: 8px;
-                    padding: 16px;
-                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+                    background: var(--color-background);
+                    border: var(--border-width) var(--border-style-solid) var(--color-border);
+                    border-radius: var(--border-radius-lg);
+                    padding: var(--space-lg);
+                    box-shadow: var(--shadow-md);
                 }
 
                 .card h4 {
-                    margin: 0 0 12px 0;
-                    font-size: 16px;
-                    color: #2c3e50;
+                    margin: 0 0 var(--space-md) 0;
+                    font-size: var(--font-size-lg);
+                    color: var(--color-text);
+                    font-weight: var(--font-weight-semibold);
                 }
 
                 .card .row {
                     display: flex;
                     justify-content: space-between;
-                    gap: 16px;
-                    margin: 6px 0;
-                    font-size: 14px;
-                    color: #34495e;
+                    gap: var(--space-lg);
+                    margin: var(--space-xs) 0;
+                    font-size: var(--font-size-sm);
+                    color: var(--color-text-secondary);
                 }
 
                 .card .label {
-                    font-weight: 600;
+                    font-weight: var(--font-weight-semibold);
+                    color: var(--color-text);
                 }
 
                 .usage-section {
-                    margin-top: 12px;
-                    border-top: 1px solid #eef0f2;
-                    padding-top: 10px;
+                    margin-top: var(--space-md);
+                    border-top: var(--border-width) var(--border-style-solid) var(--color-border);
+                    padding-top: var(--space-sm);
                 }
 
                 .usage-title {
-                    font-size: 12px;
-                    font-weight: 600;
+                    font-size: var(--font-size-xs);
+                    font-weight: var(--font-weight-semibold);
                     text-transform: uppercase;
                     letter-spacing: 0.04em;
-                    color: #6c757d;
-                    margin-bottom: 6px;
+                    color: var(--color-text-muted);
+                    margin-bottom: var(--space-xs);
                 }
 
                 .usage-list {
@@ -186,20 +190,20 @@ export class SimplePtoBucketCard extends PtoSectionCard {
                     padding: 0;
                     margin: 0;
                     display: grid;
-                    gap: 6px;
-                    font-size: 13px;
-                    color: #34495e;
+                    gap: var(--space-xs);
+                    font-size: var(--font-size-xs);
+                    color: var(--color-text-secondary);
                 }
 
                 .usage-list li {
                     display: flex;
                     justify-content: space-between;
-                    gap: 12px;
+                    gap: var(--space-md);
                 }
 
                 .empty {
-                    color: #6c757d;
-                    font-size: 13px;
+                    color: var(--color-text-muted);
+                    font-size: var(--font-size-xs);
                 }
             </style>
             <div class="card">

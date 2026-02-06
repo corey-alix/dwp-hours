@@ -73,15 +73,15 @@ export class PtoRequestQueue extends HTMLElement {
                 }
 
                 .queue-title {
-                    font-size: 20px;
-                    font-weight: 600;
-                    color: #2c3e50;
+                    font-size: var(--font-size-xl);
+                    font-weight: var(--font-weight-bold);
+                    color: var(--color-text);
                     margin: 0;
                 }
 
                 .queue-stats {
                     display: flex;
-                    gap: 16px;
+                    gap: var(--space-lg);
                     align-items: center;
                 }
 
@@ -92,14 +92,14 @@ export class PtoRequestQueue extends HTMLElement {
                 }
 
                 .stat-value {
-                    font-size: 24px;
-                    font-weight: 700;
-                    color: #3498db;
+                    font-size: var(--font-size-2xl);
+                    font-weight: var(--font-weight-bold);
+                    color: var(--color-primary);
                 }
 
                 .stat-label {
-                    font-size: 12px;
-                    color: #7f8c8d;
+                    font-size: var(--font-size-xs);
+                    color: var(--color-text-muted);
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
                 }
@@ -137,27 +137,27 @@ export class PtoRequestQueue extends HTMLElement {
                 }
 
                 .employee-name {
-                    font-size: 18px;
-                    font-weight: 600;
-                    color: #2c3e50;
+                    font-size: var(--font-size-lg);
+                    font-weight: var(--font-weight-bold);
+                    color: var(--color-text);
                     margin: 0;
                 }
 
                 .request-type {
-                    background: #3498db;
-                    color: white;
-                    padding: 4px 8px;
-                    border-radius: 12px;
-                    font-size: 12px;
-                    font-weight: 500;
-                    margin-top: 4px;
+                    background: var(--color-primary);
+                    color: var(--color-on-primary);
+                    padding: var(--space-xs) var(--space-sm);
+                    border-radius: var(--border-radius-xl);
+                    font-size: var(--font-size-xs);
+                    font-weight: var(--font-weight-medium);
+                    margin-top: var(--space-xs);
                     display: inline-block;
                 }
 
-                .request-type.Sick { background: #e74c3c; }
-                .request-type.PTO { background: #27ae60; }
-                .request-type.Bereavement { background: #9b59b6; }
-                .request-type.Jury-Duty { background: #f39c12; }
+                .request-type.Sick { background: var(--color-pto-sick); }
+                .request-type.PTO { background: var(--color-pto-vacation); }
+                .request-type.Bereavement { background: var(--color-pto-bereavement); }
+                .request-type.Jury-Duty { background: var(--color-pto-jury-duty); }
 
                 .request-details {
                     display: grid;
@@ -172,96 +172,98 @@ export class PtoRequestQueue extends HTMLElement {
                 }
 
                 .detail-label {
-                    font-size: 12px;
-                    color: #7f8c8d;
+                    font-size: var(--font-size-xs);
+                    color: var(--color-text-muted);
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
-                    margin-bottom: 4px;
+                    margin-bottom: var(--space-xs);
                 }
 
                 .detail-value {
-                    font-size: 14px;
-                    font-weight: 500;
-                    color: #2c3e50;
+                    font-size: var(--font-size-sm);
+                    font-weight: var(--font-weight-medium);
+                    color: var(--color-text);
                 }
 
                 .request-dates {
                     display: flex;
                     align-items: center;
-                    gap: 8px;
+                    gap: var(--space-sm);
                 }
 
                 .date-range {
-                    background: #f8f9fa;
-                    padding: 4px 8px;
-                    border-radius: 4px;
-                    font-size: 13px;
-                    color: #495057;
+                    background: var(--color-surface);
+                    padding: var(--space-xs) var(--space-sm);
+                    border-radius: var(--border-radius);
+                    font-size: var(--font-size-xs);
+                    color: var(--color-text-secondary);
                 }
 
                 .request-actions {
                     display: flex;
-                    gap: 12px;
+                    gap: var(--space-md);
                     justify-content: flex-end;
                 }
 
                 .action-btn {
-                    padding: 8px 16px;
+                    padding: var(--space-sm) var(--space-lg);
                     border: none;
-                    border-radius: 4px;
+                    border-radius: var(--border-radius);
                     cursor: pointer;
-                    font-size: 14px;
-                    font-weight: 500;
+                    font-size: var(--font-size-sm);
+                    font-weight: var(--font-weight-medium);
                     transition: all 0.3s ease;
                 }
 
                 .action-btn.approve {
-                    background: #27ae60;
-                    color: white;
+                    background: var(--color-success);
+                    color: var(--color-on-success);
                 }
 
                 .action-btn.approve:hover {
-                    background: #229954;
+                    background: var(--color-success);
+                    opacity: 0.8;
                 }
 
                 .action-btn.reject {
-                    background: #e74c3c;
-                    color: white;
+                    background: var(--color-error);
+                    color: var(--color-on-error);
                 }
 
                 .action-btn.reject:hover {
-                    background: #c0392b;
+                    background: var(--color-error);
+                    opacity: 0.8;
                 }
 
                 .empty-state {
                     text-align: center;
-                    padding: 60px 20px;
-                    color: #7f8c8d;
+                    padding: var(--space-2xl) * 1.5 var(--space-xl);
+                    color: var(--color-text-muted);
                 }
 
                 .empty-state h3 {
-                    margin: 0 0 10px;
-                    font-size: 20px;
-                    color: #2c3e50;
+                    margin: 0 0 var(--space-sm);
+                    font-size: var(--font-size-xl);
+                    color: var(--color-text);
                 }
 
                 .empty-state p {
                     margin: 0;
-                    font-size: 16px;
+                    font-size: var(--font-size-base);
                 }
 
                 .status-badge {
-                    padding: 4px 8px;
-                    border-radius: 12px;
+                    padding: var(--space-xs) var(--space-sm);
+                    border-radius: var(--border-radius-xl);
                     font-size: 11px;
-                    font-weight: 600;
+                    font-weight: var(--font-weight-bold);
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
                 }
 
                 .status-badge.pending {
-                    background: #fff3cd;
-                    color: #856404;
+                    background: var(--color-warning-light);
+                    color: var(--color-warning);
                 }
             </style>
 
