@@ -6,6 +6,7 @@ interface PtoRequest {
 }
 
 import { querySingle } from '../test-utils';
+import { today, isWeekend, addDays, getWeekdaysBetween } from '../../../shared/dateUtils.js';
 
 export class PtoEntryForm extends HTMLElement {
     private shadow: ShadowRoot;
@@ -21,11 +22,98 @@ export class PtoEntryForm extends HTMLElement {
 
     connectedCallback() {
         this.render();
+        this.initializeFormDefaults();
         this.setupEventListeners();
     }
 
     disconnectedCallback() {
         // Clean up event listeners if needed
+    }
+
+    private getNextBusinessDay(dateStr: string): string {
+        let currentDate = dateStr;
+        while (isWeekend(currentDate)) {
+            currentDate = addDays(currentDate, 1);
+        }
+        return currentDate;
+    }
+
+    private initializeFormDefaults(): void {
+        const startDateInput = querySingle<HTMLInputElement>('#start-date', this.shadow);
+        const endDateInput = querySingle<HTMLInputElement>('#end-date', this.shadow);
+        const ptoTypeSelect = querySingle<HTMLSelectElement>('#pto-type', this.shadow);
+
+        // Set default dates to today (or next business day if today is weekend)
+        const defaultDate = this.getNextBusinessDay(today());
+        startDateInput.value = defaultDate;
+        endDateInput.value = defaultDate;
+
+        // Set default PTO type to "Full PTO"
+        ptoTypeSelect.value = 'Full PTO';
+
+        // Apply conditional field behavior
+        this.updateFieldBehavior('Full PTO');
+
+        // Set initial end date min constraint
+        this.updateEndDateMinConstraint();
+    }
+
+    private updateFieldBehavior(ptoType: string): void {
+        const hoursInput = querySingle<HTMLInputElement>('#hours', this.shadow);
+        const endDateInput = querySingle<HTMLInputElement>('#end-date', this.shadow);
+        const hoursLabel = querySingle<HTMLLabelElement>('label[for="hours"]', this.shadow);
+
+        if (ptoType === 'Full PTO') {
+            // For "Full PTO": End Date editable, Hours readonly (calculated from date range)
+            hoursLabel.textContent = 'Days';
+            hoursInput.readOnly = true;
+            this.updateDaysFromDateRange(); // Calculate days from current date range
+            endDateInput.readOnly = false;
+        } else {
+            // For other types: Hours editable, End Date readonly (calculated based on spillover logic)
+            hoursLabel.textContent = 'Hours';
+            hoursInput.readOnly = false;
+            hoursInput.value = '4'; // Default to 4 hours
+            endDateInput.readOnly = true;
+        }
+    }
+
+    private updateDaysFromDateRange(): void {
+        const startDateInput = querySingle<HTMLInputElement>('#start-date', this.shadow);
+        const endDateInput = querySingle<HTMLInputElement>('#end-date', this.shadow);
+        const hoursInput = querySingle<HTMLInputElement>('#hours', this.shadow);
+
+        const startDate = startDateInput.value;
+        const endDate = endDateInput.value;
+
+        if (startDate && endDate) {
+            try {
+                const weekdays = getWeekdaysBetween(startDate, endDate);
+                hoursInput.value = weekdays.toString();
+            } catch (error) {
+                console.error('Error calculating weekdays:', error);
+                hoursInput.value = '0';
+            }
+        }
+    }
+
+    private updateEndDateMinConstraint(): void {
+        const startDateInput = querySingle<HTMLInputElement>('#start-date', this.shadow);
+        const endDateInput = querySingle<HTMLInputElement>('#end-date', this.shadow);
+
+        const startDate = startDateInput.value;
+        if (startDate) {
+            endDateInput.min = startDate;
+            // If current end date is before start date, update it
+            if (endDateInput.value && endDateInput.value < startDate) {
+                endDateInput.value = startDate;
+                // Recalculate days if in Full PTO mode
+                const ptoTypeSelect = querySingle<HTMLSelectElement>('#pto-type', this.shadow);
+                if (ptoTypeSelect.value === 'Full PTO') {
+                    this.updateDaysFromDateRange();
+                }
+            }
+        }
     }
 
     private render() {
@@ -93,8 +181,20 @@ export class PtoEntryForm extends HTMLElement {
                     border-color: var(--color-error);
                 }
 
+                .form-input.warning,
+                .form-select.warning {
+                    border-color: var(--color-warning, #ffc107);
+                }
+
                 .error-message {
                     color: var(--color-error);
+                    font-size: var(--font-size-xs);
+                    margin-top: var(--space-xs);
+                    display: block;
+                }
+
+                .warning-message {
+                    color: var(--color-warning, #ffc107);
                     font-size: var(--font-size-xs);
                     margin-top: var(--space-xs);
                     display: block;
@@ -256,6 +356,7 @@ export class PtoEntryForm extends HTMLElement {
     private setupEventListeners() {
         const form = querySingle<HTMLFormElement>('#pto-form', this.shadow);
         const cancelBtn = querySingle<HTMLButtonElement>('#cancel-btn', this.shadow);
+        const ptoTypeSelect = querySingle<HTMLSelectElement>('#pto-type', this.shadow);
 
         form?.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -266,6 +367,30 @@ export class PtoEntryForm extends HTMLElement {
 
         cancelBtn?.addEventListener('click', () => {
             this.dispatchEvent(new CustomEvent('form-cancel'));
+        });
+
+        // PTO type change listener for dynamic field behavior
+        ptoTypeSelect?.addEventListener('change', (e) => {
+            const target = e.target as HTMLSelectElement;
+            this.updateFieldBehavior(target.value);
+        });
+
+        // Date change listeners for "Full PTO" days calculation and min date constraints
+        const startDateInput = querySingle<HTMLInputElement>('#start-date', this.shadow);
+        const endDateInput = querySingle<HTMLInputElement>('#end-date', this.shadow);
+
+        startDateInput?.addEventListener('change', () => {
+            if (ptoTypeSelect.value === 'Full PTO') {
+                this.updateDaysFromDateRange();
+            }
+            // Update end date min constraint
+            this.updateEndDateMinConstraint();
+        });
+
+        endDateInput?.addEventListener('change', () => {
+            if (ptoTypeSelect.value === 'Full PTO') {
+                this.updateDaysFromDateRange();
+            }
         });
 
         // Real-time validation
@@ -291,7 +416,9 @@ export class PtoEntryForm extends HTMLElement {
         if (!this.validateField(startDateInput)) isValid = false;
         if (!this.validateField(endDateInput)) isValid = false;
         if (!this.validateField(ptoTypeInput)) isValid = false;
-        if (!this.validateField(hoursInput)) isValid = false;
+        
+        // Only validate hours if it's not readonly
+        if (!hoursInput.readOnly && !this.validateField(hoursInput)) isValid = false;
 
         // Cross-field validation: end date should be after start date
         if (isValid && startDateInput.value && endDateInput.value) {
@@ -312,10 +439,15 @@ export class PtoEntryForm extends HTMLElement {
 
         this.clearFieldError(input);
 
-        // Required field validation
+        // Required field validation (always check, even for readonly fields)
         if (input.hasAttribute('required') && !value) {
             this.setFieldError(input, 'This field is required');
             return false;
+        }
+
+        // Skip further validation for readonly fields
+        if ((input as HTMLInputElement).readOnly) {
+            return true;
         }
 
         // Type-specific validation
@@ -336,9 +468,13 @@ export class PtoEntryForm extends HTMLElement {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
-            if (date < today) {
-                this.setFieldError(input, 'Date cannot be in the past');
-                return false;
+            // Note: Past dates are allowed per business rules
+            // Restrictions are on next year entries and acknowledged months (handled server-side)
+
+            // Warn if weekend is selected (but don't prevent it)
+            if (isWeekend(value)) {
+                this.setFieldWarning(input, 'Warning: Selected date is a weekend. PTO is typically for weekdays.');
+                // Don't return false - just warn
             }
         }
 
@@ -353,11 +489,21 @@ export class PtoEntryForm extends HTMLElement {
         }
     }
 
+    private setFieldWarning(input: HTMLInputElement | HTMLSelectElement, message: string) {
+        input.classList.add('warning');
+        const errorElement = querySingle<HTMLElement>(`#${input.id}-error`, this.shadow);
+        if (errorElement) {
+            errorElement.textContent = message;
+            errorElement.className = 'warning-message';
+        }
+    }
+
     private clearFieldError(input: HTMLInputElement | HTMLSelectElement) {
-        input.classList.remove('error');
+        input.classList.remove('error', 'warning');
         const errorElement = querySingle<HTMLElement>(`#${input.id}-error`, this.shadow);
         if (errorElement) {
             errorElement.textContent = '';
+            errorElement.className = 'error-message';
         }
     }
 
@@ -387,6 +533,9 @@ export class PtoEntryForm extends HTMLElement {
         inputs.forEach(input => {
             this.clearFieldError(input as HTMLInputElement | HTMLSelectElement);
         });
+
+        // Reinitialize form defaults
+        this.initializeFormDefaults();
     }
 
     focus() {

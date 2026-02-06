@@ -212,3 +212,35 @@ export function dateToString(date: Date): string {
     const day = date.getDate();
     return formatDate(year, month, day);
 }
+
+/**
+ * Calculate the number of weekdays (Monday-Friday) between two dates, inclusive
+ * @param startDateStr - Start date in YYYY-MM-DD format
+ * @param endDateStr - End date in YYYY-MM-DD format
+ * @returns Number of weekdays between the dates
+ */
+export function getWeekdaysBetween(startDateStr: string, endDateStr: string): number {
+    if (!isValidDateString(startDateStr) || !isValidDateString(endDateStr)) {
+        throw new Error('Invalid date string format');
+    }
+
+    const startDate = new Date(startDateStr);
+    const endDate = new Date(endDateStr);
+
+    if (startDate > endDate) {
+        return 0; // Return 0 if start date is after end date
+    }
+
+    let weekdays = 0;
+    const currentDate = new Date(startDate);
+
+    while (currentDate <= endDate) {
+        const dateStr = dateToString(currentDate);
+        if (!isWeekend(dateStr)) {
+            weekdays++;
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return weekdays;
+}

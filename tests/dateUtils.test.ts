@@ -16,7 +16,8 @@ import {
     startOfMonth,
     endOfMonth,
     getDaysInMonth,
-    dateToString
+    dateToString,
+    getWeekdaysBetween
 } from '../shared/dateUtils.js';
 
 describe('Date Utils', () => {
@@ -275,6 +276,31 @@ describe('Date Utils', () => {
 
             // In UTC+10 timezone, '2026-03-12' becomes '2026-03-11'
             // This is the source of the timezone shift in PTO entries
+        });
+    });
+
+    describe('getWeekdaysBetween', () => {
+        it('should count weekdays between two dates inclusive', () => {
+            // Monday to Friday (5 weekdays)
+            expect(getWeekdaysBetween('2026-02-10', '2026-02-14')).toBe(5);
+
+            // Single weekday
+            expect(getWeekdaysBetween('2026-02-10', '2026-02-10')).toBe(1);
+
+            // Including weekend (Friday to Sunday = only Friday is weekday)
+            expect(getWeekdaysBetween('2026-02-07', '2026-02-09')).toBe(1); // Fri only (Sat-Sun skipped)
+
+            // Week with weekend in middle
+            expect(getWeekdaysBetween('2026-02-10', '2026-02-16')).toBe(5); // Mon-Fri (skip Sat-Sun)
+        });
+
+        it('should return 0 when start date is after end date', () => {
+            expect(getWeekdaysBetween('2026-02-14', '2026-02-10')).toBe(0);
+        });
+
+        it('should handle invalid date strings', () => {
+            expect(() => getWeekdaysBetween('invalid', '2026-02-10')).toThrow();
+            expect(() => getWeekdaysBetween('2026-02-10', 'invalid')).toThrow();
         });
     });
 });
