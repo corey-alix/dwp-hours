@@ -18,7 +18,9 @@ export const VALIDATION_MESSAGES = {
     'employee.not_found': 'Employee not found',
     'entry.not_found': 'PTO entry not found',
     'hours.exceed_annual_sick': 'Sick time cannot exceed 24 hours annually',
-    'hours.exceed_annual_other': 'Bereavement/Jury Duty cannot exceed 40 hours annually'
+    'hours.exceed_annual_other': 'Bereavement/Jury Duty cannot exceed 40 hours annually',
+    'date.future_limit': 'Entries cannot be made into the next year',
+    'month.acknowledged': 'This month has been acknowledged by the administrator and is no longer editable'
 } as const;
 
 export type MessageKey = keyof typeof VALIDATION_MESSAGES;
@@ -89,6 +91,28 @@ export function validateAnnualLimits(type: PTOType, hours: number, totalAnnualHo
     }
     if ((type === 'Bereavement' || type === 'Jury Duty') && totalAnnualHours + hours > 40) {
         return { field: 'hours', messageKey: 'hours.exceed_annual_other' };
+    }
+    return null;
+}
+
+/**
+ * Validates that the date is not into the next year
+ */
+export function validateDateFutureLimit(date: Date): ValidationError | null {
+    const now = new Date();
+    const nextYear = new Date(now.getFullYear() + 1, 11, 31); // End of next year
+    if (date > nextYear) {
+        return { field: 'date', messageKey: 'date.future_limit' };
+    }
+    return null;
+}
+
+/**
+ * Validates that the month is not acknowledged (editable)
+ */
+export function validateMonthEditable(isAcknowledged: boolean): ValidationError | null {
+    if (isAcknowledged) {
+        return { field: 'month', messageKey: 'month.acknowledged' };
     }
     return null;
 }
