@@ -5,7 +5,8 @@
     "description": "A Node.js application for tracking monthly hours worked and managing Paid Time Off (PTO) for employees.",
     "main": "src/server.mts",
     "scripts": {
-        "dev": "npm run build:test-assets && http-serve public -p 3000 -o",
+        "dev": "echo '⚠️  WARNING: Do NOT run this in VS Code environment! Use external terminal.' && exit 1 || npm run build:test-assets && http-serve public -p 3000 -o",
+        "dev:external": "npm run build:test-assets && http-serve public -p 3000 -o",
         "dev:kill": "lsof -ti:3000 | xargs kill -9 || true",
         "build": "npm-run-all -p build:client build:server",
         "build:client": "npm-run-all build:client:js build:client:assets",

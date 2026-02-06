@@ -78,16 +78,18 @@ export class ConfirmationDialog extends HTMLElement {
                     justify-content: center;
                 }
                 .dialog {
-                    background: white;
+                    background: var(--color-surface);
                     border-radius: 8px;
                     padding: 20px;
                     max-width: 400px;
-                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    box-shadow: 0 4px 6px var(--color-shadow);
+                    border: 1px solid var(--color-border);
                 }
                 .message {
                     margin-bottom: 20px;
                     font-size: 16px;
                     line-height: 1.5;
+                    color: var(--color-text);
                 }
                 .buttons {
                     display: flex;
@@ -100,14 +102,25 @@ export class ConfirmationDialog extends HTMLElement {
                     border-radius: 4px;
                     cursor: pointer;
                     font-size: 14px;
+                    transition: background-color 0.2s ease;
+                }
+                button:focus {
+                    outline: 2px solid var(--color-primary);
+                    outline-offset: 2px;
                 }
                 .confirm {
-                    background: #dc3545;
+                    background: var(--color-error);
                     color: white;
                 }
+                .confirm:hover {
+                    background: var(--color-red-700);
+                }
                 .cancel {
-                    background: #6c757d;
+                    background: var(--color-secondary);
                     color: white;
+                }
+                .cancel:hover {
+                    background: var(--color-secondary-hover);
                 }
             </style>
             <div class="dialog">

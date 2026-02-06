@@ -24,11 +24,11 @@ Implement comprehensive light/dark mode support across all web components in the
 - [x] Update admin-panel component documentation
 
 ### Phase 3: Confirmation Dialog Component
-- [ ] Audit confirmation-dialog component for hardcoded colors
-- [ ] Update modal background, button colors, and text to use --color-surface, --color-primary, --color-error, --color-text
-- [ ] Test dialog appearance in both themes
-- [ ] Ensure proper focus indicators and contrast
-- [ ] Update confirmation-dialog component documentation
+- [x] Audit confirmation-dialog component for hardcoded colors
+- [x] Update modal background, button colors, and text to use --color-surface, --color-primary, --color-error, --color-text
+- [x] Test dialog appearance in both themes
+- [x] Ensure proper focus indicators and contrast
+- [x] Update confirmation-dialog component documentation
 
 ### Phase 4: Data Table Component
 - [ ] Audit data-table component for hardcoded colors

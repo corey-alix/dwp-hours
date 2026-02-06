@@ -1,6 +1,6 @@
 # GitHub Copilot Custom Instructions - DWP Hours Tracker
 
-> **⚠️ CRITICAL: Do NOT attempt to start the development server within this environment.** The workflow requires running `npm run dev` in a separate terminal outside of this environment to avoid conflicts with test execution. See "Server Management" section below for details.
+> **⚠️ CRITICAL: Do NOT attempt to start the development server within this environment.** The `npm run dev` script is now blocked and will exit with an error if run in VS Code. Use `npm run dev:external` in a separate terminal outside of this environment to avoid conflicts with test execution. See "Server Management" section below for details.
 
 ## Project Context
 You are assisting with the DWP Hours Tracker, a Node.js/TypeScript application for managing employee PTO and hours tracking. The project uses:
@@ -16,7 +16,7 @@ You are assisting with the DWP Hours Tracker, a Node.js/TypeScript application f
 **Important**: Avoid starting the development server within this environment. The current workflow of starting a blocking dev server and then running tests creates conflicts where tests may kill or interfere with the server process.
 
 **Recommended Approach**:
-- Run `npm run start` (or `npm run dev`) in a separate terminal outside of this environment
+- Run `npm run dev:external` (or `npm run start`) in a separate terminal outside of this environment
 - When server issues occur, restart the external server manually
 - For E2E testing, ensure the server is running on port 3000 before executing tests
 - Use `npm run dev:kill` if you need to kill a server process, but prefer manual server management

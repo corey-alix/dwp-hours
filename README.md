@@ -284,7 +284,7 @@ This project implements a comprehensive theming system using vanilla CSS that pr
 Each web component must be updated to use semantic CSS custom properties instead of hardcoded colors. The following plan outlines the theming adaptation for each component:
 
 - **admin-panel**: Update navigation background, borders, and text colors to use `--color-surface`, `--color-primary`, and `--color-text`
-- **confirmation-dialog**: Adapt modal background, button colors, and text to use `--color-surface`, `--color-primary`, `--color-error`, and `--color-text`
+- **confirmation-dialog**: ✅ Adapted modal background, button colors, and text to use `--color-surface`, `--color-primary`, `--color-error`, and `--color-text`
 - **data-table**: Update table headers, rows, borders, and hover states to use `--color-surface`, `--color-text`, and `--color-primary` variants
 - **employee-form**: Adapt form inputs, labels, borders, and validation states to use `--color-surface`, `--color-text`, `--color-primary`, and `--color-error`
 - **employee-list**: Update list items, action buttons, and status indicators to use `--color-surface`, `--color-text`, and `--color-primary`
