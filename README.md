@@ -432,7 +432,7 @@ dwp-hours-tracker/
 │       │   ├── test.html     # Component test page
 │       │   └── test.ts       # Component playground
 │       └── ...               # Other component folders
-├── src/                # Server-side source code
+├── server/                # Server-side source code
 │   ├── server.mts      # Main server entry point
 │   ├── entities/       # Server entities
 │   └── ...             # Other server files
@@ -543,7 +543,7 @@ The application uses a secure magic link authentication system that eliminates t
 
 ## TypeORM Entities
 
-The database schema is defined using TypeORM entities with relationships and decorators. The entities are located in `src/entities/` and automatically generate the SQLite tables.
+The database schema is defined using TypeORM entities with relationships and decorators. The entities are located in `server/entities/` and automatically generate the SQLite tables.
 
 ### Employee Entity
 

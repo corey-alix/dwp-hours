@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-type MailerModule = typeof import("../src/utils/mailer.js");
+type MailerModule = typeof import("../server/utils/mailer.js");
 
 type TransportMock = {
     sendMail: ReturnType<typeof vi.fn>;
@@ -30,7 +30,7 @@ describe("mailer", () => {
         process.env.SENDER_EMAIL = "no-reply@example.com";
         process.env.NODE_ENV = "test";
 
-        mailer = await import("../src/utils/mailer.js");
+        mailer = await import("../server/utils/mailer.js");
         mailer.resetMailerForTests();
 
         createTransportMock.mockClear();

@@ -3,6 +3,6 @@
   "compilerOptions": {
     "lib": ["ES2020"]
   },
-  "include": ["src/**/*"],
+  "include": ["server/**/*"],
   "exclude": ["node_modules", "dist"]
 }

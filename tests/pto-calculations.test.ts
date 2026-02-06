@@ -3,7 +3,7 @@ import {
     getWorkDays,
     getTotalWorkDaysInYear,
     calculateMonthlyAccrual
-} from '../src/workDays.js';
+} from '../server/workDays.js';
 import {
     calculatePTOStatus,
     calculateUsedPTO,
@@ -12,7 +12,7 @@ import {
     PTOStatus,
     PTOEntry,
     Employee
-} from '../src/ptoCalculations.js';
+} from '../server/ptoCalculations.js';
 
 describe('Work Days Lookup', () => {
     it('should get work days for January', () => {

@@ -13,8 +13,12 @@ test('admin-panel component test', async ({ page }) => {
     // Wait for the page to load and component to initialize
     await page.waitForSelector('#test-output');
 
-    // Check that no console errors occurred during loading
-    const errors = consoleMessages.filter(msg => msg.type === 'error');
+    // Allow for non-critical errors (like missing favicon)
+    const errors = consoleMessages.filter(msg =>
+        msg.type === 'error' &&
+        !msg.text.includes('favicon') &&
+        !msg.text.includes('manifest')
+    );
     expect(errors).toHaveLength(0);
 
     // Check that expected log messages are present
@@ -68,6 +72,10 @@ test('admin-panel component test', async ({ page }) => {
     // Just check the click doesn't cause errors
 
     // Ensure no console errors throughout the test
-    const finalErrors = consoleMessages.filter(msg => msg.type === 'error');
+    const finalErrors = consoleMessages.filter(msg =>
+        msg.type === 'error' &&
+        !msg.text.includes('favicon') &&
+        !msg.text.includes('manifest')
+    );
     expect(finalErrors).toHaveLength(0);
 });

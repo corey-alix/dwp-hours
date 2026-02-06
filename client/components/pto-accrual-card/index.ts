@@ -1,6 +1,6 @@
 import { PtoSectionCard, monthNames } from "../utils/pto-card-base.js";
 import { PtoCalendar, CalendarEntry } from "../pto-calendar/index.js";
-import { getWorkDays, getTotalWorkDaysInYear, getAllocationRate } from "../../../src/workDays.js";
+import { getWorkDays, getTotalWorkDaysInYear, getAllocationRate } from "../../../server/workDays.js";
 
 type CalendarData = Record<number, Record<number, { type: string; hours: number }>>;
 

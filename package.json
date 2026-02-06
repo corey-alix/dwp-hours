@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "type": "module",
     "description": "A Node.js application for tracking monthly hours worked and managing Paid Time Off (PTO) for employees.",
-    "main": "src/server.mts",
+    "main": "server/server.mts",
     "scripts": {
         "dev": "echo '⚠️  WARNING: Do NOT run this in VS Code environment! Use external terminal.' && echo 'If you would like me to restart the external server, type \"ready\"' && read response && if [ \"$response\" = \"ready\" ]; then npm run dev:external; else echo 'Cancelled. Assuming external server is running.'; exit 0; fi",
         "dev:external": "npm run build:test-assets && http-serve public -p 3000 -o",
@@ -13,7 +13,7 @@
         "build:client:js": "esbuild client/app.ts --bundle --outfile=public/app.js --format=esm --sourcemap",
         "build:client:assets": "cp client/index.html client/styles.css client/test.html public/",
         "build:test-assets": "cp -r client/components public/ && cp client/test.html public/",
-        "build:server": "esbuild src/server.mts --bundle --outfile=dist/server.mjs --format=esm --platform=node --packages=external --sourcemap",
+        "build:server": "esbuild server/server.mts --bundle --outfile=dist/server.mjs --format=esm --platform=node --packages=external --sourcemap",
         "start": "nodemon",
         "start:prod": "node dist/server.mjs",
         "pm2:start": "pm2 start ecosystem.config.json",

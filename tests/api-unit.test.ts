@@ -6,7 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { DataSource } from 'typeorm';
-import { Employee, PtoEntry, MonthlyHours, Acknowledgement, AdminAcknowledgement } from '../src/entities/index.js';
+import { Employee, PtoEntry, MonthlyHours, Acknowledgement, AdminAcknowledgement } from '../server/entities/index.js';
 import crypto from 'crypto';
 import { body, validationResult } from 'express-validator';
 

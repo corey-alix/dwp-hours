@@ -1,6 +1,6 @@
 import "dotenv/config";
 
-import { sendEmail } from "../src/utils/mailer.js";
+import { sendEmail } from "../server/utils/mailer.js";
 
 const to = "coreyalix@gmail.com";
 const cc = "calix@dataworksplus.com";
