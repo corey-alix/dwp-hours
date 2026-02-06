@@ -3,6 +3,10 @@
 ## Overview
 Create migration scripts to import data from the legacy spreadsheet and set up initial data.
 
+## Suggestions/Commands
+- Start server: `npm run start:prod`
+- Stop server: `npm run stop`
+
 ## Checklist
 
 ### Legacy Data Analysis
@@ -46,5 +50,5 @@ Create migration scripts to import data from the legacy spreadsheet and set up i
 - [ ] Implement dry-run mode for testing
 - [ ] Add backup creation before migration
 - [ ] Create migration rollback procedures
-- [ ] Document migration steps and prerequisites</content>
+- [ ] Document migration steps and prerequisites
 <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/TASKS/data-migration.md
