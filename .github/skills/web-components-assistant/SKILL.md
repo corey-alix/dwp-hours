@@ -1,3 +1,10 @@
+---
+name: web-components-assistant
+description: Specialized assistant for implementing and maintaining web components in the DWP Hours Tracker frontend
+category: implementation
+version: 1.0
+---
+
 # Web Components Assistant
 
 ## Description
@@ -25,6 +32,70 @@ Follow this structured approach when implementing web components:
 7. **Event Handling**: Implement custom events for component communication
 8. **Integration Testing**: Test component in the DWP Hours Tracker context
 9. **Documentation**: Update component usage documentation
+
+## Component Testing Pattern
+
+When creating web components, follow this testing structure:
+
+### Test Files Structure
+```
+client/components/[component-name]/
+├── index.ts          # Component implementation
+├── test.html         # Manual testing page
+└── test.ts           # Automated test playground
+```
+
+### test.html Pattern
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Component Name Test</title>
+    <link rel="stylesheet" href="../../styles.css" />
+</head>
+<body>
+    <h1>Component Name Test</h1>
+    <div id="test-output" style="display: block; padding: 10px; border: 1px solid var(--color-border); margin: 10px 0; background: var(--color-surface); color: var(--color-text);"></div>
+
+    <component-name id="component-id"></component-name>
+
+    <script type="module">
+        import {componentName} from "/app.js";
+        componentName();
+    </script>
+</body>
+</html>
+```
+
+### test.ts Pattern
+```typescript
+import { querySingle } from '../test-utils.js';
+
+export function playground() {
+    console.log('Starting component playground test...');
+    
+    const component = querySingle('component-name') as any;
+    
+    // Test component functionality
+    component.addEventListener('custom-event', (e: CustomEvent) => {
+        console.log('Event received:', e.detail);
+        querySingle('#test-output').textContent = `Event: ${JSON.stringify(e.detail)}`;
+    });
+    
+    // Additional test scenarios...
+    console.log('Component playground test initialized');
+}
+```
+
+### Integration Steps
+1. Add component export to `client/components/index.ts`
+2. Add playground import/export to `client/components/test.ts`
+3. Create test.html following the pattern above
+4. Create test.ts with component-specific test logic
+5. Add E2E test in `e2e/component-[name].spec.ts`
+6. Update component exports in main test.ts file
 
 ## Examples
 Common queries that should trigger this skill:

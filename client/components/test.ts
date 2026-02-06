@@ -3,6 +3,7 @@ import { playground as confirmationDialog } from './confirmation-dialog/test.js'
 import { playground as adminPanel } from './admin-panel/test.js';
 import { playground as employeeList } from './employee-list/test.js';
 import { playground as employeeForm } from './employee-form/test.js';
+import { playground as ptoEntryForm } from './pto-entry-form/test.js';
 import { playground as ptoRequestQueue } from './pto-request-queue/test.js';
 import { playground as dataTable } from './data-table/test.js';
 import { playground as reportGenerator } from './report-generator/test.js';
@@ -21,6 +22,7 @@ export {
     adminPanel,
     employeeList,
     employeeForm,
+    ptoEntryForm,
     ptoRequestQueue,
     dataTable,
     reportGenerator,
