@@ -15,6 +15,7 @@ This document outlines all remaining tasks to complete the DWP Hours Tracker app
 5. **[testing-suite.md](testing-suite.md)** - Testing implementation
 6. **[data-migration.md](data-migration.md)** - Legacy data migration (see [`.github/skills/pto-spreadsheet-layout/SKILL.md`](../.github/skills/pto-spreadsheet-layout/SKILL.md) for spreadsheet structure reference)
 7. **[security-production.md](security-production.md)** - Security & production features
+8. **[design-constraints.md](design-constraints.md)** - Code quality improvements and design constraint compliance
 
 ### 🟢 Low Priority (Frontend/UI Features)
 8. **[admin-review-acknowledgment.md](admin-review-acknowledgment.md)** - Admin review acknowledgment
@@ -54,6 +55,7 @@ database-schema.md
 ### 🚧 In Progress
 - Admin review acknowledgment UI
 - Production deployment
+- Design constraints compliance (code quality improvements)
 
 ## Implementation Guidelines
 
@@ -73,6 +75,11 @@ database-schema.md
 - Security best practices
 - Clean, readable code
 
+### Design Constraints
+- Use `querySingle` instead of `getElementById` for DOM element queries to ensure errors are thrown if elements are not found
+- Do not use type casting (e.g., `as any`). Web components have specific types (e.g., `PtoEntryForm` for `pto-entry-form` elements) - use them for strong typing
+- `<any>` should be a last resort; leverage TypeScript's strict mode and proper type definitions for DOM elements
+
 ### Testing Requirements
 - Manual testing of new features
 - API endpoint testing
@@ -89,7 +96,8 @@ database-schema.md
 6. ✅ **data-migration.md** - legacy data migration completed
 7. ✅ **security-production.md** - production readiness completed
 8. ✅ **admin-panel.md** - admin UI features completed
-9. Implement **admin-review-acknowledgment.md** - admin review UI
+9. **design-constraints.md** - code quality improvements needed
+10. Implement **admin-review-acknowledgment.md** - admin review UI
 
 Each task file contains detailed checklists for implementation steps.</content>
 <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/TASKS/README.md

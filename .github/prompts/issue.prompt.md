@@ -35,6 +35,11 @@ Generate a comprehensive regression report by capturing the defect details and a
    - Areas to check for related issues
    - Test cases to run
 
+5. **Create Task File**:
+   - Generate a new file in the `TASKS/` folder named `issue-[brief-description].md`
+   - Use the full regression report as the file content
+   - Update the main `TASKS/README.md` to include the new issue in the task list
+
 ## Input Format
 
 Provide the regression details in the following format:

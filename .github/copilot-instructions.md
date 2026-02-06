@@ -80,7 +80,16 @@ async function loadData(): Promise<void> {
     // Handle error
   }
 }
+
+// DOM element queries - use strongly typed elements
+const ptoForm = querySingle<PtoEntryForm>('pto-entry-form');  // Specific type, no casting
+const input = querySingle<HTMLInputElement>('#input-id', ptoForm.shadowRoot);  // Scoped queries
 ```
+
+### DOM Element Handling
+- Always use strongly typed DOM elements - avoid `as any` or type casting
+- Use `querySingle` from `test-utils.ts` instead of `getElementById` for error-throwing behavior
+- Web components have specific class types (e.g., `PtoEntryForm` for `<pto-entry-form>`) - leverage them for type safety
 
 ### Error Handling
 - Always use try/catch blocks
