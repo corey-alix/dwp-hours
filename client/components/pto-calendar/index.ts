@@ -80,8 +80,10 @@ export class PtoCalendar extends HTMLElement {
             case 'pto-entries':
                 try {
                     this.ptoEntries = JSON.parse(newValue);
+                    console.log('PtoCalendar: Setting ptoEntries:', this.ptoEntries);
                 } catch (e) {
                     this.ptoEntries = [];
+                    console.log('PtoCalendar: Failed to parse pto-entries:', newValue);
                 }
                 break;
             case 'selected-month':
@@ -151,6 +153,7 @@ export class PtoCalendar extends HTMLElement {
     }
 
     private renderCalendar(): string {
+        console.log('PtoCalendar.renderCalendar called for month:', this.month, 'year:', this.year, 'ptoEntries:', this.ptoEntries);
         const firstDay = new Date(this.year, this.month, 1);
         const lastDay = new Date(this.year, this.month + 1, 0);
         const startDate = new Date(firstDay);
@@ -159,15 +162,21 @@ export class PtoCalendar extends HTMLElement {
         const endDate = new Date(lastDay);
         endDate.setDate(endDate.getDate() + (6 - lastDay.getDay()));
 
-        const calendarDays: { date: Date; isCurrentMonth: boolean; entry?: PTOEntry }[] = [];
+        const calendarDays: { date: Date; isCurrentMonth: boolean; entry?: PTOEntry; totalHours: number }[] = [];
 
         for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
             const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-            const entry = this.ptoEntries.find(e => e.date === dateStr);
+            const entriesForDate = this.ptoEntries.filter(e => e.date === dateStr);
+            const totalHours = entriesForDate.reduce((sum, e) => sum + e.hours, 0);
+            const entry = entriesForDate.length > 0 ? entriesForDate[0] : null;
+            if (dateStr === '2026-03-01') {
+                console.log('PtoCalendar: March 1 dateStr:', dateStr, 'entriesForDate:', entriesForDate, 'totalHours:', totalHours, 'entry:', entry);
+            }
             calendarDays.push({
                 date: new Date(d),
                 isCurrentMonth: d.getMonth() === this.month,
-                entry
+                entry: entry ?? undefined,
+                totalHours
             });
         }
 
@@ -180,7 +189,7 @@ export class PtoCalendar extends HTMLElement {
                 </div>
                 <div class="calendar-grid">
                     ${weekdays.map(day => `<div class="weekday">${day}</div>`).join('')}
-                    ${calendarDays.map(({ date, isCurrentMonth, entry }) => {
+                    ${calendarDays.map(({ date, isCurrentMonth, entry, totalHours }) => {
             const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
             const isSelected = this.selectedCells.has(dateStr);
             const selectedHours = this.selectedCells.get(dateStr) || 8;
@@ -189,7 +198,7 @@ export class PtoCalendar extends HTMLElement {
             const emptyClass = isCurrentMonth ? '' : 'empty';
             const selectedClass = isSelected ? 'selected' : '';
             const clickableClass = (!this.readonly && isCurrentMonth && !isWeekend) ? 'clickable' : '';
-            const hoursDisplay = entry ? entry.hours.toFixed(0) : (isSelected ? selectedHours.toFixed(0) : '');
+            const hoursDisplay = totalHours > 0 ? totalHours.toFixed(0) : (isSelected ? selectedHours.toFixed(0) : '');
             const hoursElement = (!this.readonly && isSelected) ?
                 `<input type="number" class="hours-input" value="${selectedHours}" min="0" max="8" step="4" data-date="${dateStr}">` :
                 `<div class="hours">${hoursDisplay}</div>`;

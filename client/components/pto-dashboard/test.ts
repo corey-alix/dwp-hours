@@ -1,85 +1,179 @@
 import { querySingle } from '../test-utils.js';
-import { PtoAccrualCard, PtoBereavementCard, PtoSickCard, PtoSummaryCard } from './index.js';
+import { PtoAccrualCard, PtoBereavementCard, PtoEmployeeInfoCard, PtoJuryDutyCard, PtoSickCard, PtoSummaryCard } from './index.js';
 
-// Extracted model from seed.js
-const seedEmployees = [
+// API response data
+const ptoStatus = {
+    "employeeId": 1,
+    "hireDate": "2020-01-14",
+    "annualAllocation": 96,
+    "availablePTO": 96,
+    "usedPTO": 40,
+    "carryoverFromPreviousYear": 40,
+    "monthlyAccruals": [
+        {
+            "month": 1,
+            "hours": 8.091954022988507
+        },
+        {
+            "month": 2,
+            "hours": 7.35632183908046
+        },
+        {
+            "month": 3,
+            "hours": 8.091954022988507
+        },
+        {
+            "month": 4,
+            "hours": 8.091954022988507
+        },
+        {
+            "month": 5,
+            "hours": 7.724137931034482
+        },
+        {
+            "month": 6,
+            "hours": 8.091954022988507
+        },
+        {
+            "month": 7,
+            "hours": 8.459770114942529
+        },
+        {
+            "month": 8,
+            "hours": 7.724137931034482
+        },
+        {
+            "month": 9,
+            "hours": 8.091954022988507
+        },
+        {
+            "month": 10,
+            "hours": 8.091954022988507
+        },
+        {
+            "month": 11,
+            "hours": 7.724137931034482
+        },
+        {
+            "month": 12,
+            "hours": 8.459770114942529
+        }
+    ],
+    "nextRolloverDate": "2027-01-01",
+    "sickTime": {
+        "allowed": 24,
+        "used": 24,
+        "remaining": 0
+    },
+    "ptoTime": {
+        "allowed": 136,
+        "used": 40,
+        "remaining": 96
+    },
+    "bereavementTime": {
+        "allowed": 40,
+        "used": 0,
+        "remaining": 40
+    },
+    "juryDutyTime": {
+        "allowed": 40,
+        "used": 0,
+        "remaining": 40
+    }
+};
+
+const ptoEntries = [
     {
-        id: 1,
-        name: "John Doe",
-        identifier: "coreyalix@gmail.com",
-        pto_rate: 0.71,
-        carryover_hours: 40,
-        hire_date: "2020-01-15",
-        role: "Employee",
-        hash: "test-hash-1"
+        "date": "2026-03-01",
+        "type": "PTO",
+        "hours": 4
+    },
+    {
+        "date": "2026-03-01",
+        "type": "PTO",
+        "hours": 4
+    },
+    {
+        "date": "2026-03-01",
+        "type": "PTO",
+        "hours": 4
+    },
+    {
+        "date": "2026-03-01",
+        "type": "PTO",
+        "hours": 4
+    },
+    {
+        "date": "2026-02-24",
+        "type": "PTO",
+        "hours": 8
+    },
+    {
+        "date": "2026-02-22",
+        "type": "PTO",
+        "hours": 8
+    },
+    {
+        "date": "2026-02-20",
+        "type": "PTO",
+        "hours": 8
+    },
+    {
+        "date": "2026-02-16",
+        "type": "Sick",
+        "hours": 8
+    },
+    {
+        "date": "2026-02-14",
+        "type": "Sick",
+        "hours": 8
+    },
+    {
+        "date": "2026-02-12",
+        "type": "Sick",
+        "hours": 8
     }
 ];
 
-const seedPTOEntries = [
-    // Sick time for employee 1
-    { id: 1, employee_id: 1, start_date: '2026-02-13', end_date: '2026-02-13', type: 'Sick', hours: 8 },
-    { id: 2, employee_id: 1, start_date: '2026-02-15', end_date: '2026-02-15', type: 'Sick', hours: 8 },
-    { id: 3, employee_id: 1, start_date: '2026-02-17', end_date: '2026-02-17', type: 'Sick', hours: 8 },
-    // PTO for employee 1
-    { id: 4, employee_id: 1, start_date: '2026-02-21', end_date: '2026-02-21', type: 'PTO', hours: 8 },
-    { id: 5, employee_id: 1, start_date: '2026-02-23', end_date: '2026-02-23', type: 'PTO', hours: 8 },
-    { id: 6, employee_id: 1, start_date: '2026-02-25', end_date: '2026-02-25', type: 'PTO', hours: 8 }
-];
-
-// Computed values for 2026 (current year Feb 5, 2026)
-const employee = seedEmployees[0];
+// Computed values
 const currentYear = 2026;
-const totalWorkDays = 261; // From workDays.ts for 2026
-const allocationRate = 96 / totalWorkDays; // ~0.3678
 
-// Monthly work days for 2026
-const workDays: Record<number, number> = { 1: 23, 2: 20, 3: 21, 4: 22, 5: 22, 6: 21, 7: 23, 8: 21, 9: 22, 10: 23, 11: 20, 12: 23 };
-
-// Calculate monthly accruals
-const monthlyAccruals: { month: number; hours: number }[] = [];
-for (let month = 1; month <= 12; month++) {
-    const hours = Math.round(allocationRate * workDays[month] * 10) / 10; // Round to 1 decimal
-    monthlyAccruals.push({ month, hours });
-}
-
-// Calculate monthly usage
+// Calculate monthly usage from PTO entries
 const monthlyUsage: { month: number; hours: number }[] = [];
 for (let month = 1; month <= 12; month++) {
-    const monthEntries = seedPTOEntries.filter(entry => {
-        const entryMonth = parseInt(entry.start_date.substring(5, 7));
+    const monthEntries = ptoEntries.filter(entry => {
+        const entryMonth = parseInt(entry.date.substring(5, 7));
         return entryMonth === month;
     });
     const hours = monthEntries.reduce((sum, entry) => sum + entry.hours, 0);
     monthlyUsage.push({ month, hours });
 }
 
-// Build calendar data
-const calendarData: Record<number, Record<number, { type: string; hours: number }>> = {};
-seedPTOEntries.forEach(entry => {
-    const month = parseInt(entry.start_date.substring(5, 7));
-    const day = parseInt(entry.start_date.substring(8, 10));
-    if (!calendarData[month]) calendarData[month] = {};
-    calendarData[month][day] = { type: entry.type, hours: entry.hours };
-});
+// Convert simplified PTO entries to full PTOEntry format for the component
+const fullPtoEntries = ptoEntries.map((entry, index) => ({
+    id: index + 1,
+    employeeId: 1,
+    date: entry.date,
+    type: entry.type as "PTO" | "Sick" | "Bereavement" | "Jury Duty",
+    hours: entry.hours,
+    createdAt: new Date().toISOString()
+}));
 
-// Calculate PTO summary
-const usedPTO = seedPTOEntries.filter(e => e.type === 'PTO').reduce((sum, e) => sum + e.hours, 0);
-const usedSick = seedPTOEntries.filter(e => e.type === 'Sick').reduce((sum, e) => sum + e.hours, 0);
-const usedBereavement = seedPTOEntries.filter(e => e.type === 'Bereavement').reduce((sum, e) => sum + e.hours, 0);
-const usedJury = seedPTOEntries.filter(e => e.type === 'Jury Duty').reduce((sum, e) => sum + e.hours, 0);
-
-const annualAllocation = 96;
-const availablePTO = annualAllocation + employee.carryover_hours - usedPTO;
-
-// Sick entries for display
-const sickEntries = seedPTOEntries.filter(e => e.type === 'Sick').map(e => ({
-    date: e.start_date,
+// Filter entries by type
+const sickEntries = ptoEntries.filter(e => e.type === 'Sick').map(e => ({
+    date: e.date,
     hours: e.hours
 }));
 
-// Bereavement and Jury entries (none in seed)
-const bereavementEntries: { date: string; hours: number }[] = [];
-const juryEntries: { date: string; hours: number }[] = [];
+const bereavementEntries = ptoEntries.filter(e => e.type === 'Bereavement').map(e => ({
+    date: e.date,
+    hours: e.hours
+}));
+
+const juryEntries = ptoEntries.filter(e => e.type === 'Jury Duty').map(e => ({
+    date: e.date,
+    hours: e.hours
+}));
 
 // Helper function to format YYYY-MM-DD to MM/DD/YYYY
 function formatDateForDisplay(dateStr: string): string {
@@ -88,40 +182,42 @@ function formatDateForDisplay(dateStr: string): string {
 }
 
 export function playground(): void {
-    console.log('Starting PTO dashboard playground test with seed data...');
+    console.log('Starting PTO dashboard playground test with API data...');
 
     const summary = querySingle<PtoSummaryCard>('pto-summary-card');
     const accrual = querySingle<PtoAccrualCard>('pto-accrual-card');
     const sick = querySingle<PtoSickCard>('pto-sick-card');
     const bereavement = querySingle<PtoBereavementCard>('pto-bereavement-card');
-    const jury = querySingle('pto-jury-duty-card') as any;
-    const info = querySingle('pto-employee-info-card') as any;
+    const jury = querySingle<PtoJuryDutyCard>('pto-jury-duty-card');
+    const info = querySingle<PtoEmployeeInfoCard>('pto-employee-info-card');
 
-    summary.setAttribute('data', JSON.stringify({
-        annualAllocation,
-        availablePTO,
-        usedPTO,
-        carryoverFromPreviousYear: employee.carryover_hours
-    }));
+    summary.summary = {
+        annualAllocation: ptoStatus.annualAllocation,
+        availablePTO: ptoStatus.availablePTO,
+        usedPTO: ptoStatus.usedPTO,
+        carryoverFromPreviousYear: ptoStatus.carryoverFromPreviousYear
+    };
 
-    accrual.setAttribute('accruals', JSON.stringify(monthlyAccruals.slice(0, 3))); // First 3 months
-    accrual.setAttribute('usage', JSON.stringify(monthlyUsage.slice(0, 3)));
-    accrual.setAttribute('calendar', JSON.stringify(calendarData));
-    accrual.setAttribute('year', currentYear.toString());
+    accrual.monthlyAccruals = ptoStatus.monthlyAccruals.slice(0, 3); // First 3 months
+    accrual.monthlyUsage = monthlyUsage.slice(0, 3);
+    console.log('Setting ptoEntries on accrual');
+    accrual.ptoEntries = fullPtoEntries;
+    console.log('Set ptoEntries');
+    accrual.calendarYear = currentYear;
 
-    sick.setAttribute('data', JSON.stringify({ allowed: 24, used: usedSick, remaining: Math.max(0, 24 - usedSick) }));
-    sick.setAttribute('entries', JSON.stringify(sickEntries));
+    sick.bucket = ptoStatus.sickTime;
+    sick.usageEntries = sickEntries;
 
-    bereavement.setAttribute('data', JSON.stringify({ allowed: 40, used: usedBereavement, remaining: Math.max(0, 40 - usedBereavement) }));
-    bereavement.setAttribute('entries', JSON.stringify(bereavementEntries));
+    bereavement.bucket = ptoStatus.bereavementTime;
+    bereavement.usageEntries = bereavementEntries;
 
-    jury.setAttribute('data', JSON.stringify({ allowed: 40, used: usedJury, remaining: Math.max(0, 40 - usedJury) }));
-    jury.setAttribute('entries', JSON.stringify(juryEntries));
+    jury.bucket = ptoStatus.juryDutyTime;
+    jury.usageEntries = juryEntries;
 
-    info.setAttribute('data', JSON.stringify({
-        hireDate: formatDateForDisplay(employee.hire_date),
-        nextRolloverDate: formatDateForDisplay(`${currentYear + 1}-01-01`)
-    }));
+    info.info = {
+        hireDate: formatDateForDisplay(ptoStatus.hireDate),
+        nextRolloverDate: formatDateForDisplay(ptoStatus.nextRolloverDate)
+    };
 
-    console.log('PTO dashboard playground test initialized with seed data');
+    console.log('PTO dashboard playground test initialized with API data');
 }

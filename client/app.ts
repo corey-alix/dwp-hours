@@ -11,13 +11,6 @@ import { getElementById, addEventListener, querySingle, createElement } from './
 export * from './components/test.js';
 export { TestWorkflow } from './test.js';
 
-type CalendarDay = {
-    type: string;
-    hours: number;
-};
-
-type CalendarData = Record<number, Record<number, CalendarDay>>;
-
 // API client
 class APIClient {
     private baseURL = "/api";
@@ -485,30 +478,6 @@ class UIManager {
                 <p>Error loading PTO status. Please try again later.</p>
             `;
         }
-    }
-
-    private buildCalendarData(entries: ApiTypes.PTOEntry[], year: number): CalendarData {
-        const calendar: CalendarData = {};
-        const safeEntries = Array.isArray(entries) ? entries : [];
-
-        for (const entry of safeEntries) {
-            const entryDate = new Date(entry.date);
-            if (Number.isNaN(entryDate.getTime()) || entryDate.getFullYear() !== year) {
-                continue;
-            }
-
-            const month = entryDate.getMonth() + 1;
-            const date = entryDate.getDate();
-            if (!calendar[month]) {
-                calendar[month] = {};
-            }
-            if (!calendar[month][date]) {
-                calendar[month][date] = { type: entry.type, hours: 0 };
-            }
-            calendar[month][date].hours += entry.hours;
-        }
-
-        return calendar;
     }
 
     private buildUsageEntries(entries: ApiTypes.PTOEntry[], year: number, type: string): { date: string; hours: number }[] {

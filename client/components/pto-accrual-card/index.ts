@@ -74,6 +74,7 @@ export class PtoAccrualCard extends PtoSectionCard {
 
     set ptoEntries(value: PTOEntry[]) {
         this._ptoEntries = value;
+        console.log('PtoAccrualCard: set ptoEntries:', value);
         this.render();
     }
 
@@ -142,9 +143,16 @@ export class PtoAccrualCard extends PtoSectionCard {
         const monthPtoEntries: PTOEntry[] = [];
         if (this.selectedMonth) {
             monthPtoEntries.push(...this._ptoEntries.filter(entry => {
-                const entryDate = new Date(entry.date);
-                return entryDate.getMonth() + 1 === this.selectedMonth && entryDate.getFullYear() === this.year;
+                const [entryYear, entryMonthStr] = entry.date.split('-');
+                const entryMonth = parseInt(entryMonthStr, 10);
+                const entryYearNum = parseInt(entryYear, 10);
+                const matches = entryMonth === this.selectedMonth && entryYearNum === this.year;
+                if (this.selectedMonth === 3 && entry.date.startsWith('2026-03')) {
+                    console.log('PtoAccrualCard: Filtering entry for March:', entry, 'entryMonth:', entryMonth, 'entryYearNum:', entryYearNum, 'matches:', matches);
+                }
+                return matches;
             }));
+            console.log('PtoAccrualCard: monthPtoEntries for month', this.selectedMonth, ':', monthPtoEntries);
         }
 
         const body = `
@@ -284,7 +292,9 @@ export class PtoAccrualCard extends PtoSectionCard {
         this.shadow.querySelectorAll<HTMLButtonElement>(".calendar-button").forEach((button) => {
             button.addEventListener("click", () => {
                 const month = parseInt(button.dataset.month || "", 10);
+                console.log('PtoAccrualCard: calendar button clicked, month:', month);
                 this.selectedMonth = Number.isFinite(month) ? month : null;
+                console.log('PtoAccrualCard: set selectedMonth to:', this.selectedMonth);
                 this.render();
             });
         });
