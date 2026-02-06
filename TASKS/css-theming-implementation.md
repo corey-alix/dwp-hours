@@ -66,53 +66,53 @@ Implement comprehensive light/dark mode support across all web components in the
 - [x] Update pto-request-queue component documentation
 
 ### Phase 9: Report Generator Component
-- [ ] Audit report-generator component for hardcoded colors
-- [ ] Update filter controls, export buttons, and report tables to use --color-surface, --color-text, --color-primary
-- [ ] Test report generation and export functionality
-- [ ] Ensure table data remains readable
-- [ ] Update report-generator component documentation
+- [x] Audit report-generator component for hardcoded colors
+- [x] Update filter controls, export buttons, and report tables to use --color-surface, --color-text, --color-primary
+- [x] Test report generation and export functionality
+- [x] Ensure table data remains readable
+- [x] Update report-generator component documentation
 
 ### Phase 10: PTO Summary Card Component
-- [ ] Audit pto-summary-card component for hardcoded colors
-- [ ] Update card background, text, and accent colors to use --color-surface, --color-text, --color-primary
-- [ ] Test card display and data formatting
-- [ ] Validate information hierarchy
-- [ ] Update pto-summary-card component documentation
+- [x] Audit pto-summary-card component for hardcoded colors
+- [x] Update card background, text, and accent colors to use --color-surface, --color-text, --color-primary
+- [x] Test card display and data formatting
+- [x] Validate information hierarchy
+- [x] Update pto-summary-card component documentation
 
 ### Phase 11: PTO Accrual Card Component
-- [ ] Audit pto-accrual-card component for hardcoded colors
-- [ ] Update grid layout, calendar icons, and accrual indicators to use --color-surface, --color-text, --color-primary
-- [ ] Test calendar drill-down functionality
-- [ ] Ensure accrual data visibility
-- [ ] Update pto-accrual-card component documentation
+- [x] Audit pto-accrual-card component for hardcoded colors
+- [x] Update grid layout, calendar icons, and accrual indicators to use --color-surface, --color-text, --color-primary
+- [x] Test calendar drill-down functionality
+- [x] Ensure accrual data visibility
+- [x] Update pto-accrual-card component documentation
 
 ### Phase 12: PTO Sick Card Component
-- [ ] Audit pto-sick-card component for hardcoded colors
-- [ ] Update card styling and date/hour list formatting to use --color-surface, --color-text, --color-error for sick-specific theming
-- [ ] Test sick time tracking display
-- [ ] Validate date/hour list readability
-- [ ] Update pto-sick-card component documentation
+- [x] Audit pto-sick-card component for hardcoded colors
+- [x] Update card styling and date/hour list formatting to use --color-surface, --color-text, --color-error for sick-specific theming
+- [x] Test sick time tracking display
+- [x] Validate date/hour list readability
+- [x] Update pto-sick-card component documentation
 
 ### Phase 13: PTO Bereavement Card Component
-- [ ] Audit pto-bereavement-card component for hardcoded colors
-- [ ] Update card background and bereavement entry styling to use --color-surface, --color-text, and bereavement-specific semantic colors
-- [ ] Test bereavement tracking display
-- [ ] Ensure proper bereavement theming
-- [ ] Update pto-bereavement-card component documentation
+- [x] Audit pto-bereavement-card component for hardcoded colors
+- [x] Update card background and bereavement entry styling to use --color-surface, --color-text, and bereavement-specific semantic colors
+- [x] Test bereavement tracking display
+- [x] Ensure proper bereavement theming
+- [x] Update pto-bereavement-card component documentation
 
 ### Phase 14: PTO Jury Duty Card Component
-- [ ] Audit pto-jury-duty-card component for hardcoded colors
-- [ ] Update card theming and jury duty entry formatting to use --color-surface, --color-text, and jury duty-specific colors
-- [ ] Test jury duty tracking display
-- [ ] Validate jury duty theming consistency
-- [ ] Update pto-jury-duty-card component documentation
+- [x] Audit pto-jury-duty-card component for hardcoded colors
+- [x] Update card theming and jury duty entry formatting to use --color-surface, --color-text, and jury duty-specific colors
+- [x] Test jury duty tracking display
+- [x] Validate jury duty theming consistency
+- [x] Update pto-jury-duty-card component documentation
 
 ### Phase 15: PTO Employee Info Card Component
-- [ ] Audit pto-employee-info-card component for hardcoded colors
-- [ ] Update info display and metadata styling to use --color-surface, --color-text, --color-primary
-- [ ] Test employee information display
-- [ ] Ensure information hierarchy and readability
-- [ ] Update pto-employee-info-card component documentation
+- [x] Audit pto-employee-info-card component for hardcoded colors
+- [x] Update info display and metadata styling to use --color-surface, --color-text, --color-primary
+- [x] Test employee information display
+- [x] Ensure information hierarchy and readability
+- [x] Update pto-employee-info-card component documentation
 
 ### Phase 16: Integration Testing & Validation
 - [ ] Run full E2E test suite to ensure theme compatibility
