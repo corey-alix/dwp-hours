@@ -94,6 +94,9 @@ export class PtoAccrualCard extends PtoSectionCard {
     }
 
     private render() {
+        // Check if component is wide enough for alternating row colors
+        const isWide = this.offsetWidth > 600;
+
         // Create maps for quick lookup
         const accrualByMonth = new Map(this.accruals.map((entry) => [entry.month, entry.hours]));
         const usageByMonth = new Map(this.usage.map((entry) => [entry.month, entry.hours]));
@@ -130,7 +133,7 @@ export class PtoAccrualCard extends PtoSectionCard {
             }
 
             return `
-                <div class="accrual-row ${isFutureMonth ? 'projected' : ''} ${isCurrentMonth ? 'current' : ''}">
+                <div class="accrual-row data-row ${i % 2 === 0 ? 'alt' : ''} ${isFutureMonth ? 'projected' : ''} ${isCurrentMonth ? 'current' : ''}">
                     <span class="month">${monthName}</span>
                     <span class="hours">${displayAccrued}</span>
                     <span class="used">${usedHours !== undefined ? usedHours.toFixed(1) : "—"}</span>
@@ -156,7 +159,7 @@ export class PtoAccrualCard extends PtoSectionCard {
         }
 
         const body = `
-            <div class="accrual-grid">
+            <div class="accrual-grid${isWide ? ' wide' : ''}">
                 <div class="accrual-row header">
                     <span></span>
                     <span class="label">Accrued</span>
@@ -227,6 +230,10 @@ export class PtoAccrualCard extends PtoSectionCard {
                 .accrual-row.projected .hours::before {
                     content: "~";
                     opacity: 0.6;
+                }
+
+                .accrual-grid.wide .data-row.alt {
+                    background-color: #f8f9fa;
                 }
 
                 .accrual-row.current {
