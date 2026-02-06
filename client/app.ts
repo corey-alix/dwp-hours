@@ -418,7 +418,6 @@ class UIManager {
         try {
             const status = await api.get(`/pto/status/${this.currentUser.id}`) as ApiTypes.PTOStatusResponse;
             const entries = await api.get(`/pto?employeeId=${this.currentUser.id}`) as ApiTypes.PTOEntry[];
-            const calendarData = this.buildCalendarData(entries, new Date().getFullYear());
 
             const statusDiv = getElementById("pto-status");
             const hireDate = new Date(status.hireDate).toLocaleDateString();
@@ -445,7 +444,7 @@ class UIManager {
 
             const accrualCard = createElement<PtoAccrualCard>('pto-accrual-card');
             accrualCard.monthlyAccruals = status.monthlyAccruals;
-            accrualCard.calendar = calendarData;
+            accrualCard.ptoEntries = entries;
             accrualCard.calendarYear = new Date().getFullYear();
             accrualCard.monthlyUsage = this.buildMonthlyUsage(entries, new Date().getFullYear());
             accrualCard.setAttribute('request-mode', 'true'); // Enable calendar editing
@@ -493,32 +492,20 @@ class UIManager {
         const safeEntries = Array.isArray(entries) ? entries : [];
 
         for (const entry of safeEntries) {
-            const start = new Date(entry.startDate);
-            const end = new Date(entry.endDate ?? entry.startDate);
-            if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+            const entryDate = new Date(entry.date);
+            if (Number.isNaN(entryDate.getTime()) || entryDate.getFullYear() !== year) {
                 continue;
             }
 
-            const workdays = this.getWorkdaysBetween(start, end);
-            if (workdays.length === 0) {
-                continue;
+            const month = entryDate.getMonth() + 1;
+            const date = entryDate.getDate();
+            if (!calendar[month]) {
+                calendar[month] = {};
             }
-
-            const hoursPerDay = (entry.hours ?? 0) / workdays.length;
-            for (const day of workdays) {
-                if (day.getFullYear() !== year) {
-                    continue;
-                }
-                const month = day.getMonth() + 1;
-                const date = day.getDate();
-                if (!calendar[month]) {
-                    calendar[month] = {};
-                }
-                if (!calendar[month][date]) {
-                    calendar[month][date] = { type: entry.type, hours: 0 };
-                }
-                calendar[month][date].hours += hoursPerDay;
+            if (!calendar[month][date]) {
+                calendar[month][date] = { type: entry.type, hours: 0 };
             }
+            calendar[month][date].hours += entry.hours;
         }
 
         return calendar;
@@ -533,18 +520,12 @@ class UIManager {
                 continue;
             }
 
-            const startDateStr = entry.startDate;
-            const [yearNum, month, day] = startDateStr.split('-').map(Number);
-            const start = new Date(yearNum, month - 1, day);
-            if (Number.isNaN(start.getTime())) {
+            const entryDate = new Date(entry.date);
+            if (Number.isNaN(entryDate.getTime()) || entryDate.getFullYear() !== year) {
                 continue;
             }
 
-            if (start.getFullYear() !== year) {
-                continue;
-            }
-
-            const dateKey = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+            const dateKey = `${entryDate.getFullYear()}-${String(entryDate.getMonth() + 1).padStart(2, '0')}-${String(entryDate.getDate()).padStart(2, '0')}`;
             hoursByDate.set(dateKey, (hoursByDate.get(dateKey) ?? 0) + entry.hours);
         }
 
@@ -566,25 +547,13 @@ class UIManager {
                 continue;
             }
 
-            const start = new Date(entry.startDate);
-            const end = new Date(entry.endDate ?? entry.startDate);
-            if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+            const entryDate = new Date(entry.date);
+            if (Number.isNaN(entryDate.getTime()) || entryDate.getFullYear() !== year) {
                 continue;
             }
 
-            const workdays = this.getWorkdaysBetween(start, end);
-            if (workdays.length === 0) {
-                continue;
-            }
-
-            const hoursPerDay = (entry.hours ?? 0) / workdays.length;
-            for (const day of workdays) {
-                if (day.getFullYear() !== year) {
-                    continue;
-                }
-                const month = day.getMonth() + 1;
-                usageByMonth.set(month, (usageByMonth.get(month) ?? 0) + hoursPerDay);
-            }
+            const month = entryDate.getMonth() + 1;
+            usageByMonth.set(month, (usageByMonth.get(month) ?? 0) + (entry.hours ?? 0));
         }
 
         return Array.from(usageByMonth.entries())
@@ -621,8 +590,7 @@ class UIManager {
             for (const request of requests) {
                 await api.post('/pto', {
                     employeeId: this.currentUser.id,
-                    startDate: request.date,
-                    endDate: request.date, // Single day requests
+                    date: request.date,
                     type: request.type,
                     hours: request.hours
                 });
@@ -646,10 +614,9 @@ class UIManager {
             // Re-query PTO status from server
             const status = await api.get(`/pto/status/${this.currentUser.id}`) as ApiTypes.PTOStatusResponse;
             const entries = await api.get(`/pto?employeeId=${this.currentUser.id}`) as ApiTypes.PTOEntry[];
-            const calendarData = this.buildCalendarData(entries, new Date().getFullYear());
 
             // Re-render all PTO components with fresh data
-            await this.renderPTOStatus(status, entries, calendarData);
+            await this.renderPTOStatus(status, entries);
 
         } catch (error) {
             console.error("Failed to refresh PTO data:", error);
@@ -657,7 +624,7 @@ class UIManager {
         }
     }
 
-    private async renderPTOStatus(status: ApiTypes.PTOStatusResponse, entries: ApiTypes.PTOEntry[], calendarData: CalendarData): Promise<void> {
+    private async renderPTOStatus(status: ApiTypes.PTOStatusResponse, entries: ApiTypes.PTOEntry[]): Promise<void> {
         // Re-render the entire PTO status section with fresh data
         const statusDiv = getElementById("pto-status");
 
@@ -683,7 +650,7 @@ class UIManager {
 
         const accrualCard = createElement<PtoAccrualCard>('pto-accrual-card');
         accrualCard.monthlyAccruals = status.monthlyAccruals;
-        accrualCard.calendar = calendarData;
+        accrualCard.ptoEntries = entries;
         accrualCard.calendarYear = new Date().getFullYear();
         accrualCard.monthlyUsage = this.buildMonthlyUsage(entries, new Date().getFullYear());
         accrualCard.setAttribute('request-mode', 'true');

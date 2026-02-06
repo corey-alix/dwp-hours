@@ -1,4 +1,4 @@
-import { PtoCalendar, CalendarEntry } from './index.js';
+import { PtoCalendar, CalendarEntry, PTOEntry } from './index.js';
 
 export function playground(): HTMLElement {
     const container = document.createElement('div');
@@ -11,18 +11,18 @@ export function playground(): HTMLElement {
     const calendar = document.createElement('pto-calendar') as PtoCalendar;
 
     // Sample data for February 2024
-    const sampleEntries: CalendarEntry[] = [
-        { date: '2024-02-12', hours: 4.0, type: 'Sick' },
-        { date: '2024-02-14', hours: 8.0, type: 'Sick' },
-        { date: '2024-02-16', hours: 8.0, type: 'Sick' },
-        { date: '2024-02-20', hours: 8.0, type: 'PTO' },
-        { date: '2024-02-21', hours: 8.0, type: 'PTO' },
-        { date: '2024-02-22', hours: 4.0, type: 'PTO' }
+    const sampleEntries: PTOEntry[] = [
+        { id: 1, employeeId: 1, date: '2024-02-12', hours: 4.0, type: 'Sick', createdAt: '2024-01-01T00:00:00Z' },
+        { id: 2, employeeId: 1, date: '2024-02-14', hours: 8.0, type: 'Sick', createdAt: '2024-01-01T00:00:00Z' },
+        { id: 3, employeeId: 1, date: '2024-02-16', hours: 8.0, type: 'Sick', createdAt: '2024-01-01T00:00:00Z' },
+        { id: 4, employeeId: 1, date: '2024-02-20', hours: 8.0, type: 'PTO', createdAt: '2024-01-01T00:00:00Z' },
+        { id: 5, employeeId: 1, date: '2024-02-21', hours: 8.0, type: 'PTO', createdAt: '2024-01-01T00:00:00Z' },
+        { id: 6, employeeId: 1, date: '2024-02-22', hours: 4.0, type: 'PTO', createdAt: '2024-01-01T00:00:00Z' }
     ];
 
     calendar.setMonth(1); // February (0-indexed)
     calendar.setYear(2024);
-    calendar.setEntries(sampleEntries);
+    calendar.setPtoEntries(sampleEntries);
     calendar.setReadonly(false); // Start in editable mode for testing
 
     // Add event listener for PTO request submission

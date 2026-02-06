@@ -115,15 +115,14 @@ try {
 
     // Insert seed PTO entries
     const ptoStmt = db.prepare(`
-        INSERT INTO pto_entries (employee_id, start_date, end_date, type, hours)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO pto_entries (employee_id, date, type, hours)
+        VALUES (?, ?, ?, ?)
     `);
 
     for (const entry of seedPTOEntries) {
         ptoStmt.run([
             entry.employee_id,
-            entry.start_date,
-            entry.end_date,
+            entry.start_date, // Use start_date as the single date
             entry.type,
             entry.hours
         ]);

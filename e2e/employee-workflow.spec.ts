@@ -76,8 +76,7 @@ test.describe('Employee Authentication & Workflow', () => {
         const ptoRequest = responseBody.ptoEntry;
         expect(ptoRequest).toBeDefined();
         expect(ptoRequest.employee_id).toBeDefined();
-        expect(ptoRequest.start_date).toBe('2026-03-03T00:00:00.000Z'); // Date stored as ISO string
-        expect(ptoRequest.end_date).toBe('2026-03-04T00:00:00.000Z'); // Single day request, calculateEndDate adds 1 day for workDays=1
+        expect(ptoRequest.date).toBe('2026-03-03T00:00:00.000Z'); // Date stored as ISO string
         expect(ptoRequest.type).toBe('PTO');
         expect(ptoRequest.hours).toBe(4);
 

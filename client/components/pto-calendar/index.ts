@@ -28,11 +28,20 @@ export interface CalendarEntry {
     type: string;
 }
 
+export interface PTOEntry {
+    id: number;
+    employeeId: number;
+    date: string;
+    type: "PTO" | "Sick" | "Bereavement" | "Jury Duty";
+    hours: number;
+    createdAt: string;
+}
+
 export class PtoCalendar extends HTMLElement {
     private shadow: ShadowRoot;
     private month: number;
     private year: number;
-    private entries: CalendarEntry[];
+    private ptoEntries: PTOEntry[];
     private selectedMonth: number | null;
     private readonly: boolean;
     private selectedPtoType: string | null;
@@ -43,7 +52,7 @@ export class PtoCalendar extends HTMLElement {
         this.shadow = this.attachShadow({ mode: "open" });
         this.month = 0;
         this.year = 0;
-        this.entries = [];
+        this.ptoEntries = [];
         this.selectedMonth = null;
         this.readonly = true;
         this.selectedPtoType = null;
@@ -51,7 +60,7 @@ export class PtoCalendar extends HTMLElement {
     }
 
     static get observedAttributes() {
-        return ['month', 'year', 'entries', 'selected-month', 'readonly'];
+        return ['month', 'year', 'pto-entries', 'selected-month', 'readonly'];
     }
 
     connectedCallback() {
@@ -68,11 +77,11 @@ export class PtoCalendar extends HTMLElement {
             case 'year':
                 this.year = parseInt(newValue, 10);
                 break;
-            case 'entries':
+            case 'pto-entries':
                 try {
-                    this.entries = JSON.parse(newValue);
+                    this.ptoEntries = JSON.parse(newValue);
                 } catch (e) {
-                    this.entries = [];
+                    this.ptoEntries = [];
                 }
                 break;
             case 'selected-month':
@@ -95,9 +104,9 @@ export class PtoCalendar extends HTMLElement {
         this.setAttribute('year', year.toString());
     }
 
-    setEntries(entries: CalendarEntry[]) {
-        this.entries = entries;
-        this.setAttribute('entries', JSON.stringify(entries));
+    setPtoEntries(ptoEntries: PTOEntry[]) {
+        this.ptoEntries = ptoEntries;
+        this.setAttribute('pto-entries', JSON.stringify(ptoEntries));
     }
 
     setSelectedMonth(selectedMonth: number | null) {
@@ -150,11 +159,11 @@ export class PtoCalendar extends HTMLElement {
         const endDate = new Date(lastDay);
         endDate.setDate(endDate.getDate() + (6 - lastDay.getDay()));
 
-        const calendarDays: { date: Date; isCurrentMonth: boolean; entry?: CalendarEntry }[] = [];
+        const calendarDays: { date: Date; isCurrentMonth: boolean; entry?: PTOEntry }[] = [];
 
         for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
             const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-            const entry = this.entries.find(e => e.date === dateStr);
+            const entry = this.ptoEntries.find(e => e.date === dateStr);
             calendarDays.push({
                 date: new Date(d),
                 isCurrentMonth: d.getMonth() === this.month,
@@ -409,10 +418,10 @@ export class PtoCalendar extends HTMLElement {
                     // PTO request creation mode
                     if (this.selectedPtoType === 'Work Day') {
                         // Clear operation - remove any existing entry for this date
-                        const existingEntryIndex = this.entries.findIndex(entry => entry.date === date);
+                        const existingEntryIndex = this.ptoEntries.findIndex(entry => entry.date === date);
                         if (existingEntryIndex >= 0) {
-                            this.entries.splice(existingEntryIndex, 1);
-                            this.setAttribute('entries', JSON.stringify(this.entries));
+                            this.ptoEntries.splice(existingEntryIndex, 1);
+                            this.setAttribute('pto-entries', JSON.stringify(this.ptoEntries));
                         }
                         // Also clear from selected cells if it was selected
                         this.selectedCells.delete(date);
@@ -423,7 +432,7 @@ export class PtoCalendar extends HTMLElement {
                             this.selectedCells.delete(date);
                         } else {
                             // Check if there's an existing entry for this date and use its hours
-                            const existingEntry = this.entries.find(entry => entry.date === date);
+                            const existingEntry = this.ptoEntries.find(entry => entry.date === date);
                             const defaultHours = existingEntry ? existingEntry.hours : 8;
                             this.selectedCells.set(date, defaultHours);
                         }
@@ -431,7 +440,7 @@ export class PtoCalendar extends HTMLElement {
                     }
                 } else if (date && !this.readonly) {
                     // Hours editing mode - only allow editing existing entries
-                    const existingEntry = this.entries.find(entry => entry.date === date);
+                    const existingEntry = this.ptoEntries.find(entry => entry.date === date);
                     if (existingEntry) {
                         // Allow editing existing entries
                         if (this.selectedCells.has(date)) {
@@ -456,21 +465,21 @@ export class PtoCalendar extends HTMLElement {
                 if (date && !isNaN(value) && (value === 0 || value === 4 || value === 8)) {
                     if (value === 0) {
                         // Clear operation - remove the entry
-                        const existingEntryIndex = this.entries.findIndex(entry => entry.date === date);
+                        const existingEntryIndex = this.ptoEntries.findIndex(entry => entry.date === date);
                         if (existingEntryIndex >= 0) {
-                            this.entries.splice(existingEntryIndex, 1);
-                            this.setAttribute('entries', JSON.stringify(this.entries));
+                            this.ptoEntries.splice(existingEntryIndex, 1);
+                            this.setAttribute('pto-entries', JSON.stringify(this.ptoEntries));
                         }
                         // Also clear from selected cells
                         this.selectedCells.delete(date);
                         this.render();
                     } else {
                         // Check if this is an existing entry
-                        const existingEntryIndex = this.entries.findIndex(entry => entry.date === date);
+                        const existingEntryIndex = this.ptoEntries.findIndex(entry => entry.date === date);
                         if (existingEntryIndex >= 0) {
                             // Update existing entry
-                            this.entries[existingEntryIndex].hours = value;
-                            this.setAttribute('entries', JSON.stringify(this.entries));
+                            this.ptoEntries[existingEntryIndex].hours = value;
+                            this.setAttribute('pto-entries', JSON.stringify(this.ptoEntries));
                         } else {
                             // Update selected cell
                             this.selectedCells.set(date, value);
@@ -478,7 +487,7 @@ export class PtoCalendar extends HTMLElement {
                     }
                 } else {
                     // Reset to previous value if invalid
-                    const existingEntry = this.entries.find(entry => entry.date === date!);
+                    const existingEntry = this.ptoEntries.find(entry => entry.date === date!);
                     const currentValue = existingEntry ? existingEntry.hours : this.selectedCells.get(date!);
                     target.value = currentValue?.toString() || '8';
                 }

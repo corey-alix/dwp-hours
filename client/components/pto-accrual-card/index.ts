@@ -14,17 +14,26 @@ type UsageData = {
     hours: number;
 };
 
+type PTOEntry = {
+    id: number;
+    employeeId: number;
+    date: string;
+    type: "PTO" | "Sick" | "Bereavement" | "Jury Duty";
+    hours: number;
+    createdAt: string;
+};
+
 export class PtoAccrualCard extends PtoSectionCard {
     private accruals: AccrualData[] = [];
     private usage: UsageData[] = [];
-    private calendarData: CalendarData = {};
+    private _ptoEntries: PTOEntry[] = [];
     private selectedMonth: number | null = null;
     private year: number = new Date().getFullYear();
     private _requestMode: boolean = false;
     private _annualAllocation: number = 96; // Default 96 hours annual PTO
 
     static get observedAttributes() {
-        return ["accruals", "usage", "calendar", "year", "request-mode", "annual-allocation"];
+        return ["accruals", "usage", "pto-entries", "year", "request-mode", "annual-allocation"];
     }
 
     connectedCallback() {
@@ -38,8 +47,8 @@ export class PtoAccrualCard extends PtoSectionCard {
         if (name === "usage") {
             this.usage = JSON.parse(newValue) as UsageData[];
         }
-        if (name === "calendar") {
-            this.calendarData = JSON.parse(newValue) as CalendarData;
+        if (name === "pto-entries") {
+            this._ptoEntries = JSON.parse(newValue) as PTOEntry[];
         }
         if (name === "year") {
             this.year = parseInt(newValue, 10) || this.year;
@@ -63,8 +72,8 @@ export class PtoAccrualCard extends PtoSectionCard {
         this.render();
     }
 
-    set calendar(value: CalendarData) {
-        this.calendarData = value;
+    set ptoEntries(value: PTOEntry[]) {
+        this._ptoEntries = value;
         this.render();
     }
 
@@ -129,17 +138,13 @@ export class PtoAccrualCard extends PtoSectionCard {
             `;
         }).join("");
 
-        // Convert calendarData to CalendarEntry format for the calendar component
-        const calendarEntries: CalendarEntry[] = [];
-        if (this.selectedMonth && this.calendarData[this.selectedMonth]) {
-            Object.entries(this.calendarData[this.selectedMonth]).forEach(([day, entry]) => {
-                const dateStr = `${this.year}-${String(this.selectedMonth).padStart(2, '0')}-${String(parseInt(day, 10)).padStart(2, '0')}`;
-                calendarEntries.push({
-                    date: dateStr,
-                    hours: entry.hours,
-                    type: entry.type
-                });
-            });
+        // Filter PTO entries for the selected month
+        const monthPtoEntries: PTOEntry[] = [];
+        if (this.selectedMonth) {
+            monthPtoEntries.push(...this._ptoEntries.filter(entry => {
+                const entryDate = new Date(entry.date);
+                return entryDate.getMonth() + 1 === this.selectedMonth && entryDate.getFullYear() === this.year;
+            }));
         }
 
         const body = `
@@ -152,7 +157,7 @@ export class PtoAccrualCard extends PtoSectionCard {
                 </div>
                 ${rows}
             </div>
-            ${this.selectedMonth ? `<pto-calendar month="${this.selectedMonth - 1}" year="${this.year}" entries='${JSON.stringify(calendarEntries)}' selected-month="${this.selectedMonth}" readonly="${!this._requestMode}">
+            ${this.selectedMonth ? `<pto-calendar month="${this.selectedMonth - 1}" year="${this.year}" pto-entries='${JSON.stringify(monthPtoEntries)}' selected-month="${this.selectedMonth}" readonly="${!this._requestMode}">
                 ${this._requestMode ? '<button slot="submit" class="submit-button">Submit PTO Request</button>' : ''}
             </pto-calendar>` : ''}
         `;

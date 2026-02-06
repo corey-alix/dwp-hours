@@ -17,6 +17,12 @@ export default defineConfig({
     /* Reporter to use. See https://playwright.dev/docs/test-reporters */
     reporter: 'list',
     timeout: 5 * 1000,
+    /* Web server to start before running tests */
+    webServer: {
+        command: 'npm run build:test-assets && npx http-server public -p 3000 -s',
+        port: 3000,
+        reuseExistingServer: !process.env.CI,
+    },
     /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
     use: {
         /* Base URL to use in actions like `await page.goto('/')`. */
@@ -31,6 +37,7 @@ export default defineConfig({
         {
             name: 'chromium',
             use: { ...devices['Desktop Chrome'] },
+            testIgnore: ['**/magic-link-poc.spec.ts'],
         },
 
         // {

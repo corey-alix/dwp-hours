@@ -58,9 +58,8 @@ describe('Database Schema and Persistence', () => {
             'idx_admin_acknowledgements_month',
             'idx_monthly_hours_employee_id',
             'idx_monthly_hours_month',
-            'idx_pto_entries_employee_id',
-            'idx_pto_entries_end_date',
-            'idx_pto_entries_start_date'
+            'idx_pto_entries_date',
+            'idx_pto_entries_employee_id'
         ]);
 
         // Test UNIQUE constraint on employees.identifier
@@ -85,11 +84,11 @@ describe('Database Schema and Persistence', () => {
         db.exec("INSERT INTO employees (name, identifier, hire_date) VALUES ('Test', 'T001', '2024-01-01')");
 
         // Valid foreign key should work
-        db.exec("INSERT INTO pto_entries (employee_id, start_date, end_date, type, hours) VALUES (1, '2026-01-01', '2026-01-01', 'Sick', 8)");
+        db.exec("INSERT INTO pto_entries (employee_id, date, type, hours) VALUES (1, '2026-01-01', 'Sick', 8)");
 
         // Invalid foreign key should fail
         expect(() => {
-            db.exec("INSERT INTO pto_entries (employee_id, start_date, end_date, type, hours) VALUES (999, '2026-01-01', '2026-01-01', 'Sick', 8)");
+            db.exec("INSERT INTO pto_entries (employee_id, date, type, hours) VALUES (999, '2026-01-01', 'Sick', 8)");
         }).toThrow();
 
         // Test CASCADE delete
@@ -127,14 +126,14 @@ describe('Database Schema and Persistence', () => {
 
         // Insert PTO entry
         db.exec(`
-      INSERT INTO pto_entries (employee_id, start_date, end_date, type, hours)
-      VALUES (1, '2026-02-01', '2026-02-01', 'Sick', 8);
+      INSERT INTO pto_entries (employee_id, date, type, hours)
+      VALUES (1, '2026-02-01', 'Sick', 8);
     `);
 
         // Query PTO
         const pto = db.exec('SELECT * FROM pto_entries');
         expect(pto[0].values.length).toBe(1);
-        expect(pto[0].values[0][5]).toBe(8); // hours
+        expect(pto[0].values[0][4]).toBe(8); // hours
 
         // Export database
         const exportedData = db.export();
@@ -149,7 +148,7 @@ describe('Database Schema and Persistence', () => {
 
         const reloadedPto = db.exec('SELECT * FROM pto_entries');
         expect(reloadedPto[0].values.length).toBe(1);
-        expect(reloadedPto[0].values[0][5]).toBe(8);
+        expect(reloadedPto[0].values[0][4]).toBe(8);
 
         // Manipulate data in reloaded DB
         db.exec(`UPDATE employees SET name = 'John Updated' WHERE id = 1`);

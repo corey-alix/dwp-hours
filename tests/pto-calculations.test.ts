@@ -51,26 +51,55 @@ describe('PTO Calculations', () => {
         {
             id: 1,
             employee_id: 1,
-            start_date: '2024-06-01',
-            end_date: '2024-06-05',
+            date: '2024-06-01',
             type: 'PTO',
-            hours: 32,
+            hours: 8,
             created_at: '2024-05-01'
         },
         {
             id: 2,
             employee_id: 1,
-            start_date: '2024-08-01',
-            end_date: '2024-08-01',
+            date: '2024-06-02',
+            type: 'PTO',
+            hours: 8,
+            created_at: '2024-05-01'
+        },
+        {
+            id: 3,
+            employee_id: 1,
+            date: '2024-06-03',
+            type: 'PTO',
+            hours: 8,
+            created_at: '2024-05-01'
+        },
+        {
+            id: 4,
+            employee_id: 1,
+            date: '2024-06-04',
+            type: 'PTO',
+            hours: 8,
+            created_at: '2024-05-01'
+        },
+        {
+            id: 5,
+            employee_id: 1,
+            date: '2024-06-05',
+            type: 'PTO',
+            hours: 8,
+            created_at: '2024-05-01'
+        },
+        {
+            id: 6,
+            employee_id: 1,
+            date: '2024-08-01',
             type: 'Sick',
             hours: 8,
             created_at: '2024-07-01'
         },
         {
-            id: 3,
+            id: 7,
             employee_id: 1,
-            start_date: '2024-09-01',
-            end_date: '2024-09-01',
+            date: '2024-09-01',
             type: 'Bereavement',
             hours: 8,
             created_at: '2024-08-01'
@@ -83,8 +112,8 @@ describe('PTO Calculations', () => {
 
         expect(status.employeeId).toBe(1);
         expect(status.annualAllocation).toBe(96);
-        expect(status.availablePTO).toBeCloseTo(74, 0); // 96 + 10 - 32
-        expect(status.usedPTO).toBe(32); // Only PTO
+        expect(status.availablePTO).toBeCloseTo(66, 0); // 96 + 10 - 40
+        expect(status.usedPTO).toBe(40); // Only PTO
         expect(status.carryoverFromPreviousYear).toBe(10);
         expect(status.monthlyAccruals).toHaveLength(12);
         expect(status.monthlyAccruals[0].month).toBe(1); // January
@@ -92,8 +121,8 @@ describe('PTO Calculations', () => {
         expect(status.sickTime.used).toBe(8);
         expect(status.sickTime.remaining).toBe(16); // 24 - 8
         expect(status.ptoTime.allowed).toBe(106); // 96 + 10
-        expect(status.ptoTime.used).toBe(32);
-        expect(status.ptoTime.remaining).toBeCloseTo(74, 0);
+        expect(status.ptoTime.used).toBe(40);
+        expect(status.ptoTime.remaining).toBeCloseTo(66, 0);
         expect(status.bereavementTime.used).toBe(8);
         expect(status.bereavementTime.remaining).toBe(32); // 40 - 8
         expect(status.juryDutyTime.used).toBe(0);
@@ -106,7 +135,7 @@ describe('PTO Calculations', () => {
         const sickUsed = calculateUsedPTO(mockPTOEntries, 'Sick');
         const bereavementUsed = calculateUsedPTO(mockPTOEntries, 'Bereavement');
 
-        expect(ptoUsed).toBe(32);
+        expect(ptoUsed).toBe(40);
         expect(sickUsed).toBe(8);
         expect(bereavementUsed).toBe(8);
     });
@@ -116,7 +145,7 @@ describe('PTO Calculations', () => {
         const status = calculatePTOStatus(mockEmployee, mockPTOEntries, yearEndDate);
 
         expect(status.annualAllocation).toBe(96);
-        expect(status.availablePTO).toBeCloseTo(74, 0); // 96 + 10 - 32
+        expect(status.availablePTO).toBeCloseTo(66, 0); // 96 + 10 - 40
         expect(status.monthlyAccruals).toHaveLength(12);
     });
 
@@ -129,8 +158,7 @@ describe('PTO Calculations', () => {
         const excessivePTO: PTOEntry[] = [{
             id: 1,
             employee_id: 1,
-            start_date: '2024-01-01',
-            end_date: '2024-12-31',
+            date: '2024-01-01',
             type: 'PTO',
             hours: 1000, // Excessive PTO usage
             created_at: '2024-01-01'
@@ -142,7 +170,7 @@ describe('PTO Calculations', () => {
 
     it('should calculate year-end carryover', () => {
         const carryover = calculateYearEndCarryover(mockEmployee, mockPTOEntries, 2024);
-        expect(carryover).toBeCloseTo(74, 0); // 96 + 10 - 32
+        expect(carryover).toBeCloseTo(66, 0); // 96 + 10 - 40
     });
 
     it('should apply carryover limit', () => {

@@ -40,8 +40,7 @@ export interface PTOStatus {
 export interface PTOEntry {
     id: number;
     employee_id: number;
-    start_date: string;
-    end_date: string;
+    date: string;
     type: 'Sick' | 'PTO' | 'Bereavement' | 'Jury Duty';
     hours: number;
     created_at: string;
@@ -205,7 +204,7 @@ export function calculateUsedPTO(ptoEntries: PTOEntry[], ...types: (string | num
     let filteredEntries = ptoEntries.filter(entry => filteredTypes.includes(entry.type));
     if (year !== undefined) {
         filteredEntries = filteredEntries.filter(entry => {
-            const entryDate = parseDate(entry.start_date);
+            const entryDate = parseDate(entry.date);
             return entryDate.year === year;
         });
     }

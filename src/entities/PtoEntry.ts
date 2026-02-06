@@ -10,10 +10,7 @@ export class PtoEntry {
     employee_id!: number;
 
     @Column({ type: "date" })
-    start_date!: Date;
-
-    @Column({ type: "date" })
-    end_date!: Date;
+    date!: Date;
 
     @Column({ type: "text" })
     type!: "Sick" | "PTO" | "Bereavement" | "Jury Duty";

@@ -16,8 +16,7 @@ export interface Employee {
 export interface PTOEntry {
     id: number;
     employeeId: number;
-    startDate: string; // ISO date string
-    endDate: string; // ISO date string
+    date: string; // Changed from startDate/endDate
     type: "PTO" | "Sick" | "Bereavement" | "Jury Duty";
     hours: number;
     createdAt: string; // ISO date string

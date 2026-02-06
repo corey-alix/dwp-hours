@@ -17,8 +17,7 @@ CREATE TABLE IF NOT EXISTS employees (
 CREATE TABLE IF NOT EXISTS pto_entries (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   employee_id INTEGER NOT NULL,
-  start_date DATE NOT NULL,
-  end_date DATE NOT NULL,
+  date DATE NOT NULL,  -- Changed from start_date/end_date
   type TEXT NOT NULL CHECK (type IN ('Sick', 'PTO', 'Bereavement', 'Jury Duty')),
   hours REAL NOT NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -27,8 +26,7 @@ CREATE TABLE IF NOT EXISTS pto_entries (
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_pto_entries_employee_id ON pto_entries(employee_id);
-CREATE INDEX IF NOT EXISTS idx_pto_entries_start_date ON pto_entries(start_date);
-CREATE INDEX IF NOT EXISTS idx_pto_entries_end_date ON pto_entries(end_date);
+CREATE INDEX IF NOT EXISTS idx_pto_entries_date ON pto_entries(date);
 
 -- Create monthly hours table
 CREATE TABLE IF NOT EXISTS monthly_hours (

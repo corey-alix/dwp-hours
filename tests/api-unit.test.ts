@@ -298,14 +298,14 @@ function setupTestRoutes(app: express.Application, deps: { sendMagicLinkEmail: (
             }
 
             if (startDate || endDate) {
-                whereCondition.start_date = {};
-                if (startDate) whereCondition.start_date.$gte = new Date(startDate as string);
-                if (endDate) whereCondition.start_date.$lte = new Date(endDate as string);
+                whereCondition.date = {};
+                if (startDate) whereCondition.date.$gte = new Date(startDate as string);
+                if (endDate) whereCondition.date.$lte = new Date(endDate as string);
             }
 
             const ptoEntries = await ptoEntryRepo.find({
                 where: whereCondition,
-                order: { start_date: 'DESC' },
+                order: { date: 'DESC' },
                 relations: ['employee']
             });
 
@@ -318,10 +318,10 @@ function setupTestRoutes(app: express.Application, deps: { sendMagicLinkEmail: (
 
     app.post('/api/pto', async (req, res) => {
         try {
-            const { employeeId, startDate, endDate, type, hours } = req.body;
+            const { employeeId, date, type, hours } = req.body;
 
-            if (!employeeId || !startDate || !endDate || !type || hours === undefined) {
-                return res.status(400).json({ error: 'All fields are required: employeeId, startDate, endDate, type, hours' });
+            if (!employeeId || !date || !type || hours === undefined) {
+                return res.status(400).json({ error: 'All fields are required: employeeId, date, type, hours' });
             }
 
             const employeeIdNum = parseInt(employeeId);
@@ -348,21 +348,15 @@ function setupTestRoutes(app: express.Application, deps: { sendMagicLinkEmail: (
                 return res.status(404).json({ error: 'Employee not found' });
             }
 
-            const start = new Date(startDate);
-            const end = new Date(endDate);
+            const ptoDate = new Date(date);
 
-            if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+            if (isNaN(ptoDate.getTime())) {
                 return res.status(400).json({ error: 'Invalid date format' });
-            }
-
-            if (start > end) {
-                return res.status(400).json({ error: 'Start date cannot be after end date' });
             }
 
             const newPtoEntry = dataSource.getRepository(PtoEntry).create({
                 employee_id: employeeIdNum,
-                start_date: start,
-                end_date: end,
+                date: ptoDate,
                 type,
                 hours: hoursNum
             });
@@ -691,16 +685,15 @@ describe('API Endpoints', () => {
                 .post('/api/pto')
                 .send({
                     employeeId: employee.id,
-                    startDate: '2024-06-01',
-                    endDate: '2024-06-05',
+                    date: '2024-06-01',
                     type: 'PTO',
-                    hours: 32
+                    hours: 8
                 });
 
             expect(response.status).toBe(201);
             expect(response.body.message).toBe('PTO entry created successfully');
             expect(response.body.ptoEntry.employee_id).toBe(employee.id);
-            expect(response.body.ptoEntry.hours).toBe(32);
+            expect(response.body.ptoEntry.hours).toBe(8);
         });
 
         it('should validate PTO type', async () => {
@@ -718,10 +711,9 @@ describe('API Endpoints', () => {
                 .post('/api/pto')
                 .send({
                     employeeId: employee.id,
-                    startDate: '2024-06-01',
-                    endDate: '2024-06-05',
+                    date: '2024-06-01',
                     type: 'InvalidType',
-                    hours: 32
+                    hours: 8
                 });
 
             expect(response.status).toBe(400);
@@ -743,8 +735,7 @@ describe('API Endpoints', () => {
                 .post('/api/pto')
                 .send({
                     employeeId: employee.id,
-                    startDate: '2024-06-01',
-                    endDate: '2024-06-05',
+                    date: '2024-06-01',
                     type: 'Sick',
                     hours: 30 // Exceeds 24 hour limit
                 });
@@ -764,19 +755,29 @@ describe('API Endpoints', () => {
             });
             await dataSource.getRepository(Employee).save(employee);
 
-            await dataSource.getRepository(PtoEntry).save({
-                employee_id: employee.id,
-                start_date: new Date('2024-06-01'),
-                end_date: new Date('2024-06-05'),
-                type: 'PTO',
-                hours: 32
-            });
+            // Create individual day entries for the PTO range
+            const ptoDates = [
+                new Date('2024-06-01'),
+                new Date('2024-06-02'),
+                new Date('2024-06-03'),
+                new Date('2024-06-04'),
+                new Date('2024-06-05')
+            ];
+
+            for (const date of ptoDates) {
+                await dataSource.getRepository(PtoEntry).save({
+                    employee_id: employee.id,
+                    date: date,
+                    type: 'PTO',
+                    hours: 8 // 32 hours total / 4 days = 8 hours per day (assuming 4 work days)
+                });
+            }
 
             const response = await request(app)
                 .get('/api/pto');
 
             expect(response.status).toBe(200);
-            expect(response.body).toHaveLength(1);
+            expect(response.body).toHaveLength(5);
             expect(response.body[0].employee_id).toBe(employee.id);
         });
     });

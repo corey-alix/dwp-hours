@@ -303,8 +303,7 @@ initDatabase().then(async () => {
             const ptoEntriesData = ptoEntries.map(entry => ({
                 id: entry.id,
                 employee_id: entry.employee_id,
-                start_date: dateToString(entry.start_date instanceof Date ? entry.start_date : new Date(entry.start_date as any)),
-                end_date: dateToString(entry.end_date instanceof Date ? entry.end_date : new Date(entry.end_date as any)),
+                date: dateToString(entry.date instanceof Date ? entry.date : new Date(entry.date as any)),
                 type: entry.type,
                 hours: entry.hours,
                 created_at: dateToString(entry.created_at instanceof Date ? entry.created_at : new Date(entry.created_at as any))
@@ -537,7 +536,7 @@ initDatabase().then(async () => {
             const ptoEntries = await ptoEntryRepo.find({
                 where: {
                     employee_id: employeeIdNum,
-                    start_date: Between(startOfMonth, endOfMonth)
+                    date: Between(startOfMonth, endOfMonth)
                 }
             });
 
@@ -795,18 +794,18 @@ initDatabase().then(async () => {
             }
 
             if (startDate || endDate) {
-                whereCondition.start_date = {};
-                if (startDate) whereCondition.start_date.$gte = new Date(startDate as string);
-                if (endDate) whereCondition.start_date.$lte = new Date(endDate as string);
+                whereCondition.date = {};
+                if (startDate) whereCondition.date.$gte = new Date(startDate as string);
+                if (endDate) whereCondition.date.$lte = new Date(endDate as string);
             }
 
             const ptoEntries = await ptoEntryRepo.find({
                 where: whereCondition,
-                order: { start_date: 'DESC' },
+                order: { date: 'DESC' },
                 relations: ['employee']
             });
 
-            console.log(`PTO entries for employee ${employeeId}:`, ptoEntries.map(e => ({ start_date: e.start_date, type: e.type })));
+            console.log(`PTO entries for employee ${employeeId}:`, ptoEntries.map(e => ({ date: e.date, type: e.type })));
 
             res.json(ptoEntries);
         } catch (error) {
@@ -817,13 +816,11 @@ initDatabase().then(async () => {
 
     app.post('/api/pto', async (req, res) => {
         try {
-            const { employeeId, start_date, startDate, end_date, endDate, hours, type } = req.body;
-            const normalizedStartDate = start_date ?? startDate;
-            const normalizedEndDate = end_date ?? endDate;
+            const { employeeId, date, hours, type } = req.body;
             const normalizedType = type === 'Full PTO' || type === 'Partial PTO' ? 'PTO' : type;
 
-            if (!employeeId || !normalizedStartDate || hours === undefined || !normalizedType) {
-                return res.status(400).json({ error: 'All fields are required: employeeId, start_date/startDate, hours, type' });
+            if (!employeeId || !date || hours === undefined || !normalizedType) {
+                return res.status(400).json({ error: 'All fields are required: employeeId, date, hours, type' });
             }
 
             const employeeIdNum = parseInt(employeeId);
@@ -855,27 +852,15 @@ initDatabase().then(async () => {
                 return res.status(404).json({ error: 'Employee not found' });
             }
 
-            const start = new Date(normalizedStartDate);
-            if (isNaN(start.getTime())) {
-                return res.status(400).json({ error: 'Invalid start date format' });
+            const ptoDate = new Date(date);
+            if (isNaN(ptoDate.getTime())) {
+                return res.status(400).json({ error: 'Invalid date format' });
             }
 
-            if (normalizedEndDate) {
-                const endDateValue = new Date(normalizedEndDate);
-                if (isNaN(endDateValue.getTime())) {
-                    return res.status(400).json({ error: 'Invalid end date format' });
-                }
-            }
-
-            // Calculate end date based on workdays (assuming 8 hours per day)
-            const workDays = Math.ceil(hoursNum / 8);
-            const end = calculateEndDate(start, workDays);
-
-            // Create PTO entry
+            // Create PTO entry for individual day
             const newPtoEntry = ptoEntryRepo.create({
                 employee_id: employeeIdNum,
-                start_date: start,
-                end_date: end,
+                date: ptoDate,
                 type: normalizedType,
                 hours: hoursNum
             });
@@ -898,7 +883,7 @@ initDatabase().then(async () => {
                 return res.status(400).json({ error: 'Invalid PTO entry ID' });
             }
 
-            const { startDate, endDate, type, hours } = req.body;
+            const { date, type, hours } = req.body;
 
             const ptoEntryRepo = dataSource.getRepository(PtoEntry);
             const ptoEntry = await ptoEntryRepo.findOne({ where: { id: ptoIdNum } });
@@ -908,8 +893,7 @@ initDatabase().then(async () => {
             }
 
             // Update fields if provided
-            if (startDate) ptoEntry.start_date = new Date(startDate);
-            if (endDate) ptoEntry.end_date = new Date(endDate);
+            if (date) ptoEntry.date = new Date(date);
             if (type) ptoEntry.type = type;
             if (hours !== undefined) ptoEntry.hours = parseFloat(hours);
 
