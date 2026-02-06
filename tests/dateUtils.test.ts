@@ -166,7 +166,8 @@ describe('Date Utils', () => {
 
     describe('isWeekend', () => {
         it('should identify weekends', () => {
-            // Test with known weekend dates for 2026
+            // Feb 5, 2026 is Thursday
+            expect(isWeekend('2026-02-05')).toBe(false);
             expect(isWeekend('2026-02-07')).toBe(true); // Saturday
             expect(isWeekend('2026-02-08')).toBe(true); // Sunday
             expect(isWeekend('2026-02-10')).toBe(false); // Tuesday
@@ -238,6 +239,42 @@ describe('Date Utils', () => {
             expect(dateToString(new Date(2026, 1, 5))).toBe('2026-02-05'); // Month is 0-indexed
             expect(dateToString(new Date(2024, 0, 1))).toBe('2024-01-01'); // January 1st
             expect(dateToString(new Date(2026, 11, 31))).toBe('2026-12-31'); // December 31st
+        });
+
+        it('should reproduce timezone shift issue', () => {
+            // Simulate creating a date in local timezone vs UTC interpretation
+            // This reproduces the issue where '2026-03-12' becomes '2026-03-10' in UTC+10 timezone
+
+            // Create date using local time constructor (what happens in some code)
+            const localDate = new Date(2026, 2, 12); // March 12, 2026 (month is 0-indexed)
+
+            // Serialize using UTC getters (what dateToString does)
+            const serialized = dateToString(localDate);
+
+            // In UTC+10 timezone, this would shift the date
+            // The test documents the issue - in different timezones this could fail
+            console.log(`Local date created: ${localDate.toISOString()}`);
+            console.log(`Serialized result: ${serialized}`);
+
+            // This test will help identify the timezone shift issue
+            // In UTC timezone: should be '2026-03-12'
+            // In UTC+10 timezone: would be '2026-03-11' or '2026-03-10' depending on exact offset
+        });
+
+        it('should reproduce client-side PTO form date processing issue', () => {
+            // Simulate the client-side date processing in PTO form
+            // This reproduces how dates get processed when submitting PTO requests
+
+            const inputDateString = '2026-03-12';
+            const parsedDate = new Date(inputDateString);
+            const processedDateString = parsedDate.toISOString().split('T')[0];
+
+            console.log(`Input date string: ${inputDateString}`);
+            console.log(`Parsed date ISO: ${parsedDate.toISOString()}`);
+            console.log(`Processed date string: ${processedDateString}`);
+
+            // In UTC+10 timezone, '2026-03-12' becomes '2026-03-11'
+            // This is the source of the timezone shift in PTO entries
         });
     });
 });

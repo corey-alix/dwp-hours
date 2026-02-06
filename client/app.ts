@@ -2,6 +2,9 @@
 import type * as ApiTypes from './api-types.js';
 import { APIClient } from './APIClient.js';
 
+// Import date utilities
+import { addDays, isWeekend } from '../server/dateUtils.js';
+
 // Import components and test utilities
 import './components/index.js';
 import { AdminPanel, PtoAccrualCard, PtoBereavementCard, PtoEmployeeInfoCard, PtoJuryDutyCard, PtoSickCard, PtoSummaryCard } from './components/index.js';
@@ -265,28 +268,28 @@ class UIManager {
         const typeSelect = querySingle<HTMLSelectElement>("#pto-type");
         const hoursInput = querySingle<HTMLInputElement>("#hours");
 
-        const startDate = new Date(startDateInput.value);
-        const endDate = new Date(endDateInput.value);
+        const startDateStr = startDateInput.value;
+        const endDateStr = endDateInput.value;
         const type = typeSelect.value;
         const hours = parseFloat(hoursInput.value);
 
-        if (!startDateInput.value || !endDateInput.value || !type || isNaN(hours)) {
+        if (!startDateStr || !endDateStr || !type || isNaN(hours)) {
             notifications.error('Please fill in all fields.');
             return;
         }
 
         const requests: CalendarEntry[] = [];
-        const current = new Date(startDate);
-        while (current <= endDate) {
+        let currentDateStr = startDateStr;
+        while (currentDateStr <= endDateStr) {
             // Only add weekdays (Monday to Friday)
-            if (current.getDay() >= 1 && current.getDay() <= 5) {
+            if (!isWeekend(currentDateStr)) {
                 requests.push({
-                    date: current.toISOString().split('T')[0], // YYYY-MM-DD
+                    date: currentDateStr,
                     type: type as any, // Assuming type matches
                     hours
                 });
             }
-            current.setDate(current.getDate() + 1);
+            currentDateStr = addDays(currentDateStr, 1);
         }
 
         if (requests.length === 0) {

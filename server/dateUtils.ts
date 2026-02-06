@@ -81,7 +81,8 @@ function isValidDateComponents(year: number, month: number, day: number): boolea
  */
 export function addDays(dateStr: string, days: number): string {
     const { year, month, day } = parseDate(dateStr);
-    const date = new Date(year, month - 1, day + days);
+    const date = new Date(year, month - 1, day);
+    date.setDate(date.getDate() + days);
 
     return formatDate(date.getFullYear(), date.getMonth() + 1, date.getDate());
 }

@@ -5,8 +5,6 @@
     "description": "A Node.js application for tracking monthly hours worked and managing Paid Time Off (PTO) for employees.",
     "main": "server/server.mts",
     "scripts": {
-        "postinstall": "tsx scripts/link-date-fns-src.mts",
-        "postinstall//": "create shared/date-fns symlink to date-fns TS sources",
         "dev": "echo '⚠️  WARNING: Do NOT run this in VS Code environment! Use external terminal.' && echo 'If you would like me to restart the external server, type \"ready\"' && read response && if [ \"$response\" = \"ready\" ]; then npm run dev:external; else echo 'Cancelled. Assuming external server is running.'; exit 0; fi",
         "dev//": "warn about not running in VS Code and offer to start external",
         "dev:external": "npm run build:test-assets && http-serve public -p 3000 -o",
