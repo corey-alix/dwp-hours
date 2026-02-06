@@ -7,18 +7,23 @@ Introduce constraints for the database to enforce business rules in the Data Acc
 - PTO entries must not duplicate employee_id, date, and type; it is possible to have Sick and PTO on the same day, but not two entries of the same type for the same employee on the same day.
 
 These constraints will be implemented in the DAL rather than directly in the database schema, requiring the design and implementation of a DAL layer.
+Business rules should also be shared with the client so the same constraints can be applied before submission. This is best achieved by generating a shared TypeScript module that both client and server can import.
 
 ## Priority
 🔥 High Priority
 
 ## Checklist
 - [ ] Design the Data Access Layer (DAL) architecture and interfaces
+- [ ] Define a shared TypeScript module for business rules/validation metadata (client + server)
 - [ ] Implement validation logic for hours claimed (only 4 or 8, whole integers)
 - [ ] Implement date validation to restrict to weekdays (Monday-Friday)
 - [ ] Implement uniqueness check for PTO entries (no duplicates on employee_id, date, type)
 - [ ] Create DAL methods for inserting/updating PTO entries with validations
 - [ ] Update existing API endpoints to use DAL validations
+- [ ] Expose shared business rules to the client (importable TypeScript file)
+- [ ] Ensure client validation aligns with shared business rules (optional UI checks)
 - [ ] Write unit tests for DAL validation functions
+- [ ] Write unit tests for shared business rule helpers
 - [ ] Add integration tests for API endpoints with constraint violations
 - [ ] Write E2E tests for PTO entry creation with various constraint scenarios
 - [ ] Update API documentation to reflect new constraints
@@ -28,6 +33,18 @@ These constraints will be implemented in the DAL rather than directly in the dat
 
 ## Implementation Notes
 - Design the DAL as a separate module or class to encapsulate database operations and validations.
+- Create a shared TypeScript file (e.g., in a shared/ or common/ folder) that exports the rules and helper functions so both client and server can import them.
+- Keep the shared module free of Node-only APIs to remain client-compatible.
+- Example option-2 validation error message (field-based errors using shared message keys):
+	```json
+	{
+		"error": "validation_failed",
+		"fieldErrors": [
+			{ "field": "hours", "messageKey": "hours.invalid" },
+			{ "field": "date", "messageKey": "date.weekday" }
+		]
+	}
+	```
 - Use TypeScript for type safety in validations.
 - Handle validation errors gracefully, returning appropriate error messages to the frontend.
 - Ensure backward compatibility with existing data where possible.
