@@ -6,6 +6,9 @@ Enhance the PTO entry form with improved date handling, spillover logic for hour
 ## Priority
 🟡 Medium Priority
 
+## Current Implementation Status
+**Status: Not Started** - All phases are pending implementation. The current PTO entry form exists at `client/components/pto-entry-form/index.ts` but lacks the enhanced functionality described in this task.
+
 ## Implementation Phases
 
 The implementation is divided into testable phases. Each phase builds on the previous one and includes manual testing to verify functionality before proceeding.
@@ -45,6 +48,97 @@ The implementation is divided into testable phases. Each phase builds on the pre
 
 ### Phase 6: Documentation and Finalization
 - [ ] Update component documentation and usage examples
+
+## Implementation Details
+
+### Files to Modify
+- **Primary Component**: `client/components/pto-entry-form/index.ts` - Main form logic and UI
+- **Date Utilities**: `shared/dateUtils.ts` - May need new functions for spillover calculations
+- **Business Rules**: `shared/businessRules.ts` - Validation functions (already available)
+- **Calendar Integration**: `client/components/pto-calendar/index.ts` - Modal integration for date selection
+- **Tests**: `client/components/pto-entry-form/test.ts` - Unit tests for new functionality
+- **E2E Tests**: `e2e/component-pto-entry-form.spec.ts` - End-to-end testing
+
+### Key Functions to Implement
+```typescript
+// In shared/dateUtils.ts (or new utility file)
+export function calculateEndDateFromHours(startDate: string, hours: number): string {
+    // Convert hours to workdays (8 hours = 1 workday)
+    const workDays = Math.ceil(hours / 8);
+    // Use existing calculateEndDate logic but adapt for string dates
+}
+
+export function calculateWorkDaysBetween(startDate: string, endDate: string): number {
+    // Count weekdays between dates (excluding weekends)
+}
+
+export function getNextBusinessDay(dateStr: string): string {
+    // Skip weekends for default date setting
+}
+```
+
+### Conditional Field Behavior Implementation
+```typescript
+// In pto-entry-form component
+private updateFieldBehavior(ptoType: string): void {
+    const hoursInput = querySingle<HTMLInputElement>('#hours', this.shadow);
+    const endDateInput = querySingle<HTMLInputElement>('#end-date', this.shadow);
+    const hoursLabel = querySingle<HTMLLabelElement>('label[for="hours"]', this.shadow);
+    
+    if (ptoType === 'Full PTO') {
+        hoursLabel.textContent = 'Days';
+        hoursInput.readOnly = true;
+        endDateInput.readOnly = false;
+        // Calculate hours based on date range
+    } else {
+        hoursLabel.textContent = 'Hours';
+        hoursInput.readOnly = false;
+        endDateInput.readOnly = true;
+        // Calculate end date based on hours
+    }
+}
+```
+
+### Validation Integration
+Use existing functions from `shared/businessRules.ts`:
+- `validateHours(hours)` - Ensures 4 or 8 hour increments
+- `validateWeekday(date)` - Ensures dates are weekdays
+- `validatePTOType(type)` - Validates PTO type selection
+- `normalizePTOType(type)` - Converts "Full PTO"/"Partial PTO" to "PTO"
+
+### Calendar Integration
+```typescript
+// Add calendar icon button to form
+private addCalendarIcon(): void {
+    const calendarBtn = document.createElement('button');
+    calendarBtn.innerHTML = '📅'; // Calendar icon
+    calendarBtn.addEventListener('click', () => {
+        // Open pto-calendar modal
+        const calendar = document.createElement('pto-calendar');
+        // Configure calendar for date/type selection
+    });
+}
+```
+
+### Testing Scenarios
+- **Unit Tests**: Date calculation functions, field behavior switching, validation
+- **E2E Tests**: Complete form submission workflow, spillover calculations, type switching
+- **Manual Tests**: 
+  - Friday spillover (16 hours → Monday)
+  - Weekend default date handling
+  - Field readonly behavior
+  - Calendar modal integration
+
+## Completion Criteria
+- [ ] All phases completed with checkboxes marked
+- [ ] `npm run build` passes without errors
+- [ ] `npm run lint` passes without warnings
+- [ ] Unit test coverage > 80% for new functionality
+- [ ] E2E tests pass in CI/CD pipeline
+- [ ] Manual testing confirms all edge cases work
+- [ ] Code review completed and approved
+- [ ] Documentation updated in component README
+- [ ] No regressions in existing PTO functionality
 
 ## Implementation Notes
 - **Conditional Field Behavior**: 
@@ -108,3 +202,19 @@ The implementation is divided into testable phases. Each phase builds on the pre
 
 14. **Type Change Handling**  
     This is only an issue when switching to "Full PTO", which should round to the next multiple of 8.
+
+### Additional Clarifying Questions
+1. **Should the spillover calculation create multiple PTO entries or a single entry with calculated end date?**  
+   Correct. Start and end date with total days is enough information to submit. The response will probably be rendered on a calendar so they will know which days were reserved and will be able to edit from the calendar if needed (future)
+
+2. **How should the form handle pre-existing PTO entries when calculating availability?**  
+   There should be a warning and the user should be directed to the calendar (future)
+
+3. **What is the exact behavior for "Full PTO" when the date range includes weekends?**  
+   Do not count the weekends. The user will be unable to select a Sat/Sun (make that an explicit restriction if it is not already)
+
+4. **Should the calendar icon open the pto-calendar in a modal or navigate to a separate page?**  
+   The pto-calendar will be opened in this form, not a separate page. It will replace this content and will have a toggle button to return back to this form.
+
+5. **Are there any specific CSS classes or design patterns to follow for the calendar icon and progressive disclosure UI?**  
+   Correct
