@@ -5,6 +5,8 @@ interface PtoRequest {
     hours: number;
 }
 
+import { querySingle } from '../test-utils';
+
 export class PtoEntryForm extends HTMLElement {
     private shadow: ShadowRoot;
 
@@ -252,8 +254,8 @@ export class PtoEntryForm extends HTMLElement {
     }
 
     private setupEventListeners() {
-        const form = this.shadow.getElementById('pto-form') as HTMLFormElement;
-        const cancelBtn = this.shadow.getElementById('cancel-btn') as HTMLButtonElement;
+        const form = querySingle<HTMLFormElement>('#pto-form', this.shadow);
+        const cancelBtn = querySingle<HTMLButtonElement>('#cancel-btn', this.shadow);
 
         form?.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -281,10 +283,10 @@ export class PtoEntryForm extends HTMLElement {
     private validateForm(): boolean {
         let isValid = true;
 
-        const startDateInput = this.shadow.getElementById('start-date') as HTMLInputElement;
-        const endDateInput = this.shadow.getElementById('end-date') as HTMLInputElement;
-        const ptoTypeInput = this.shadow.getElementById('pto-type') as HTMLSelectElement;
-        const hoursInput = this.shadow.getElementById('hours') as HTMLInputElement;
+        const startDateInput = querySingle<HTMLInputElement>('#start-date', this.shadow);
+        const endDateInput = querySingle<HTMLInputElement>('#end-date', this.shadow);
+        const ptoTypeInput = querySingle<HTMLSelectElement>('#pto-type', this.shadow);
+        const hoursInput = querySingle<HTMLInputElement>('#hours', this.shadow);
 
         if (!this.validateField(startDateInput)) isValid = false;
         if (!this.validateField(endDateInput)) isValid = false;
@@ -306,7 +308,7 @@ export class PtoEntryForm extends HTMLElement {
 
     private validateField(input: HTMLInputElement | HTMLSelectElement): boolean {
         const value = input.value.trim();
-        const errorElement = this.shadow.getElementById(`${input.id}-error`) as HTMLElement;
+        const errorElement = querySingle<HTMLElement>(`#${input.id}-error`, this.shadow);
 
         this.clearFieldError(input);
 
@@ -345,7 +347,7 @@ export class PtoEntryForm extends HTMLElement {
 
     private setFieldError(input: HTMLInputElement | HTMLSelectElement, message: string) {
         input.classList.add('error');
-        const errorElement = this.shadow.getElementById(`${input.id}-error`) as HTMLElement;
+        const errorElement = querySingle<HTMLElement>(`#${input.id}-error`, this.shadow);
         if (errorElement) {
             errorElement.textContent = message;
         }
@@ -353,14 +355,14 @@ export class PtoEntryForm extends HTMLElement {
 
     private clearFieldError(input: HTMLInputElement | HTMLSelectElement) {
         input.classList.remove('error');
-        const errorElement = this.shadow.getElementById(`${input.id}-error`) as HTMLElement;
+        const errorElement = querySingle<HTMLElement>(`#${input.id}-error`, this.shadow);
         if (errorElement) {
             errorElement.textContent = '';
         }
     }
 
     private handleSubmit() {
-        const form = this.shadow.getElementById('pto-form') as HTMLFormElement;
+        const form = querySingle<HTMLFormElement>('#pto-form', this.shadow);
         const formData = new FormData(form);
 
         const ptoRequest: PtoRequest = {
@@ -377,7 +379,7 @@ export class PtoEntryForm extends HTMLElement {
 
     // Public methods for external control
     reset() {
-        const form = this.shadow.getElementById('pto-form') as HTMLFormElement;
+        const form = querySingle<HTMLFormElement>('#pto-form', this.shadow);
         form?.reset();
 
         // Clear any error states
@@ -388,7 +390,7 @@ export class PtoEntryForm extends HTMLElement {
     }
 
     focus() {
-        const firstInput = this.shadow.getElementById('start-date') as HTMLInputElement;
+        const firstInput = querySingle<HTMLInputElement>('#start-date', this.shadow);
         firstInput?.focus();
     }
 }

@@ -1,9 +1,10 @@
 import { querySingle } from '../test-utils.js';
+import { PtoSickCard } from './index.js';
 
 export function playground() {
     console.log('Starting PTO Sick Card test...');
 
-    const card = querySingle('pto-sick-card') as any;
+    const card = querySingle<PtoSickCard>('pto-sick-card');
 
     // Sample bucket data
     card.bucket = {

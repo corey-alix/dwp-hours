@@ -1,9 +1,10 @@
 import { querySingle } from '../test-utils.js';
+import { PtoBereavementCard } from './index.js';
 
 export function playground() {
     console.log('Starting PTO Bereavement Card test...');
 
-    const card = querySingle('pto-bereavement-card') as any;
+    const card = querySingle<PtoBereavementCard>('pto-bereavement-card');
 
     // Sample bucket data
     card.bucket = {

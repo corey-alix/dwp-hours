@@ -7,6 +7,8 @@ interface ReportData {
     carryoverHours: number;
 }
 
+import { querySingle } from '../test-utils';
+
 export class ReportGenerator extends HTMLElement {
     private shadow: ShadowRoot;
     private _reportData: ReportData[] = [];
@@ -383,11 +385,11 @@ export class ReportGenerator extends HTMLElement {
 
     private setupEventListeners() {
         console.log('ReportGenerator setupEventListeners called');
-        const reportTypeSelect = this.shadow.getElementById('report-type') as HTMLSelectElement;
-        const startDateInput = this.shadow.getElementById('start-date') as HTMLInputElement;
-        const endDateInput = this.shadow.getElementById('end-date') as HTMLInputElement;
-        const generateBtn = this.shadow.getElementById('generate-report') as HTMLButtonElement;
-        const exportBtn = this.shadow.getElementById('export-csv') as HTMLButtonElement;
+        const reportTypeSelect = querySingle<HTMLSelectElement>('#report-type', this.shadow);
+        const startDateInput = querySingle<HTMLInputElement>('#start-date', this.shadow);
+        const endDateInput = querySingle<HTMLInputElement>('#end-date', this.shadow);
+        const generateBtn = querySingle<HTMLButtonElement>('#generate-report', this.shadow);
+        const exportBtn = querySingle<HTMLButtonElement>('#export-csv', this.shadow);
 
         reportTypeSelect?.addEventListener('change', (e) => {
             console.log('Report type select changed:', (e.target as HTMLSelectElement).value);
@@ -421,8 +423,8 @@ export class ReportGenerator extends HTMLElement {
     }
 
     private updateDateRange() {
-        const startDateInput = this.shadow.getElementById('start-date') as HTMLInputElement;
-        const endDateInput = this.shadow.getElementById('end-date') as HTMLInputElement;
+        const startDateInput = querySingle<HTMLInputElement>('#start-date', this.shadow);
+        const endDateInput = querySingle<HTMLInputElement>('#end-date', this.shadow);
 
         this._dateRange = {
             start: startDateInput.value,

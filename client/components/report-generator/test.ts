@@ -1,9 +1,11 @@
 import { querySingle } from '../test-utils.js';
+import { addEventListener } from '../test-utils.js';
+import { ReportGenerator } from './index.js';
 
 export function playground() {
     console.log('Starting Report Generator playground test...');
 
-    const reportGenerator = querySingle('report-generator') as any;
+    const reportGenerator = querySingle<ReportGenerator>('report-generator');
 
     // Sample report data
     const sampleReportData = [
@@ -46,22 +48,22 @@ export function playground() {
     reportGenerator.reportType = 'summary';
 
     // Test event listeners
-    reportGenerator.addEventListener('report-type-change', (e: CustomEvent) => {
+    addEventListener(reportGenerator, 'report-type-change', (e: CustomEvent) => {
         console.log('Report type changed:', e.detail);
         querySingle('#test-output').textContent = `Report type changed to ${e.detail.reportType}`;
     });
 
-    reportGenerator.addEventListener('date-range-change', (e: CustomEvent) => {
+    addEventListener(reportGenerator, 'date-range-change', (e: CustomEvent) => {
         console.log('Date range changed:', e.detail);
         querySingle('#test-output').textContent = `Date range: ${e.detail.dateRange.start} to ${e.detail.dateRange.end}`;
     });
 
-    reportGenerator.addEventListener('generate-report', (e: CustomEvent) => {
+    addEventListener(reportGenerator, 'generate-report', (e: CustomEvent) => {
         console.log('Generate report requested:', e.detail);
         querySingle('#test-output').textContent = `Generating ${e.detail.reportType} report`;
     });
 
-    reportGenerator.addEventListener('report-exported', (e: CustomEvent) => {
+    addEventListener(reportGenerator, 'report-exported', (e: CustomEvent) => {
         console.log('Report exported:', e.detail);
         querySingle('#test-output').textContent = `Report exported as ${e.detail.format}`;
     });

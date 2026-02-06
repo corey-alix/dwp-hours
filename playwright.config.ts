@@ -6,7 +6,7 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
     testDir: './e2e',
     /* Run tests in files in parallel */
-    fullyParallel: true,
+    fullyParallel: false, // Disable parallel execution to prevent database conflicts
     /* Fail the build on CI if you accidentally left test.only in the source code. */
     forbidOnly: !!process.env.CI,
     /* Retry on CI only */
@@ -17,11 +17,13 @@ export default defineConfig({
     /* Reporter to use. See https://playwright.dev/docs/test-reporters */
     reporter: 'list',
     timeout: 5 * 1000,
+    /* Global setup to reset database before tests */
+    globalSetup: './e2e/setup/global-setup.ts',
     /* Web server to start before running tests */
     webServer: {
         command: 'npm run start:prod',
         port: 3000,
-        reuseExistingServer: !process.env.CI,
+        reuseExistingServer: true, // Reuse existing server since it's already running
     },
     /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
     use: {

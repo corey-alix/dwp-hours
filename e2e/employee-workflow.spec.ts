@@ -2,15 +2,15 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Employee Authentication & Workflow', () => {
     test('should complete comprehensive PTO calendar request workflow', async ({ page }) => {
-        test.setTimeout(20000); // 20 seconds is enough to identify issues
+        test.setTimeout(10000); // 20 seconds is enough to identify issues
 
-        // Navigate to the actual application
-        await page.goto('http://localhost:3000');
+    // Use a fixed weekday date that won't conflict with seed data
+    const testDateStr = '2026-03-12'; // Thursday
 
-        // Wait for login form
-        await page.waitForSelector('#login-section', { timeout: 10000 });
+    // Navigate to the actual application
+    await page.goto('http://localhost:3000');
 
-        // Fill out login form with test user email
+    // Fill out login form with test user email
         await page.fill('#identifier', 'coreyalix@gmail.com');
         await page.click('#login-form button[type="submit"]');
 
@@ -42,8 +42,8 @@ test.describe('Employee Authentication & Workflow', () => {
         // Click the "PTO" legend item to select PTO type
         await page.click('pto-calendar .legend-item[data-type="PTO"]');
 
-        // Click on March 6, 2026 (Thursday, no existing PTO)
-        await page.click('pto-calendar .day.clickable[data-date="2026-03-06"]');
+        // Click on test date (random day in March, guaranteed to be unique)
+        await page.click(`pto-calendar .day.clickable[data-date="${testDateStr}"]`);
 
         // Verify the cell is selected
         await expect(page.locator('pto-calendar .day.selected')).toHaveCount(1);
@@ -77,7 +77,7 @@ test.describe('Employee Authentication & Workflow', () => {
         const ptoRequest = responseBody.ptoEntry;
         expect(ptoRequest).toBeDefined();
         expect(ptoRequest.employee_id).toBeDefined();
-        expect(ptoRequest.date).toBe('2026-03-06'); // Date stored as YYYY-MM-DD string
+        expect(ptoRequest.date).toBe(testDateStr); // Date stored as YYYY-MM-DD string
         expect(ptoRequest.type).toBe('PTO');
         expect(ptoRequest.hours).toBe(4);
 

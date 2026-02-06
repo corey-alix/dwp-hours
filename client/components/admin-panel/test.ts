@@ -1,12 +1,13 @@
 import { querySingle } from '../test-utils.js';
-
+import { addEventListener } from '../test-utils.js';
+import { AdminPanel } from './index.js';
 export function playground() {
     console.log('Starting Admin Panel playground test...');
 
-    const adminPanel = querySingle('admin-panel') as any;
+    const adminPanel = querySingle<AdminPanel>('admin-panel');
 
     // Test view changes
-    adminPanel.addEventListener('view-change', (e: CustomEvent) => {
+    addEventListener(adminPanel, 'view-change', (e: CustomEvent) => {
         console.log('View changed to:', e.detail.view);
         querySingle('#test-output').textContent = `Current view: ${e.detail.view}`;
     });

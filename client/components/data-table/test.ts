@@ -1,9 +1,11 @@
 import { querySingle } from '../test-utils.js';
+import { addEventListener } from '../test-utils.js';
+import { DataTable } from './index.js';
 
 export function playground() {
     console.log('Starting Data Table playground test...');
 
-    const dataTable = querySingle('data-table') as any;
+    const dataTable = querySingle('data-table') as DataTable;
 
     // Sample table data
     const sampleData = [
@@ -31,17 +33,17 @@ export function playground() {
     dataTable.pageSize = 5;
 
     // Test event listeners
-    dataTable.addEventListener('sort-change', (e: CustomEvent) => {
+    addEventListener(dataTable, 'sort-change', (e: CustomEvent) => {
         console.log('Sort changed:', e.detail);
         querySingle('#test-output').textContent = `Sorted by ${e.detail.sortKey} (${e.detail.sortDirection})`;
     });
 
-    dataTable.addEventListener('page-change', (e: CustomEvent) => {
+    addEventListener(dataTable, 'page-change', (e: CustomEvent) => {
         console.log('Page changed:', e.detail);
         querySingle('#test-output').textContent = `Page changed to ${e.detail.page}`;
     });
 
-    dataTable.addEventListener('page-size-change', (e: CustomEvent) => {
+    addEventListener(dataTable, 'page-size-change', (e: CustomEvent) => {
         console.log('Page size changed:', e.detail);
         querySingle('#test-output').textContent = `Page size changed to ${e.detail.pageSize}`;
     });

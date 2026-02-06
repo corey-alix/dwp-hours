@@ -356,7 +356,7 @@ function setupTestRoutes(app: express.Application, deps: { sendMagicLinkEmail: (
 
             const newPtoEntry = dataSource.getRepository(PtoEntry).create({
                 employee_id: employeeIdNum,
-                date: ptoDate,
+                date: date,
                 type,
                 hours: hoursNum
             });
@@ -767,7 +767,7 @@ describe('API Endpoints', () => {
             for (const date of ptoDates) {
                 await dataSource.getRepository(PtoEntry).save({
                     employee_id: employee.id,
-                    date: date,
+                    date: date.toISOString().split('T')[0],
                     type: 'PTO',
                     hours: 8 // 32 hours total / 4 days = 8 hours per day (assuming 4 work days)
                 });

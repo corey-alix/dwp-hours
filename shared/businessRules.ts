@@ -40,7 +40,7 @@ export function validateHours(hours: number): ValidationError | null {
  * Validates that date is a weekday (Monday to Friday)
  */
 export function validateWeekday(date: Date): ValidationError | null {
-    const day = date.getDay(); // 0 = Sunday, 6 = Saturday
+    const day = date.getUTCDay(); // 0 = Sunday, 6 = Saturday
     if (day === 0 || day === 6) {
         return { field: 'date', messageKey: 'date.weekday' };
     }

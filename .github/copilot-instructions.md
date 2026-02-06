@@ -103,6 +103,10 @@ const input = querySingle<HTMLInputElement>('#input-id', ptoForm.shadowRoot);  /
 - Always call `saveDatabase()` after writes
 - Handle SQL constraints gracefully
 
+### Script Generation
+- Generate scripts in TypeScript with ESM modules (.mts extension), not plain JavaScript or CommonJS modules.
+- Use import/export syntax for ESM.
+
 ## Quality Gates
 
 Before marking any implementation complete:

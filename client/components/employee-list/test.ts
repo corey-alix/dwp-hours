@@ -1,9 +1,11 @@
 import { querySingle } from '../test-utils.js';
+import { addEventListener } from '../test-utils.js';
+import { EmployeeList } from './index.js';
 
 export function playground() {
     console.log('Starting Employee List playground test...');
 
-    const employeeList = querySingle('employee-list') as any;
+    const employeeList = querySingle<EmployeeList>('employee-list');
 
     // Sample employee data
     const sampleEmployees = [
@@ -40,17 +42,17 @@ export function playground() {
     employeeList.employees = sampleEmployees;
 
     // Test event listeners
-    employeeList.addEventListener('add-employee', () => {
+    addEventListener(employeeList, 'add-employee', () => {
         console.log('Add employee button clicked');
         querySingle('#test-output').textContent = 'Add employee action triggered';
     });
 
-    employeeList.addEventListener('employee-edit', (e: CustomEvent) => {
+    addEventListener(employeeList, 'employee-edit', (e: CustomEvent) => {
         console.log('Edit employee:', e.detail.employeeId);
         querySingle('#test-output').textContent = `Edit employee ID: ${e.detail.employeeId}`;
     });
 
-    employeeList.addEventListener('employee-delete', (e: CustomEvent) => {
+    addEventListener(employeeList, 'employee-delete', (e: CustomEvent) => {
         console.log('Delete employee:', e.detail.employeeId);
         querySingle('#test-output').textContent = `Delete employee ID: ${e.detail.employeeId}`;
     });

@@ -54,7 +54,7 @@ export class PtoEntryDAL {
         }
 
         const [year, month, day] = data.date.split('-').map(Number);
-        const date = new Date(year, month - 1, day);
+        const date = new Date(Date.UTC(year, month - 1, day));
 
         // Validate weekday
         const weekdayError = validateWeekday(date);
@@ -77,15 +77,14 @@ export class PtoEntryDAL {
 
         // Check for duplicate
         if (!weekdayError && !typeError) { // Only check if date and type are valid
-            const query = this.ptoEntryRepo.createQueryBuilder('pto')
-                .where('pto.employee_id = :employeeId', { employeeId: data.employeeId })
-                .andWhere('pto.date = :dateStr', { dateStr: data.date })
-                .andWhere('pto.type = :type', { type: normalizedType });
-            if (excludeId) {
-                query.andWhere('pto.id != :excludeId', { excludeId });
-            }
-            const existing = await query.getOne();
-            if (existing) {
+            const existingEntries = await this.ptoEntryRepo
+                .createQueryBuilder('entry')
+                .where('entry.employee_id = :employeeId', { employeeId: data.employeeId })
+                .andWhere('entry.date = :date', { date: data.date })
+                .andWhere('entry.type = :type', { type: normalizedType })
+                .getMany();
+            const hasDuplicate = existingEntries.some(entry => entry.id !== excludeId);
+            if (hasDuplicate) {
                 errors.push({ field: 'entry', messageKey: 'pto.duplicate' });
             }
         }
@@ -107,11 +106,11 @@ export class PtoEntryDAL {
 
         const normalizedType = normalizePTOType(data.type);
         const [year, month, day] = data.date.split('-').map(Number);
-        const date = new Date(year, month - 1, day);
+        const date = new Date(Date.UTC(year, month - 1, day));
 
         const ptoEntry = this.ptoEntryRepo.create({
             employee_id: data.employeeId,
-            date: date,
+            date: data.date,  // Store as string
             type: normalizedType,
             hours: data.hours
         });
@@ -132,7 +131,7 @@ export class PtoEntryDAL {
         // Build updated data
         const updatedData: CreatePtoEntryData = {
             employeeId: existingEntry.employee_id,
-            date: data.date || (typeof existingEntry.date === 'string' ? existingEntry.date : existingEntry.date.toISOString().split('T')[0]),
+            date: data.date || existingEntry.date,
             hours: data.hours !== undefined ? data.hours : existingEntry.hours,
             type: data.type || existingEntry.type
         };
@@ -145,7 +144,7 @@ export class PtoEntryDAL {
 
         // Apply updates
         if (data.date) {
-            existingEntry.date = new Date(data.date);
+            existingEntry.date = data.date;
         }
         if (data.hours !== undefined) {
             existingEntry.hours = data.hours;

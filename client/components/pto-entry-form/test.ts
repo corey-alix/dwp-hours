@@ -1,17 +1,19 @@
 import { querySingle } from '../test-utils.js';
+import { addEventListener } from '../test-utils.js';
+import { PtoEntryForm } from './index.js';
 
 export function playground() {
     console.log('Starting PTO Entry Form playground test...');
 
-    const ptoForm = querySingle('pto-entry-form') as any;
+    const ptoForm = querySingle<PtoEntryForm>('pto-entry-form');
 
     // Test event listeners
-    ptoForm.addEventListener('pto-submit', (e: CustomEvent) => {
+    addEventListener(ptoForm, 'pto-submit', (e: CustomEvent) => {
         console.log('PTO form submitted:', e.detail);
         querySingle('#test-output').textContent = `PTO submitted: ${e.detail.ptoRequest.ptoType} - ${e.detail.ptoRequest.hours} hours`;
     });
 
-    ptoForm.addEventListener('form-cancel', () => {
+    addEventListener(ptoForm, 'form-cancel', () => {
         console.log('PTO form cancelled');
         querySingle('#test-output').textContent = 'PTO form cancelled';
     });
@@ -20,10 +22,10 @@ export function playground() {
     setTimeout(() => {
         console.log('Testing form reset...');
         // Simulate filling the form
-        const startDateInput = ptoForm.shadowRoot.getElementById('start-date') as HTMLInputElement;
-        const endDateInput = ptoForm.shadowRoot.getElementById('end-date') as HTMLInputElement;
-        const ptoTypeSelect = ptoForm.shadowRoot.getElementById('pto-type') as HTMLSelectElement;
-        const hoursInput = ptoForm.shadowRoot.getElementById('hours') as HTMLInputElement;
+        const startDateInput = querySingle<HTMLInputElement>('#start-date', ptoForm.shadowRoot!);
+        const endDateInput = querySingle<HTMLInputElement>('#end-date', ptoForm.shadowRoot!);
+        const ptoTypeSelect = querySingle<HTMLSelectElement>('#pto-type', ptoForm.shadowRoot!);
+        const hoursInput = querySingle<HTMLInputElement>('#hours', ptoForm.shadowRoot!);
 
         if (startDateInput && endDateInput && ptoTypeSelect && hoursInput) {
             const tomorrow = new Date();

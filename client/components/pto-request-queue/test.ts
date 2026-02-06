@@ -1,9 +1,11 @@
 import { querySingle } from '../test-utils.js';
+import { addEventListener } from '../test-utils.js';
+import { PtoRequestQueue } from './index.js';
 
 export function playground() {
     console.log('Starting PTO Request Queue playground test...');
 
-    const ptoQueue = querySingle('pto-request-queue') as any;
+    const ptoQueue = querySingle('pto-request-queue') as PtoRequestQueue;
 
     // Sample PTO requests data
     const sampleRequests = [
@@ -43,15 +45,15 @@ export function playground() {
     ];
 
     // Set initial data
-    ptoQueue.requests = sampleRequests;
+    ptoQueue.requests = sampleRequests as any;
 
     // Test event listeners
-    ptoQueue.addEventListener('request-approve', (e: CustomEvent) => {
+    addEventListener(ptoQueue, 'request-approve', (e: CustomEvent) => {
         console.log('Approve request:', e.detail.requestId);
         querySingle('#test-output').textContent = `Approved request ID: ${e.detail.requestId}`;
     });
 
-    ptoQueue.addEventListener('request-reject', (e: CustomEvent) => {
+    addEventListener(ptoQueue, 'request-reject', (e: CustomEvent) => {
         console.log('Reject request:', e.detail.requestId);
         querySingle('#test-output').textContent = `Rejected request ID: ${e.detail.requestId}`;
     });
@@ -70,7 +72,7 @@ export function playground() {
             status: 'pending',
             createdAt: '2024-02-03T11:45:00Z'
         }];
-        ptoQueue.requests = updatedRequests;
+        ptoQueue.requests = updatedRequests as any;
         querySingle('#test-output').textContent = 'Added new PTO request for John Doe';
     }, 3000);
 

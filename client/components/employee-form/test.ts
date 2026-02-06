@@ -1,12 +1,14 @@
 import { querySingle } from '../test-utils.js';
+import { addEventListener } from '../test-utils.js';
+import { EmployeeForm } from './index.js';
 
 export function playground() {
     console.log('Starting Employee Form playground test...');
 
-    const employeeForm = querySingle('employee-form') as any;
+    const employeeForm = querySingle('employee-form') as EmployeeForm;
 
     // Test event listeners
-    employeeForm.addEventListener('employee-submit', (e: CustomEvent) => {
+    addEventListener(employeeForm, 'employee-submit', (e: CustomEvent) => {
         console.log('Employee form submitted:', e.detail);
         querySingle('#test-output').textContent = `Form submitted: ${e.detail.isEdit ? 'Edit' : 'Add'} - ${e.detail.employee.name}`;
     });

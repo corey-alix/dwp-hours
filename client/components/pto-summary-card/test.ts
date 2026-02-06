@@ -1,10 +1,9 @@
 import { querySingle } from '../test-utils.js';
-
+import { PtoSummaryCard } from './index.js';
 export function playground() {
     console.log('Starting PTO Summary Card playground test...');
 
-    const card = querySingle('pto-summary-card') as any;
-
+    const card = querySingle<PtoSummaryCard>('pto-summary-card');
     // Set initial sample data
     card.summary = {
         annualAllocation: 80,

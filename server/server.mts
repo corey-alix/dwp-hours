@@ -108,7 +108,14 @@ async function initDatabase() {
         log("SQL.js initialized successfully.");
 
         log("Creating database instance...");
-        db = new SQL.Database();
+        let filebuffer: Uint8Array | undefined;
+        if (fs.existsSync(DB_PATH)) {
+            filebuffer = fs.readFileSync(DB_PATH);
+            log("Loaded existing database file.");
+        } else {
+            log("No existing database file found, creating new database.");
+        }
+        db = new SQL.Database(filebuffer);
         log("Database instance created.");
 
         // Read and execute schema
@@ -161,6 +168,96 @@ initDatabase().then(async () => {
             uptime: process.uptime(),
             version: '1.0.0'
         });
+    });
+
+    // Test-only database reset endpoint
+    app.post('/api/test/reset-database', async (req: Request, res: Response) => {
+        try {
+            // Only allow in test environment or with special header
+            if (process.env.NODE_ENV === 'test' || req.headers['x-test-reset'] === 'true') {
+                log('Resetting database for testing...');
+
+                // Truncate all tables
+                await dataSource.query('DELETE FROM admin_acknowledgements');
+                await dataSource.query('DELETE FROM acknowledgements');
+                await dataSource.query('DELETE FROM monthly_hours');
+                await dataSource.query('DELETE FROM pto_entries');
+                await dataSource.query('DELETE FROM employees');
+                await dataSource.query('DELETE FROM sqlite_sequence WHERE name IN ("employees", "pto_entries", "monthly_hours", "acknowledgements", "admin_acknowledgements")');
+
+                // Re-seed with test data
+                const employees = [
+                    {
+                        name: "John Doe",
+                        identifier: "coreyalix@gmail.com",
+                        pto_rate: 0.71,
+                        carryover_hours: 40,
+                        hire_date: "2020-01-15",
+                        role: "Employee",
+                        hash: "test-hash-1"
+                    },
+                    {
+                        name: "Jane Smith",
+                        identifier: "jane.smith@example.com",
+                        pto_rate: 0.71,
+                        carryover_hours: 25,
+                        hire_date: "2021-06-01",
+                        role: "Employee",
+                        hash: "test-hash-2"
+                    },
+                    {
+                        name: "Admin User",
+                        identifier: "admin@example.com",
+                        pto_rate: 0.71,
+                        carryover_hours: 0,
+                        hire_date: "2019-03-10",
+                        role: "Admin",
+                        hash: "admin-hash"
+                    }
+                ];
+
+                const ptoEntries = [
+                    { employee_id: 1, date: "2026-02-13", type: "Sick", hours: 8 },
+                    { employee_id: 1, date: "2026-02-15", type: "Sick", hours: 8 },
+                    { employee_id: 1, date: "2026-02-17", type: "Sick", hours: 8 },
+                    { employee_id: 1, date: "2026-02-21", type: "PTO", hours: 8 },
+                    { employee_id: 1, date: "2026-02-23", type: "PTO", hours: 8 },
+                    { employee_id: 1, date: "2026-02-25", type: "PTO", hours: 8 },
+                    { employee_id: 2, date: "2026-01-15", type: "PTO", hours: 8 },
+                    { employee_id: 2, date: "2026-01-17", type: "PTO", hours: 8 },
+                    { employee_id: 3, date: "2026-01-10", type: "PTO", hours: 8 }
+                ];
+
+                // Insert employees
+                for (const emp of employees) {
+                    await dataSource.query(
+                        'INSERT INTO employees (name, identifier, pto_rate, carryover_hours, hire_date, role, hash) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                        [emp.name, emp.identifier, emp.pto_rate, emp.carryover_hours, emp.hire_date, emp.role, emp.hash]
+                    );
+                }
+
+                // Insert PTO entries
+                for (const entry of ptoEntries) {
+                    await dataSource.query(
+                        'INSERT INTO pto_entries (employee_id, date, type, hours) VALUES (?, ?, ?, ?)',
+                        [entry.employee_id, entry.date, entry.type, entry.hours]
+                    );
+                }
+
+                // Save to file
+                const data = db.export();
+                const buffer = Buffer.from(data);
+                fs.writeFileSync(DB_PATH, buffer);
+
+                log('Database reset complete');
+                res.json({ message: 'Database reset successfully' });
+            } else {
+                res.status(403).json({ error: 'Forbidden: Database reset only allowed in test environment' });
+            }
+        } catch (error) {
+            log(`Database reset error: ${error}`);
+            res.status(500).json({ error: 'Database reset failed' });
+        }
     });
 
     // Auth routes
@@ -239,6 +336,7 @@ initDatabase().then(async () => {
         try {
             const { token, ts } = req.query;
             if (!token || !ts) {
+                log('Auth validation failed: Token and timestamp required');
                 return res.status(400).json({ error: 'Token and timestamp required' });
             }
 
@@ -246,6 +344,7 @@ initDatabase().then(async () => {
             const now = Date.now();
             // Expire after 1 hour
             if (now - timestamp > 60 * 60 * 1000) {
+                log('Auth validation failed: Token expired');
                 return res.status(401).json({ error: 'Token expired' });
             }
 
@@ -261,6 +360,7 @@ initDatabase().then(async () => {
                 }
             }
             if (!validEmployee) {
+                log('Auth validation failed: Invalid token');
                 return res.status(401).json({ error: 'Invalid token' });
             }
 
@@ -279,6 +379,7 @@ initDatabase().then(async () => {
             const employeeIdNum = parseInt(employeeId);
 
             if (isNaN(employeeIdNum)) {
+                log(`PTO status request failed: Invalid employee ID: ${employeeId}`);
                 return res.status(400).json({ error: 'Invalid employee ID' });
             }
 
@@ -287,6 +388,7 @@ initDatabase().then(async () => {
 
             const employee = await employeeRepo.findOne({ where: { id: employeeIdNum } });
             if (!employee) {
+                log(`PTO status request failed: Employee not found: ${employeeIdNum}`);
                 return res.status(404).json({ error: 'Employee not found' });
             }
 
@@ -310,7 +412,7 @@ initDatabase().then(async () => {
             const ptoEntriesData = ptoEntries.map(entry => ({
                 id: entry.id,
                 employee_id: entry.employee_id,
-                date: dateToString(entry.date instanceof Date ? entry.date : new Date(entry.date as any)),
+                date: entry.date,
                 type: entry.type,
                 hours: entry.hours,
                 created_at: dateToString(entry.created_at instanceof Date ? entry.created_at : new Date(entry.created_at as any))
@@ -331,6 +433,7 @@ initDatabase().then(async () => {
             const { employeeId, month, hours } = req.body;
 
             if (!employeeId || !month || hours === undefined) {
+                log('Hours submission failed: Employee ID, month, and hours are required');
                 return res.status(400).json({ error: 'Employee ID, month, and hours are required' });
             }
 
@@ -338,11 +441,13 @@ initDatabase().then(async () => {
             const hoursNum = parseFloat(hours);
 
             if (isNaN(employeeIdNum) || isNaN(hoursNum)) {
+                log(`Hours submission failed: Invalid employee ID (${employeeId}) or hours (${hours})`);
                 return res.status(400).json({ error: 'Invalid employee ID or hours' });
             }
 
             // Validate hours (reasonable range: 0-400 hours per month)
             if (hoursNum < 0 || hoursNum > 400) {
+                log(`Hours submission failed: Hours must be between 0 and 400, got: ${hoursNum}`);
                 return res.status(400).json({ error: 'Hours must be between 0 and 400' });
             }
 
@@ -351,12 +456,14 @@ initDatabase().then(async () => {
 
             const employee = await employeeRepo.findOne({ where: { id: employeeIdNum } });
             if (!employee) {
+                log(`Hours submission failed: Employee not found: ${employeeIdNum}`);
                 return res.status(404).json({ error: 'Employee not found' });
             }
 
             // Parse month (expected format: YYYY-MM)
             const monthDate = new Date(month + '-01');
             if (isNaN(monthDate.getTime())) {
+                log(`Hours submission failed: Invalid month format: ${month}`);
                 return res.status(400).json({ error: 'Invalid month format. Use YYYY-MM' });
             }
 
@@ -394,6 +501,7 @@ initDatabase().then(async () => {
             const employeeIdNum = parseInt(employeeId);
 
             if (isNaN(employeeIdNum)) {
+                log(`Hours retrieval failed: Invalid employee ID: ${employeeId}`);
                 return res.status(400).json({ error: 'Invalid employee ID' });
             }
 
@@ -402,6 +510,7 @@ initDatabase().then(async () => {
 
             const employee = await employeeRepo.findOne({ where: { id: employeeIdNum } });
             if (!employee) {
+                log(`Hours retrieval failed: Employee not found: ${employeeIdNum}`);
                 return res.status(404).json({ error: 'Employee not found' });
             }
 
@@ -431,12 +540,14 @@ initDatabase().then(async () => {
             const { employeeId, month } = req.body;
 
             if (!employeeId || !month) {
+                log('Acknowledgement submission failed: Employee ID and month are required');
                 return res.status(400).json({ error: 'Employee ID and month are required' });
             }
 
             const employeeIdNum = parseInt(employeeId);
 
             if (isNaN(employeeIdNum)) {
+                log(`Acknowledgement submission failed: Invalid employee ID: ${employeeId}`);
                 return res.status(400).json({ error: 'Invalid employee ID' });
             }
 
@@ -445,12 +556,14 @@ initDatabase().then(async () => {
 
             const employee = await employeeRepo.findOne({ where: { id: employeeIdNum } });
             if (!employee) {
+                log(`Acknowledgement submission failed: Employee not found: ${employeeIdNum}`);
                 return res.status(404).json({ error: 'Employee not found' });
             }
 
             // Parse month (expected format: YYYY-MM)
             const monthDate = new Date(month + '-01');
             if (isNaN(monthDate.getTime())) {
+                log(`Acknowledgement submission failed: Invalid month format: ${month}`);
                 return res.status(400).json({ error: 'Invalid month format. Use YYYY-MM' });
             }
 
@@ -460,6 +573,7 @@ initDatabase().then(async () => {
             });
 
             if (existingAck) {
+                log(`Acknowledgement submission failed: Acknowledgement already exists for employee ${employeeIdNum}, month ${month}`);
                 return res.status(409).json({ error: 'Acknowledgement already exists for this month' });
             }
 
@@ -483,6 +597,7 @@ initDatabase().then(async () => {
             const employeeIdNum = parseInt(employeeId);
 
             if (isNaN(employeeIdNum)) {
+                log(`Acknowledgement retrieval failed: Invalid employee ID: ${employeeId}`);
                 return res.status(400).json({ error: 'Invalid employee ID' });
             }
 
@@ -491,6 +606,7 @@ initDatabase().then(async () => {
 
             const employee = await employeeRepo.findOne({ where: { id: employeeIdNum } });
             if (!employee) {
+                log(`Acknowledgement retrieval failed: Employee not found: ${employeeIdNum}`);
                 return res.status(404).json({ error: 'Employee not found' });
             }
 
@@ -513,6 +629,7 @@ initDatabase().then(async () => {
             const employeeIdNum = parseInt(employeeId);
 
             if (isNaN(employeeIdNum)) {
+                log(`Monthly summary request failed: Invalid employee ID: ${employeeId}`);
                 return res.status(400).json({ error: 'Invalid employee ID' });
             }
 
@@ -522,12 +639,14 @@ initDatabase().then(async () => {
 
             const employee = await employeeRepo.findOne({ where: { id: employeeIdNum } });
             if (!employee) {
+                log(`Monthly summary request failed: Employee not found: ${employeeIdNum}`);
                 return res.status(404).json({ error: 'Employee not found' });
             }
 
             // Parse month (expected format: YYYY-MM)
             const monthDate = new Date(month + '-01');
             if (isNaN(monthDate.getTime())) {
+                log(`Monthly summary request failed: Invalid month format: ${month}`);
                 return res.status(400).json({ error: 'Invalid month format. Use YYYY-MM' });
             }
 
@@ -540,12 +659,15 @@ initDatabase().then(async () => {
             const startOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
             const endOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
 
-            const ptoEntries = await ptoEntryRepo.find({
-                where: {
-                    employee_id: employeeIdNum,
-                    date: Between(startOfMonth, endOfMonth)
-                }
-            });
+            const startOfMonthStr = startOfMonth.toISOString().split('T')[0];
+            const endOfMonthStr = endOfMonth.toISOString().split('T')[0];
+
+            const ptoEntries = await ptoEntryRepo
+                .createQueryBuilder('entry')
+                .where('entry.employee_id = :employeeId', { employeeId: employeeIdNum })
+                .andWhere('entry.date >= :startDate', { startDate: startOfMonthStr })
+                .andWhere('entry.date <= :endDate', { endDate: endOfMonthStr })
+                .getMany();
 
             // Calculate PTO usage by category
             const ptoByCategory = {
@@ -579,6 +701,7 @@ initDatabase().then(async () => {
             const { employeeId, month, adminId } = req.body;
 
             if (!employeeId || !month || !adminId) {
+                log('Admin acknowledgement submission failed: Employee ID, month, and admin ID are required');
                 return res.status(400).json({ error: 'Employee ID, month, and admin ID are required' });
             }
 
@@ -586,6 +709,7 @@ initDatabase().then(async () => {
             const adminIdNum = parseInt(adminId);
 
             if (isNaN(employeeIdNum) || isNaN(adminIdNum)) {
+                log(`Admin acknowledgement submission failed: Invalid employee ID (${employeeId}) or admin ID (${adminId})`);
                 return res.status(400).json({ error: 'Invalid employee or admin ID' });
             }
 
@@ -594,17 +718,20 @@ initDatabase().then(async () => {
 
             const employee = await employeeRepo.findOne({ where: { id: employeeIdNum } });
             if (!employee) {
+                log(`Admin acknowledgement submission failed: Employee not found: ${employeeIdNum}`);
                 return res.status(404).json({ error: 'Employee not found' });
             }
 
             const admin = await employeeRepo.findOne({ where: { id: adminIdNum } });
             if (!admin || admin.role !== 'Admin') {
+                log(`Admin acknowledgement submission failed: Admin privileges required for user: ${adminIdNum}`);
                 return res.status(403).json({ error: 'Admin privileges required' });
             }
 
             // Parse month (expected format: YYYY-MM)
             const monthStr = month;
             if (!/^\d{4}-\d{2}$/.test(monthStr)) {
+                log(`Admin acknowledgement submission failed: Invalid month format: ${monthStr}`);
                 return res.status(400).json({ error: 'Invalid month format. Use YYYY-MM' });
             }
 
@@ -614,6 +741,7 @@ initDatabase().then(async () => {
             });
 
             if (existingAck) {
+                log(`Admin acknowledgement submission failed: Admin acknowledgement already exists for employee ${employeeIdNum}, month ${monthStr}`);
                 return res.status(409).json({ error: 'Admin acknowledgement already exists for this month' });
             }
 
@@ -640,6 +768,7 @@ initDatabase().then(async () => {
             const adminIdNum = parseInt(adminId as string);
 
             if (isNaN(employeeIdNum) || isNaN(adminIdNum)) {
+                log(`Admin acknowledgement retrieval failed: Invalid employee ID (${employeeId}) or admin ID (${adminId})`);
                 return res.status(400).json({ error: 'Invalid employee or admin ID' });
             }
 
@@ -648,11 +777,13 @@ initDatabase().then(async () => {
 
             const admin = await employeeRepo.findOne({ where: { id: adminIdNum } });
             if (!admin || admin.role !== 'Admin') {
+                log(`Admin acknowledgement retrieval failed: Admin privileges required for user: ${adminIdNum}`);
                 return res.status(403).json({ error: 'Admin privileges required' });
             }
 
             const employee = await employeeRepo.findOne({ where: { id: employeeIdNum } });
             if (!employee) {
+                log(`Admin acknowledgement retrieval failed: Employee not found: ${employeeIdNum}`);
                 return res.status(404).json({ error: 'Employee not found' });
             }
 
@@ -704,6 +835,7 @@ initDatabase().then(async () => {
             const employeeIdNum = parseInt(id);
 
             if (isNaN(employeeIdNum)) {
+                log(`Employee retrieval failed: Invalid employee ID: ${id}`);
                 return res.status(400).json({ error: 'Invalid employee ID' });
             }
 
@@ -711,6 +843,7 @@ initDatabase().then(async () => {
             const employee = await employeeRepo.findOne({ where: { id: employeeIdNum } });
 
             if (!employee) {
+                log(`Employee retrieval failed: Employee not found: ${employeeIdNum}`);
                 return res.status(404).json({ error: 'Employee not found' });
             }
 
@@ -727,6 +860,7 @@ initDatabase().then(async () => {
             const employeeIdNum = parseInt(id);
 
             if (isNaN(employeeIdNum)) {
+                log(`Employee update failed: Invalid employee ID: ${id}`);
                 return res.status(400).json({ error: 'Invalid employee ID' });
             }
 
@@ -736,6 +870,7 @@ initDatabase().then(async () => {
             const employee = await employeeRepo.findOne({ where: { id: employeeIdNum } });
 
             if (!employee) {
+                log(`Employee update failed: Employee not found: ${employeeIdNum}`);
                 return res.status(404).json({ error: 'Employee not found' });
             }
 
@@ -762,6 +897,7 @@ initDatabase().then(async () => {
             const employeeIdNum = parseInt(id);
 
             if (isNaN(employeeIdNum)) {
+                log(`Employee deletion failed: Invalid employee ID: ${id}`);
                 return res.status(400).json({ error: 'Invalid employee ID' });
             }
 
@@ -769,6 +905,7 @@ initDatabase().then(async () => {
             const employee = await employeeRepo.findOne({ where: { id: employeeIdNum } });
 
             if (!employee) {
+                log(`Employee deletion failed: Employee not found: ${employeeIdNum}`);
                 return res.status(404).json({ error: 'Employee not found' });
             }
 
@@ -814,7 +951,7 @@ initDatabase().then(async () => {
             console.log(`PTO entries for employee ${employeeId}:`, ptoEntries.map(e => ({ date: e.date, type: e.type })));
 
             const simplifiedEntries = ptoEntries.map(entry => ({
-                date: dateToString(entry.date instanceof Date ? entry.date : new Date(entry.date as any)),
+                date: entry.date,
                 type: entry.type,
                 hours: entry.hours
             }));
@@ -856,21 +993,34 @@ initDatabase().then(async () => {
                 });
 
                 if (!result.success) {
+                    console.log('PTO validation failed for request:', {
+                        employeeId: empIdNum,
+                        date: reqDate,
+                        hours: reqHoursNum,
+                        type: reqType,
+                        errors: result.errors
+                    });
                     const fieldErrors = result.errors.map(err => ({
                         field: err.field,
                         message: VALIDATION_MESSAGES[err.messageKey as MessageKey]
                     }));
+                    console.log('Returning 400 with field errors:', fieldErrors);
                     return res.status(400).json({ error: 'validation_failed', fieldErrors });
                 }
 
                 results.push(result.ptoEntry);
             }
 
+            log(`PTO entries created successfully: ${results.length} entries`);
+            results.forEach((entry, index) => {
+                log(`Entry ${index + 1}: Employee ${entry.employee_id}, Date ${entry.date}, Type ${entry.type}, Hours ${entry.hours}`);
+            });
+
             const lastResult = results[results.length - 1];
             const responseEntry = {
                 id: lastResult.id,
                 employee_id: lastResult.employee_id,
-                date: dateToString(lastResult.date),
+                date: lastResult.date,
                 type: lastResult.type,
                 hours: lastResult.hours,
                 created_at: dateToString(lastResult.created_at)
@@ -880,7 +1030,7 @@ initDatabase().then(async () => {
                 message: 'PTO entries created successfully', ptoEntry: responseEntry, ptoEntries: results.map(r => ({
                     id: r.id,
                     employee_id: r.employee_id,
-                    date: dateToString(r.date),
+                    date: r.date,
                     type: r.type,
                     hours: r.hours,
                     created_at: dateToString(r.created_at)

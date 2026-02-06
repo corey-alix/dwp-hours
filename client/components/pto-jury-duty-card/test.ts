@@ -1,9 +1,10 @@
 import { querySingle } from '../test-utils.js';
+import { PtoJuryDutyCard } from './index.js';
 
 export function playground() {
     console.log('Starting PTO Jury Duty Card test...');
 
-    const card = querySingle('pto-jury-duty-card') as any;
+    const card = querySingle('pto-jury-duty-card') as PtoJuryDutyCard;
 
     // Sample bucket data
     card.bucket = {

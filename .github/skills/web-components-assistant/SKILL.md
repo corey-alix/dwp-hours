@@ -76,7 +76,7 @@ import { querySingle } from '../test-utils.js';
 export function playground() {
     console.log('Starting component playground test...');
     
-    const component = querySingle('component-name') as any;
+    const component = querySingle<ComponentType>('component-name');
     
     // Test component functionality
     component.addEventListener('custom-event', (e: CustomEvent) => {

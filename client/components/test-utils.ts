@@ -10,13 +10,11 @@
  * @returns The found element
  * @throws Error if element is not found
  */
-export function querySingle<T extends HTMLElement>(selector: string, scope?: Element): T {
+export function querySingle<T extends HTMLElement>(selector: string, scope?: Element | ShadowRoot): T {
     const item = (scope || document).querySelector<T>(selector);
     if (item) {
-        console.log(`✅ Found ${selector} element${scope ? ' in scope' : ''}:`, item);
         return item;
     } else {
-        console.error(`❌ ${selector} element not found${scope ? ' in scope' : ' in DOM'}`);
         throw new Error(`${selector} element not found`);
     }
 }

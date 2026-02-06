@@ -8,6 +8,8 @@ interface Employee {
     hash: string;
 }
 
+import { querySingle } from '../test-utils';
+
 export class EmployeeList extends HTMLElement {
     private shadow: ShadowRoot;
     private _employees: Employee[] = [];
@@ -317,8 +319,8 @@ export class EmployeeList extends HTMLElement {
     }
 
     private setupEventListeners() {
-        const searchInput = this.shadow.getElementById('search-input') as HTMLInputElement;
-        const addButton = this.shadow.getElementById('add-employee') as HTMLButtonElement;
+        const searchInput = querySingle<HTMLInputElement>('#search-input', this.shadow);
+        const addButton = querySingle<HTMLButtonElement>('#add-employee', this.shadow);
 
         searchInput?.addEventListener('input', (e) => {
             this._searchTerm = (e.target as HTMLInputElement).value;

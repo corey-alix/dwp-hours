@@ -9,6 +9,8 @@ interface TableData {
     [key: string]: any;
 }
 
+import { querySingle } from '../test-utils';
+
 export class DataTable extends HTMLElement {
     private shadow: ShadowRoot;
     private _data: TableData[] = [];
@@ -391,14 +393,18 @@ export class DataTable extends HTMLElement {
         });
 
         // Page size change
-        const pageSizeSelect = this.shadow.getElementById('page-size-select') as HTMLSelectElement;
-        pageSizeSelect?.addEventListener('change', (e) => {
-            const newSize = parseInt((e.target as HTMLSelectElement).value);
-            this.pageSize = newSize;
-            this.dispatchEvent(new CustomEvent('page-size-change', {
-                detail: { pageSize: newSize }
-            }));
-        });
+        try {
+            const pageSizeSelect = querySingle<HTMLSelectElement>('#page-size-select', this.shadow);
+            pageSizeSelect?.addEventListener('change', (e) => {
+                const newSize = parseInt((e.target as HTMLSelectElement).value);
+                this.pageSize = newSize;
+                this.dispatchEvent(new CustomEvent('page-size-change', {
+                    detail: { pageSize: newSize }
+                }));
+            });
+        } catch (error) {
+            // Page size select may not be rendered yet if no data
+        }
     }
 
     private handleSort(key: string) {

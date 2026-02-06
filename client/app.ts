@@ -4,9 +4,9 @@ import { APIClient } from './APIClient.js';
 
 // Import components and test utilities
 import './components/index.js';
-import { PtoAccrualCard, PtoBereavementCard, PtoEmployeeInfoCard, PtoJuryDutyCard, PtoSickCard, PtoSummaryCard } from './components/index.js';
+import { AdminPanel, PtoAccrualCard, PtoBereavementCard, PtoEmployeeInfoCard, PtoJuryDutyCard, PtoSickCard, PtoSummaryCard } from './components/index.js';
 import type { CalendarEntry } from './components/pto-calendar/index.js';
-import { getElementById, addEventListener, querySingle, createElement } from './components/test-utils.js';
+import { addEventListener, querySingle, createElement } from './components/test-utils.js';
 
 // Re-export playground for testing
 export * from './components/test.js';
@@ -162,27 +162,27 @@ class UIManager {
 
     private setupEventListeners(): void {
         // Login form
-        const loginForm = getElementById<HTMLFormElement>("login-form");
+        const loginForm = querySingle<HTMLFormElement>("#login-form");
         addEventListener(loginForm, "submit", (e) => this.handleLogin(e));
 
         // PTO form
-        const ptoForm = getElementById<HTMLFormElement>("pto-entry-form");
+        const ptoForm = querySingle<HTMLFormElement>("#pto-entry-form");
         addEventListener(ptoForm, "submit", (e) => this.handlePTO(e));
 
-        const cancelBtn = getElementById<HTMLButtonElement>("cancel-pto");
+        const cancelBtn = querySingle<HTMLButtonElement>("#cancel-pto");
         addEventListener(cancelBtn, "click", () => this.showDashboard());
 
         // Logout
-        const logoutBtn = getElementById<HTMLButtonElement>("logout-btn");
+        const logoutBtn = querySingle<HTMLButtonElement>("#logout-btn");
         addEventListener(logoutBtn, "click", () => this.handleLogout());
 
         // Navigation
-        const newPTOBtn = getElementById<HTMLButtonElement>("new-pto-btn");
+        const newPTOBtn = querySingle<HTMLButtonElement>("#new-pto-btn");
         addEventListener(newPTOBtn, "click", () => this.showPTOForm());
 
         // PTO Request Mode Toggle (only if it exists - for test.html compatibility)
         try {
-            const toggleRequestModeBtn = getElementById<HTMLButtonElement>("toggle-pto-request-mode");
+            const toggleRequestModeBtn = querySingle<HTMLButtonElement>("#toggle-pto-request-mode");
             addEventListener(toggleRequestModeBtn, "click", () => this.togglePTORequestMode());
         } catch (error) {
             // Element doesn't exist in test environment, skip
@@ -190,14 +190,14 @@ class UIManager {
 
         // Admin buttons (only if they exist - for test.html compatibility)
         try {
-            const manageBtn = getElementById<HTMLButtonElement>("manage-employees-btn");
+            const manageBtn = querySingle<HTMLButtonElement>("#manage-employees-btn");
             addEventListener(manageBtn, "click", () => this.showEmployeeManagement());
         } catch (error) {
             // Element doesn't exist in test environment, skip
         }
 
         try {
-            const reportsBtn = getElementById<HTMLButtonElement>("view-reports-btn");
+            const reportsBtn = querySingle<HTMLButtonElement>("#view-reports-btn");
             addEventListener(reportsBtn, "click", () => this.showReports());
         } catch (error) {
             // Element doesn't exist in test environment, skip
@@ -205,7 +205,7 @@ class UIManager {
 
         // Admin panel events (only if it exists)
         try {
-            const adminPanel = querySingle('admin-panel') as any;
+            const adminPanel = querySingle('admin-panel') as AdminPanel;
             if (adminPanel) {
                 addEventListener(adminPanel, 'add-employee', () => this.handleAddEmployee());
                 addEventListener(adminPanel, 'employee-edit', (e: CustomEvent) => this.handleEditEmployee(e.detail.employeeId));
@@ -227,12 +227,12 @@ class UIManager {
     private async handleLogin(e: Event): Promise<void> {
         e.preventDefault();
         const identifier = (
-            getElementById<HTMLInputElement>("identifier")
+            querySingle<HTMLInputElement>("#identifier")
         ).value;
 
         try {
             const response = await api.requestAuthLink(identifier);
-            const messageDiv = getElementById("login-message")!;
+            const messageDiv = querySingle("#login-message")!;
             messageDiv.textContent = response.message;
             messageDiv.innerHTML = "";
             const messageText = createElement("div");
@@ -260,10 +260,10 @@ class UIManager {
     private async handlePTO(e: Event): Promise<void> {
         e.preventDefault();
 
-        const startDateInput = getElementById<HTMLInputElement>("start-date");
-        const endDateInput = getElementById<HTMLInputElement>("end-date");
-        const typeSelect = getElementById<HTMLSelectElement>("pto-type");
-        const hoursInput = getElementById<HTMLInputElement>("hours");
+        const startDateInput = querySingle<HTMLInputElement>("#start-date");
+        const endDateInput = querySingle<HTMLInputElement>("#end-date");
+        const typeSelect = querySingle<HTMLSelectElement>("#pto-type");
+        const hoursInput = querySingle<HTMLInputElement>("#hours");
 
         const startDate = new Date(startDateInput.value);
         const endDate = new Date(endDateInput.value);
@@ -299,32 +299,32 @@ class UIManager {
 
     private showLogin(): void {
         this.hideAllSections();
-        getElementById("login-section").classList.remove("hidden");
-        getElementById("logout-btn").classList.add("hidden");
+        querySingle("#login-section").classList.remove("hidden");
+        querySingle("#logout-btn").classList.add("hidden");
     }
 
     private showDashboard(): void {
         this.hideAllSections();
-        getElementById("dashboard").classList.remove("hidden");
+        querySingle("#dashboard").classList.remove("hidden");
         if (this.currentUser?.role === "Admin") {
-            getElementById("admin-panel").classList.remove("hidden");
+            querySingle("#admin-panel").classList.remove("hidden");
         }
-        getElementById("logout-btn").classList.remove("hidden");
+        querySingle("#logout-btn").classList.remove("hidden");
     }
 
     private showPTOForm(): void {
         this.hideAllSections();
-        getElementById("pto-form").classList.remove("hidden");
+        querySingle("#pto-form").classList.remove("hidden");
     }
 
     private togglePTORequestMode(): void {
         try {
-            const accrualCard = querySingle('pto-accrual-card') as any;
+            const accrualCard = querySingle('pto-accrual-card') as PtoAccrualCard;
             const currentMode = accrualCard.getAttribute('request-mode') === 'true';
             accrualCard.setAttribute('request-mode', (!currentMode).toString());
 
             // Update button text
-            const button = getElementById("toggle-pto-request-mode");
+            const button = querySingle("#toggle-pto-request-mode");
             button.textContent = currentMode ? 'Submit PTO Requests' : 'View PTO Status';
         } catch (error) {
             // Element doesn't exist in test environment, skip
@@ -384,7 +384,7 @@ class UIManager {
     private hideAllSections(): void {
         const sections = ["login-section", "dashboard", "pto-form", "admin-panel"];
         sections.forEach((id) => {
-            getElementById(id).classList.add("hidden");
+            querySingle(`#${id}`).classList.add("hidden");
         });
     }
 
@@ -395,7 +395,7 @@ class UIManager {
             const status = await api.getPTOStatus(this.currentUser!.id);
             const entries = await api.getPTOEntries(this.currentUser!.id);
 
-            const statusDiv = getElementById("pto-status");
+            const statusDiv = querySingle("#pto-status");
             const hireDate = new Date(status.hireDate).toLocaleDateString();
             const nextRolloverDate = new Date(status.nextRolloverDate).toLocaleDateString('en-US', {
                 year: 'numeric',
@@ -430,15 +430,15 @@ class UIManager {
             sickCard.bucket = status.sickTime;
             sickCard.usageEntries = this.buildUsageEntries(entries, new Date().getFullYear(), 'Sick');
 
-            const bereavementCard = createElement('pto-bereavement-card') as any;
+            const bereavementCard = createElement('pto-bereavement-card') as PtoBereavementCard;
             bereavementCard.bucket = status.bereavementTime;
             bereavementCard.usageEntries = this.buildUsageEntries(entries, new Date().getFullYear(), 'Bereavement');
 
-            const juryDutyCard = createElement('pto-jury-duty-card') as any;
+            const juryDutyCard = createElement('pto-jury-duty-card') as PtoJuryDutyCard;
             juryDutyCard.bucket = status.juryDutyTime;
             juryDutyCard.usageEntries = this.buildUsageEntries(entries, new Date().getFullYear(), 'Jury Duty');
 
-            const employeeInfoCard = createElement('pto-employee-info-card') as any;
+            const employeeInfoCard = createElement('pto-employee-info-card') as PtoEmployeeInfoCard;
             employeeInfoCard.info = { hireDate, nextRolloverDate };
 
             summaryContainer.appendChild(summaryCard);
@@ -455,7 +455,7 @@ class UIManager {
             });
         } catch (error) {
             console.error("Failed to load PTO status:", error);
-            const statusDiv = getElementById("pto-status");
+            const statusDiv = querySingle("#pto-status");
             statusDiv.innerHTML = `
                 <h3>PTO Status</h3>
                 <p>Error loading PTO status. Please try again later.</p>
@@ -578,7 +578,7 @@ class UIManager {
 
     private async renderPTOStatus(status: ApiTypes.PTOStatusResponse, entries: ApiTypes.PTOEntry[]): Promise<void> {
         // Re-render the entire PTO status section with fresh data
-        const statusDiv = getElementById("pto-status");
+        const statusDiv = querySingle("#pto-status");
 
         // Clear existing content
         statusDiv.innerHTML = '';
