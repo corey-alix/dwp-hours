@@ -99,6 +99,70 @@
             <div id="test-output" style="margin-top: 10px; font-weight: bold;"></div>
         </div>
 
+        <!-- Theme Testing Utilities -->
+        <div id="theme-testing" style="margin-top: 20px; padding: 20px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface);">
+            <h3>Theme Testing Utilities</h3>
+            <p style="color: var(--color-text-secondary); margin-bottom: 15px;">Test the theming system by toggling between light and dark modes, or viewing all theme colors.</p>
+
+            <div style="margin-bottom: 15px;">
+                <button id="toggle-theme-btn" style="margin-right: 10px; padding: 8px 16px; background: var(--color-primary); color: white; border: none; border-radius: 4px; cursor: pointer;">Toggle Theme</button>
+                <button id="show-colors-btn" style="padding: 8px 16px; background: var(--color-secondary); color: var(--color-background); border: none; border-radius: 4px; cursor: pointer;">Show All Colors</button>
+            </div>
+
+            <div id="color-palette" class="hidden" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+                <!-- Semantic Colors -->
+                <div style="padding: 10px; border: 1px solid var(--color-border); border-radius: 4px; background: var(--color-surface);">
+                    <h4 style="margin: 0 0 10px 0; color: var(--color-text);">Semantic Colors</h4>
+                    <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                        <div style="width: 30px; height: 30px; background: var(--color-primary); border-radius: 2px; title='--color-primary'"></div>
+                        <div style="width: 30px; height: 30px; background: var(--color-error); border-radius: 2px; title='--color-error'"></div>
+                        <div style="width: 30px; height: 30px; background: var(--color-success); border-radius: 2px; title='--color-success'"></div>
+                        <div style="width: 30px; height: 30px; background: var(--color-warning); border-radius: 2px; title='--color-warning'"></div>
+                        <div style="width: 30px; height: 30px; background: var(--color-info); border-radius: 2px; title='--color-info'"></div>
+                    </div>
+                </div>
+
+                <!-- Surface Colors -->
+                <div style="padding: 10px; border: 1px solid var(--color-border); border-radius: 4px; background: var(--color-surface);">
+                    <h4 style="margin: 0 0 10px 0; color: var(--color-text);">Surface Colors</h4>
+                    <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                        <div style="width: 30px; height: 30px; background: var(--color-background); border-radius: 2px; title='--color-background'"></div>
+                        <div style="width: 30px; height: 30px; background: var(--color-surface); border-radius: 2px; title='--color-surface'"></div>
+                        <div style="width: 30px; height: 30px; background: var(--color-surface-hover); border-radius: 2px; title='--color-surface-hover'"></div>
+                        <div style="width: 30px; height: 30px; background: var(--color-border); border-radius: 2px; title='--color-border'"></div>
+                    </div>
+                </div>
+
+                <!-- Text Colors -->
+                <div style="padding: 10px; border: 1px solid var(--color-border); border-radius: 4px; background: var(--color-surface);">
+                    <h4 style="margin: 0 0 10px 0; color: var(--color-text);">Text Colors</h4>
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <div style="padding: 5px; background: var(--color-background); color: var(--color-text); border-radius: 2px; font-size: 12px;">Primary Text</div>
+                        <div style="padding: 5px; background: var(--color-background); color: var(--color-text-secondary); border-radius: 2px; font-size: 12px;">Secondary Text</div>
+                        <div style="padding: 5px; background: var(--color-background); color: var(--color-text-muted); border-radius: 2px; font-size: 12px;">Muted Text</div>
+                    </div>
+                </div>
+
+                <!-- PTO Colors -->
+                <div style="padding: 10px; border: 1px solid var(--color-border); border-radius: 4px; background: var(--color-surface);">
+                    <h4 style="margin: 0 0 10px 0; color: var(--color-text);">PTO Type Colors</h4>
+                    <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                        <div style="width: 30px; height: 30px; background: var(--color-pto-vacation); border-radius: 2px; title='--color-pto-vacation'"></div>
+                        <div style="width: 30px; height: 30px; background: var(--color-pto-sick); border-radius: 2px; title='--color-pto-sick'"></div>
+                        <div style="width: 30px; height: 30px; background: var(--color-pto-bereavement); border-radius: 2px; title='--color-pto-bereavement'"></div>
+                        <div style="width: 30px; height: 30px; background: var(--color-pto-jury-duty); border-radius: 2px; title='--color-pto-jury-duty'"></div>
+                        <div style="width: 30px; height: 30px; background: var(--color-pto-holiday); border-radius: 2px; title='--color-pto-holiday'"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Theme Info -->
+            <div id="theme-info" style="margin-top: 15px; padding: 10px; background: var(--color-background); border: 1px solid var(--color-border); border-radius: 4px;">
+                <strong>Current Theme:</strong> <span id="current-theme">Light</span> |
+                <strong>System Preference:</strong> <span id="system-preference">Unknown</span>
+            </div>
+        </div>
+
     <script type="module">
         // Import and initialize the test workflow
         import('/app.js').then(({ TestWorkflow }) => {
@@ -112,6 +176,78 @@
             if (testOutput) {
                 testOutput.textContent = 'Test failed to initialize: ' + error.message;
             }
+        });
+
+        // Theme Testing Utilities
+        class ThemeTester {
+            constructor() {
+                this.init();
+            }
+
+            init() {
+                this.toggleBtn = document.getElementById('toggle-theme-btn');
+                this.showColorsBtn = document.getElementById('show-colors-btn');
+                this.colorPalette = document.getElementById('color-palette');
+                this.currentThemeSpan = document.getElementById('current-theme');
+                this.systemPreferenceSpan = document.getElementById('system-preference');
+
+                if (this.toggleBtn) {
+                    this.toggleBtn.addEventListener('click', () => this.toggleTheme());
+                }
+
+                if (this.showColorsBtn) {
+                    this.showColorsBtn.addEventListener('click', () => this.toggleColorPalette());
+                }
+
+                this.updateThemeInfo();
+                this.detectSystemPreference();
+            }
+
+            toggleTheme() {
+                const html = document.documentElement;
+                const currentTheme = html.getAttribute('data-theme') || 'light';
+                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+
+                html.setAttribute('data-theme', newTheme);
+                this.updateThemeInfo();
+
+                // Force theme application by toggling a class
+                document.body.classList.toggle('theme-transition');
+                setTimeout(() => {
+                    document.body.classList.toggle('theme-transition');
+                }, 100);
+            }
+
+            toggleColorPalette() {
+                if (this.colorPalette) {
+                    this.colorPalette.classList.toggle('hidden');
+                }
+            }
+
+            updateThemeInfo() {
+                const html = document.documentElement;
+                const currentTheme = html.getAttribute('data-theme') || 'auto';
+                this.currentThemeSpan.textContent = currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1);
+            }
+
+            detectSystemPreference() {
+                if (window.matchMedia) {
+                    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                    this.systemPreferenceSpan.textContent = mediaQuery.matches ? 'Dark' : 'Light';
+
+                    // Listen for changes
+                    mediaQuery.addEventListener('change', (e) => {
+                        this.systemPreferenceSpan.textContent = e.matches ? 'Dark' : 'Light';
+                    });
+                } else {
+                    this.systemPreferenceSpan.textContent = 'Not supported';
+                }
+            }
+        }
+
+        // Initialize theme tester when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            new ThemeTester();
         });
     </script>
 </body>

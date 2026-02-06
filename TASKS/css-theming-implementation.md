@@ -9,12 +9,12 @@ Implement comprehensive light/dark mode support across all web components in the
 ## Checklist
 
 ### Phase 1: Theme System Foundation
-- [ ] Define base color palette in CSS custom properties
-- [ ] Implement semantic color mappings (--color-primary, --color-error, etc.)
-- [ ] Set up light/dark theme overrides with prefers-color-scheme media queries
-- [ ] Add component-specific semantic colors (--color-pto-sick, --color-pto-bereavement, etc.)
-- [ ] Create theme testing utilities
-- [ ] Update global styles.css with theme foundation
+- [x] Define base color palette in CSS custom properties
+- [x] Implement semantic color mappings (--color-primary, --color-error, etc.)
+- [x] Set up light/dark theme overrides with prefers-color-scheme media queries
+- [x] Add component-specific semantic colors (--color-pto-sick, --color-pto-bereavement, etc.)
+- [x] Create theme testing utilities
+- [x] Update global styles.css with theme foundation
 
 ### Phase 2: Admin Panel Component
 - [ ] Audit admin-panel component for hardcoded colors
