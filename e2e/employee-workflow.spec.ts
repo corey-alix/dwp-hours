@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Employee Authentication & Workflow', () => {
     test('should complete comprehensive PTO calendar request workflow', async ({ page }) => {
-        test.setTimeout(60000); // Longer timeout for comprehensive test
+        test.setTimeout(20000); // 20 seconds is enough to identify issues
 
         // Navigate to the actual application
         await page.goto('http://localhost:3000');
@@ -42,8 +42,8 @@ test.describe('Employee Authentication & Workflow', () => {
         // Click the "PTO" legend item to select PTO type
         await page.click('pto-calendar .legend-item[data-type="PTO"]');
 
-        // Click on the first Monday of March 2026 (March 3, 2026)
-        await page.click('pto-calendar .day.clickable[data-date="2026-03-03"]');
+        // Click on March 6, 2026 (Thursday, no existing PTO)
+        await page.click('pto-calendar .day.clickable[data-date="2026-03-06"]');
 
         // Verify the cell is selected
         await expect(page.locator('pto-calendar .day.selected')).toHaveCount(1);
@@ -54,29 +54,30 @@ test.describe('Employee Authentication & Workflow', () => {
         await hoursInput.fill('4');
 
         // Click "Submit PTO Request" button
-        const submitButton = page.locator('pto-accrual-card button.submit-button');
+        const submitButton = page.locator('button.submit-button');
         await expect(submitButton).toBeVisible();
 
         // Wait for the API call to complete and capture the response
         const ptoResponsePromise = page.waitForResponse(
-            (response) => response.url().includes('/api/pto') && response.request().method() === 'POST' && response.status() === 201
+            (response) => response.url().includes('/api/pto') && response.request().method() === 'POST'
         );
 
         await submitButton.click();
 
         // Wait for the response and verify it
         const ptoResponse = await ptoResponsePromise;
+        expect(ptoResponse.status()).toBe(201);
         const responseBody = await ptoResponse.json();
 
         // Verify the response contains expected PTO request data
         expect(responseBody).toBeDefined();
-        expect(responseBody).toHaveProperty('message', 'PTO entry created successfully');
+        expect(responseBody).toHaveProperty('message', 'PTO entries created successfully');
         expect(responseBody).toHaveProperty('ptoEntry');
 
         const ptoRequest = responseBody.ptoEntry;
         expect(ptoRequest).toBeDefined();
         expect(ptoRequest.employee_id).toBeDefined();
-        expect(ptoRequest.date).toBe('2026-03-03T00:00:00.000Z'); // Date stored as ISO string
+        expect(ptoRequest.date).toBe('2026-03-06'); // Date stored as YYYY-MM-DD string
         expect(ptoRequest.type).toBe('PTO');
         expect(ptoRequest.hours).toBe(4);
 

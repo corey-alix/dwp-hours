@@ -206,8 +206,8 @@ export function endOfMonth(dateStr: string): string {
  * Converts a Date object to YYYY-MM-DD string format
  */
 export function dateToString(date: Date): string {
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1; // getMonth() returns 0-11
-    const day = date.getDate();
+    const year = date.getUTCFullYear();
+    const month = date.getUTCMonth() + 1; // getUTCMonth() returns 0-11
+    const day = date.getUTCDate();
     return formatDate(year, month, day);
 }

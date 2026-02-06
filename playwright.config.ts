@@ -19,7 +19,7 @@ export default defineConfig({
     timeout: 5 * 1000,
     /* Web server to start before running tests */
     webServer: {
-        command: 'npm run build:test-assets && npx http-server public -p 3000 -s',
+        command: 'npm run start:prod',
         port: 3000,
         reuseExistingServer: !process.env.CI,
     },

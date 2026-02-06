@@ -79,7 +79,7 @@ export class PtoEntryDAL {
         if (!weekdayError && !typeError) { // Only check if date and type are valid
             const query = this.ptoEntryRepo.createQueryBuilder('pto')
                 .where('pto.employee_id = :employeeId', { employeeId: data.employeeId })
-                .andWhere('pto.date = :date', { date: data.date })
+                .andWhere('pto.date = :dateStr', { dateStr: data.date })
                 .andWhere('pto.type = :type', { type: normalizedType });
             if (excludeId) {
                 query.andWhere('pto.id != :excludeId', { excludeId });

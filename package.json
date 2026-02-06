@@ -45,7 +45,7 @@
         "migrate//": "run database migration script",
         "test:unit": "vitest --run",
         "test:unit//": "run unit tests with vitest",
-        "test:e2e": "playwright test",
+        "test:e2e": "npm run seed && npm run build && playwright test",
         "test:e2e//": "run e2e tests with playwright",
         "test": "npm-run-all lint build seed test:unit test:e2e",
         "test//": "run lint, build, seed, unit tests, and e2e tests",

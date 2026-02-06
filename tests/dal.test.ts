@@ -102,13 +102,26 @@ describe('PtoEntryDAL', () => {
         });
 
         it('should reject duplicate entries', async () => {
+            // Create employee first
+            const employeeRepo = dataSource.getRepository(Employee);
+            await employeeRepo.save({
+                id: 1,
+                name: 'Test Employee',
+                identifier: 'test@example.com',
+                ptoRate: 0.05,
+                carryoverHours: 0,
+                hireDate: new Date('2020-01-01'),
+                role: 'Employee'
+            });
+
             // First create an entry
-            await dal.createPtoEntry({
+            const result1 = await dal.createPtoEntry({
                 employeeId: 1,
                 date: '2024-02-05',
                 hours: 8,
                 type: 'PTO'
             });
+            expect(result1.success).toBe(true);
 
             // Try to create another with same employee, date, type
             const data = {

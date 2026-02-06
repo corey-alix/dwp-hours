@@ -1,5 +1,6 @@
 // Import API types
 import type * as ApiTypes from './api-types.js';
+import { APIClient } from './APIClient.js';
 
 // Import components and test utilities
 import './components/index.js';
@@ -11,28 +12,7 @@ import { getElementById, addEventListener, querySingle, createElement } from './
 export * from './components/test.js';
 export { TestWorkflow } from './test.js';
 
-// API client
-class APIClient {
-    private baseURL = "/api";
-
-    async get(endpoint: string): Promise<any> {
-        const response = await fetch(`${this.baseURL}${endpoint}`);
-        return response.json();
-    }
-
-    async post(endpoint: string, data: any): Promise<any> {
-        const response = await fetch(`${this.baseURL}${endpoint}`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(data),
-        });
-        return response.json();
-    }
-}
-
-const api = (window as any).api || new APIClient();
+const api = new APIClient();
 
 // Notification/Toast System
 class NotificationManager {
@@ -135,7 +115,7 @@ class UIManager {
         const ts = urlParams.get('ts');
         if (token && ts) {
             try {
-                const response = await api.get(`/auth/validate?token=${token}&ts=${ts}`) as ApiTypes.AuthValidateResponse;
+                const response = await api.validateAuth(token, ts) as ApiTypes.AuthValidateResponse;
                 this.setAuthCookie(response.publicHash);
                 localStorage.setItem('currentUser', JSON.stringify(response.employee));
                 this.currentUser = response.employee as ApiTypes.Employee; // Cast to full Employee if needed, but actually it's partial
@@ -251,7 +231,7 @@ class UIManager {
         ).value;
 
         try {
-            const response = await api.post("/auth/request-link", { identifier }) as ApiTypes.AuthRequestLinkResponse;
+            const response = await api.requestAuthLink(identifier);
             const messageDiv = getElementById("login-message")!;
             messageDiv.textContent = response.message;
             messageDiv.innerHTML = "";
@@ -279,35 +259,42 @@ class UIManager {
 
     private async handlePTO(e: Event): Promise<void> {
         e.preventDefault();
-        if (!this.currentUser) return;
 
-        const startDate = (
-            getElementById<HTMLInputElement>("start-date")
-        ).value;
-        const endDate = (getElementById<HTMLInputElement>("end-date"))
-            .value;
-        const type = (getElementById<HTMLSelectElement>("pto-type"))
-            .value;
-        const hours = parseFloat(
-            (getElementById<HTMLInputElement>("hours")).value,
-        );
+        const startDateInput = getElementById<HTMLInputElement>("start-date");
+        const endDateInput = getElementById<HTMLInputElement>("end-date");
+        const typeSelect = getElementById<HTMLSelectElement>("pto-type");
+        const hoursInput = getElementById<HTMLInputElement>("hours");
 
-        try {
-            await api.post("/pto", {
-                employeeId: this.currentUser.id,
-                startDate,
-                endDate,
-                type,
-                hours,
-            });
+        const startDate = new Date(startDateInput.value);
+        const endDate = new Date(endDateInput.value);
+        const type = typeSelect.value;
+        const hours = parseFloat(hoursInput.value);
 
-            notifications.success('PTO submitted successfully!');
-            this.showDashboard();
-            await this.loadPTOStatus();
-        } catch (error) {
-            console.error('Failed to submit PTO:', error);
-            notifications.error('Failed to submit PTO. Please try again.');
+        if (!startDateInput.value || !endDateInput.value || !type || isNaN(hours)) {
+            notifications.error('Please fill in all fields.');
+            return;
         }
+
+        const requests: CalendarEntry[] = [];
+        const current = new Date(startDate);
+        while (current <= endDate) {
+            // Only add weekdays (Monday to Friday)
+            if (current.getDay() >= 1 && current.getDay() <= 5) {
+                requests.push({
+                    date: current.toISOString().split('T')[0], // YYYY-MM-DD
+                    type: type as any, // Assuming type matches
+                    hours
+                });
+            }
+            current.setDate(current.getDate() + 1);
+        }
+
+        if (requests.length === 0) {
+            notifications.error('No valid dates selected (must be weekdays).');
+            return;
+        }
+
+        await this.handlePtoRequestSubmit(requests);
     }
 
     private showLogin(): void {
@@ -386,11 +373,7 @@ class UIManager {
                 notifications.error('You must be logged in to perform this action.');
                 return;
             }
-            const response = await api.post('/admin-acknowledgements', {
-                employeeId,
-                month,
-                adminId: this.currentUser.id
-            });
+            const response = await api.submitAdminAcknowledgement(employeeId, month, this.currentUser!.id);
             notifications.success(response.message || 'Acknowledgment submitted successfully.');
         } catch (error: any) {
             console.error("Failed to submit admin acknowledgment:", error);
@@ -409,8 +392,8 @@ class UIManager {
         if (!this.currentUser) return;
 
         try {
-            const status = await api.get(`/pto/status/${this.currentUser.id}`) as ApiTypes.PTOStatusResponse;
-            const entries = await api.get(`/pto?employeeId=${this.currentUser.id}`) as ApiTypes.PTOEntry[];
+            const status = await api.getPTOStatus(this.currentUser!.id);
+            const entries = await api.getPTOEntries(this.currentUser!.id);
 
             const statusDiv = getElementById("pto-status");
             const hireDate = new Date(status.hireDate).toLocaleDateString();
@@ -555,15 +538,15 @@ class UIManager {
         }
 
         try {
-            // Submit each request to real API
-            for (const request of requests) {
-                await api.post('/pto', {
-                    employeeId: this.currentUser.id,
-                    date: request.date,
-                    type: request.type,
-                    hours: request.hours
-                });
-            }
+            // Submit all requests to API
+            const requestsWithId = requests.map(request => ({
+                employeeId: this.currentUser!.id,
+                date: request.date,
+                type: request.type,
+                hours: request.hours
+            }));
+
+            await api.createPTOEntry({ requests: requestsWithId });
 
             notifications.success(`Successfully submitted ${requests.length} PTO request(s)!`);
 
@@ -581,8 +564,8 @@ class UIManager {
 
         try {
             // Re-query PTO status from server
-            const status = await api.get(`/pto/status/${this.currentUser.id}`) as ApiTypes.PTOStatusResponse;
-            const entries = await api.get(`/pto?employeeId=${this.currentUser.id}`) as ApiTypes.PTOEntry[];
+            const status = await api.getPTOStatus(this.currentUser!.id);
+            const entries = await api.getPTOEntries(this.currentUser!.id);
 
             // Re-render all PTO components with fresh data
             await this.renderPTOStatus(status, entries);

@@ -828,37 +828,66 @@ initDatabase().then(async () => {
 
     app.post('/api/pto', async (req, res) => {
         try {
-            const { employeeId, date, hours, type } = req.body;
+            const { employeeId, date, hours, type, requests } = req.body;
 
-            if (!employeeId || !date || hours === undefined || !type) {
-                return res.status(400).json({ error: 'All fields are required: employeeId, date, hours, type' });
+            // Handle both single request and multiple requests
+            const ptoRequests = requests || [{ employeeId, date, hours, type }];
+
+            const results = [];
+            for (const request of ptoRequests) {
+                const { employeeId: empId, date: reqDate, hours: reqHours, type: reqType } = request;
+
+                if (!empId || !reqDate || reqHours === undefined || !reqType) {
+                    return res.status(400).json({ error: 'All fields are required for each request: employeeId, date, hours, type' });
+                }
+
+                const empIdNum = parseInt(empId);
+                const reqHoursNum = parseFloat(reqHours);
+
+                if (isNaN(empIdNum) || isNaN(reqHoursNum)) {
+                    return res.status(400).json({ error: 'Invalid employee ID or hours' });
+                }
+
+                const result = await ptoEntryDAL.createPtoEntry({
+                    employeeId: empIdNum,
+                    date: reqDate,
+                    hours: reqHoursNum,
+                    type: reqType
+                });
+
+                if (!result.success) {
+                    const fieldErrors = result.errors.map(err => ({
+                        field: err.field,
+                        message: VALIDATION_MESSAGES[err.messageKey as MessageKey]
+                    }));
+                    return res.status(400).json({ error: 'validation_failed', fieldErrors });
+                }
+
+                results.push(result.ptoEntry);
             }
 
-            const employeeIdNum = parseInt(employeeId);
-            const hoursNum = parseFloat(hours);
+            const lastResult = results[results.length - 1];
+            const responseEntry = {
+                id: lastResult.id,
+                employee_id: lastResult.employee_id,
+                date: dateToString(lastResult.date),
+                type: lastResult.type,
+                hours: lastResult.hours,
+                created_at: dateToString(lastResult.created_at)
+            };
 
-            if (isNaN(employeeIdNum) || isNaN(hoursNum)) {
-                return res.status(400).json({ error: 'Invalid employee ID or hours' });
-            }
-
-            const result = await ptoEntryDAL.createPtoEntry({
-                employeeId: employeeIdNum,
-                date: date,
-                hours: hoursNum,
-                type: type
+            res.status(201).json({
+                message: 'PTO entries created successfully', ptoEntry: responseEntry, ptoEntries: results.map(r => ({
+                    id: r.id,
+                    employee_id: r.employee_id,
+                    date: dateToString(r.date),
+                    type: r.type,
+                    hours: r.hours,
+                    created_at: dateToString(r.created_at)
+                }))
             });
-
-            if (!result.success) {
-                const fieldErrors = result.errors.map(err => ({
-                    field: err.field,
-                    message: VALIDATION_MESSAGES[err.messageKey as MessageKey]
-                }));
-                return res.status(400).json({ error: 'validation_failed', fieldErrors });
-            }
-
-            res.status(201).json({ message: 'PTO entry created successfully', ptoEntry: result.ptoEntry });
         } catch (error) {
-            log(`Error creating PTO entry: ${error}`);
+            log(`Error creating PTO entries: ${error}`);
             res.status(500).json({ error: 'Internal server error' });
         }
     });
