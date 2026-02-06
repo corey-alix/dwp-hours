@@ -48,15 +48,16 @@ export class AdminPanel extends HTMLElement {
 
                 .sidebar {
                     width: 250px;
-                    background: #2c3e50;
-                    color: white;
+                    background: var(--color-surface);
+                    color: var(--color-text);
                     padding: 20px 0;
-                    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+                    box-shadow: 2px 0 5px var(--color-shadow);
+                    border-right: 1px solid var(--color-border);
                 }
 
                 .sidebar-header {
                     padding: 0 20px 20px;
-                    border-bottom: 1px solid #34495e;
+                    border-bottom: 1px solid var(--color-border);
                     margin-bottom: 20px;
                 }
 
@@ -64,6 +65,7 @@ export class AdminPanel extends HTMLElement {
                     margin: 0;
                     font-size: 18px;
                     font-weight: 600;
+                    color: var(--color-text);
                 }
 
                 .nav-menu {
@@ -79,43 +81,43 @@ export class AdminPanel extends HTMLElement {
                 .nav-link {
                     display: block;
                     padding: 12px 20px;
-                    color: #bdc3c7;
+                    color: var(--color-text-secondary);
                     text-decoration: none;
                     transition: all 0.3s ease;
                     border-left: 3px solid transparent;
                 }
 
                 .nav-link:hover {
-                    background: #34495e;
-                    color: white;
-                    border-left-color: #3498db;
+                    background: var(--color-surface-hover);
+                    color: var(--color-text);
+                    border-left-color: var(--color-primary);
                 }
 
                 .nav-link.active {
-                    background: #3498db;
+                    background: var(--color-primary);
                     color: white;
-                    border-left-color: #2980b9;
+                    border-left-color: var(--color-primary-hover);
                 }
 
                 .main-content {
                     flex: 1;
                     display: flex;
                     flex-direction: column;
-                    background: #f8f9fa;
+                    background: var(--color-background);
                 }
 
                 .header {
-                    background: white;
+                    background: var(--color-surface);
                     padding: 20px;
-                    border-bottom: 1px solid #e9ecef;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    border-bottom: 1px solid var(--color-border);
+                    box-shadow: 0 2px 4px var(--color-shadow);
                 }
 
                 .header h1 {
                     margin: 0;
                     font-size: 24px;
                     font-weight: 600;
-                    color: #2c3e50;
+                    color: var(--color-text);
                 }
 
                 .content {
@@ -125,12 +127,13 @@ export class AdminPanel extends HTMLElement {
                 }
 
                 .view-container {
-                    background: white;
+                    background: var(--color-surface);
                     border-radius: 8px;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    box-shadow: 0 2px 4px var(--color-shadow);
                     height: 100%;
                     display: flex;
                     flex-direction: column;
+                    border: 1px solid var(--color-border);
                 }
             </style>
 

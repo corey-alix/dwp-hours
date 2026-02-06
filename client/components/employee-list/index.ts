@@ -80,8 +80,8 @@ export class EmployeeList extends HTMLElement {
                     justify-content: space-between;
                     align-items: center;
                     padding: 20px;
-                    border-bottom: 1px solid #e9ecef;
-                    background: white;
+                    border-bottom: 1px solid var(--color-border);
+                    background: var(--color-surface);
                 }
 
                 .search-container {
@@ -92,16 +92,23 @@ export class EmployeeList extends HTMLElement {
 
                 .search-input {
                     padding: 8px 12px;
-                    border: 1px solid #ddd;
+                    border: 1px solid var(--color-border);
                     border-radius: 4px;
                     font-size: 14px;
                     width: 250px;
+                    background: var(--color-background);
+                    color: var(--color-text);
                 }
 
                 .search-input:focus {
                     outline: none;
-                    border-color: #3498db;
-                    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+                    border-color: var(--color-primary);
+                    box-shadow: 0 0 0 2px var(--color-primary-light);
+                }
+
+                .search-container span {
+                    font-size: 14px;
+                    color: var(--color-text-secondary);
                 }
 
                 .action-buttons {
@@ -119,12 +126,12 @@ export class EmployeeList extends HTMLElement {
                 }
 
                 .btn-primary {
-                    background: #3498db;
+                    background: var(--color-primary);
                     color: white;
                 }
 
                 .btn-primary:hover {
-                    background: #2980b9;
+                    background: var(--color-primary-hover);
                 }
 
                 .employee-grid {
@@ -134,17 +141,17 @@ export class EmployeeList extends HTMLElement {
                 }
 
                 .employee-card {
-                    background: white;
+                    background: var(--color-surface);
                     border-radius: 8px;
                     padding: 16px;
                     margin-bottom: 12px;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                    border: 1px solid #e9ecef;
+                    box-shadow: 0 2px 4px var(--color-shadow);
+                    border: 1px solid var(--color-border);
                     transition: box-shadow 0.3s ease;
                 }
 
                 .employee-card:hover {
-                    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+                    box-shadow: 0 4px 8px var(--color-shadow-dark);
                 }
 
                 .employee-header {
@@ -157,18 +164,18 @@ export class EmployeeList extends HTMLElement {
                 .employee-name {
                     font-size: 18px;
                     font-weight: 600;
-                    color: #2c3e50;
+                    color: var(--color-text);
                     margin: 0;
                 }
 
                 .employee-identifier {
-                    color: #7f8c8d;
+                    color: var(--color-text-secondary);
                     font-size: 14px;
                     margin: 0;
                 }
 
                 .employee-role {
-                    background: #3498db;
+                    background: var(--color-primary);
                     color: white;
                     padding: 2px 8px;
                     border-radius: 12px;
@@ -190,7 +197,7 @@ export class EmployeeList extends HTMLElement {
 
                 .detail-label {
                     font-size: 12px;
-                    color: #7f8c8d;
+                    color: var(--color-text-secondary);
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
                     margin-bottom: 4px;
@@ -199,7 +206,7 @@ export class EmployeeList extends HTMLElement {
                 .detail-value {
                     font-size: 14px;
                     font-weight: 500;
-                    color: #2c3e50;
+                    color: var(--color-text);
                 }
 
                 .employee-actions {
@@ -210,9 +217,9 @@ export class EmployeeList extends HTMLElement {
 
                 .action-btn {
                     padding: 6px 12px;
-                    border: 1px solid #ddd;
-                    background: white;
-                    color: #555;
+                    border: 1px solid var(--color-border);
+                    background: var(--color-surface);
+                    color: var(--color-text-secondary);
                     border-radius: 4px;
                     cursor: pointer;
                     font-size: 12px;
@@ -220,40 +227,40 @@ export class EmployeeList extends HTMLElement {
                 }
 
                 .action-btn:hover {
-                    background: #f8f9fa;
-                    border-color: #bbb;
+                    background: var(--color-surface-hover);
+                    border-color: var(--color-border-hover);
                 }
 
                 .action-btn.acknowledge {
-                    border-color: #27ae60;
-                    color: #27ae60;
+                    border-color: var(--color-success);
+                    color: var(--color-success);
                 }
 
                 .action-btn.acknowledge:hover {
-                    background: #27ae60;
+                    background: var(--color-success);
                     color: white;
                 }
 
                 .action-btn.delete {
-                    border-color: #e74c3c;
-                    color: #e74c3c;
+                    border-color: var(--color-error);
+                    color: var(--color-error);
                 }
 
                 .action-btn.delete:hover {
-                    background: #e74c3c;
+                    background: var(--color-error);
                     color: white;
                 }
 
                 .empty-state {
                     text-align: center;
                     padding: 40px;
-                    color: #7f8c8d;
+                    color: var(--color-text-secondary);
                 }
 
                 .empty-state h3 {
                     margin: 0 0 10px;
                     font-size: 18px;
-                    color: #2c3e50;
+                    color: var(--color-text);
                 }
             </style>
 

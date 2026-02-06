@@ -1,0 +1,193 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - heading "PTO Dashboard Components Test" [level=1] [ref=e2]
+  - generic [ref=e3]: 🔄 PTO REQUEST MODE ENABLED - Interactive Calendar Testing
+  - generic [ref=e4]:
+    - strong [ref=e5]: "Testing Workflow:"
+    - text: "1. Click a month button (✏️) in the accrual card to select a month 2. Click a PTO type in the calendar legend to select it 3. Click weekday cells to \"paint\" them with the selected PTO type 4. Edit hours in the bottom-right corner of selected cells (default: 8) 5. Click \"Submit PTO Request\" to see the submission data"
+  - generic [ref=e6]:
+    - generic [ref=e8]:
+      - heading "Regular PTO" [level=4] [ref=e9]
+      - generic [ref=e10]:
+        - generic [ref=e11]: Carryover
+        - generic [ref=e12]: 40.00 hours
+      - generic [ref=e13]:
+        - generic [ref=e14]: Annual Allocated
+        - generic [ref=e15]: 96.00 hours
+      - generic [ref=e16]:
+        - generic [ref=e17]: Used
+        - generic [ref=e18]: 40.00 hours
+      - separator [ref=e19]
+      - generic [ref=e20]:
+        - generic [ref=e21]: Available
+        - generic [ref=e22]: 96.00 hours
+    - generic [ref=e24]:
+      - heading "PTO Request - Select Month" [level=4] [ref=e25]
+      - generic [ref=e26]:
+        - generic [ref=e27] [cursor=pointer]:
+          - generic [ref=e28]: Accrued
+          - generic [ref=e29]: Used
+        - generic [ref=e30] [cursor=pointer]:
+          - generic [ref=e31]: January
+          - generic [ref=e32]: "8.1"
+          - generic [ref=e33]: "24.0"
+          - button "Request PTO for January calendar" [ref=e34]: ✏️
+        - generic [ref=e35] [cursor=pointer]:
+          - generic [ref=e36]: February
+          - generic [ref=e37]: "7.4"
+          - generic [ref=e38]: "48.0"
+          - button "Request PTO for February calendar" [ref=e39]: ✏️
+        - generic [ref=e40] [cursor=pointer]:
+          - generic [ref=e41]: March
+          - generic [ref=e42]: ~8.1
+          - generic [ref=e43]: "16.0"
+          - button "Request PTO for March calendar" [ref=e44]: ✏️
+        - generic [ref=e45] [cursor=pointer]:
+          - generic [ref=e46]: April
+          - generic [ref=e47]: ~8.1
+          - generic [ref=e48]: "0.0"
+          - button "Request PTO for April calendar" [ref=e49]: ✏️
+        - generic [ref=e50] [cursor=pointer]:
+          - generic [ref=e51]: May
+          - generic [ref=e52]: ~7.7
+          - generic [ref=e53]: "0.0"
+          - button "Request PTO for May calendar" [ref=e54]: ✏️
+        - generic [ref=e55] [cursor=pointer]:
+          - generic [ref=e56]: June
+          - generic [ref=e57]: ~8.1
+          - generic [ref=e58]: "0.0"
+          - button "Request PTO for June calendar" [ref=e59]: ✏️
+        - generic [ref=e60] [cursor=pointer]:
+          - generic [ref=e61]: July
+          - generic [ref=e62]: ~8.5
+          - generic [ref=e63]: "80.0"
+          - button "Request PTO for July calendar" [ref=e64]: ✏️
+        - generic [ref=e65] [cursor=pointer]:
+          - generic [ref=e66]: August
+          - generic [ref=e67]: ~7.7
+          - generic [ref=e68]: "0.0"
+          - button "Request PTO for August calendar" [ref=e69]: ✏️
+        - generic [ref=e70] [cursor=pointer]:
+          - generic [ref=e71]: September
+          - generic [ref=e72]: ~8.1
+          - generic [ref=e73]: "0.0"
+          - button "Request PTO for September calendar" [ref=e74]: ✏️
+        - generic [ref=e75] [cursor=pointer]:
+          - generic [ref=e76]: October
+          - generic [ref=e77]: ~8.1
+          - generic [ref=e78]: "0.0"
+          - button "Request PTO for October calendar" [ref=e79]: ✏️
+        - generic [ref=e80] [cursor=pointer]:
+          - generic [ref=e81]: November
+          - generic [ref=e82]: ~7.7
+          - generic [ref=e83]: "0.0"
+          - button "Request PTO for November calendar" [ref=e84]: ✏️
+        - generic [ref=e85] [cursor=pointer]:
+          - generic [ref=e86]: December
+          - generic [ref=e87]: ~8.5
+          - generic [ref=e88]: "0.0"
+          - button "Request PTO for December calendar" [ref=e89]: ✏️
+    - generic [ref=e91]:
+      - heading "Sick Time" [level=4] [ref=e92]
+      - generic [ref=e93]:
+        - generic [ref=e94]: Allowed
+        - generic [ref=e95]: 24 hours
+      - generic [ref=e96]:
+        - generic [ref=e97]: Used
+        - generic [ref=e98]: 24.00 hours
+      - generic [ref=e99]:
+        - generic [ref=e100]: Remaining
+        - generic [ref=e101]: 0.00 hours
+      - generic [ref=e102]:
+        - generic [ref=e103]: Dates Used
+        - list [ref=e104]:
+          - listitem [ref=e105]:
+            - generic [ref=e106]: 2/16/2026
+            - generic [ref=e107]: 8.0 hours
+          - listitem [ref=e108]:
+            - generic [ref=e109]: 2/14/2026
+            - generic [ref=e110]: 8.0 hours
+          - listitem [ref=e111]:
+            - generic [ref=e112]: 2/12/2026
+            - generic [ref=e113]: 8.0 hours
+    - generic [ref=e115]:
+      - heading "Bereavement" [level=4] [ref=e116]
+      - generic [ref=e117]:
+        - generic [ref=e118]: Allowed
+        - generic [ref=e119]: 40 hours
+      - generic [ref=e120]:
+        - generic [ref=e121]: Used
+        - generic [ref=e122]: 24.00 hours
+      - generic [ref=e123]:
+        - generic [ref=e124]: Remaining
+        - generic [ref=e125]: 16.00 hours
+      - generic [ref=e126]:
+        - generic [ref=e127]: Dates Used
+        - list [ref=e128]:
+          - listitem [ref=e129]:
+            - generic [ref=e130]: 1/21/2026
+            - generic [ref=e131]: 8.0 hours
+          - listitem [ref=e132]:
+            - generic [ref=e133]: 1/22/2026
+            - generic [ref=e134]: 8.0 hours
+          - listitem [ref=e135]:
+            - generic [ref=e136]: 1/23/2026
+            - generic [ref=e137]: 8.0 hours
+    - generic [ref=e139]:
+      - heading "Jury Duty" [level=4] [ref=e140]
+      - generic [ref=e141]:
+        - generic [ref=e142]: Allowed
+        - generic [ref=e143]: 40 hours
+      - generic [ref=e144]:
+        - generic [ref=e145]: Used
+        - generic [ref=e146]: 80.00 hours
+      - generic [ref=e147]:
+        - generic [ref=e148]: Remaining
+        - generic [ref=e149]: "-40.00 hours"
+      - generic [ref=e150]:
+        - generic [ref=e151]: Dates Used
+        - list [ref=e152]:
+          - listitem [ref=e153]:
+            - generic [ref=e154]: 7/20/2026
+            - generic [ref=e155]: 8.0 hours
+          - listitem [ref=e156]:
+            - generic [ref=e157]: 7/21/2026
+            - generic [ref=e158]: 8.0 hours
+          - listitem [ref=e159]:
+            - generic [ref=e160]: 7/22/2026
+            - generic [ref=e161]: 8.0 hours
+          - listitem [ref=e162]:
+            - generic [ref=e163]: 7/23/2026
+            - generic [ref=e164]: 8.0 hours
+          - listitem [ref=e165]:
+            - generic [ref=e166]: 7/24/2026
+            - generic [ref=e167]: 8.0 hours
+          - listitem [ref=e168]:
+            - generic [ref=e169]: 7/27/2026
+            - generic [ref=e170]: 8.0 hours
+          - listitem [ref=e171]:
+            - generic [ref=e172]: 7/28/2026
+            - generic [ref=e173]: 8.0 hours
+          - listitem [ref=e174]:
+            - generic [ref=e175]: 7/29/2026
+            - generic [ref=e176]: 8.0 hours
+          - listitem [ref=e177]:
+            - generic [ref=e178]: 7/30/2026
+            - generic [ref=e179]: 8.0 hours
+          - listitem [ref=e180]:
+            - generic [ref=e181]: 7/31/2026
+            - generic [ref=e182]: 8.0 hours
+    - generic [ref=e184]:
+      - heading "Employee Information" [level=4] [ref=e185]
+      - generic [ref=e186]:
+        - generic [ref=e187]: Hire Date
+        - generic [ref=e188]: 1/14/2020
+      - generic [ref=e189]:
+        - generic [ref=e190]: Next Rollover
+        - generic [ref=e191]: 1/1/2027
+  - generic [ref=e192]:
+    - strong [ref=e193]: "PTO Request Submissions:"
+    - text: (No submissions yet)
+```

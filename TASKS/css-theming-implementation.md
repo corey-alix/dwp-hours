@@ -17,11 +17,11 @@ Implement comprehensive light/dark mode support across all web components in the
 - [x] Update global styles.css with theme foundation
 
 ### Phase 2: Admin Panel Component
-- [ ] Audit admin-panel component for hardcoded colors
-- [ ] Update navigation background, borders, and text colors to use --color-surface, --color-primary, --color-text
-- [ ] Test admin-panel theme switching in both light and dark modes
-- [ ] Validate accessibility contrast ratios
-- [ ] Update admin-panel component documentation
+- [x] Audit admin-panel component for hardcoded colors
+- [x] Update navigation background, borders, and text colors to use --color-surface, --color-primary, --color-text
+- [x] Test admin-panel theme switching in both light and dark modes
+- [x] Validate accessibility contrast ratios
+- [x] Update admin-panel component documentation
 
 ### Phase 3: Confirmation Dialog Component
 - [ ] Audit confirmation-dialog component for hardcoded colors
