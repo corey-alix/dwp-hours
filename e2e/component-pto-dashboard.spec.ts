@@ -56,9 +56,11 @@ test('pto-dashboard component test', async ({ page }) => {
                 return { month, hours, used };
             });
         });
-        expect(accrualData[0]).toEqual({ month: 'January', hours: '8.1', used: '0.0' });
+        expect(accrualData[0]).toEqual({ month: 'January', hours: '8.1', used: '24.0' });
         expect(accrualData[1]).toEqual({ month: 'February', hours: '7.4', used: '48.0' });
         expect(accrualData[2]).toEqual({ month: 'March', hours: '8.1', used: '16.0' });
+        // Check July jury duty usage
+        expect(accrualData[6]).toEqual({ month: 'July', hours: '8.5', used: '80.0' });
     });
 
     // Assert pto-sick-card values
@@ -86,36 +88,44 @@ test('pto-dashboard component test', async ({ page }) => {
     await test.step('Assert pto-bereavement-card values', async () => {
         const bereavementData = await page.evaluate(() => {
             const card = document.querySelector('pto-bereavement-card');
-            if (!card) return { rows: [], empty: '' };
+            if (!card) return { rows: [], entries: [] };
             const shadow = card.shadowRoot;
-            if (!shadow) return { rows: [], empty: '' };
+            if (!shadow) return { rows: [], entries: [] };
             const rows = shadow.querySelectorAll('.row');
             const rowTexts = Array.from(rows).map(row => row.textContent.trim());
-            const empty = shadow.querySelector('.empty')?.textContent.trim() || '';
-            return { rows: rowTexts, empty };
+            const entries = shadow.querySelectorAll('.usage-list li');
+            const entryTexts = Array.from(entries).map(li => li.textContent.trim());
+            return { rows: rowTexts, entries: entryTexts };
         });
         expect(bereavementData.rows[0]).toBe('Allowed40 hours');
-        expect(bereavementData.rows[1]).toBe('Used0.00 hours');
-        expect(bereavementData.rows[2]).toBe('Remaining40.00 hours');
-        expect(bereavementData.empty).toBe('No entries recorded.');
+        expect(bereavementData.rows[1]).toBe('Used24.00 hours');
+        expect(bereavementData.rows[2]).toBe('Remaining16.00 hours');
+        // Check usage entries
+        expect(bereavementData.entries[0]).toBe('1/21/20268.0 hours');
+        expect(bereavementData.entries[1]).toBe('1/22/20268.0 hours');
+        expect(bereavementData.entries[2]).toBe('1/23/20268.0 hours');
     });
 
     // Assert pto-jury-duty-card values
     await test.step('Assert pto-jury-duty-card values', async () => {
         const juryData = await page.evaluate(() => {
             const card = document.querySelector('pto-jury-duty-card');
-            if (!card) return { rows: [], empty: '' };
+            if (!card) return { rows: [], entries: [] };
             const shadow = card.shadowRoot;
-            if (!shadow) return { rows: [], empty: '' };
+            if (!shadow) return { rows: [], entries: [] };
             const rows = shadow.querySelectorAll('.row');
             const rowTexts = Array.from(rows).map(row => row.textContent.trim());
-            const empty = shadow.querySelector('.empty')?.textContent.trim() || '';
-            return { rows: rowTexts, empty };
+            const entries = shadow.querySelectorAll('.usage-list li');
+            const entryTexts = Array.from(entries).map(li => li.textContent.trim());
+            return { rows: rowTexts, entries: entryTexts };
         });
         expect(juryData.rows[0]).toBe('Allowed40 hours');
-        expect(juryData.rows[1]).toBe('Used0.00 hours');
-        expect(juryData.rows[2]).toBe('Remaining40.00 hours');
-        expect(juryData.empty).toBe('No entries recorded.');
+        expect(juryData.rows[1]).toBe('Used80.00 hours');
+        expect(juryData.rows[2]).toBe('Remaining-40.00 hours');
+        // Check that there are 10 jury duty entries
+        expect(juryData.entries.length).toBe(10);
+        expect(juryData.entries[0]).toBe('7/20/20268.0 hours');
+        expect(juryData.entries[9]).toBe('7/31/20268.0 hours');
     });
 
     // Assert pto-employee-info-card values
@@ -177,20 +187,36 @@ test('pto-dashboard component test', async ({ page }) => {
         await expect(day10).not.toHaveClass(/type-/);
     });
 
-    // Check that January calendar (when clicked) has no colored days
-    await test.step('Verify January calendar has no time entries', async () => {
+    // Verify January calendar displays correct bereavement entries
+    await test.step('Verify January calendar displays correct bereavement entries', async () => {
         const januaryButton = page.locator('button.calendar-button').first();
         await januaryButton.click();
 
         const janCalendar = page.locator('pto-accrual-card[accruals]').locator('.calendar');
         await expect(janCalendar).toBeVisible();
 
-        // All days in January should not have type classes
-        const janDays = janCalendar.locator('.day:not(.empty)');
-        const janDayCount = await janDays.count();
-        for (let i = 0; i < janDayCount; i++) {
-            await expect(janDays.nth(i)).not.toHaveClass(/type-/);
-        }
+        // Check that January bereavement days are correctly colored
+        const day21 = janCalendar.locator('.day[data-date="2026-01-21"]');
+        await expect(day21).toHaveClass(/type-Bereavement/);
+        await expect(day21).toContainText('8');
+
+        const day22 = janCalendar.locator('.day[data-date="2026-01-22"]');
+        await expect(day22).toHaveClass(/type-Bereavement/);
+        await expect(day22).toContainText('8');
+
+        const day23 = janCalendar.locator('.day[data-date="2026-01-23"]');
+        await expect(day23).toHaveClass(/type-Bereavement/);
+        await expect(day23).toContainText('8');
+
+        // Check that other days in January are not colored
+        const day1 = janCalendar.locator('.day[data-date="2026-01-01"]');
+        await expect(day1).not.toHaveClass(/type-/);
+
+        const day10 = janCalendar.locator('.day[data-date="2026-01-10"]');
+        await expect(day10).not.toHaveClass(/type-/);
+
+        const day31 = janCalendar.locator('.day[data-date="2026-01-31"]');
+        await expect(day31).not.toHaveClass(/type-/);
     });
 
     // Test calendar colorings for March (month 3)
@@ -205,17 +231,26 @@ test('pto-dashboard component test', async ({ page }) => {
         const ptoEntriesAttr = await marchCalendar.getAttribute('pto-entries');
         console.log('DEBUG: pto-entries attribute on pto-calendar:', ptoEntriesAttr);
 
-        // Check that March 1st is correctly colored with PTO
-        const marchDay1 = marchCalendar.locator('.day[data-date="2026-03-01"]');
-        await expect(marchDay1).toHaveClass(/type-PTO/);
-        await expect(marchDay1).toContainText('16');
-
-        // Check that other days in March are not colored
+        // Check that March days 2-5 are correctly colored with PTO
         const marchDay2 = marchCalendar.locator('.day[data-date="2026-03-02"]');
-        await expect(marchDay2).not.toHaveClass(/type-/);
+        await expect(marchDay2).toHaveClass(/type-PTO/);
+        await expect(marchDay2).toContainText('4');
+
+        const marchDay3 = marchCalendar.locator('.day[data-date="2026-03-03"]');
+        await expect(marchDay3).toHaveClass(/type-PTO/);
+        await expect(marchDay3).toContainText('4');
+
+        const marchDay4 = marchCalendar.locator('.day[data-date="2026-03-04"]');
+        await expect(marchDay4).toHaveClass(/type-PTO/);
+        await expect(marchDay4).toContainText('4');
 
         const marchDay5 = marchCalendar.locator('.day[data-date="2026-03-05"]');
-        await expect(marchDay5).not.toHaveClass(/type-/);
+        await expect(marchDay5).toHaveClass(/type-PTO/);
+        await expect(marchDay5).toContainText('4');
+
+        // Check that March 1st and other days are not colored
+        const marchDay1 = marchCalendar.locator('.day[data-date="2026-03-01"]');
+        await expect(marchDay1).not.toHaveClass(/type-/);
 
         const marchDay10 = marchCalendar.locator('.day[data-date="2026-03-10"]');
         await expect(marchDay10).not.toHaveClass(/type-/);

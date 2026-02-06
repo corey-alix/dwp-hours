@@ -72,34 +72,34 @@ const ptoStatus = {
     },
     "bereavementTime": {
         "allowed": 40,
-        "used": 0,
-        "remaining": 40
+        "used": 24,
+        "remaining": 16
     },
     "juryDutyTime": {
         "allowed": 40,
-        "used": 0,
-        "remaining": 40
+        "used": 80,
+        "remaining": -40
     }
 };
 
 const ptoEntries = [
     {
-        "date": "2026-03-01",
+        "date": "2026-03-02",
         "type": "PTO",
         "hours": 4
     },
     {
-        "date": "2026-03-01",
+        "date": "2026-03-03",
         "type": "PTO",
         "hours": 4
     },
     {
-        "date": "2026-03-01",
+        "date": "2026-03-04",
         "type": "PTO",
         "hours": 4
     },
     {
-        "date": "2026-03-01",
+        "date": "2026-03-05",
         "type": "PTO",
         "hours": 4
     },
@@ -131,6 +131,73 @@ const ptoEntries = [
     {
         "date": "2026-02-12",
         "type": "Sick",
+        "hours": 8
+    },
+    // Bereavement time: January 21-23
+    {
+        "date": "2026-01-21",
+        "type": "Bereavement",
+        "hours": 8
+    },
+    {
+        "date": "2026-01-22",
+        "type": "Bereavement",
+        "hours": 8
+    },
+    {
+        "date": "2026-01-23",
+        "type": "Bereavement",
+        "hours": 8
+    },
+    // Jury duty: July 20-31
+    {
+        "date": "2026-07-20",
+        "type": "Jury Duty",
+        "hours": 8
+    },
+    {
+        "date": "2026-07-21",
+        "type": "Jury Duty",
+        "hours": 8
+    },
+    {
+        "date": "2026-07-22",
+        "type": "Jury Duty",
+        "hours": 8
+    },
+    {
+        "date": "2026-07-23",
+        "type": "Jury Duty",
+        "hours": 8
+    },
+    {
+        "date": "2026-07-24",
+        "type": "Jury Duty",
+        "hours": 8
+    },
+    {
+        "date": "2026-07-27",
+        "type": "Jury Duty",
+        "hours": 8
+    },
+    {
+        "date": "2026-07-28",
+        "type": "Jury Duty",
+        "hours": 8
+    },
+    {
+        "date": "2026-07-29",
+        "type": "Jury Duty",
+        "hours": 8
+    },
+    {
+        "date": "2026-07-30",
+        "type": "Jury Duty",
+        "hours": 8
+    },
+    {
+        "date": "2026-07-31",
+        "type": "Jury Duty",
         "hours": 8
     }
 ];
@@ -199,7 +266,7 @@ export function playground(): void {
     };
 
     accrual.monthlyAccruals = ptoStatus.monthlyAccruals.slice(0, 3); // First 3 months
-    accrual.monthlyUsage = monthlyUsage.slice(0, 3);
+    accrual.monthlyUsage = monthlyUsage;
     console.log('Setting ptoEntries on accrual');
     accrual.ptoEntries = fullPtoEntries;
     console.log('Set ptoEntries');
