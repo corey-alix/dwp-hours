@@ -122,9 +122,9 @@ export class DataTable extends HTMLElement {
             <style>
                 :host {
                     display: block;
-                    background: white;
+                    background: var(--color-surface);
                     border-radius: 8px;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    box-shadow: 0 2px 4px var(--color-shadow);
                     overflow: hidden;
                 }
 
@@ -139,16 +139,16 @@ export class DataTable extends HTMLElement {
                 }
 
                 .table-header {
-                    background: #f8f9fa;
-                    border-bottom: 2px solid #e9ecef;
+                    background: var(--color-surface);
+                    border-bottom: 2px solid var(--color-border);
                 }
 
                 .table-header th {
                     padding: 12px 16px;
                     text-align: left;
                     font-weight: 600;
-                    color: #2c3e50;
-                    border-bottom: 1px solid #dee2e6;
+                    color: var(--color-text);
+                    border-bottom: 1px solid var(--color-border);
                     position: relative;
                 }
 
@@ -158,7 +158,7 @@ export class DataTable extends HTMLElement {
                 }
 
                 .table-header th.sortable:hover {
-                    background: #e9ecef;
+                    background: var(--color-surface-hover);
                 }
 
                 .sort-indicator {
@@ -172,18 +172,18 @@ export class DataTable extends HTMLElement {
                 }
 
                 .table-body tr {
-                    border-bottom: 1px solid #e9ecef;
+                    border-bottom: 1px solid var(--color-border);
                     transition: background-color 0.2s ease;
                 }
 
                 .table-body tr:hover {
-                    background: #f8f9fa;
+                    background: var(--color-surface-hover);
                 }
 
                 .table-body td {
                     padding: 12px 16px;
                     vertical-align: middle;
-                    color: #495057;
+                    color: var(--color-text-secondary);
                 }
 
                 .table-body tr:last-child {
@@ -193,13 +193,13 @@ export class DataTable extends HTMLElement {
                 .empty-state {
                     text-align: center;
                     padding: 40px;
-                    color: #6c757d;
+                    color: var(--color-text-muted);
                 }
 
                 .empty-state h3 {
                     margin: 0 0 8px;
                     font-size: 18px;
-                    color: #495057;
+                    color: var(--color-text);
                 }
 
                 .pagination {
@@ -207,13 +207,13 @@ export class DataTable extends HTMLElement {
                     justify-content: space-between;
                     align-items: center;
                     padding: 16px 20px;
-                    background: #f8f9fa;
-                    border-top: 1px solid #e9ecef;
+                    background: var(--color-surface);
+                    border-top: 1px solid var(--color-border);
                 }
 
                 .pagination-info {
                     font-size: 14px;
-                    color: #6c757d;
+                    color: var(--color-text-muted);
                 }
 
                 .pagination-controls {
@@ -224,9 +224,9 @@ export class DataTable extends HTMLElement {
 
                 .page-btn {
                     padding: 6px 12px;
-                    border: 1px solid #dee2e6;
-                    background: white;
-                    color: #495057;
+                    border: 1px solid var(--color-border);
+                    background: var(--color-surface);
+                    color: var(--color-text-secondary);
                     border-radius: 4px;
                     cursor: pointer;
                     font-size: 14px;
@@ -234,8 +234,8 @@ export class DataTable extends HTMLElement {
                 }
 
                 .page-btn:hover:not(:disabled) {
-                    background: #e9ecef;
-                    border-color: #adb5bd;
+                    background: var(--color-surface-hover);
+                    border-color: var(--color-border-hover);
                 }
 
                 .page-btn:disabled {
@@ -244,9 +244,9 @@ export class DataTable extends HTMLElement {
                 }
 
                 .page-btn.active {
-                    background: #007bff;
+                    background: var(--color-primary);
                     color: white;
-                    border-color: #007bff;
+                    border-color: var(--color-primary);
                 }
 
                 .page-size-selector {
@@ -254,14 +254,14 @@ export class DataTable extends HTMLElement {
                     align-items: center;
                     gap: 8px;
                     font-size: 14px;
-                    color: #6c757d;
+                    color: var(--color-text-muted);
                 }
 
                 .page-size-selector select {
                     padding: 4px 8px;
-                    border: 1px solid #dee2e6;
+                    border: 1px solid var(--color-border);
                     border-radius: 4px;
-                    background: white;
+                    background: var(--color-surface);
                 }
             </style>
 

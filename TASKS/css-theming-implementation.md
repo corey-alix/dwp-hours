@@ -31,11 +31,11 @@ Implement comprehensive light/dark mode support across all web components in the
 - [x] Update confirmation-dialog component documentation
 
 ### Phase 4: Data Table Component
-- [ ] Audit data-table component for hardcoded colors
-- [ ] Update table headers, rows, borders, and hover states to use --color-surface, --color-text, --color-primary variants
-- [ ] Test table sorting and pagination theming
-- [ ] Validate data visibility in both themes
-- [ ] Update data-table component documentation
+- [x] Audit data-table component for hardcoded colors
+- [x] Update table headers, rows, borders, and hover states to use --color-surface, --color-text, --color-primary variants
+- [x] Test table sorting and pagination theming
+- [x] Validate data visibility in both themes
+- [x] Update data-table component documentation
 
 ### Phase 5: Employee Form Component
 - [ ] Audit employee-form component for hardcoded colors
