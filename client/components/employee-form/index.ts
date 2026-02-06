@@ -70,9 +70,9 @@ export class EmployeeForm extends HTMLElement {
             <style>
                 :host {
                     display: block;
-                    background: white;
+                    background: var(--color-surface);
                     border-radius: 8px;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    box-shadow: 0 2px 4px var(--color-shadow);
                     max-width: 500px;
                     margin: 0 auto;
                 }
@@ -90,7 +90,7 @@ export class EmployeeForm extends HTMLElement {
                     margin: 0;
                     font-size: 24px;
                     font-weight: 600;
-                    color: #2c3e50;
+                    color: var(--color-text);
                 }
 
                 .form-group {
@@ -101,49 +101,52 @@ export class EmployeeForm extends HTMLElement {
                     display: block;
                     margin-bottom: 6px;
                     font-weight: 500;
-                    color: #2c3e50;
+                    color: var(--color-text);
                     font-size: 14px;
                 }
 
                 .form-input {
                     width: 100%;
                     padding: 10px 12px;
-                    border: 1px solid #ddd;
+                    border: 1px solid var(--color-border);
                     border-radius: 4px;
                     font-size: 14px;
                     transition: border-color 0.3s ease;
                     box-sizing: border-box;
+                    background: var(--color-surface);
+                    color: var(--color-text);
                 }
 
                 .form-input:focus {
                     outline: none;
-                    border-color: #3498db;
-                    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+                    border-color: var(--color-primary);
+                    box-shadow: 0 0 0 2px var(--color-primary-light);
                 }
 
                 .form-input.error {
-                    border-color: #e74c3c;
+                    border-color: var(--color-error);
                 }
 
                 .form-select {
                     width: 100%;
                     padding: 10px 12px;
-                    border: 1px solid #ddd;
+                    border: 1px solid var(--color-border);
                     border-radius: 4px;
                     font-size: 14px;
-                    background: white;
+                    background: var(--color-surface);
+                    color: var(--color-text);
                     cursor: pointer;
                     box-sizing: border-box;
                 }
 
                 .form-select:focus {
                     outline: none;
-                    border-color: #3498db;
-                    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+                    border-color: var(--color-primary);
+                    box-shadow: 0 0 0 2px var(--color-primary-light);
                 }
 
                 .error-message {
-                    color: #e74c3c;
+                    color: var(--color-error);
                     font-size: 12px;
                     margin-top: 4px;
                     display: block;
@@ -161,7 +164,7 @@ export class EmployeeForm extends HTMLElement {
                     justify-content: flex-end;
                     margin-top: 32px;
                     padding-top: 20px;
-                    border-top: 1px solid #e9ecef;
+                    border-top: 1px solid var(--color-border);
                 }
 
                 .btn {
@@ -175,25 +178,25 @@ export class EmployeeForm extends HTMLElement {
                 }
 
                 .btn-primary {
-                    background: #3498db;
+                    background: var(--color-primary);
                     color: white;
                 }
 
                 .btn-primary:hover {
-                    background: #2980b9;
+                    background: var(--color-primary-hover);
                 }
 
                 .btn-secondary {
-                    background: #95a5a6;
+                    background: var(--color-secondary);
                     color: white;
                 }
 
                 .btn-secondary:hover {
-                    background: #7f8c8d;
+                    background: var(--color-secondary-hover);
                 }
 
                 .required {
-                    color: #e74c3c;
+                    color: var(--color-error);
                 }
             </style>
 

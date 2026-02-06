@@ -38,11 +38,11 @@ Implement comprehensive light/dark mode support across all web components in the
 - [x] Update data-table component documentation
 
 ### Phase 5: Employee Form Component
-- [ ] Audit employee-form component for hardcoded colors
-- [ ] Update form inputs, labels, borders, and validation states to use --color-surface, --color-text, --color-primary, --color-error
-- [ ] Test form validation styling in both themes
-- [ ] Ensure input focus states are properly themed
-- [ ] Update employee-form component documentation
+- [x] Audit employee-form component for hardcoded colors
+- [x] Update form inputs, labels, borders, and validation states to use --color-surface, --color-text, --color-primary, --color-error
+- [x] Test form validation styling in both themes
+- [x] Ensure input focus states are properly themed
+- [x] Update employee-form component documentation
 
 ### Phase 6: Employee List Component
 - [ ] Audit employee-list component for hardcoded colors
