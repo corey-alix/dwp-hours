@@ -912,3 +912,47 @@ This application replaces the manual Excel spreadsheet tracking (see `legacy.spr
 - Training users on the new interface
 
 **📋 Migration Reference**: For detailed information about the legacy Excel spreadsheet structure, see [`.github/skills/pto-spreadsheet-layout/SKILL.md`](.github/skills/pto-spreadsheet-layout/SKILL.md) which provides comprehensive documentation of all spreadsheet sections, data layouts, and extraction patterns.
+
+### Migration Prerequisites
+
+- Ensure the database schema is up to date (see db/schema.sql)
+- Place the legacy spreadsheet at the project root or provide a path to the script
+- Confirm the database file exists at db/dwp-hours.db (a new one will be created if missing)
+
+### Dry-Run Mode (No File Writes)
+
+Use dry-run to validate parsing and migration logic without modifying the database or writing backups:
+
+```bash
+npm run migrate -- --dry-run
+```
+
+### Running the Migration
+
+To migrate from the default legacy Excel file:
+
+```bash
+npm run migrate
+```
+
+To migrate from a specific file:
+
+```bash
+npm run migrate -- /absolute/path/to/legacy.xlsx
+```
+
+### Backups and Rollback
+
+By default, the migration creates a timestamped backup in db/backups before writing changes. You can disable this with --no-backup.
+
+Rollback to a specific backup:
+
+```bash
+npm run migrate -- --rollback /absolute/path/to/backup
+```
+
+Rollback to the most recent backup:
+
+```bash
+npm run migrate -- --rollback-latest
+```

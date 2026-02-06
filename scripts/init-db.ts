@@ -1,6 +1,12 @@
-const Database = require("better-sqlite3");
-const fs = require("fs");
-const path = require("path");
+#!/usr/bin/env node
+
+import Database from "better-sqlite3";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Database file path
 const DB_PATH = path.join(__dirname, "..", "db", "dwp-hours.db");
@@ -12,12 +18,13 @@ if (!fs.existsSync(dbDir)) {
 }
 
 // Initialize database
-let db;
+let db: Database;
 try {
     db = new Database(DB_PATH);
     console.log("Connected to SQLite database.");
 } catch (error) {
-    console.error("Error opening database:", error.message);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("Error opening database:", message);
     process.exit(1);
 }
 
@@ -29,7 +36,8 @@ try {
     db.exec(schema);
     console.log("Database schema created successfully.");
 } catch (error) {
-    console.error("Error creating tables:", error.message);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("Error creating tables:", message);
     process.exit(1);
 }
 

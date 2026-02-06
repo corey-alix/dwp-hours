@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import initSqlJs from "sql.js";
+import type { Database } from "sql.js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -10,11 +11,29 @@ const __dirname = path.dirname(__filename);
 
 const DB_PATH = path.join(__dirname, "..", "db", "dwp-hours.db");
 
+type SeedPtoEntry = {
+    employee_id: number;
+    start_date: string;
+    end_date: string;
+    type: "Sick" | "PTO" | "Bereavement" | "Jury Duty";
+    hours: number;
+};
+
+type SeedEmployee = {
+    name: string;
+    identifier: string;
+    pto_rate: number;
+    carryover_hours: number;
+    hire_date: string;
+    role: "Employee" | "Admin";
+    hash: string | null;
+};
+
 // Load existing database
-let db;
+let db: Database;
 try {
     const SQL = await initSqlJs();
-    let filebuffer;
+    let filebuffer: Uint8Array | undefined;
     if (fs.existsSync(DB_PATH)) {
         filebuffer = fs.readFileSync(DB_PATH);
     }
@@ -30,25 +49,20 @@ try {
 }
 
 // Seed PTO entries
-const seedPTOEntries = [
-    // Sick time for coreyalix@gmail.com (employee_id: 1) - limited to 3 entries per policy
-    { employee_id: 1, start_date: '2026-02-13', end_date: '2026-02-13', type: 'Sick', hours: 8 },
-    { employee_id: 1, start_date: '2026-02-15', end_date: '2026-02-15', type: 'Sick', hours: 8 },
-    { employee_id: 1, start_date: '2026-02-17', end_date: '2026-02-17', type: 'Sick', hours: 8 },
-
-    // PTO for coreyalix@gmail.com - non-overlapping dates
-    { employee_id: 1, start_date: '2026-02-21', end_date: '2026-02-21', type: 'PTO', hours: 8 },
-    { employee_id: 1, start_date: '2026-02-23', end_date: '2026-02-23', type: 'PTO', hours: 8 },
-    { employee_id: 1, start_date: '2026-02-25', end_date: '2026-02-25', type: 'PTO', hours: 8 },
-
-    // Some PTO entries for other employees
-    { employee_id: 2, start_date: '2026-01-15', end_date: '2026-01-15', type: 'PTO', hours: 8 },
-    { employee_id: 2, start_date: '2026-01-17', end_date: '2026-01-17', type: 'PTO', hours: 8 },
-    { employee_id: 3, start_date: '2026-01-10', end_date: '2026-01-10', type: 'PTO', hours: 8 }
+const seedPTOEntries: SeedPtoEntry[] = [
+    { employee_id: 1, start_date: "2026-02-13", end_date: "2026-02-13", type: "Sick", hours: 8 },
+    { employee_id: 1, start_date: "2026-02-15", end_date: "2026-02-15", type: "Sick", hours: 8 },
+    { employee_id: 1, start_date: "2026-02-17", end_date: "2026-02-17", type: "Sick", hours: 8 },
+    { employee_id: 1, start_date: "2026-02-21", end_date: "2026-02-21", type: "PTO", hours: 8 },
+    { employee_id: 1, start_date: "2026-02-23", end_date: "2026-02-23", type: "PTO", hours: 8 },
+    { employee_id: 1, start_date: "2026-02-25", end_date: "2026-02-25", type: "PTO", hours: 8 },
+    { employee_id: 2, start_date: "2026-01-15", end_date: "2026-01-15", type: "PTO", hours: 8 },
+    { employee_id: 2, start_date: "2026-01-17", end_date: "2026-01-17", type: "PTO", hours: 8 },
+    { employee_id: 3, start_date: "2026-01-10", end_date: "2026-01-10", type: "PTO", hours: 8 }
 ];
 
 // Seed employees
-const seedEmployees = [
+const seedEmployees: SeedEmployee[] = [
     {
         name: "John Doe",
         identifier: "coreyalix@gmail.com",
@@ -122,7 +136,7 @@ try {
     for (const entry of seedPTOEntries) {
         ptoStmt.run([
             entry.employee_id,
-            entry.start_date, // Use start_date as the single date
+            entry.start_date,
             entry.type,
             entry.hours
         ]);
@@ -137,11 +151,10 @@ try {
 
     console.log("✅ Seed data added successfully!");
     console.log("Test employees created:");
-    seedEmployees.forEach(emp => {
+    seedEmployees.forEach((emp) => {
         console.log(`  - ${emp.name} (${emp.identifier}) - ${emp.role}`);
     });
     console.log(`PTO entries added: ${seedPTOEntries.length}`);
-
 } catch (error) {
     console.error("Failed to seed database:", error);
     process.exit(1);

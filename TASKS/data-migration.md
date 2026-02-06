@@ -47,8 +47,8 @@ Create migration scripts to import data from the legacy spreadsheet and set up i
 - [x] Create test PTO entries for validation
 
 ### Migration Safety
-- [ ] Implement dry-run mode for testing
-- [ ] Add backup creation before migration
-- [ ] Create migration rollback procedures
-- [ ] Document migration steps and prerequisites
+- [x] Implement dry-run mode for testing
+- [x] Add backup creation before migration
+- [x] Create migration rollback procedures
+- [x] Document migration steps and prerequisites
 <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/TASKS/data-migration.md

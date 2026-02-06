@@ -29,7 +29,7 @@ Complete the database schema by adding missing tables and ensuring all required 
 To ensure the database schema is properly configured and seeded, follow these steps:
 
 ### Database Initialization Test
-1. Run the database initialization script (`npm run init-db` or `node scripts/init-db.js`)
+1. Run the database initialization script (`npm run init-db` or `tsx scripts/init-db.ts`)
 2. Verify that all tables are created without errors:
    - `employees`
    - `pto_entries`
@@ -44,7 +44,7 @@ To ensure the database schema is properly configured and seeded, follow these st
 4. Test UNIQUE constraints by attempting duplicate inserts
 
 ### Data Seeding Test
-1. Run the seeding script (`node scripts/seed.js`) if available
+1. Run the seeding script (`npm run seed`) if available
 2. Verify sample data is inserted correctly:
    - Check row counts in each table
    - Validate foreign key relationships (e.g., employee_id exists in employees table)
