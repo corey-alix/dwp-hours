@@ -6,28 +6,12 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
+import { seedEmployees, seedPTOEntries } from "./seedData.js";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const DB_PATH = path.join(__dirname, "..", "db", "dwp-hours.db");
-
-type SeedPtoEntry = {
-    employee_id: number;
-    start_date: string;
-    end_date: string;
-    type: "Sick" | "PTO" | "Bereavement" | "Jury Duty";
-    hours: number;
-};
-
-type SeedEmployee = {
-    name: string;
-    identifier: string;
-    pto_rate: number;
-    carryover_hours: number;
-    hire_date: string;
-    role: "Employee" | "Admin";
-    hash: string | null;
-};
 
 // Load existing database
 let db: Database;
@@ -48,49 +32,6 @@ try {
     process.exit(1);
 }
 
-// Seed PTO entries
-const seedPTOEntries: SeedPtoEntry[] = [
-    { employee_id: 1, start_date: "2026-02-13", end_date: "2026-02-13", type: "Sick", hours: 8 },
-    { employee_id: 1, start_date: "2026-02-15", end_date: "2026-02-15", type: "Sick", hours: 8 },
-    { employee_id: 1, start_date: "2026-02-17", end_date: "2026-02-17", type: "Sick", hours: 8 },
-    { employee_id: 1, start_date: "2026-02-21", end_date: "2026-02-21", type: "PTO", hours: 8 },
-    { employee_id: 1, start_date: "2026-02-23", end_date: "2026-02-23", type: "PTO", hours: 8 },
-    { employee_id: 1, start_date: "2026-02-25", end_date: "2026-02-25", type: "PTO", hours: 8 },
-    { employee_id: 2, start_date: "2026-01-15", end_date: "2026-01-15", type: "PTO", hours: 8 },
-    { employee_id: 2, start_date: "2026-01-17", end_date: "2026-01-17", type: "PTO", hours: 8 },
-    { employee_id: 3, start_date: "2026-01-10", end_date: "2026-01-10", type: "PTO", hours: 8 }
-];
-
-// Seed employees
-const seedEmployees: SeedEmployee[] = [
-    {
-        name: "John Doe",
-        identifier: "coreyalix@gmail.com",
-        pto_rate: 0.71,
-        carryover_hours: 40,
-        hire_date: "2020-01-15",
-        role: "Employee",
-        hash: "test-hash-1"
-    },
-    {
-        name: "Jane Smith",
-        identifier: "jane.smith@example.com",
-        pto_rate: 0.71,
-        carryover_hours: 25,
-        hire_date: "2021-06-01",
-        role: "Employee",
-        hash: "test-hash-2"
-    },
-    {
-        name: "Admin User",
-        identifier: "admin@example.com",
-        pto_rate: 0.71,
-        carryover_hours: 0,
-        hire_date: "2019-03-10",
-        role: "Admin",
-        hash: "admin-hash"
-    }
-];
 
 try {
     // Truncate all tables for clean test data
@@ -136,7 +77,7 @@ try {
     for (const entry of seedPTOEntries) {
         ptoStmt.run([
             entry.employee_id,
-            entry.start_date,
+            entry.date,
             entry.type,
             entry.hours
         ]);

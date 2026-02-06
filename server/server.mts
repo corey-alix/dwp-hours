@@ -158,7 +158,6 @@ async function initDatabase() {
 // Initialize database on startup
 log(`Starting server initialization on port ${PORT}...`);
 initDatabase().then(async () => {
-    log("Database initialized successfully.");
 
     // Health check endpoint
     app.get('/api/health', (req, res) => {
@@ -170,93 +169,30 @@ initDatabase().then(async () => {
         });
     });
 
-    // Test-only database reset endpoint
-    app.post('/api/test/reset-database', async (req: Request, res: Response) => {
+    // Test-only database reload endpoint
+    app.post('/api/test/reload-database', async (req: Request, res: Response) => {
         try {
             // Only allow in test environment or with special header
-            if (process.env.NODE_ENV === 'test' || req.headers['x-test-reset'] === 'true') {
-                log('Resetting database for testing...');
+            if (process.env.NODE_ENV === 'test' || req.headers['x-test-reload'] === 'true') {
+                log('Reloading database for testing...');
 
-                // Truncate all tables
-                await dataSource.query('DELETE FROM admin_acknowledgements');
-                await dataSource.query('DELETE FROM acknowledgements');
-                await dataSource.query('DELETE FROM monthly_hours');
-                await dataSource.query('DELETE FROM pto_entries');
-                await dataSource.query('DELETE FROM employees');
-                await dataSource.query('DELETE FROM sqlite_sequence WHERE name IN ("employees", "pto_entries", "monthly_hours", "acknowledgements", "admin_acknowledgements")');
-
-                // Re-seed with test data
-                const employees = [
-                    {
-                        name: "John Doe",
-                        identifier: "coreyalix@gmail.com",
-                        pto_rate: 0.71,
-                        carryover_hours: 40,
-                        hire_date: "2020-01-15",
-                        role: "Employee",
-                        hash: "test-hash-1"
-                    },
-                    {
-                        name: "Jane Smith",
-                        identifier: "jane.smith@example.com",
-                        pto_rate: 0.71,
-                        carryover_hours: 25,
-                        hire_date: "2021-06-01",
-                        role: "Employee",
-                        hash: "test-hash-2"
-                    },
-                    {
-                        name: "Admin User",
-                        identifier: "admin@example.com",
-                        pto_rate: 0.71,
-                        carryover_hours: 0,
-                        hire_date: "2019-03-10",
-                        role: "Admin",
-                        hash: "admin-hash"
-                    }
-                ];
-
-                const ptoEntries = [
-                    { employee_id: 1, date: "2026-02-13", type: "Sick", hours: 8 },
-                    { employee_id: 1, date: "2026-02-15", type: "Sick", hours: 8 },
-                    { employee_id: 1, date: "2026-02-17", type: "Sick", hours: 8 },
-                    { employee_id: 1, date: "2026-02-21", type: "PTO", hours: 8 },
-                    { employee_id: 1, date: "2026-02-23", type: "PTO", hours: 8 },
-                    { employee_id: 1, date: "2026-02-25", type: "PTO", hours: 8 },
-                    { employee_id: 2, date: "2026-01-15", type: "PTO", hours: 8 },
-                    { employee_id: 2, date: "2026-01-17", type: "PTO", hours: 8 },
-                    { employee_id: 3, date: "2026-01-10", type: "PTO", hours: 8 }
-                ];
-
-                // Insert employees
-                for (const emp of employees) {
-                    await dataSource.query(
-                        'INSERT INTO employees (name, identifier, pto_rate, carryover_hours, hire_date, role, hash) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                        [emp.name, emp.identifier, emp.pto_rate, emp.carryover_hours, emp.hire_date, emp.role, emp.hash]
-                    );
+                // Destroy current DataSource
+                if (dataSource && dataSource.isInitialized) {
+                    await dataSource.destroy();
+                    log('DataSource destroyed.');
                 }
 
-                // Insert PTO entries
-                for (const entry of ptoEntries) {
-                    await dataSource.query(
-                        'INSERT INTO pto_entries (employee_id, date, type, hours) VALUES (?, ?, ?, ?)',
-                        [entry.employee_id, entry.date, entry.type, entry.hours]
-                    );
-                }
+                // Re-initialize database from disk
+                await initDatabase();
+                log('Database reloaded from disk.');
 
-                // Save to file
-                const data = db.export();
-                const buffer = Buffer.from(data);
-                fs.writeFileSync(DB_PATH, buffer);
-
-                log('Database reset complete');
-                res.json({ message: 'Database reset successfully' });
+                res.json({ message: 'Database reloaded successfully' });
             } else {
-                res.status(403).json({ error: 'Forbidden: Database reset only allowed in test environment' });
+                res.status(403).json({ error: 'Forbidden: Database reload only allowed in test environment' });
             }
         } catch (error) {
-            log(`Database reset error: ${error}`);
-            res.status(500).json({ error: 'Database reset failed' });
+            log(`Database reload error: ${error}`);
+            res.status(500).json({ error: 'Database reload failed' });
         }
     });
 

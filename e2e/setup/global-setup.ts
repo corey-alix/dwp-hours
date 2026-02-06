@@ -9,8 +9,8 @@ export default async function globalSetup() {
     console.log('🔄 Resetting database for E2E tests...');
 
     try {
-        // Run the seed script to reset database to clean state
-        execSync('npm run seed', {
+        // Run the seed script and reload to reset database to clean state
+        execSync('npm run playwright:seed', {
             cwd: path.join(__dirname, '..', '..'),
             stdio: 'inherit'
         });

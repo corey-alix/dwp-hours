@@ -17,6 +17,7 @@ This document outlines all remaining tasks to complete the DWP Hours Tracker app
 6. **[data-migration.md](data-migration.md)** - Legacy data migration (see [`.github/skills/pto-spreadsheet-layout/SKILL.md`](../.github/skills/pto-spreadsheet-layout/SKILL.md) for spreadsheet structure reference)
 7. **[security-production.md](security-production.md)** - Security & production features
 8. **[design-constraints.md](design-constraints.md)** - Code quality improvements and design constraint compliance
+9. **[database-reset-reload-service.md](database-reset-reload-service.md)** ✅ - Deterministic DB reload for consistent E2E
 
 ### 🟢 Low Priority (Frontend/UI Features)
 8. **[admin-review-acknowledgment.md](admin-review-acknowledgment.md)** - Admin review acknowledgment
