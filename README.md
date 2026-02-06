@@ -307,6 +307,37 @@ Each web component must be updated to use semantic CSS custom properties instead
 
 This approach ensures all components maintain visual consistency while automatically adapting to user theme preferences.
 
+### Theming Tips for Consistency
+
+Centralize values in a design system for maintainability. Use CSS variables on `:root` or a theme class.
+
+#### 1. **Design Tokens**
+   - Define reusable tokens: e.g., `--font-size-base: 1rem; --border-width: 1px; --border-radius: 4px;`.
+   - Group by category: fonts, borders, spacing (e.g., `--space-xs: 4px; --space-md: 16px;` for scalable grids).
+   - Extend for themes: `--border-color: light-dark(#000, #fff);`.
+
+#### 2. **Units and Scaling**
+   - Prefer `rem` for fonts/sizes (root-relative, accessible scaling).
+   - Use `em` for borders/radii within components (parent-relative).
+   - Avoid pixels; ensures responsiveness.
+
+#### 3. **Naming and Structure**
+   - Consistent naming: Prefix with category (e.g., `--font-family-heading`, `--border-style-solid`).
+   - Modular files: Separate tokens.css from components.
+   - Use Sass/Less for maps/loops if complex (e.g., generate radius variants).
+
+#### 4. **Enforcement**
+   - Linters: Stylelint rules to ban hard-coded values, enforce var() usage.
+   - Audits: Tools like Theo or Tokens Studio to validate tokens.
+   - JS integration: Theme provider in frameworks (e.g., React's ThemeContext) for dynamic swaps.
+
+#### 5. **Best Practices**
+   - Inherit via `:host` in web components.
+   - Test: Visual regression tools (e.g., Percy) for consistency across modes/devices.
+   - Document: Style guide (e.g., Storybook) with token references.
+
+This approach minimizes duplication, eases updates (change one var, propagates everywhere).
+
 ## Getting Started
 
 ### Prerequisites

@@ -14,12 +14,12 @@ const monthNames = [
 ];
 
 const PTO_TYPE_COLORS: Record<string, string> = {
-    PTO: "#FFFF00",
-    Sick: "#00B050",
-    Bereavement: "#BFBFBF",
-    "Jury Duty": "#FF0000",
-    "Planned PTO": "#00B0F0",
-    "Work Day": "#FFFFFF"
+    PTO: "var(--color-pto-vacation)",
+    Sick: "var(--color-pto-sick)",
+    Bereavement: "var(--color-pto-bereavement)",
+    "Jury Duty": "var(--color-pto-jury-duty)",
+    "Planned PTO": "var(--color-pto-vacation)",
+    "Work Day": "var(--color-surface)"
 };
 
 export interface CalendarEntry {
@@ -244,7 +244,7 @@ export class PtoCalendar extends HTMLElement {
                 .weekday {
                     font-size: 11px;
                     font-weight: 600;
-                    color: #6c757d;
+                    color: var(--color-text-secondary);
                     text-align: center;
                 }
 
@@ -252,7 +252,7 @@ export class PtoCalendar extends HTMLElement {
                     position: relative;
                     min-height: 50px;
                     border-radius: 6px;
-                    background: #f8f9fa;
+                    background: var(--color-surface);
                     padding: 4px;
                     font-size: 12px;
                 }
@@ -273,13 +273,13 @@ export class PtoCalendar extends HTMLElement {
                 }
 
                 .day.selected {
-                    border: 2px solid #007bff;
-                    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+                    border: 2px solid var(--color-primary);
+                    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
                 }
 
                 .day .date {
                     font-weight: 600;
-                    color: #34495e;
+                    color: var(--color-text);
                 }
 
                 .day .hours {
@@ -287,7 +287,7 @@ export class PtoCalendar extends HTMLElement {
                     bottom: 4px;
                     right: 6px;
                     font-size: 10px;
-                    color: #2c3e50;
+                    color: var(--color-text-secondary);
                 }
 
                 .day .hours-input {
@@ -298,15 +298,17 @@ export class PtoCalendar extends HTMLElement {
                     height: 14px;
                     font-size: 10px;
                     text-align: center;
-                    border: 1px solid rgba(255,255,255,0.5);
+                    border: 1px solid var(--color-border);
                     border-radius: 2px;
-                    background: rgba(255,255,255,0.9);
-                    color: #2c3e50;
+                    background: var(--color-surface);
+                    color: var(--color-text);
+                    font-weight: 600;
                 }
 
                 .day .hours-input.invalid {
-                    border-color: #dc3545;
-                    background: #f8d7da;
+                    border-color: var(--color-error);
+                    background: var(--color-error-light);
+                    color: var(--color-text);
                 }
 
                 .type-PTO { background: ${PTO_TYPE_COLORS.PTO}; }
@@ -314,25 +316,29 @@ export class PtoCalendar extends HTMLElement {
                 .type-Bereavement { background: ${PTO_TYPE_COLORS.Bereavement}; }
                 .type-Jury-Duty { background: ${PTO_TYPE_COLORS["Jury Duty"]}; }
                 .type-Planned-PTO { background: ${PTO_TYPE_COLORS["Planned PTO"]}; }
-                .type-Work-Day { background: ${PTO_TYPE_COLORS["Work Day"]}; border: 1px solid #e9ecef; }
+                .type-Work-Day { background: ${PTO_TYPE_COLORS["Work Day"]}; border: 1px solid var(--color-border); }
 
                 /* Make text white on colored backgrounds for better contrast */
                 .type-PTO .date,
                 .type-PTO .hours,
-                .type-PTO .hours-input,
                 .type-Sick .date,
                 .type-Sick .hours,
-                .type-Sick .hours-input,
                 .type-Bereavement .date,
                 .type-Bereavement .hours,
-                .type-Bereavement .hours-input,
                 .type-Jury-Duty .date,
                 .type-Jury-Duty .hours,
-                .type-Jury-Duty .hours-input,
                 .type-Planned-PTO .date,
-                .type-Planned-PTO .hours,
-                .type-Planned-PTO .hours-input {
+                .type-Planned-PTO .hours {
                     color: white;
+                }
+
+                /* Keep input text dark for better contrast with surface background */
+                .type-PTO .hours-input,
+                .type-Sick .hours-input,
+                .type-Bereavement .hours-input,
+                .type-Jury-Duty .hours-input,
+                .type-Planned-PTO .hours-input {
+                    color: var(--color-text);
                 }
 
                 .legend {
@@ -341,7 +347,7 @@ export class PtoCalendar extends HTMLElement {
                     gap: 8px 12px;
                     margin-top: 12px;
                     font-size: 12px;
-                    color: #6c757d;
+                    color: var(--color-text-secondary);
                 }
 
                 .legend-item {
@@ -358,13 +364,13 @@ export class PtoCalendar extends HTMLElement {
                 }
 
                 .legend-item.clickable:hover {
-                    background: #f8f9fa;
+                    background: var(--color-surface-hover);
                     transform: scale(1.05);
                 }
 
                 .legend-item.selected {
-                    background: #e3f2fd;
-                    border: 1px solid #2196f3;
+                    background: var(--color-primary-light);
+                    border: 1px solid var(--color-primary);
                     font-weight: 600;
                 }
 
@@ -372,7 +378,7 @@ export class PtoCalendar extends HTMLElement {
                     width: 10px;
                     height: 10px;
                     border-radius: 2px;
-                    border: 1px solid #d0d7de;
+                    border: 1px solid var(--color-border);
                 }
 
                 .submit-slot {

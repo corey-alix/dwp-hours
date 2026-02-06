@@ -52,11 +52,11 @@ Implement comprehensive light/dark mode support across all web components in the
 - [x] Update employee-list component documentation
 
 ### Phase 7: PTO Calendar Component
-- [ ] Audit pto-calendar component for hardcoded colors
-- [ ] Update calendar grid, day cells, and PTO type color coding to use --color-surface, --color-text, and semantic PTO colors
-- [ ] Test calendar navigation and date selection
-- [ ] Ensure PTO type color coding remains distinguishable
-- [ ] Update pto-calendar component documentation
+- [x] Audit pto-calendar component for hardcoded colors
+- [x] Update calendar grid, day cells, and PTO type color coding to use --color-surface, --color-text, and semantic PTO colors
+- [x] Test calendar navigation and date selection
+- [x] Ensure PTO type color coding remains distinguishable
+- [x] Update pto-calendar component documentation
 
 ### Phase 8: PTO Request Queue Component
 - [ ] Audit pto-request-queue component for hardcoded colors
