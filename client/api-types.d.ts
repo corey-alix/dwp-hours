@@ -160,7 +160,11 @@ export interface EmployeeUpdateResponse {
     employee: Employee;
 }
 
-export interface PTOEntriesResponse extends Array<PTOEntry> { }
+export interface PTOEntriesResponse extends Array<{
+    date: string;
+    type: "PTO" | "Sick" | "Bereavement" | "Jury Duty";
+    hours: number;
+}> { }
 
 export interface PTOCreateResponse {
     message: string;

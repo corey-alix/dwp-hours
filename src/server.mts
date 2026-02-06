@@ -801,13 +801,18 @@ initDatabase().then(async () => {
 
             const ptoEntries = await ptoEntryRepo.find({
                 where: whereCondition,
-                order: { date: 'DESC' },
-                relations: ['employee']
+                order: { date: 'DESC' }
             });
 
             console.log(`PTO entries for employee ${employeeId}:`, ptoEntries.map(e => ({ date: e.date, type: e.type })));
 
-            res.json(ptoEntries);
+            const simplifiedEntries = ptoEntries.map(entry => ({
+                date: dateToString(entry.date instanceof Date ? entry.date : new Date(entry.date as any)),
+                type: entry.type,
+                hours: entry.hours
+            }));
+
+            res.json(simplifiedEntries);
         } catch (error) {
             log(`Error getting PTO entries: ${error}`);
             res.status(500).json({ error: 'Internal server error' });
