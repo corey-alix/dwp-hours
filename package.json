@@ -25,6 +25,8 @@
         "start//": "start nodemon for development",
         "server:reload": "curl -X POST http://localhost:3000/api/test/reload-database -H 'x-test-reload: true' -H 'Content-Type: application/json'",
         "server:reload//": "reload the server's database from disk",
+        "api:version": "curl http://localhost:3000/api/version",
+        "api:version//": "get the API version",
         "start:prod": "node dist/server.mjs",
         "start:prod//": "start production server from dist/server.mjs",
         "stop": "lsof -ti:3000 | xargs kill -9 || true",

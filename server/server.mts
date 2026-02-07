@@ -13,13 +13,21 @@ import "reflect-metadata";
 import { DataSource, Not, IsNull, Between, Like } from "typeorm";
 import { Employee, PtoEntry, MonthlyHours, Acknowledgement, AdminAcknowledgement } from "./entities/index.js";
 import { calculatePTOStatus } from "./ptoCalculations.js";
-import { calculateEndDate } from "./workDays.js";
 import { dateToString } from "../shared/dateUtils.js";
 import net from "net";
 import { sendMagicLinkEmail } from "./utils/mailer.js";
 import { PtoEntryDAL } from "./dal/PtoEntryDAL.js";
 import { VALIDATION_MESSAGES, MessageKey } from "../shared/businessRules.js";
 import { authenticate, authenticateAdmin } from "./utils/auth.js";
+
+const VERSION = `1.0.0`;
+const START_TIME = new Date().toISOString();
+
+// running file
+const runningFrom = process.argv[1];
+// age of file
+const fileStats = fs.statSync(runningFrom);
+const FILE_AGE = Date.now() - fileStats.mtime.getTime();
 
 dotenv.config();
 
@@ -74,7 +82,7 @@ if (!fs.existsSync(logsDir)) {
 // Simple file-based logging
 function log(message: string) {
     const timestamp = new Date().toISOString();
-    const logMessage = `[${timestamp}] ${message}\n`;
+    const logMessage = `[${timestamp}]${message}\n`;
     fs.appendFileSync(LOG_PATH, logMessage);
     console.log(message);
 }
@@ -119,7 +127,7 @@ async function initDatabase() {
         // Read and execute schema
         log("Reading database schema...");
         const schemaPath = path.join(__dirname, "..", "db", "schema.sql");
-        log(`Schema path: ${schemaPath}`);
+        log(`Schema path: ${schemaPath} `);
         const schema = fs.readFileSync(schemaPath, "utf8");
         log("Schema file read successfully.");
 
@@ -147,14 +155,18 @@ async function initDatabase() {
         log("PTO Entry DAL initialized.");
     } catch (error) {
         const err = error as Error;
-        log(`Database connection error: ${err}`);
-        log(`Error stack: ${err.stack}`);
+        log(`Database connection error: ${err} `);
+        log(`Error stack: ${err.stack} `);
         throw err;
     }
 }
 
 // Initialize database on startup
-log(`Starting server initialization on port ${PORT}...`);
+log(`Start time: ${START_TIME} `);
+log(`Version: ${VERSION} `);
+log(`File age: ${FILE_AGE}`)
+log(`Port ${PORT}...`);
+
 initDatabase().then(async () => {
 
     // Health check endpoint
@@ -164,6 +176,15 @@ initDatabase().then(async () => {
             timestamp: new Date().toISOString(),
             uptime: process.uptime(),
             version: '1.0.0'
+        });
+    });
+
+    // Version endpoint
+    app.get('/api/version', (req, res) => {
+        res.json({
+            version: VERSION,
+            fileAge: FILE_AGE,
+            startTime: START_TIME
         });
     });
 
@@ -189,7 +210,7 @@ initDatabase().then(async () => {
                 res.status(403).json({ error: 'Forbidden: Database reload only allowed in test environment' });
             }
         } catch (error) {
-            log(`Database reload error: ${error}`);
+            log(`Database reload error: ${error} `);
             res.status(500).json({ error: 'Database reload failed' });
         }
     });
