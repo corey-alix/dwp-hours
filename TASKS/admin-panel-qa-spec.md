@@ -13,10 +13,10 @@ Create a focused QA specification for the Admin Panel component to verify view s
 - [x] Validate Settings view placeholder renders as expected
 
 ### Stage 2: Child Component Wiring
-- [ ] Confirm `<employee-list>` renders under Employees view
-- [ ] Confirm `<pto-request-queue>` renders under PTO Requests view
-- [ ] Confirm `<report-generator>` renders under Reports view
-- [ ] Verify child events are re-dispatched with unchanged payloads (`add-employee`, `employee-edit`, `employee-delete`, `employee-acknowledge`)
+- [x] Confirm `<employee-list>` renders under Employees view
+- [x] Confirm `<pto-request-queue>` renders under PTO Requests view
+- [x] Confirm `<report-generator>` renders under Reports view
+- [x] Verify child events are re-dispatched with unchanged payloads (`add-employee`, `employee-edit`, `employee-delete`, `employee-acknowledge`)
 
 ### Stage 3: Interaction and Accessibility
 - [ ] Validate sidebar links are keyboard accessible and focus-visible

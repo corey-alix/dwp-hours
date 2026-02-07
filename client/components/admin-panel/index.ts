@@ -212,19 +212,31 @@ export class AdminPanel extends HTMLElement {
     private setupChildEventListeners() {
         // Handle events from child components
         this.shadow.addEventListener('add-employee', () => {
-            this.dispatchEvent(new CustomEvent('add-employee'));
+            this.dispatchEvent(new CustomEvent('add-employee', { bubbles: true, composed: true }));
         });
 
         this.shadow.addEventListener('employee-edit', ((e: Event) => {
-            this.dispatchEvent(new CustomEvent('employee-edit', { detail: (e as CustomEvent).detail }));
+            this.dispatchEvent(new CustomEvent('employee-edit', {
+                detail: (e as CustomEvent).detail,
+                bubbles: true,
+                composed: true
+            }));
         }) as EventListener);
 
         this.shadow.addEventListener('employee-delete', ((e: Event) => {
-            this.dispatchEvent(new CustomEvent('employee-delete', { detail: (e as CustomEvent).detail }));
+            this.dispatchEvent(new CustomEvent('employee-delete', {
+                detail: (e as CustomEvent).detail,
+                bubbles: true,
+                composed: true
+            }));
         }) as EventListener);
 
         this.shadow.addEventListener('employee-acknowledge', ((e: Event) => {
-            this.dispatchEvent(new CustomEvent('employee-acknowledge', { detail: (e as CustomEvent).detail }));
+            this.dispatchEvent(new CustomEvent('employee-acknowledge', {
+                detail: (e as CustomEvent).detail,
+                bubbles: true,
+                composed: true
+            }));
         }) as EventListener);
     }
 
