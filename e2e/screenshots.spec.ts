@@ -1,15 +1,15 @@
 import { test, expect } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
 test.use({
     viewport: { width: 1280, height: 720 },
     deviceScaleFactor: 1,
     locale: 'en-US',
     timezoneId: 'UTC',
-    colorScheme: 'dark',
-    reducedMotion: 'reduce'
+    colorScheme: 'dark'
 });
 
-async function stabilizePage(page: { setViewportSize: (size: { width: number; height: number }) => Promise<void>; addStyleTag: (options: { content: string }) => Promise<void> }) {
+async function stabilizePage(page: Page) {
     await page.setViewportSize({ width: 1280, height: 720 });
     await page.addStyleTag({
         content: `

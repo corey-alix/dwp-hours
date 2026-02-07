@@ -6,7 +6,10 @@ interface PtoRequest {
 }
 
 import { querySingle } from '../test-utils';
-import { today, isWeekend, addDays, getWeekdaysBetween, calculateEndDateFromHours } from '../../../shared/dateUtils.js';
+import { today, isWeekend, addDays, getWeekdaysBetween, calculateEndDateFromHours, parseDate } from '../../../shared/dateUtils.js';
+import { normalizePTOType, validateHours, validatePTOType, validateWeekday, VALIDATION_MESSAGES } from '../../../shared/businessRules.js';
+import type { MessageKey } from '../../../shared/businessRules.js';
+import type { CalendarEntry } from '../pto-calendar/index.js';
 
 export class PtoEntryForm extends HTMLElement {
     private shadow: ShadowRoot;
@@ -61,27 +64,44 @@ export class PtoEntryForm extends HTMLElement {
 
         // Set initial end date min constraint
         this.updateEndDateMinConstraint();
+
+        this.updateCalculationDetails();
     }
 
     private updateFieldBehavior(ptoType: string): void {
         const hoursInput = querySingle<HTMLInputElement>('#hours', this.shadow);
         const endDateInput = querySingle<HTMLInputElement>('#end-date', this.shadow);
         const hoursLabel = querySingle<HTMLLabelElement>('label[for="hours"]', this.shadow);
+        const wasReadOnly = hoursInput.readOnly;
 
         if (ptoType === 'Full PTO') {
             // For "Full PTO": End Date editable, Hours readonly (calculated from date range)
             hoursLabel.textContent = 'Days';
             hoursInput.readOnly = true;
+            hoursInput.step = '1';
+            hoursInput.min = '1';
             this.updateDaysFromDateRange(); // Calculate days from current date range
             endDateInput.readOnly = false;
         } else {
             // For other types: Hours editable, End Date readonly (calculated based on spillover logic)
             hoursLabel.textContent = 'Hours';
             hoursInput.readOnly = false;
-            hoursInput.value = '4'; // Default to 4 hours
+            hoursInput.step = '4';
+            hoursInput.min = '4';
+            if (wasReadOnly) {
+                const previousDays = parseInt(hoursInput.value, 10);
+                if (Number.isInteger(previousDays) && previousDays > 0) {
+                    hoursInput.value = (previousDays * 8).toString();
+                }
+            }
+            if (!hoursInput.value || Number.isNaN(parseFloat(hoursInput.value))) {
+                hoursInput.value = '4'; // Default to 4 hours
+            }
             endDateInput.readOnly = true;
             this.updateEndDateFromHours(); // Calculate end date from hours
         }
+
+        this.updateCalculationDetails();
     }
 
     private updateDaysFromDateRange(): void {
@@ -96,6 +116,7 @@ export class PtoEntryForm extends HTMLElement {
             try {
                 const weekdays = getWeekdaysBetween(startDate, endDate);
                 hoursInput.value = weekdays.toString();
+                this.updateCalculationDetails();
             } catch (error) {
                 console.error('Error calculating weekdays:', error);
                 hoursInput.value = '0';
@@ -116,11 +137,139 @@ export class PtoEntryForm extends HTMLElement {
                 const endDate = calculateEndDateFromHours(startDate, hoursValue);
                 endDateInput.value = endDate;
                 this.updateWeekendWarning(endDateInput);
+                this.updateCalculationDetails();
             } catch (error) {
                 console.error('Error calculating end date from hours:', error);
                 endDateInput.value = startDate;
                 this.updateWeekendWarning(endDateInput);
             }
+        }
+    }
+
+    private updateCalculationDetails(): void {
+        const detailsElement = querySingle<HTMLDivElement>('#calculation-details', this.shadow);
+        const startDateInput = querySingle<HTMLInputElement>('#start-date', this.shadow);
+        const endDateInput = querySingle<HTMLInputElement>('#end-date', this.shadow);
+        const hoursInput = querySingle<HTMLInputElement>('#hours', this.shadow);
+        const ptoTypeSelect = querySingle<HTMLSelectElement>('#pto-type', this.shadow);
+
+        const startDate = startDateInput.value;
+        const endDate = endDateInput.value;
+        const ptoType = ptoTypeSelect.value;
+
+        detailsElement.textContent = '';
+        detailsElement.classList.remove('spillover');
+
+        if (!startDate || !endDate) {
+            return;
+        }
+
+        if (ptoType === 'Full PTO') {
+            try {
+                const weekdays = getWeekdaysBetween(startDate, endDate);
+                if (weekdays <= 0) {
+                    return;
+                }
+                const hours = weekdays * 8;
+                detailsElement.textContent = `${weekdays} ${weekdays === 1 ? 'day' : 'days'} (${hours} hours) ending ${endDate}`;
+            } catch (error) {
+                console.error('Error building Full PTO details:', error);
+            }
+            return;
+        }
+
+        const hours = parseFloat(hoursInput.value);
+        if (Number.isNaN(hours) || hours <= 0) {
+            return;
+        }
+
+        const workdays = Math.max(1, Math.ceil(hours / 8));
+        const spillover = workdays > 1;
+        detailsElement.textContent = `${spillover ? 'Spillover: ' : ''}${hours} hours over ${workdays} ${workdays === 1 ? 'workday' : 'workdays'} ending ${endDate}`;
+        if (spillover) {
+            detailsElement.classList.add('spillover');
+        }
+    }
+
+    private toggleCalendarView(showCalendar: boolean): void {
+        const formView = querySingle<HTMLDivElement>('#form-view', this.shadow);
+        const calendarView = querySingle<HTMLDivElement>('#calendar-view', this.shadow);
+
+        formView.classList.toggle('hidden', showCalendar);
+        calendarView.classList.toggle('hidden', !showCalendar);
+
+        if (showCalendar) {
+            this.ensureCalendarReady();
+        }
+    }
+
+    private ensureCalendarReady(): void {
+        const calendarContainer = querySingle<HTMLDivElement>('#calendar-container', this.shadow);
+        let calendar = calendarContainer.querySelector('pto-calendar') as HTMLElement | null;
+
+        if (!calendar) {
+            calendar = document.createElement('pto-calendar');
+            calendar.setAttribute('readonly', 'false');
+
+            const submitButton = document.createElement('button');
+            submitButton.type = 'button';
+            submitButton.textContent = 'Apply selection';
+            submitButton.className = 'btn btn-primary';
+            submitButton.slot = 'submit';
+            calendar.appendChild(submitButton);
+
+            calendar.addEventListener('pto-request-submit', (event: Event) => {
+                const customEvent = event as CustomEvent<{ requests: CalendarEntry[] }>;
+                this.applyCalendarSelection(customEvent.detail.requests);
+                this.toggleCalendarView(false);
+            });
+
+            calendarContainer.appendChild(calendar);
+        }
+
+        const startDateInput = querySingle<HTMLInputElement>('#start-date', this.shadow);
+        const fallbackDate = this.getNextBusinessDay(today());
+        const seedDate = startDateInput.value || fallbackDate;
+        const { year, month } = parseDate(seedDate);
+        calendar.setAttribute('month', (month - 1).toString());
+        calendar.setAttribute('year', year.toString());
+        calendar.setAttribute('selected-month', month.toString());
+        calendar.setAttribute('pto-entries', '[]');
+    }
+
+    private applyCalendarSelection(requests: CalendarEntry[]): void {
+        if (!requests.length) {
+            return;
+        }
+
+        const startDateInput = querySingle<HTMLInputElement>('#start-date', this.shadow);
+        const endDateInput = querySingle<HTMLInputElement>('#end-date', this.shadow);
+        const hoursInput = querySingle<HTMLInputElement>('#hours', this.shadow);
+        const ptoTypeSelect = querySingle<HTMLSelectElement>('#pto-type', this.shadow);
+
+        const sorted = [...requests].sort((a, b) => a.date.localeCompare(b.date));
+        const startDate = sorted[0].date;
+        const endDate = sorted[sorted.length - 1].date;
+        const totalHours = sorted.reduce((sum, entry) => sum + entry.hours, 0);
+        const selectedType = sorted[0].type;
+
+        let nextType = selectedType;
+        if (selectedType === 'PTO') {
+            const allFullDays = sorted.every(entry => entry.hours === 8);
+            nextType = allFullDays ? 'Full PTO' : 'Partial PTO';
+        }
+
+        startDateInput.value = startDate;
+        endDateInput.value = endDate;
+        ptoTypeSelect.value = nextType;
+        this.updateEndDateMinConstraint();
+        this.updateFieldBehavior(nextType);
+
+        if (nextType === 'Full PTO') {
+            this.updateDaysFromDateRange();
+        } else {
+            hoursInput.value = totalHours.toString();
+            this.updateEndDateFromHours();
         }
     }
 
@@ -177,7 +326,9 @@ export class PtoEntryForm extends HTMLElement {
 
                 .form-header {
                     margin-bottom: var(--space-lg);
-                    text-align: center;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
                 }
 
                 .form-header h2 {
@@ -185,6 +336,28 @@ export class PtoEntryForm extends HTMLElement {
                     font-size: var(--font-size-xl);
                     font-weight: var(--font-weight-semibold);
                     color: var(--color-text);
+                }
+
+                .calendar-toggle {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    border: var(--border-width) var(--border-style-solid) var(--color-border);
+                    border-radius: var(--border-radius-md);
+                    background: var(--color-surface);
+                    padding: 6px;
+                    cursor: pointer;
+                    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+                }
+
+                .calendar-toggle:hover {
+                    border-color: var(--color-primary);
+                }
+
+                .calendar-toggle svg {
+                    width: 18px;
+                    height: 18px;
+                    fill: var(--color-text);
                 }
 
                 .form-group {
@@ -243,6 +416,21 @@ export class PtoEntryForm extends HTMLElement {
                     display: block;
                 }
 
+                .calculation-details {
+                    margin-top: var(--space-xs);
+                    padding: var(--space-xs) var(--space-sm);
+                    border-radius: var(--border-radius-md);
+                    background: var(--color-surface);
+                    border: var(--border-width) var(--border-style-solid) var(--color-border);
+                    font-size: var(--font-size-xs);
+                    color: var(--color-text-secondary);
+                }
+
+                .calculation-details.spillover {
+                    border-color: var(--color-warning, #ffc107);
+                    color: var(--color-text);
+                }
+
                 .form-row {
                     display: grid;
                     grid-template-columns: 1fr 1fr;
@@ -289,6 +477,26 @@ export class PtoEntryForm extends HTMLElement {
                     background: var(--color-surface-hover, var(--color-surface));
                 }
 
+                .hidden {
+                    display: none;
+                }
+
+                .calendar-view {
+                    margin-top: var(--space-md);
+                }
+
+                .calendar-toolbar {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    margin-bottom: var(--space-md);
+                }
+
+                .calendar-title {
+                    font-weight: var(--font-weight-semibold);
+                    color: var(--color-text);
+                }
+
                 .required {
                     color: var(--color-error);
                 }
@@ -313,8 +521,14 @@ export class PtoEntryForm extends HTMLElement {
             <div class="form-container">
                 <div class="form-header">
                     <h2>Submit Time Off</h2>
+                    <button type="button" class="calendar-toggle" id="calendar-toggle-btn" aria-label="Open calendar">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M7 2v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zm12 8H5v10h14V10zm0-2V6H5v2h14z" />
+                        </svg>
+                    </button>
                 </div>
 
+                <div class="form-view" id="form-view">
                 <form id="pto-form" novalidate>
                     <div class="form-row">
                         <div class="form-group">
@@ -380,6 +594,7 @@ export class PtoEntryForm extends HTMLElement {
                             required
                         >
                         <span class="error-message" id="hours-error"></span>
+                        <div class="calculation-details" id="calculation-details" aria-live="polite"></div>
                     </div>
 
                     <div class="form-actions">
@@ -391,6 +606,15 @@ export class PtoEntryForm extends HTMLElement {
                         </button>
                     </div>
                 </form>
+                </div>
+
+                <div class="calendar-view hidden" id="calendar-view">
+                    <div class="calendar-toolbar">
+                        <span class="calendar-title">Select dates</span>
+                        <button type="button" class="btn btn-secondary" id="calendar-back-btn">Back to form</button>
+                    </div>
+                    <div id="calendar-container"></div>
+                </div>
             </div>
         `;
     }
@@ -399,6 +623,8 @@ export class PtoEntryForm extends HTMLElement {
         const form = querySingle<HTMLFormElement>('#pto-form', this.shadow);
         const cancelBtn = querySingle<HTMLButtonElement>('#cancel-btn', this.shadow);
         const ptoTypeSelect = querySingle<HTMLSelectElement>('#pto-type', this.shadow);
+        const calendarToggleBtn = querySingle<HTMLButtonElement>('#calendar-toggle-btn', this.shadow);
+        const calendarBackBtn = querySingle<HTMLButtonElement>('#calendar-back-btn', this.shadow);
 
         form?.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -409,6 +635,14 @@ export class PtoEntryForm extends HTMLElement {
 
         cancelBtn?.addEventListener('click', () => {
             this.dispatchEvent(new CustomEvent('form-cancel'));
+        });
+
+        calendarToggleBtn?.addEventListener('click', () => {
+            this.toggleCalendarView(true);
+        });
+
+        calendarBackBtn?.addEventListener('click', () => {
+            this.toggleCalendarView(false);
         });
 
         // PTO type change listener for dynamic field behavior
@@ -456,6 +690,7 @@ export class PtoEntryForm extends HTMLElement {
             }
             // Update end date min constraint
             this.updateEndDateMinConstraint();
+            this.updateCalculationDetails();
         });
 
         endDateInput?.addEventListener('change', () => {
@@ -465,6 +700,7 @@ export class PtoEntryForm extends HTMLElement {
             if (endDateInput) {
                 this.updateWeekendWarning(endDateInput);
             }
+            this.updateCalculationDetails();
         });
 
         // Hours change listener for non-"Full PTO" types to calculate end date
@@ -473,6 +709,7 @@ export class PtoEntryForm extends HTMLElement {
             if (ptoTypeSelect.value !== 'Full PTO') {
                 this.updateEndDateFromHours();
             }
+            this.updateCalculationDetails();
         });
 
         // Real-time validation
@@ -506,6 +743,14 @@ export class PtoEntryForm extends HTMLElement {
         
         // Only validate hours if it's not readonly
         if (!hoursInput.readOnly && !this.validateField(hoursInput)) isValid = false;
+
+        if (ptoTypeInput.value === 'Full PTO') {
+            const days = parseInt(hoursInput.value, 10);
+            if (!Number.isInteger(days) && hoursInput.value.trim()) {
+                this.setFieldError(hoursInput, 'Days must be a whole number');
+                isValid = false;
+            }
+        }
 
         // Cross-field validation: end date should be after start date
         if (isValid && startDateInput.value && endDateInput.value) {
@@ -544,24 +789,34 @@ export class PtoEntryForm extends HTMLElement {
                 this.setFieldError(input, 'Please enter a valid number of hours');
                 return false;
             }
-            if (!Number.isInteger(hours) || hours % 4 !== 0) {
-                this.setFieldError(input, 'Hours must be in 4-hour increments');
+
+            const hoursError = validateHours(hours);
+            if (hoursError) {
+                this.setFieldError(input, VALIDATION_MESSAGES[hoursError.messageKey as MessageKey]);
+                return false;
+            }
+        }
+
+        if (input.id === 'pto-type') {
+            const normalized = normalizePTOType(value);
+            const typeError = validatePTOType(normalized);
+            if (typeError) {
+                this.setFieldError(input, VALIDATION_MESSAGES[typeError.messageKey as MessageKey]);
                 return false;
             }
         }
 
         if (input.id === 'start-date' || input.id === 'end-date') {
-            const date = new Date(value);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            // Note: Past dates are allowed per business rules
-            // Restrictions are on next year entries and acknowledged months (handled server-side)
-
-            // Warn if weekend is selected (but don't prevent it)
-            if (isWeekend(value)) {
-                this.setFieldWarning(input, 'Warning: Selected date is a weekend. PTO is typically for weekdays.');
-                // Don't return false - just warn
+            try {
+                const { year, month, day } = parseDate(value);
+                const weekdayError = validateWeekday(new Date(year, month - 1, day));
+                if (weekdayError) {
+                    this.setFieldWarning(input, VALIDATION_MESSAGES[weekdayError.messageKey as MessageKey]);
+                    // Don't return false - just warn
+                }
+            } catch (error) {
+                this.setFieldError(input, VALIDATION_MESSAGES['date.invalid']);
+                return false;
             }
         }
 
@@ -602,12 +857,26 @@ export class PtoEntryForm extends HTMLElement {
             startDate: formData.get('startDate') as string,
             endDate: formData.get('endDate') as string,
             ptoType: formData.get('ptoType') as string,
-            hours: parseFloat(formData.get('hours') as string)
+            hours: this.getHoursForSubmit(formData.get('ptoType') as string)
         };
 
         this.dispatchEvent(new CustomEvent('pto-submit', {
             detail: { ptoRequest }
         }));
+    }
+
+    private getHoursForSubmit(ptoType: string): number {
+        const startDateInput = querySingle<HTMLInputElement>('#start-date', this.shadow);
+        const endDateInput = querySingle<HTMLInputElement>('#end-date', this.shadow);
+        const hoursInput = querySingle<HTMLInputElement>('#hours', this.shadow);
+
+        if (ptoType === 'Full PTO' && startDateInput.value && endDateInput.value) {
+            const days = getWeekdaysBetween(startDateInput.value, endDateInput.value);
+            return Math.max(0, days) * 8;
+        }
+
+        const hours = parseFloat(hoursInput.value);
+        return Number.isNaN(hours) ? 0 : hours;
     }
 
     // Public methods for external control

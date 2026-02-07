@@ -28,10 +28,10 @@ The implementation is divided into testable phases. Each phase builds on the pre
 - [x] Use utility function to calculate end date by adding hours/days while skipping weekends
 
 ### Phase 3: Dynamic Field Behavior
-- [ ] Implement dynamic field behavior based on PTO type:
+- [x] Implement dynamic field behavior based on PTO type:
   - "Full PTO": Change "Hours" label to "Days", make Hours readonly, End Date editable
   - Other types: Keep "Hours" label, make Hours editable, End Date readonly
-- [ ] Handle field conversion and calculations accordingly (days * 8 for internal storage, weekday count for "Full PTO")
+- [x] Handle field conversion and calculations accordingly (days * 8 for internal storage, weekday count for "Full PTO")
 
 ### Phase 4: Validation and UI Enhancements
 - [ ] Add input validation for hours/days using [businessRules.ts](shared/businessRules.ts) (4-hour increments, positive numbers, reasonable limits)
