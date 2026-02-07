@@ -160,3 +160,36 @@ test('pto-entry-form spillover calculation test', async ({ page }) => {
     const testOutput = page.locator('#test-output');
     await expect(testOutput).toContainText('PTO submitted');
 });
+
+test('pto-entry-form dynamic field behavior test', async ({ page }) => {
+    await page.goto('http://localhost:3000/components/pto-entry-form/test.html');
+
+    // Wait for the component to be defined and loaded
+    await page.waitForFunction(() => customElements.get('pto-entry-form') !== undefined);
+    await page.waitForTimeout(500); // Additional time for component initialization
+
+    const ptoType = page.locator('pto-entry-form').locator('#pto-type');
+    const hoursLabel = page.locator('pto-entry-form').locator('label[for="hours"]');
+    const hoursInput = page.locator('pto-entry-form').locator('#hours');
+    const endDateInput = page.locator('pto-entry-form').locator('#end-date');
+
+    // Default state should be Full PTO
+    await expect(ptoType).toHaveValue('Full PTO');
+    await expect(hoursLabel).toHaveText(/Days/);
+    await expect(hoursInput).toHaveAttribute('readonly', '');
+    await expect(endDateInput).not.toHaveAttribute('readonly', '');
+
+    // Switch to Partial PTO (non-Full PTO behavior)
+    await ptoType.selectOption('Partial PTO');
+    await page.waitForTimeout(100);
+    await expect(hoursLabel).toHaveText(/Hours/);
+    await expect(hoursInput).not.toHaveAttribute('readonly', '');
+    await expect(endDateInput).toHaveAttribute('readonly', '');
+
+    // Switch back to Full PTO
+    await ptoType.selectOption('Full PTO');
+    await page.waitForTimeout(100);
+    await expect(hoursLabel).toHaveText(/Days/);
+    await expect(hoursInput).toHaveAttribute('readonly', '');
+    await expect(endDateInput).not.toHaveAttribute('readonly', '');
+});
