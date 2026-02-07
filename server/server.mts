@@ -873,7 +873,18 @@ initDatabase().then(async () => {
 
             await employeeRepo.save(employee);
 
-            res.json({ message: 'Employee updated successfully' });
+            res.json({ 
+                message: 'Employee updated successfully',
+                employee: {
+                    id: employee.id,
+                    name: employee.name,
+                    identifier: employee.identifier,
+                    pto_rate: employee.pto_rate,
+                    carryover_hours: employee.carryover_hours,
+                    hire_date: employee.hire_date.toISOString().split('T')[0],
+                    role: employee.role
+                }
+            });
         } catch (error) {
             log(`Error updating employee: ${error}`);
             res.status(500).json({ error: 'Internal server error' });
