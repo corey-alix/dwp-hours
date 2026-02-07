@@ -1,107 +1,50 @@
 import { querySingle } from '../test-utils.js';
 import { PriorYearReview } from './index.js';
 import type { PTOYearReviewResponse } from '../../api-types.js';
+import { seedPTOEntries } from '../../../scripts/seedData.js';
 
-// Mock data for 2025 based on seed data
-const mock2025Data: PTOYearReviewResponse = {
-    year: 2025,
-    months: [
-        {
-            month: 1,
-            ptoEntries: [
-                { date: "2025-01-15", type: "PTO", hours: 8 },
-                { date: "2025-01-17", type: "PTO", hours: 8 }
-            ],
-            summary: { totalDays: 31, ptoDays: 2, sickDays: 0, bereavementDays: 0, juryDutyDays: 0 }
-        },
-        {
-            month: 2,
-            ptoEntries: [
-                { date: "2025-02-12", type: "Sick", hours: 8 },
-                { date: "2025-02-14", type: "Sick", hours: 8 }
-            ],
-            summary: { totalDays: 28, ptoDays: 0, sickDays: 2, bereavementDays: 0, juryDutyDays: 0 }
-        },
-        {
-            month: 3,
-            ptoEntries: [
-                { date: "2025-03-05", type: "PTO", hours: 8 },
-                { date: "2025-03-07", type: "PTO", hours: 8 }
-            ],
-            summary: { totalDays: 31, ptoDays: 2, sickDays: 0, bereavementDays: 0, juryDutyDays: 0 }
-        },
-        {
-            month: 4,
-            ptoEntries: [
-                { date: "2025-04-02", type: "Bereavement", hours: 8 }
-            ],
-            summary: { totalDays: 30, ptoDays: 0, sickDays: 0, bereavementDays: 1, juryDutyDays: 0 }
-        },
-        {
-            month: 5,
-            ptoEntries: [
-                { date: "2025-05-21", type: "PTO", hours: 8 },
-                { date: "2025-05-23", type: "PTO", hours: 8 }
-            ],
-            summary: { totalDays: 31, ptoDays: 2, sickDays: 0, bereavementDays: 0, juryDutyDays: 0 }
-        },
-        {
-            month: 6,
-            ptoEntries: [
-                { date: "2025-06-11", type: "PTO", hours: 4 }
-            ],
-            summary: { totalDays: 30, ptoDays: 1, sickDays: 0, bereavementDays: 0, juryDutyDays: 0 }
-        },
-        {
-            month: 7,
-            ptoEntries: [
-                { date: "2025-07-04", type: "PTO", hours: 8 }
-            ],
-            summary: { totalDays: 31, ptoDays: 1, sickDays: 0, bereavementDays: 0, juryDutyDays: 0 }
-        },
-        {
-            month: 8,
-            ptoEntries: [
-                { date: "2025-08-15", type: "PTO", hours: 8 }
-            ],
-            summary: { totalDays: 31, ptoDays: 1, sickDays: 0, bereavementDays: 0, juryDutyDays: 0 }
-        },
-        {
-            month: 9,
-            ptoEntries: [
-                { date: "2025-09-03", type: "Sick", hours: 8 }
-            ],
-            summary: { totalDays: 30, ptoDays: 0, sickDays: 1, bereavementDays: 0, juryDutyDays: 0 }
-        },
-        {
-            month: 10,
-            ptoEntries: [
-                { date: "2025-10-09", type: "PTO", hours: 8 },
-                { date: "2025-10-11", type: "PTO", hours: 8 }
-            ],
-            summary: { totalDays: 31, ptoDays: 2, sickDays: 0, bereavementDays: 0, juryDutyDays: 0 }
-        },
-        {
-            month: 11,
-            ptoEntries: [
-                { date: "2025-11-26", type: "PTO", hours: 8 }
-            ],
-            summary: { totalDays: 30, ptoDays: 1, sickDays: 0, bereavementDays: 0, juryDutyDays: 0 }
-        },
-        {
-            month: 12,
-            ptoEntries: [
-                { date: "2025-12-24", type: "PTO", hours: 8 },
-                { date: "2025-12-26", type: "PTO", hours: 8 }
-            ],
-            summary: { totalDays: 31, ptoDays: 2, sickDays: 0, bereavementDays: 0, juryDutyDays: 0 }
-        }
-    ]
-};
+// Transform seed data into test format
+function createMockDataFromSeed(year: number): PTOYearReviewResponse {
+    // Filter entries for the specified year and employee 1 (John Doe)
+    const yearEntries = seedPTOEntries.filter(entry =>
+        entry.employee_id === 1 && entry.date.startsWith(`${year}-`)
+    );
 
-// Mock data map - only include years with data
+    const months: PTOYearReviewResponse['months'] = [];
+
+    for (let month = 1; month <= 12; month++) {
+        const monthEntries = yearEntries.filter(entry => {
+            const entryMonth = parseInt(entry.date.split('-')[1]);
+            return entryMonth === month;
+        });
+
+        // Calculate summary counts
+        const summary = {
+            totalDays: new Date(year, month, 0).getDate(), // Days in month
+            ptoHours: monthEntries.filter(e => e.type === 'PTO').reduce((sum, e) => sum + e.hours, 0),
+            sickHours: monthEntries.filter(e => e.type === 'Sick').reduce((sum, e) => sum + e.hours, 0),
+            bereavementHours: monthEntries.filter(e => e.type === 'Bereavement').reduce((sum, e) => sum + e.hours, 0),
+            juryDutyHours: monthEntries.filter(e => e.type === 'Jury Duty').reduce((sum, e) => sum + e.hours, 0)
+        };
+
+        months.push({
+            month,
+            ptoEntries: monthEntries.map(({ date, type, hours }) => ({ date, type, hours })),
+            summary
+        });
+    }
+
+    return { year, months };
+}
+
+// Create mock data from seed data
+const mock2025Data = createMockDataFromSeed(2025);
+const mock2026Data = createMockDataFromSeed(2026);
+
+// Mock data map - include years with data
 const mockDataMap: Record<number, PTOYearReviewResponse> = {
-    2025: mock2025Data
+    2025: mock2025Data,
+    2026: mock2026Data
 };
 
 export function playground() {
@@ -116,7 +59,7 @@ export function playground() {
     yearSelectorContainer.innerHTML = `
         <label for="external-year-select" style="font-weight: 600;">Select Year:</label>
         <select id="external-year-select" style="margin-left: 8px; padding: 4px 8px;">
-            ${Object.keys(mockDataMap).map(year => `<option value="${year}">${year}</option>`).join('')}
+            ${Object.keys(mockDataMap).sort().reverse().map(year => `<option value="${year}">${year}</option>`).join('')}
         </select>
     `;
 
@@ -131,7 +74,7 @@ export function playground() {
     };
 
     // Initial load
-    const initialYear = 2025;
+    const initialYear = 2026;
     updateComponent(initialYear);
     (document.getElementById('external-year-select') as HTMLSelectElement).value = initialYear.toString();
 

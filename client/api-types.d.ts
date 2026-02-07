@@ -188,10 +188,10 @@ export interface PTOYearReviewResponse {
         }[];
         summary: {
             totalDays: number;
-            ptoDays: number;
-            sickDays: number;
-            bereavementDays: number;
-            juryDutyDays: number;
+            ptoHours: number;
+            sickHours: number;
+            bereavementHours: number;
+            juryDutyHours: number;
         };
     }[];
 }

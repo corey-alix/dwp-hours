@@ -7,6 +7,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 import { seedEmployees, seedPTOEntries } from "./seedData.js";
+import { validateHours, validateWeekday, validatePTOType, validateDateString } from "../shared/businessRules.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -77,6 +78,32 @@ try {
     `);
 
     for (const entry of seedPTOEntries) {
+        // Validate entry using business rules
+        const dateErr = validateDateString(entry.date);
+        if (dateErr) {
+            console.error(`Skipping invalid PTO entry (invalid date): ${JSON.stringify(entry)} - ${dateErr.messageKey}`);
+            continue;
+        }
+
+        const date = new Date(entry.date);
+        const weekdayErr = validateWeekday(date);
+        if (weekdayErr) {
+            console.error(`Skipping invalid PTO entry (not weekday): ${JSON.stringify(entry)} - ${weekdayErr.messageKey}`);
+            continue;
+        }
+
+        const hoursErr = validateHours(entry.hours);
+        if (hoursErr) {
+            console.error(`Skipping invalid PTO entry (invalid hours): ${JSON.stringify(entry)} - ${hoursErr.messageKey}`);
+            continue;
+        }
+
+        const typeErr = validatePTOType(entry.type);
+        if (typeErr) {
+            console.error(`Skipping invalid PTO entry (invalid type): ${JSON.stringify(entry)} - ${typeErr.messageKey}`);
+            continue;
+        }
+
         ptoStmt.run([
             entry.employee_id,
             entry.date,

@@ -1153,10 +1153,10 @@ initDatabase().then(async () => {
                 // Calculate summary for the month
                 const summary = {
                     totalDays: monthEnd.getDate(),
-                    ptoDays: monthEntries.filter(e => e.type === 'PTO').length,
-                    sickDays: monthEntries.filter(e => e.type === 'Sick').length,
-                    bereavementDays: monthEntries.filter(e => e.type === 'Bereavement').length,
-                    juryDutyDays: monthEntries.filter(e => e.type === 'Jury Duty').length
+                    ptoHours: monthEntries.filter(e => e.type === 'PTO').reduce((sum, e) => sum + e.hours, 0),
+                    sickHours: monthEntries.filter(e => e.type === 'Sick').reduce((sum, e) => sum + e.hours, 0),
+                    bereavementHours: monthEntries.filter(e => e.type === 'Bereavement').reduce((sum, e) => sum + e.hours, 0),
+                    juryDutyHours: monthEntries.filter(e => e.type === 'Jury Duty').reduce((sum, e) => sum + e.hours, 0)
                 };
 
                 months.push({

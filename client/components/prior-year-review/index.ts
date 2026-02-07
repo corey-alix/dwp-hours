@@ -41,15 +41,21 @@ export class PriorYearReview extends HTMLElement {
         const monthName = monthNames[monthData.month - 1];
         const year = this.data!.year;
 
-        // Create a simple calendar grid for the month
+        // Create a calendar grid that always shows 6 weeks (42 days) for consistent height
         const firstDay = new Date(year, monthData.month - 1, 1);
         const lastDay = new Date(year, monthData.month, 0);
+
+        // Start from the Sunday of the week containing the first day
         const startDate = new Date(firstDay);
         startDate.setDate(startDate.getDate() - firstDay.getDay());
 
+        // End on the Saturday 5 weeks after startDate to ensure 6 weeks total
+        const endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + 41); // 6 weeks * 7 days - 1
+
         const calendarDays: { date: Date; isCurrentMonth: boolean; entry?: { type: string; hours: number } }[] = [];
 
-        for (let d = new Date(startDate); d <= lastDay; d.setDate(d.getDate() + 1)) {
+        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
             const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             const entriesForDate = monthData.ptoEntries.filter(e => e.date === dateStr);
             const isCurrentMonth = d.getMonth() === monthData.month - 1;
@@ -92,10 +98,22 @@ export class PriorYearReview extends HTMLElement {
                     </div>
                 </div>
                 <div class="month-summary">
-                    <div class="summary-item">PTO: ${monthData.summary.ptoDays}</div>
-                    <div class="summary-item">Sick: ${monthData.summary.sickDays}</div>
-                    <div class="summary-item">Bereavement: ${monthData.summary.bereavementDays}</div>
-                    <div class="summary-item">Jury Duty: ${monthData.summary.juryDutyDays}</div>
+                    <div class="summary-item">
+                        <span class="summary-label">PTO:</span>
+                        <span class="summary-value ${monthData.summary.ptoHours > 0 ? 'summary-pto' : ''}">${monthData.summary.ptoHours}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Sick:</span>
+                        <span class="summary-value ${monthData.summary.sickHours > 0 ? 'summary-sick' : ''}">${monthData.summary.sickHours}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Bereavement:</span>
+                        <span class="summary-value ${monthData.summary.bereavementHours > 0 ? 'summary-bereavement' : ''}">${monthData.summary.bereavementHours}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Jury Duty:</span>
+                        <span class="summary-value ${monthData.summary.juryDutyHours > 0 ? 'summary-jury-duty' : ''}">${monthData.summary.juryDutyHours}</span>
+                    </div>
                 </div>
             </div>
         `;
@@ -116,9 +134,9 @@ export class PriorYearReview extends HTMLElement {
 
                 .months-grid {
                     display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
                     gap: 16px;
-                    max-width: 1200px;
+                    max-width: 1540px;
                 }
 
                 .month-card {
@@ -174,7 +192,7 @@ export class PriorYearReview extends HTMLElement {
                 }
 
                 .day.empty {
-                    background: transparent;
+                    opacity: 0;
                     border: none;
                 }
 
@@ -221,6 +239,34 @@ export class PriorYearReview extends HTMLElement {
 
                 .summary-item {
                     text-align: center;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                }
+
+                .summary-label {
+                    font-size: 10px;
+                    margin-bottom: 2px;
+                }
+
+                .summary-value {
+                    font-size: 12px;
+                    font-weight: 400;
+                }
+
+                /* Color consistency: summary values match calendar day colors */
+                .summary-pto { color: ${PTO_TYPE_COLORS.PTO}; }
+                .summary-sick { color: ${PTO_TYPE_COLORS.Sick}; }
+                .summary-bereavement { color: ${PTO_TYPE_COLORS.Bereavement}; }
+                .summary-jury-duty { color: ${PTO_TYPE_COLORS["Jury Duty"]}; }
+
+                /* Visual hierarchy: larger font for non-zero values */
+                .summary-pto,
+                .summary-sick,
+                .summary-bereavement,
+                .summary-jury-duty {
+                    font-size: 14px;
+                    font-weight: 600;
                 }
 
                 @media (max-width: 768px) {
