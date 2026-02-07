@@ -63,15 +63,15 @@ app.post('/api/auth/logout', (req, res) => {
 
 // Serve static files from client directory in development mode
 if (process.env.NODE_ENV !== 'production') {
-    app.use(express.static(path.join(__dirname, '..', 'client')));
+    app.use(express.static(path.join(process.cwd(), 'client')));
 }
 
 // Serve static files from public directory
-app.use(express.static(path.join(__dirname, '..', 'public')));
+app.use(express.static(path.join(process.cwd(), 'public')));
 
 // Database setup
-const DB_PATH = path.join(__dirname, "..", "db", "dwp-hours.db");
-const LOG_PATH = path.join(__dirname, "..", "logs", "app.log");
+const DB_PATH = path.join(process.cwd(), "db", "dwp-hours.db");
+const LOG_PATH = path.join(process.cwd(), "logs", "app.log");
 
 // Ensure logs directory exists
 const logsDir = path.dirname(LOG_PATH);
@@ -126,7 +126,7 @@ async function initDatabase() {
 
         // Read and execute schema
         log("Reading database schema...");
-        const schemaPath = path.join(__dirname, "..", "db", "schema.sql");
+        const schemaPath = path.join(process.cwd(), "db", "schema.sql");
         log(`Schema path: ${schemaPath} `);
         const schema = fs.readFileSync(schemaPath, "utf8");
         log("Schema file read successfully.");

@@ -63,3 +63,76 @@ test('index PTO form submission persists entry', async ({ page }) => {
     ));
     expect(matching).toBeTruthy();
 });
+
+test('index PTO calendar submission persists entry', async ({ page }) => {
+    test.setTimeout(15000);
+
+    const testDateStr = '2026-04-01';
+
+    await page.goto('http://localhost:3000');
+
+    await page.fill('#identifier', 'coreyalix@gmail.com');
+    await page.click('#login-form button[type="submit"]');
+
+    await page.waitForSelector('#login-message a', { timeout: 10000 });
+    const magicLink = page.locator('#login-message a');
+    await expect(magicLink).toHaveAttribute('href', /token=.+&ts=\d+/);
+    await magicLink.click();
+
+    await page.waitForSelector('#dashboard', { timeout: 10000 });
+    await expect(page.locator('#pto-status')).toBeVisible();
+
+    await page.click('#new-pto-btn');
+    await expect(page.locator('#main-content > #pto-form')).not.toHaveClass(/hidden/);
+
+    const form = page.locator('pto-entry-form');
+    await expect(form).toBeVisible();
+
+    // Set start date to ensure calendar initializes to correct month
+    const startDate = form.locator('#start-date');
+    await startDate.fill(testDateStr);
+    await startDate.blur();
+
+    // Toggle to calendar view
+    await form.locator('#calendar-toggle-btn').click();
+    const calendarView = form.locator('#calendar-view');
+    await expect(calendarView).not.toHaveClass(/hidden/);
+    const calendar = form.locator('pto-calendar');
+    await expect(calendar).toBeVisible();
+
+    // Select PTO type in legend
+    const legendItem = calendar.locator('.legend-item.clickable[data-type="PTO"]').first();
+    await legendItem.click();
+
+    // Select a specific day (April 1st, 2026)
+    const dayCell = calendar.locator('.day.clickable').filter({ hasText: '1' }).first();
+    await dayCell.click();
+
+    const [ptoResponse] = await Promise.all([
+        page.waitForResponse(
+            (response) => response.url().includes('/api/pto') && response.request().method() === 'POST',
+            { timeout: 5000 }
+        ),
+        form.locator('#submit-btn').click(),
+    ]);
+
+    expect(ptoResponse.status()).toBe(201);
+    const responseBody = await ptoResponse.json();
+    expect(responseBody).toHaveProperty('ptoEntry');
+    expect(responseBody.ptoEntry.date).toBe(testDateStr);
+    expect(responseBody.ptoEntry.type).toBe('PTO');
+    expect(responseBody.ptoEntry.hours).toBe(8);
+
+    await expect(page.locator('.notification-toast.success')).toBeVisible();
+
+    const entries = await page.evaluate(async () => {
+        const response = await fetch('/api/pto');
+        return response.json();
+    });
+
+    expect(Array.isArray(entries)).toBe(true);
+    const matching = entries.find((entry: { date: string; type: string; hours: number }) => (
+        entry.date === testDateStr && entry.type === 'PTO' && entry.hours === 8
+    ));
+    expect(matching).toBeTruthy();
+});

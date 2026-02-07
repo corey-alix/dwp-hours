@@ -73,14 +73,6 @@ test('pto-entry-form component test', async ({ page }) => {
     const calendar = page.locator('pto-entry-form').locator('pto-calendar');
     await expect(calendar).toBeVisible();
 
-    // Select PTO type and a weekday cell, then submit from common toolbar
-    const legendItem = calendar.locator('.legend-item.clickable[data-type="PTO"]').first();
-    await legendItem.click();
-    const dayCell = calendar.locator('.day.clickable').first();
-    await dayCell.click();
-    await page.locator('pto-entry-form').locator('#submit-btn').click();
-    await expect(testOutput).toContainText('Calendar submit');
-
     // Test cancel button
     await page.locator('pto-entry-form').locator('#cancel-btn').click();
     await expect(testOutput).toContainText('Form cancel');
