@@ -30,7 +30,7 @@ export const seedPTOEntries: SeedPtoEntry[] = [
 export const seedEmployees: SeedEmployee[] = [
     {
         name: "John Doe",
-        identifier: "coreyalix@gmail.com",
+        identifier: "john.doe@gmail.com",
         pto_rate: 0.71,
         carryover_hours: 40,
         hire_date: "2020-01-15",

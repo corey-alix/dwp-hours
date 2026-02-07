@@ -7,7 +7,7 @@ test.describe('Magic link POC', () => {
         await page.goto('http://localhost:3000/index.html');
         await expect(page.locator('#login-form')).toBeVisible();
 
-        await page.fill('#identifier', 'coreyalix@gmail.com');
+        await page.fill('#identifier', 'john.doe@gmail.com');
         await page.click('#login-form button[type="submit"]');
 
         const magicLink = page.locator('#login-message a');

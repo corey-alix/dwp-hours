@@ -21,6 +21,7 @@ type MigrationOptions = {
     backupDir: string;
     rollbackPath: string | null;
     rollbackLatest: boolean;
+    debugCells: string[] | null;
 };
 
 type PtoSpreadsheetEntry = {
@@ -47,7 +48,8 @@ const options: MigrationOptions = {
     backup: true,
     backupDir: path.join(__dirname, "..", "db", "backups"),
     rollbackPath: null,
-    rollbackLatest: false
+    rollbackLatest: false,
+    debugCells: null
 };
 
 for (let i = 0; i < args.length; i++) {
@@ -69,6 +71,14 @@ for (let i = 0; i < args.length; i++) {
     } else if (arg === "--legacy") {
         options.legacyPath = args[i + 1];
         i++;
+    } else if (arg === "--debug") {
+        const cellsArg = args[i + 1];
+        if (cellsArg) {
+            options.debugCells = cellsArg.split(/[,\s]+/).filter(cell => cell.trim());
+            i++;
+        } else {
+            options.debugCells = [];
+        }
     } else if (!arg.startsWith("--") && !options.legacyPath) {
         options.legacyPath = arg;
     }
@@ -97,6 +107,36 @@ try {
 
 function log(message: string): void {
     console.log(`[${new Date().toISOString()}] ${message}`);
+}
+
+async function debugCells(cells: string[]): Promise<void> {
+    if (!fs.existsSync(LEGACY_XLSX_PATH)) {
+        log(`Excel file not found at ${LEGACY_XLSX_PATH}`);
+        return;
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(LEGACY_XLSX_PATH);
+    const worksheet = workbook.worksheets[0]; // Assume first worksheet
+
+    const result: { [key: string]: any } = {};
+
+    for (const cellRef of cells) {
+        try {
+            const cell = worksheet.getCell(cellRef);
+            result[cellRef] = {
+                value: cell.value,
+                text: cell.text,
+                type: cell.type,
+                fill: cell.fill,
+                font: cell.font
+            };
+        } catch (error) {
+            result[cellRef] = { error: `Failed to read cell: ${error}` };
+        }
+    }
+
+    console.log(JSON.stringify(result, null, 2));
 }
 
 function resolveBackupPath(): string | null {
@@ -148,6 +188,16 @@ if (options.rollbackPath) {
     process.exit(0);
 }
 
+if (options.debugCells) {
+    debugCells(options.debugCells).then(() => {
+        process.exit(0);
+    }).catch((error) => {
+        log(`Debug failed: ${error}`);
+        process.exit(1);
+    });
+    process.exit(0); // Exit early for debug mode
+}
+
 function parseTextSpreadsheet(): ParsedSpreadsheet {
     if (!fs.existsSync(LEGACY_TXT_PATH)) {
         throw new Error(`Text spreadsheet not found at ${LEGACY_TXT_PATH}`);
@@ -189,23 +239,24 @@ function parseTextSpreadsheet(): ParsedSpreadsheet {
         "December"
     ];
 
-    for (let i = ptoSectionIndex + 4; i < lines.length; i++) {
+    for (let i = ptoSectionIndex + 3; i < lines.length; i++) {
         const line = lines[i].trim();
         if (!line || line.includes("PTO CALCULATION SECTION")) continue;
 
-        const parts = line.split("\t").filter((p) => p.trim());
-        if (parts.length < 14) continue;
+        const parts = line.split("\t"); // Don't filter empty parts
+        if (parts.length < 23) continue; // Expect at least 23 parts
 
         const month = parts[0];
         if (!months.includes(month)) continue;
 
-        const workDays = parseFloat(parts[1]) || 0;
-        const dailyRate = parseFloat(parts[3]) || 0;
-        const availablePTO = parseFloat(parts[5]) || 0;
-        const carryover = parseFloat(parts[7]) || 0;
-        const subtotal = parseFloat(parts[9]) || 0;
-        const usedHours = parseFloat(parts[11]) || 0;
-        const totalAvailable = parseFloat(parts[13]) || 0;
+        // Parse the line - tab separated with consistent positions
+        const workDays = parseFloat(parts[2]) || 0;
+        const dailyRate = parseFloat(parts[4]) || 0;
+        const availablePTO = parseFloat(parts[8]) || 0;
+        const carryover = parseFloat(parts[10]) || 0;
+        const subtotal = parseFloat(parts[13]) || 0;
+        const usedHours = parseFloat(parts[17]) || 0;
+        const totalAvailable = parseFloat(parts[19]) || 0;
 
         ptoData.push({
             month,
@@ -228,25 +279,75 @@ function parseTextSpreadsheet(): ParsedSpreadsheet {
     };
 }
 
-async function migrateSpreadsheet(): Promise<void> {
-    let data: ParsedSpreadsheet;
-
-    if (fs.existsSync(LEGACY_XLSX_PATH)) {
-        log("Using Excel spreadsheet for migration");
-        // Excel parsing logic here (existing code)
-        const workbook = new ExcelJS.Workbook();
-        await workbook.xlsx.readFile(LEGACY_XLSX_PATH);
-        // ... rest of Excel logic
-        data = { employeeName: "Corey Alix", hireDate: "2023-02-13", ptoData: [] }; // Placeholder
-    } else if (fs.existsSync(LEGACY_TXT_PATH)) {
-        log("Using text spreadsheet for migration");
-        data = parseTextSpreadsheet();
-    } else {
-        log("Neither Excel nor text spreadsheet found.");
-        log("Please provide the path to the Excel file as an argument or ensure legacy.spreadsheet.txt exists");
-        process.exit(1);
+async function parseExcelSpreadsheet(): Promise<ParsedSpreadsheet> {
+    if (!fs.existsSync(LEGACY_XLSX_PATH)) {
+        throw new Error(`Excel file not found at ${LEGACY_XLSX_PATH}`);
     }
 
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(LEGACY_XLSX_PATH);
+    const worksheet = workbook.worksheets[0];
+
+    // Extract employee info from R2 (hire date)
+    const hireDateCell = worksheet.getCell('R2');
+    let hireDate = "2023-02-13"; // default
+    if (hireDateCell.value && typeof hireDateCell.value === 'string') {
+        const match = hireDateCell.value.match(/Hire Date:\s*(.+)/);
+        if (match) {
+            hireDate = match[1].trim();
+        }
+    }
+
+    // Parse PTO data from C42-C53 (months) and related columns
+    const ptoData: PtoSpreadsheetEntry[] = [];
+    const months = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ];
+
+    for (let i = 0; i < 12; i++) {
+        const row = 42 + i; // C42 to C53
+        const monthCell = worksheet.getCell(row, 3); // Column C
+        const month = monthCell.value?.toString() || months[i];
+
+        // Get PTO calculation data from columns D-W
+        const workDays = parseFloat(worksheet.getCell(row, 4).value?.toString() || '0') || 0; // D
+        const dailyRate = parseFloat(worksheet.getCell(row, 6).value?.toString() || '0') || 0; // F
+        const availablePTO = parseFloat(worksheet.getCell(row, 10).value?.toString() || '0') || 0; // J
+        const carryover = parseFloat(worksheet.getCell(row, 12).value?.toString() || '0') || 0; // L
+        const subtotal = parseFloat(worksheet.getCell(row, 15).value?.toString() || '0') || 0; // O
+        const usedHours = parseFloat(worksheet.getCell(row, 19).value?.toString() || '0') || 0; // S
+        const totalAvailable = parseFloat(worksheet.getCell(row, 23).value?.toString() || '0') || 0; // W
+
+        ptoData.push({
+            month,
+            workDays,
+            dailyRate,
+            availablePTO,
+            carryover,
+            subtotal,
+            usedHours,
+            totalAvailable
+        });
+    }
+
+    return {
+        employeeName: "Corey Alix",
+        hireDate,
+        ptoData
+    };
+}
+
+async function migrateSpreadsheet(): Promise<void> {
+    // Parse spreadsheet data - try Excel first, fall back to text
+    let data: ParsedSpreadsheet;
+    try {
+        data = await parseExcelSpreadsheet();
+        log("Successfully parsed Excel spreadsheet");
+    } catch (error) {
+        log(`Excel parsing failed: ${error}. Falling back to text spreadsheet.`);
+        data = parseTextSpreadsheet();
+    }
     const { employeeName, hireDate, ptoData } = data;
 
     log(`Migrating data for employee: ${employeeName}`);
@@ -268,13 +369,13 @@ async function migrateSpreadsheet(): Promise<void> {
         log("Dry-run: skipping backup creation.");
     }
 
-    // Insert employee
+    // Insert employee with specific email
     const employeeStmt = db.prepare(`
         INSERT OR REPLACE INTO employees (name, identifier, pto_rate, carryover_hours, hire_date, role, hash)
         VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
 
-    const identifier = employeeName.toString().toLowerCase().replace(/\s+/g, ".");
+    const identifier = "test-coreyalix@gmail.com"; // Use specific email as requested
     employeeStmt.run([
         employeeName,
         identifier,
@@ -288,7 +389,7 @@ async function migrateSpreadsheet(): Promise<void> {
     const employeeId = db.exec("SELECT last_insert_rowid()")?.[0]?.values?.[0]?.[0] as number;
     employeeStmt.free();
 
-    log(`Created employee with ID: ${employeeId}`);
+    log(`Created employee with ID: ${employeeId} and email: ${identifier}`);
 
     // Process PTO data
     const months = [
@@ -344,14 +445,13 @@ async function migrateSpreadsheet(): Promise<void> {
             const endDate = new Date(nextMonth.getTime() - 1);
 
             const ptoStmt = db.prepare(`
-                INSERT INTO pto_entries (employee_id, start_date, end_date, type, hours, created_at)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO pto_entries (employee_id, date, type, hours, created_at)
+                VALUES (?, ?, ?, ?, ?)
             `);
 
             ptoStmt.run([
                 employeeId,
                 monthDate.toISOString().split("T")[0],
-                endDate.toISOString().split("T")[0],
                 "PTO",
                 entry.usedHours,
                 new Date().toISOString()
@@ -378,8 +478,12 @@ async function migrateSpreadsheet(): Promise<void> {
     }
 }
 
+async function main(): Promise<void> {
+    await migrateSpreadsheet();
+}
+
 // Run migration
-migrateSpreadsheet().catch((error) => {
+main().catch((error) => {
     const message = error instanceof Error ? error.message : String(error);
     log(`Migration failed: ${message}`);
     process.exit(1);

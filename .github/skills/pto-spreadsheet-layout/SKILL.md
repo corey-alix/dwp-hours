@@ -59,7 +59,7 @@ This skill integrates with the data-migration task and provides foundational kno
 ### PTO Calculation Section
 - **Location**: Starts at row 39 (after "PTO CALCULATION SECTION" header)
 - **Data Structure**: Monthly breakdown with columns for work days, daily rate, accrued hours, carryover, used hours, and remaining balance
-- **Month Range**: May through April (12 months of PTO data)
+- **Month Range**: January through December (12 months of PTO data)
 - **Data Extraction**: Skip 2 header rows after section title, then parse monthly data rows
 
 ### Detailed PTO Calculation Data Section
@@ -73,7 +73,7 @@ This skill integrates with the data-migration task and provides foundational kno
   - **O-P (Subtotal PTO hours)**: Subtotal of accrued + carryover hours
   - **S-T (PTO hours per Month)**: PTO hours used/taken during the month
   - **V-W (Total Available PTO)**: Final available PTO balance after usage
-- **Data Pattern**: Each row represents one month (May through April)
+- **Data Pattern**: Each row represents one month (January through December)
 - **Calculation Logic**: Shows the detailed breakdown of PTO accrual, carryover, and usage calculations
 - **Relationship**: This detailed section corresponds to the summary data in the main PTO calculation section above
 

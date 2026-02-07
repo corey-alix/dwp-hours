@@ -45,7 +45,7 @@ test.describe('Employee Authentication & Workflow', () => {
         await page.goto('http://localhost:3000');
 
         // Fill out login form with test user email
-        await page.fill('#identifier', 'coreyalix@gmail.com');
+        await page.fill('#identifier', 'john.doe@gmail.com');
         await page.click('#login-form button[type="submit"]');
 
         // Wait for magic link to appear

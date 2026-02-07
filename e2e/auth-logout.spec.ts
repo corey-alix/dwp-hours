@@ -9,7 +9,7 @@ test.describe('Authentication Logout', () => {
         await expect(page.locator('#login-form')).toBeVisible();
 
         // Step 2: Login using email address
-        await page.fill('#identifier', 'coreyalix@gmail.com');
+        await page.fill('#identifier', 'john.doe@gmail.com');
         await page.click('#login-form button[type="submit"]');
 
         // Step 3: Get the magic link and redirect to it
