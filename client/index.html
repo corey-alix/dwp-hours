@@ -34,24 +34,7 @@
 
       <div id="pto-form" class="hidden">
         <h2>Submit Time Off</h2>
-        <form id="pto-entry-form">
-          <label for="start-date">Start Date:</label>
-          <input type="date" id="start-date" required />
-          <label for="end-date">End Date:</label>
-          <input type="date" id="end-date" required />
-          <label for="pto-type">Type:</label>
-          <select id="pto-type" required>
-            <option value="Sick">Sick</option>
-            <option value="Full PTO">Full PTO</option>
-            <option value="Partial PTO">Partial PTO</option>
-            <option value="Bereavement">Bereavement</option>
-            <option value="Jury Duty">Jury Duty</option>
-          </select>
-          <label for="hours">Hours:</label>
-          <input type="number" id="hours" step="0.5" required />
-          <button type="submit">Submit</button>
-          <button type="button" id="cancel-pto">Cancel</button>
-        </form>
+        <pto-entry-form id="pto-entry-form"></pto-entry-form>
       </div>
 
       <div id="admin-panel" class="hidden">

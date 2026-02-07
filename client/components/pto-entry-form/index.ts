@@ -9,7 +9,7 @@ import { querySingle } from '../test-utils';
 import { today, isWeekend, addDays, getWeekdaysBetween, calculateEndDateFromHours, parseDate } from '../../../shared/dateUtils.js';
 import { normalizePTOType, validateHours, validatePTOType, validateWeekday, VALIDATION_MESSAGES } from '../../../shared/businessRules.js';
 import type { MessageKey } from '../../../shared/businessRules.js';
-import type { CalendarEntry } from '../pto-calendar/index.js';
+import { PtoCalendar, type CalendarEntry } from '../pto-calendar/index.js';
 
 export class PtoEntryForm extends HTMLElement {
     private shadow: ShadowRoot;
@@ -205,23 +205,18 @@ export class PtoEntryForm extends HTMLElement {
 
     private ensureCalendarReady(): void {
         const calendarContainer = querySingle<HTMLDivElement>('#calendar-container', this.shadow);
-        let calendar = calendarContainer.querySelector('pto-calendar') as HTMLElement | null;
+        let calendar = calendarContainer.querySelector<PtoCalendar>('pto-calendar');
 
         if (!calendar) {
-            calendar = document.createElement('pto-calendar');
+            calendar = document.createElement('pto-calendar') as PtoCalendar;
             calendar.setAttribute('readonly', 'false');
-
-            const submitButton = document.createElement('button');
-            submitButton.type = 'button';
-            submitButton.textContent = 'Apply selection';
-            submitButton.className = 'btn btn-primary';
-            submitButton.slot = 'submit';
-            calendar.appendChild(submitButton);
 
             calendar.addEventListener('pto-request-submit', (event: Event) => {
                 const customEvent = event as CustomEvent<{ requests: CalendarEntry[] }>;
-                this.applyCalendarSelection(customEvent.detail.requests);
-                this.toggleCalendarView(false);
+                // For unified submission, dispatch the pto-submit event directly
+                this.dispatchEvent(new CustomEvent('pto-submit', {
+                    detail: { requests: customEvent.detail.requests }
+                }));
             });
 
             calendarContainer.appendChild(calendar);
@@ -235,42 +230,6 @@ export class PtoEntryForm extends HTMLElement {
         calendar.setAttribute('year', year.toString());
         calendar.setAttribute('selected-month', month.toString());
         calendar.setAttribute('pto-entries', '[]');
-    }
-
-    private applyCalendarSelection(requests: CalendarEntry[]): void {
-        if (!requests.length) {
-            return;
-        }
-
-        const startDateInput = querySingle<HTMLInputElement>('#start-date', this.shadow);
-        const endDateInput = querySingle<HTMLInputElement>('#end-date', this.shadow);
-        const hoursInput = querySingle<HTMLInputElement>('#hours', this.shadow);
-        const ptoTypeSelect = querySingle<HTMLSelectElement>('#pto-type', this.shadow);
-
-        const sorted = [...requests].sort((a, b) => a.date.localeCompare(b.date));
-        const startDate = sorted[0].date;
-        const endDate = sorted[sorted.length - 1].date;
-        const totalHours = sorted.reduce((sum, entry) => sum + entry.hours, 0);
-        const selectedType = sorted[0].type;
-
-        let nextType = selectedType;
-        if (selectedType === 'PTO') {
-            const allFullDays = sorted.every(entry => entry.hours === 8);
-            nextType = allFullDays ? 'Full PTO' : 'Partial PTO';
-        }
-
-        startDateInput.value = startDate;
-        endDateInput.value = endDate;
-        ptoTypeSelect.value = nextType;
-        this.updateEndDateMinConstraint();
-        this.updateFieldBehavior(nextType);
-
-        if (nextType === 'Full PTO') {
-            this.updateDaysFromDateRange();
-        } else {
-            hoursInput.value = totalHours.toString();
-            this.updateEndDateFromHours();
-        }
     }
 
     private updateWeekendWarning(input: HTMLInputElement): void {
@@ -521,7 +480,7 @@ export class PtoEntryForm extends HTMLElement {
             <div class="form-container">
                 <div class="form-header">
                     <h2>Submit Time Off</h2>
-                    <button type="button" class="calendar-toggle" id="calendar-toggle-btn" aria-label="Open calendar">
+                    <button type="button" class="calendar-toggle" id="calendar-toggle-btn" aria-label="Toggle calendar view">
                         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <path d="M7 2v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zm12 8H5v10h14V10zm0-2V6H5v2h14z" />
                         </svg>
@@ -596,24 +555,20 @@ export class PtoEntryForm extends HTMLElement {
                         <span class="error-message" id="hours-error"></span>
                         <div class="calculation-details" id="calculation-details" aria-live="polite"></div>
                     </div>
-
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" id="cancel-btn">
-                            Cancel
-                        </button>
-                        <button type="submit" class="btn btn-primary" id="submit-btn">
-                            Submit
-                        </button>
-                    </div>
                 </form>
                 </div>
 
                 <div class="calendar-view hidden" id="calendar-view">
-                    <div class="calendar-toolbar">
-                        <span class="calendar-title">Select dates</span>
-                        <button type="button" class="btn btn-secondary" id="calendar-back-btn">Back to form</button>
-                    </div>
                     <div id="calendar-container"></div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-btn">
+                        Cancel
+                    </button>
+                    <button type="button" class="btn btn-primary" id="submit-btn">
+                        Submit
+                    </button>
                 </div>
             </div>
         `;
@@ -622,9 +577,9 @@ export class PtoEntryForm extends HTMLElement {
     private setupEventListeners() {
         const form = querySingle<HTMLFormElement>('#pto-form', this.shadow);
         const cancelBtn = querySingle<HTMLButtonElement>('#cancel-btn', this.shadow);
+        const submitBtn = querySingle<HTMLButtonElement>('#submit-btn', this.shadow);
         const ptoTypeSelect = querySingle<HTMLSelectElement>('#pto-type', this.shadow);
         const calendarToggleBtn = querySingle<HTMLButtonElement>('#calendar-toggle-btn', this.shadow);
-        const calendarBackBtn = querySingle<HTMLButtonElement>('#calendar-back-btn', this.shadow);
 
         form?.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -637,12 +592,23 @@ export class PtoEntryForm extends HTMLElement {
             this.dispatchEvent(new CustomEvent('form-cancel'));
         });
 
-        calendarToggleBtn?.addEventListener('click', () => {
-            this.toggleCalendarView(true);
+        submitBtn?.addEventListener('click', () => {
+            const calendarView = querySingle<HTMLDivElement>('#calendar-view', this.shadow);
+            if (!calendarView.classList.contains('hidden')) {
+                // In calendar view, submit calendar selection
+                this.handleCalendarSubmit();
+            } else {
+                // In form view, submit form
+                if (this.validateForm()) {
+                    this.handleSubmit();
+                }
+            }
         });
 
-        calendarBackBtn?.addEventListener('click', () => {
-            this.toggleCalendarView(false);
+        calendarToggleBtn?.addEventListener('click', () => {
+            const calendarView = querySingle<HTMLDivElement>('#calendar-view', this.shadow);
+            const isShowingCalendar = !calendarView.classList.contains('hidden');
+            this.toggleCalendarView(!isShowingCalendar);
         });
 
         // PTO type change listener for dynamic field behavior
@@ -740,7 +706,7 @@ export class PtoEntryForm extends HTMLElement {
         if (!this.validateField(startDateInput)) isValid = false;
         if (!this.validateField(endDateInput)) isValid = false;
         if (!this.validateField(ptoTypeInput)) isValid = false;
-        
+
         // Only validate hours if it's not readonly
         if (!hoursInput.readOnly && !this.validateField(hoursInput)) isValid = false;
 
@@ -849,20 +815,30 @@ export class PtoEntryForm extends HTMLElement {
         }
     }
 
-    private handleSubmit() {
-        const form = querySingle<HTMLFormElement>('#pto-form', this.shadow);
-        const formData = new FormData(form);
+    private handleSubmit(): void {
+        const startDateInput = querySingle<HTMLInputElement>('#start-date', this.shadow);
+        const endDateInput = querySingle<HTMLInputElement>('#end-date', this.shadow);
+        const ptoTypeInput = querySingle<HTMLSelectElement>('#pto-type', this.shadow);
+        const hoursInput = querySingle<HTMLInputElement>('#hours', this.shadow);
 
-        const ptoRequest: PtoRequest = {
-            startDate: formData.get('startDate') as string,
-            endDate: formData.get('endDate') as string,
-            ptoType: formData.get('ptoType') as string,
-            hours: this.getHoursForSubmit(formData.get('ptoType') as string)
+        const ptoRequest = {
+            startDate: startDateInput.value,
+            endDate: endDateInput.value,
+            ptoType: ptoTypeInput.value,
+            hours: this.getHoursForSubmit(ptoTypeInput.value)
         };
 
         this.dispatchEvent(new CustomEvent('pto-submit', {
             detail: { ptoRequest }
         }));
+    }
+
+    private handleCalendarSubmit(): void {
+        const calendarContainer = querySingle<HTMLDivElement>('#calendar-container', this.shadow);
+        const calendar = calendarContainer.querySelector('pto-calendar') as PtoCalendar | null;
+        if (calendar && typeof calendar.submitRequest === 'function') {
+            calendar.submitRequest();
+        }
     }
 
     private getHoursForSubmit(ptoType: string): number {

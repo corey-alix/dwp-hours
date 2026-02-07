@@ -297,6 +297,7 @@ export class PtoCalendar extends HTMLElement {
                 .day.clickable {
                     cursor: pointer;
                     transition: all 0.2s ease;
+                    tabindex: 0;
                 }
 
                 .day.clickable:hover {
@@ -393,6 +394,7 @@ export class PtoCalendar extends HTMLElement {
                     padding: 4px 8px;
                     border-radius: 4px;
                     transition: all 0.2s ease;
+                    tabindex: 0;
                 }
 
                 .legend-item.clickable:hover {
@@ -438,7 +440,7 @@ export class PtoCalendar extends HTMLElement {
             });
         }
 
-        // Legend item clicks
+        // Legend item clicks and keyboard navigation
         const legendItems = this.shadow.querySelectorAll('.legend-item.clickable');
         legendItems.forEach(item => {
             item.addEventListener('click', (e) => {
@@ -449,9 +451,20 @@ export class PtoCalendar extends HTMLElement {
                     this.render();
                 }
             });
+            item.addEventListener('keydown', (e) => {
+                const keyboardEvent = e as KeyboardEvent;
+                if (keyboardEvent.key === 'Enter' || keyboardEvent.key === ' ') {
+                    e.preventDefault();
+                    const type = (e.currentTarget as HTMLElement).dataset.type;
+                    if (type) {
+                        this.selectedPtoType = this.selectedPtoType === type ? null : type;
+                        this.render();
+                    }
+                }
+            });
         });
 
-        // Calendar cell clicks
+        // Calendar cell clicks and keyboard navigation
         const calendarCells = this.shadow.querySelectorAll('.day.clickable');
         calendarCells.forEach(cell => {
             cell.addEventListener('click', (e) => {
@@ -498,6 +511,34 @@ export class PtoCalendar extends HTMLElement {
                         this.render();
                     }
                     // Empty cells without PTO type selected do nothing (no notification needed)
+                }
+            });
+            cell.addEventListener('keydown', (e) => {
+                const keyboardEvent = e as KeyboardEvent;
+                if (keyboardEvent.key === 'Enter' || keyboardEvent.key === ' ') {
+                    e.preventDefault();
+                    const date = (e.currentTarget as HTMLElement).dataset.date;
+                    if (date && this.selectedPtoType) {
+                        // Same logic as click
+                        if (this.selectedPtoType === 'Work Day') {
+                            const existingEntryIndex = this.ptoEntries.findIndex(entry => entry.date === date);
+                            if (existingEntryIndex >= 0) {
+                                this.ptoEntries.splice(existingEntryIndex, 1);
+                                this.setAttribute('pto-entries', JSON.stringify(this.ptoEntries));
+                            }
+                            this.selectedCells.delete(date);
+                            this.render();
+                        } else {
+                            if (this.selectedCells.has(date)) {
+                                this.selectedCells.delete(date);
+                            } else {
+                                const existingEntry = this.ptoEntries.find(entry => entry.date === date);
+                                const defaultHours = existingEntry ? existingEntry.hours : 8;
+                                this.selectedCells.set(date, defaultHours);
+                            }
+                            this.render();
+                        }
+                    }
                 }
             });
         });

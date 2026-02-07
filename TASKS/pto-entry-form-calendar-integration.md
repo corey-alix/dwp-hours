@@ -8,29 +8,14 @@ Enhance the PTO entry form component by improving the integration between form v
 
 ## Checklist
 
-### Phase 0: Employee Context Integration
-**Depends on: [authentication-middleware.md](../TASKS/authentication-middleware.md)**
-- [ ] Create authentication middleware function to verify auth_hash cookie and extract employee ID from database
-- [ ] Add middleware to all PTO endpoints (/api/pto/*) to require authentication
-- [ ] Update PTO POST endpoint to use authenticated employee ID instead of requiring employeeId in request body
-- [ ] Update PTO GET endpoints to use authenticated employee ID for filtering when no employeeId parameter provided
-- [ ] Update PTO PUT/DELETE endpoints to verify the authenticated user owns the PTO entry or has admin privileges
-- [ ] Update client-side PTO API calls to remove employeeId from request bodies (use authentication context)
-- [ ] Update PTO form component to receive current employee context from app.ts for client-side validation
-- [ ] Test that PTO submissions are correctly associated with logged-in employee across all endpoints
-- [ ] Verify authentication errors are properly handled (401 for missing/invalid auth_hash)
-- [ ] `npm run build` passes
-- [ ] `npm run lint` passes
-
 ### Phase 1: UI Integration and Defaults
-- [ ] Modify the calendar icon to toggle between form and calendar views instead of separate buttons
-- [ ] Implement a common toolbar for both views containing Submit and Cancel buttons
-- [ ] Ensure "Full PTO" is the default selection in calendar view
-- [ ] Update form reset and focus methods to work with the new toolbar structure
-- [ ] Add keyboard navigation for calendar in edit mode (tab through weekdays and legend items)
-- [ ] Manual testing: Verify toggling between views preserves form state
-- [ ] `npm run build` passes
-- [ ] `npm run lint` passes
+- [x] Modify the calendar icon to toggle between form and calendar views instead of separate buttons
+- [x] Implement a common toolbar for both views containing Submit and Cancel buttons
+- [x] Ensure "Full PTO" is the default selection in calendar view
+- [x] Update form reset and focus methods to work with the new toolbar structure
+- [x] Add keyboard navigation for calendar in edit mode (tab through weekdays and legend items)
+- [x] Manual testing: Verify toggling between views preserves form state
+- [x] `npm run test` passes
 
 ### Phase 2: Unified Submission Logic
 - [ ] Refactor submission to use the common Submit button for both views
@@ -38,8 +23,7 @@ Enhance the PTO entry form component by improving the integration between form v
 - [ ] Update event handling to dispatch pto-submit from the common toolbar
 - [ ] Manual testing: Submit PTO requests from both form and calendar views
 - [ ] Unit tests for submission logic pass
-- [ ] `npm run build` passes
-- [ ] `npm run lint` passes
+- [ ] `npm run test` passes
 
 ### Phase 3: Component E2E Testing
 - [ ] Update test.html E2E test to leverage test.ts playground functionality
@@ -47,24 +31,21 @@ Enhance the PTO entry form component by improving the integration between form v
 - [ ] Add automated checks for form toggling and submission events
 - [ ] Playwright tests for test.html pass
 - [ ] Manual testing: Observe logged submissions during test execution
-- [ ] `npm run build` passes
-- [ ] `npm run lint` passes
+- [ ] `npm run test` passes
 
 ### Phase 4: Application E2E Testing
 - [ ] Implement E2E tests for index.html to verify PTO submissions are accepted by the server
 - [ ] Add validation that submitted values are correctly written to the database
 - [ ] Playwright tests for index.html PTO submission flow pass
 - [ ] Manual testing: Verify end-to-end PTO request submission
-- [ ] `npm run build` passes
-- [ ] `npm run lint` passes
+- [ ] `npm run test` passes
 
 ### Phase 5: Documentation and Review
 - [ ] Update component README.md with new toolbar and view integration details
 - [ ] Add "Questions and Concerns" section to this task file
 - [ ] Code review of all changes
 - [ ] Final manual testing of complete feature
-- [ ] `npm run build` passes
-- [ ] `npm run lint` passes
+- [ ] `npm run test` passes
 
 ## Implementation Notes
 - Ensure calendar view defaults match form view defaults
@@ -81,5 +62,4 @@ Enhance the PTO entry form component by improving the integration between form v
 6. Resolved: Backward compatibility concerns removed as this is an MVP.
 7. Resolved: Authentication uses auth_hash cookie for server-side employee identification. Server implementation needs verification and potential updates. Current user context stored in localStorage initially. Add new phase for employee context integration.
 8. Resolved: Leverage and extend [businessRules.ts](../shared/businessRules.ts) for client-side validation. Update [copilot-instructions.md](../.github/copilot-instructions.md) to require all business rules come from shared module.
-9. Resolved: Default to "form" view for rapid single-day entries - no state synchronization needed between views.</content>
-<parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/TASKS/pto-entry-form-calendar-integration.md
+9. Resolved: Default to "form" view for rapid single-day entries - no state synchronization needed between views.

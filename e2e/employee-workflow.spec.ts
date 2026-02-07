@@ -2,15 +2,49 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Employee Authentication & Workflow', () => {
     test('should complete comprehensive PTO calendar request workflow', async ({ page }) => {
-        test.setTimeout(10000); // 20 seconds is enough to identify issues
+        test.setTimeout(10000);
 
-    // Use a fixed weekday date that won't conflict with seed data
-    const testDateStr = '2026-03-12'; // Thursday
+        page.on('console', (msg) => {
+            console.log(`[browser ${msg.type()}] ${msg.text()}`);
+        });
+        page.on('pageerror', (error) => {
+            console.log(`[pageerror] ${error.message}`);
+        });
+        page.on('requestfailed', (request) => {
+            if (request.url().includes('/api/pto')) {
+                const failure = request.failure();
+                console.log(
+                    `[requestfailed] ${request.method()} ${request.url()} :: ${failure?.errorText ?? 'unknown'}`
+                );
+            }
+        });
+        page.on('response', async (response) => {
+            if (response.url().includes('/api/pto')) {
+                const status = response.status();
+                const method = response.request().method();
+                const contentType = response.headers()['content-type'] ?? '';
+                let bodyPreview = '';
+                if (contentType.includes('application/json')) {
+                    try {
+                        const body = await response.json();
+                        bodyPreview = JSON.stringify(body);
+                    } catch (error) {
+                        bodyPreview = `json-parse-error:${(error as Error).message}`;
+                    }
+                }
+                console.log(
+                    `[response] ${method} ${status} ${response.url()}${bodyPreview ? ` :: ${bodyPreview}` : ''}`
+                );
+            }
+        });
 
-    // Navigate to the actual application
-    await page.goto('http://localhost:3000');
+        // Use a fixed weekday date that won't conflict with seed data
+        const testDateStr = '2026-03-12'; // Thursday
 
-    // Fill out login form with test user email
+        // Navigate to the actual application
+        await page.goto('http://localhost:3000');
+
+        // Fill out login form with test user email
         await page.fill('#identifier', 'coreyalix@gmail.com');
         await page.click('#login-form button[type="submit"]');
 
@@ -49,7 +83,7 @@ test.describe('Employee Authentication & Workflow', () => {
         await expect(page.locator('pto-calendar .day.selected')).toHaveCount(1);
 
         // Edit hours to 4 (default is 8)
-        const hoursInput = page.locator('pto-calendar .hours-input');
+        const hoursInput = page.locator('.hours-input');
         await expect(hoursInput).toBeVisible();
         await hoursInput.fill('4');
 
@@ -58,14 +92,15 @@ test.describe('Employee Authentication & Workflow', () => {
         await expect(submitButton).toBeVisible();
 
         // Wait for the API call to complete and capture the response
-        const ptoResponsePromise = page.waitForResponse(
-            (response) => response.url().includes('/api/pto') && response.request().method() === 'POST'
-        );
-
-        await submitButton.click();
+        const [ptoResponse] = await Promise.all([
+            page.waitForResponse(
+                (response) => response.url().includes('/api/pto') && response.request().method() === 'POST',
+                { timeout: 1000 }
+            ),
+            submitButton.click(),
+        ]);
 
         // Wait for the response and verify it
-        const ptoResponse = await ptoResponsePromise;
         expect(ptoResponse.status()).toBe(201);
         const responseBody = await ptoResponse.json();
 

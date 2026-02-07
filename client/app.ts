@@ -7,7 +7,7 @@ import { addDays, isWeekend } from '../shared/dateUtils.js';
 
 // Import components and test utilities
 import './components/index.js';
-import { AdminPanel, PtoAccrualCard, PtoBereavementCard, PtoEmployeeInfoCard, PtoJuryDutyCard, PtoSickCard, PtoSummaryCard } from './components/index.js';
+import { AdminPanel, PtoAccrualCard, PtoBereavementCard, PtoEmployeeInfoCard, PtoEntryForm, PtoJuryDutyCard, PtoSickCard, PtoSummaryCard } from './components/index.js';
 import type { CalendarEntry } from './components/pto-calendar/index.js';
 import { addEventListener, querySingle, createElement } from './components/test-utils.js';
 
@@ -178,11 +178,9 @@ class UIManager {
         addEventListener(loginForm, "submit", (e) => this.handleLogin(e));
 
         // PTO form
-        const ptoForm = querySingle<HTMLFormElement>("#pto-entry-form");
+        const ptoForm = querySingle<PtoEntryForm>("#pto-entry-form");
         addEventListener(ptoForm, "submit", (e) => this.handlePTO(e));
-
-        const cancelBtn = querySingle<HTMLButtonElement>("#cancel-pto");
-        addEventListener(cancelBtn, "click", () => this.showDashboard());
+        addEventListener(ptoForm, "pto-submit", (e: CustomEvent) => this.handlePtoRequestSubmit(e));
 
         // Logout
         const logoutBtn = querySingle<HTMLButtonElement>("#logout-btn");
@@ -271,42 +269,7 @@ class UIManager {
 
     private async handlePTO(e: Event): Promise<void> {
         e.preventDefault();
-
-        const startDateInput = querySingle<HTMLInputElement>("#start-date");
-        const endDateInput = querySingle<HTMLInputElement>("#end-date");
-        const typeSelect = querySingle<HTMLSelectElement>("#pto-type");
-        const hoursInput = querySingle<HTMLInputElement>("#hours");
-
-        const startDateStr = startDateInput.value;
-        const endDateStr = endDateInput.value;
-        const type = typeSelect.value;
-        const hours = parseFloat(hoursInput.value);
-
-        if (!startDateStr || !endDateStr || !type || isNaN(hours)) {
-            notifications.error('Please fill in all fields.');
-            return;
-        }
-
-        const requests: CalendarEntry[] = [];
-        let currentDateStr = startDateStr;
-        while (currentDateStr <= endDateStr) {
-            // Only add weekdays (Monday to Friday)
-            if (!isWeekend(currentDateStr)) {
-                requests.push({
-                    date: currentDateStr,
-                    type: type as any, // Assuming type matches
-                    hours
-                });
-            }
-            currentDateStr = addDays(currentDateStr, 1);
-        }
-
-        if (requests.length === 0) {
-            notifications.error('No valid dates selected (must be weekdays).');
-            return;
-        }
-
-        await this.handlePtoRequestSubmit(requests);
+        // Form submission is now handled by pto-submit event
     }
 
     private showLogin(): void {
@@ -401,6 +364,7 @@ class UIManager {
     }
 
     private async loadPTOStatus(): Promise<void> {
+        console.log('loadPTOStatus called, currentUser:', this.currentUser);
         if (!this.currentUser) return;
 
         try {
@@ -461,9 +425,9 @@ class UIManager {
             summaryContainer.appendChild(employeeInfoCard);
 
             // Handle PTO request submission
-            accrualCard.addEventListener('pto-request-submit', (e: any) => {
+            addEventListener(accrualCard, 'pto-request-submit', (e: CustomEvent) => {
                 e.stopPropagation();
-                this.handlePtoRequestSubmit(e.detail.requests);
+                this.handlePtoRequestSubmit(e);
             });
         } catch (error) {
             console.error("Failed to load PTO status:", error);
@@ -543,27 +507,38 @@ class UIManager {
         return days;
     }
 
-    private async handlePtoRequestSubmit(requests: CalendarEntry[]): Promise<void> {
-        if (!this.currentUser) {
-            notifications.error('You must be logged in to submit PTO requests.');
-            return;
+    private async handlePtoRequestSubmit(e: CustomEvent): Promise<void> {
+        if (e.detail.requests) {
+            // Calendar submission
+            await this.handlePtoRequestSubmitOld(e.detail.requests);
+        } else if (e.detail.ptoRequest) {
+            // Form submission - convert to requests format
+            const request = e.detail.ptoRequest;
+            const requests: CalendarEntry[] = [];
+            let currentDateStr = request.startDate;
+            while (currentDateStr <= request.endDate) {
+                if (!isWeekend(currentDateStr)) {
+                    requests.push({
+                        date: currentDateStr,
+                        type: request.ptoType === 'Full PTO' ? 'PTO' : request.ptoType,
+                        hours: request.hours
+                    });
+                }
+                currentDateStr = addDays(currentDateStr, 1);
+            }
+            if (requests.length === 0) {
+                notifications.error('No valid dates selected (must be weekdays).');
+                return;
+            }
+            await this.handlePtoRequestSubmitOld(requests);
         }
+    }
 
+    private async handlePtoRequestSubmitOld(requests: CalendarEntry[]): Promise<void> {
         try {
-            // Submit all requests to API (no need to include employeeId - auth provides it)
-            const requestsWithoutId = requests.map(request => ({
-                date: request.date,
-                type: request.type,
-                hours: request.hours
-            }));
-
-            await api.createPTOEntry({ requests: requestsWithoutId });
-
-            notifications.success(`Successfully submitted ${requests.length} PTO request(s)!`);
-
-            // Critical: Refresh all PTO data and re-render components
+            await api.createPTOEntry({ requests });
+            notifications.success('PTO request submitted successfully!');
             await this.refreshPTOData();
-
         } catch (error) {
             console.error('Error submitting PTO request:', error);
             notifications.error('Failed to submit PTO request. Please try again.');
@@ -648,9 +623,9 @@ class UIManager {
         summaryContainer.appendChild(employeeInfoCard);
 
         // Re-attach event listeners for the newly created components
-        accrualCard.addEventListener('pto-request-submit', (e: any) => {
+        addEventListener(accrualCard, 'pto-request-submit', (e: CustomEvent) => {
             e.stopPropagation();
-            this.handlePtoRequestSubmit(e.detail.requests);
+            this.handlePtoRequestSubmit(e);
         });
     }
 }
