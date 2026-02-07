@@ -69,6 +69,10 @@
         "lint:script": "tsc --noEmit --project tsconfig-scripts.json",
         "lint:script//": "type check script code",
         "lint:css": "stylelint 'client/**/*.css'",
+        "lint:markdown": "markdownlint .github TASKS",
+        "lint:markdown//": "lint markdown files in .github and TASKS folders",
+        "lint:links": "find .github TASKS -name '*.md' -exec npx markdown-link-check {} \\;",
+        "lint:links//": "check for broken links in markdown files",
         "format": "prettier --write ."
     },
     "keywords": [
@@ -115,6 +119,8 @@
         "supertest": "^7.2.2",
         "tsx": "^4.21.0",
         "typescript": "^5.9.3",
-        "vitest": "^4.0.18"
+        "vitest": "^4.0.18",
+        "markdownlint-cli": "^0.44.0",
+        "markdown-link-check": "^3.12.2"
     }
 }

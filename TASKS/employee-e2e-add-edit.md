@@ -52,5 +52,5 @@ Create an end-to-end Playwright test that adds a new employee and then edits tha
 
 ## Questions and Concerns
 1. Resolved: employee identifier is the employee email address (unique, verifiable); update validation accordingly.
-2. Resolved: E2E setup uses `/api/test/reload-database` with a seeded snapshot (see [scripts/seed.ts](scripts/seed.ts)).
+2. Resolved: E2E setup uses `/api/test/reload-database` with a seeded snapshot (see [scripts/seed.ts](../scripts/seed.ts)).
 3. Resolved: create/update returns success/failure only; UI re-fetches the employee list.

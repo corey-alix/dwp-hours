@@ -34,10 +34,10 @@ The implementation is divided into testable phases. Each phase builds on the pre
 - [x] Handle field conversion and calculations accordingly (days * 8 for internal storage, weekday count for "Full PTO")
 
 ### Phase 4: Validation and UI Enhancements
-- [x] Add input validation for hours/days using [businessRules.ts](shared/businessRules.ts) (4-hour increments, positive numbers, reasonable limits)
+- [x] Add input validation for hours/days using [businessRules.ts](../shared/businessRules.ts) (4-hour increments, positive numbers, reasonable limits)
 - [x] Implement progressive disclosure: show end date calculation breakdown
 - [x] Provide visual indication when spillover occurs (update end date immediately on input change)
-- [x] Add calendar icon to open [pto-calendar](client/components/pto-calendar) for date/type selection and hour entry
+- [x] Add calendar icon to open [pto-calendar](../client/components/pto-calendar) for date/type selection and hour entry
 
 ### Phase 5: Testing and Quality Assurance
 - [x] Write unit tests for date calculation logic and field conversions
@@ -151,21 +151,21 @@ private addCalendarIcon(): void {
 - **UI Feedback**: Provide visual indication when spillover occurs (e.g., update end date immediately on input change).
 - **Progressive Disclosure**: Display breakdown like "2 days + 4 hours = 20 hours total, ending Monday".
 - **Calendar Integration**: Add icon button that opens pto-calendar modal for visual date selection.
-- **Client Validation**: Use [businessRules.ts](shared/businessRules.ts) functions for all input validation on the client side.
-- **Temporal Library**: Consider addressing [issue-date-handling-regression.md](TASKS/issue-date-handling-regression.md) by introducing a temporal library for consistent date handling. Default dates should skip weekends (if today is weekend, use next business day).
+- **Client Validation**: Use [businessRules.ts](../shared/businessRules.ts) functions for all input validation on the client side.
+- **Temporal Library**: Consider addressing [issue-date-handling-regression.md](issue-date-handling-regression.md) by introducing a temporal library for consistent date handling. Default dates should skip weekends (if today is weekend, use next business day).
 
 ### Proposed Enhancements
 1. **Date Picker Integration**: Already implemented - using date pickers for start/end dates.
-2. **Progressive Disclosure**: Show end date calculation breakdown (e.g., "2 days + 4 hours = 20 hours total, ending Monday"). Ensure client-side validation uses [businessRules.ts](shared/businessRules.ts) for 4-hour increments.
+2. **Progressive Disclosure**: Show end date calculation breakdown (e.g., "2 days + 4 hours = 20 hours total, ending Monday"). Ensure client-side validation uses [businessRules.ts](../shared/businessRules.ts) for 4-hour increments.
 3. **Batch Entry**: Not implementing - corner case not concerned with.
-4. **Calendar View**: Add a small calendar icon that opens the [pto-calendar](client/components/pto-calendar) component to select dates, type, and allow hour entry.
+4. **Calendar View**: Add a small calendar icon that opens the [pto-calendar](../client/components/pto-calendar) component to select dates, type, and allow hour entry.
 
 ### Clarifying Questions (Answered)
 1. **Should holidays be considered non-workdays for spillover calculations? If so, how to handle holiday data?**  
    We do not recognize holidays; we instead issue additional PTO. No holidays in calculations.
 
 2. **What is the maximum allowed PTO hours/days per entry? Any business rules for limits?**  
-   Refer to [businessRules.ts](shared/businessRules.ts) for validation rules (e.g., hours must be 4 or 8, annual limits).
+   Refer to [businessRules.ts](../shared/businessRules.ts) for validation rules (e.g., hours must be 4 or 8, annual limits).
 
 3. **For "Full PTO" vs other types, are there different conversion rates or rules?**  
    No.
@@ -189,7 +189,7 @@ private addCalendarIcon(): void {
    0.5 is meaningless, default to 4 and change to 8 for "Full PTO", note it is disabling for "Full PTO" since the user will instead pick an end date.
 
 10. **Default Date Setting**  
-    This may be a good time to address [issue-date-handling-regression.md](TASKS/issue-date-handling-regression.md) and introduce a temporal library; make a note of that. Also note that the pickers should not allow for picking a Saturday or Sunday, so if TODAY is a weekend day, pick the next business day.
+    This may be a good time to address [issue-date-handling-regression.md](issue-date-handling-regression.md) and introduce a temporal library; make a note of that. Also note that the pickers should not allow for picking a Saturday or Sunday, so if TODAY is a weekend day, pick the next business day.
 
 11. **Field Readonly Implementation**  
     I do not know but probably 'readonly'.
