@@ -506,40 +506,56 @@ The application uses a secure magic link authentication system that eliminates t
 - **Cookie-Based**: Authentication state maintained via secure HTTP cookies
 - **No Passwords**: Eliminates password-related security risks
 
+### Authentication
+
+Most API endpoints require authentication. Authentication is handled via cookie-based sessions.
+
+#### Authentication Flow
+1. **Request Magic Link**: `POST /api/auth/request-link` with email identifier
+2. **Validate Token**: Click magic link to validate token via `GET /api/auth/validate?token=...&ts=...`
+3. **Session Created**: Server sets `auth_hash` cookie with session token
+4. **Authenticated Requests**: Include `auth_hash` cookie in subsequent API calls
+
+#### Authentication Requirements
+- **Public Endpoints**: `/api/auth/*`, `/api/health`, `/api/test/reload-database`
+- **Employee Endpoints**: Require authentication, operate on authenticated user's data
+- **Admin Endpoints**: Require authentication + admin role, can access all employee data
+
+#### Session Management
+- Sessions expire after 24 hours
+- Logout via `POST /api/auth/logout` clears the session cookie
+- All authenticated requests must include `credentials: 'include'` in client code
+
 ### API Endpoints
 
 **Note: The following endpoints are actually implemented in the current codebase. Previous documentation listed some endpoints that do not exist or have different paths.**
 
 ### PTO Management
-- `GET /api/pto`: Retrieve all PTO entries (admin) or filtered entries
-- `POST /api/pto`: Submit a new PTO entry by providing start date, total hours, and type (end date is automatically calculated based on workdays)
-- `PUT /api/pto/:id`: Update an existing PTO entry (admin only)
-- `DELETE /api/pto/:id`: Delete/cancel a PTO entry (admin only)
-- `GET /api/pto/status/:employeeId`: Get comprehensive PTO status summary including balances, accruals, and usage by type
+- `GET /api/pto/status` *(authenticated)*: Get comprehensive PTO status summary for authenticated user including balances, accruals, and usage by type
+- `GET /api/pto` *(authenticated)*: Retrieve PTO entries for authenticated user (admin can see all)
+- `POST /api/pto` *(authenticated)*: Submit a new PTO entry (admin can submit for others)
+- `PUT /api/pto/:id` *(authenticated)*: Update an existing PTO entry (admin only or own entries)
+- `DELETE /api/pto/:id` *(authenticated)*: Delete/cancel a PTO entry (admin only or own entries)
 
 ### Monthly Hours Tracking
-- `POST /api/hours`: Submit monthly hours worked for an employee
-- `GET /api/hours/:employeeId`: Retrieve monthly hours submissions for an employee
+- `POST /api/hours` *(authenticated)*: Submit monthly hours worked for authenticated user
+- `GET /api/hours` *(authenticated)*: Retrieve monthly hours submissions for authenticated user
 
 ### Monthly Summary
-- `GET /api/monthly-summary/:employeeId/:month`: Get monthly hours worked and PTO usage breakdown by category for acknowledgement review
+- `GET /api/monthly-summary/:month` *(authenticated)*: Get monthly hours worked and PTO usage breakdown by category for authenticated user
 
 ### Acknowledgement System
-- `POST /api/acknowledgements`: Submit monthly review acknowledgement of hours worked and PTO usage breakdown by category
-- `GET /api/acknowledgements/:employeeId`: Check acknowledgement status for an employee
-- `POST /api/admin-acknowledgements`: Submit admin review acknowledgement of employee's monthly hours and PTO usage breakdown by category (admin only)
-- `GET /api/admin-acknowledgements/:employeeId`: Retrieve admin acknowledgements for an employee (admin only)
+- `POST /api/acknowledgements` *(authenticated)*: Submit monthly review acknowledgement for authenticated user
+- `GET /api/acknowledgements` *(authenticated)*: Check acknowledgement status for authenticated user
+- `POST /api/admin-acknowledgements` *(admin)*: Submit admin review acknowledgement for any employee
+- `GET /api/admin-acknowledgements/:employeeId` *(admin)*: Retrieve admin acknowledgements for an employee
 
-### Employee Management (Admin Only)
-- `GET /api/employees`: List all employees with optional search/filtering
-- `GET /api/employees/:id`: Get detailed information for a specific employee
-- `PUT /api/employees/:id`: Update employee information (name, PTO rate, carryover, etc.)
-- `DELETE /api/employees/:id`: Remove an employee from the system
-
-**Missing from documentation but needed for full functionality:**
-- `POST /api/employees`: Add a new employee (currently missing)
-- `GET /api/employees/:id/pto-report`: Generate detailed PTO usage report (currently missing)
-- `GET /api/reminders/unacknowledged`: Get list of employees needing monthly reminders (currently missing)
+### Employee Management *(Admin Only)*
+- `GET /api/employees` *(admin)*: List all employees with optional search/filtering
+- `GET /api/employees/:id` *(admin)*: Get detailed information for a specific employee
+- `POST /api/employees` *(admin)*: Add a new employee
+- `PUT /api/employees/:id` *(admin)*: Update employee information (name, PTO rate, carryover, etc.)
+- `DELETE /api/employees/:id` *(admin)*: Remove an employee from the system
 
 ## TypeORM Entities
 
