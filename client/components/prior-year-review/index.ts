@@ -1,4 +1,3 @@
-import { APIClient } from '../../APIClient.js';
 import type { PTOYearReviewResponse } from '../../api-types.js';
 
 const monthNames = [
@@ -16,60 +15,27 @@ const PTO_TYPE_COLORS: Record<string, string> = {
 
 export class PriorYearReview extends HTMLElement {
     private shadow: ShadowRoot;
-    private api = new APIClient();
-    private year: number;
-    private data: PTOYearReviewResponse | null = null;
-    private loading = false;
-    private error: string | null = null;
+    private _data: PTOYearReviewResponse | null = null;
 
     constructor() {
         super();
         this.shadow = this.attachShadow({ mode: "open" });
-        this.year = new Date().getFullYear() - 1; // Default to previous year
+    }
+
+    get data(): PTOYearReviewResponse | null {
+        return this._data;
+    }
+
+    set data(value: PTOYearReviewResponse | null) {
+        this._data = value;
+        this.render();
     }
 
     connectedCallback() {
         this.render();
-        this.loadData();
     }
 
-    private async loadData(): Promise<void> {
-        this.loading = true;
-        this.error = null;
-        this.render();
 
-        try {
-            this.data = await this.api.getPTOYearReview(this.year);
-        } catch (error) {
-            console.error('Failed to load prior year review data:', error);
-            this.error = 'Failed to load data. Please try again.';
-        } finally {
-            this.loading = false;
-            this.render();
-        }
-    }
-
-    private setYear(year: number): void {
-        this.year = year;
-        this.loadData();
-    }
-
-    private renderYearSelector(): string {
-        const currentYear = new Date().getFullYear();
-        const years = [];
-        for (let y = currentYear - 1; y >= currentYear - 10; y--) {
-            years.push(y);
-        }
-
-        return `
-            <div class="year-selector">
-                <label for="year-select">Prior Year:</label>
-                <select id="year-select">
-                    ${years.map(y => `<option value="${y}" ${y === this.year ? 'selected' : ''}>${y}</option>`).join('')}
-                </select>
-            </div>
-        `;
-    }
 
     private renderMonth(monthData: PTOYearReviewResponse['months'][0]): string {
         const monthName = monthNames[monthData.month - 1];
@@ -140,41 +106,6 @@ export class PriorYearReview extends HTMLElement {
             <style>
                 .container {
                     padding: 16px;
-                }
-
-                .year-selector {
-                    margin-bottom: 16px;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                }
-
-                .year-selector label {
-                    font-weight: 600;
-                    color: var(--color-text);
-                }
-
-                .year-selector select {
-                    padding: 4px 8px;
-                    border: 1px solid var(--color-border);
-                    border-radius: 4px;
-                    background: var(--color-surface);
-                    color: var(--color-text);
-                }
-
-                .loading {
-                    text-align: center;
-                    padding: 32px;
-                    color: var(--color-text-secondary);
-                }
-
-                .error {
-                    text-align: center;
-                    padding: 32px;
-                    color: var(--color-error);
-                    background: var(--color-error-light);
-                    border-radius: 8px;
-                    margin: 16px 0;
                 }
 
                 .no-data {
@@ -300,21 +231,17 @@ export class PriorYearReview extends HTMLElement {
             </style>
 
             <div class="container">
-                ${this.renderYearSelector()}
-
-                ${this.loading ? `
-                    <div class="loading">Loading prior year data...</div>
-                ` : this.error ? `
-                    <div class="error">${this.error}</div>
-                ` : this.data ? (
+                ${this.data ? (
                 this.data.months.some(m => m.ptoEntries.length > 0) ? `
                         <div class="months-grid">
                             ${this.data.months.map(month => this.renderMonth(month)).join('')}
                         </div>
                     ` : `
-                        <div class="no-data">No data found for ${this.year}</div>
+                        <div class="no-data">No data available</div>
                     `
-            ) : ''}
+            ) : `
+                <div class="no-data">No data available</div>
+            `}
             </div>
         `;
 
@@ -322,13 +249,7 @@ export class PriorYearReview extends HTMLElement {
     }
 
     private attachEventListeners(): void {
-        const yearSelect = this.shadow.querySelector('#year-select') as HTMLSelectElement;
-        if (yearSelect) {
-            yearSelect.addEventListener('change', (e) => {
-                const target = e.target as HTMLSelectElement;
-                this.setYear(parseInt(target.value, 10));
-            });
-        }
+        // No event listeners needed for this component
     }
 }
 

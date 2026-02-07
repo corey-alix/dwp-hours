@@ -1,7 +1,7 @@
 # Prior Year Review
 
 ## Description
-Implement a prior year review feature that allows users to view PTO data from previous years. This should render all twelve months (January → December) in a grid layout for the prior year, showing PTO usage, accruals, and balances for historical review. The feature should be implemented as a dedicated web component integrated into the main dashboard.
+Implement a prior year review feature that allows users to view PTO data from previous years. This should render all twelve months (January → December) in a grid layout for the prior year, showing PTO usage, accruals, and balances for historical review. The feature should be implemented as a dedicated web component integrated into the main dashboard. The web component itself only renders the data for a given year; year selection is handled externally at the dashboard level.
 
 ## Priority
 🟡 Medium Priority
@@ -17,7 +17,6 @@ Implement a prior year review feature that allows users to view PTO data from pr
 - [x] **Phase 2: Create Prior Year Review Web Component**
   - [x] Create `prior-year-review` web component in client/components/
   - [x] Implement 12-month grid layout (January-December)
-  - [x] Add year selector dropdown (previous years only)
   - [x] Integrate with existing PTO calculation logic
   - [x] Style component to match existing dashboard theme
   - [x] Add loading states and error handling
@@ -48,8 +47,8 @@ Implement a prior year review feature that allows users to view PTO data from pr
 - Follow the same data patterns as current year dashboard
 - Consider caching historical data to improve performance
 - Ensure the component works with the theming system
-- Year selector should default to previous year
-- Handle cases where user has no data for certain years
+- Year selection is managed externally at the dashboard level
+- Handle cases where user has no data for certain years by not allowing those years to be selected
 - Integrate with existing error handling and notification systems
 
 ## Phase 1 Implementation Insights
@@ -65,13 +64,13 @@ Implement a prior year review feature that allows users to view PTO data from pr
    **Decision**: Yes, it will look similar to the Corey Alix 2025.xlsx as described by SKILL.md and as can be discovered using migrate.ts with the --debug flag; color coding the dates and placing hours in the corners is enough. All 12 months go into a flex/grid so they flow responsively with a maximum of 3 months in a single row.
 
 2. How should we handle year selection - dropdown, buttons, or calendar picker?
-   **Decision**: "Prior Year" is enough for now
+   **Decision**: Year selection is handled externally at the dashboard level, not within the component itself.
 
 3. Should there be a limit on how far back users can view (e.g., last 5 years, 10 years)?
    **Decision**: 1 year
 
 4. How should the component handle users with no historical data?
-   **Decision**: "No data found"
+   **Decision**: Do not allow that year to be selected; do not even add it to the selection list.
 
 5. Should the prior year view be read-only, or allow any interactions (like viewing details)?
    **Decision**: Yes, prior year is readonly

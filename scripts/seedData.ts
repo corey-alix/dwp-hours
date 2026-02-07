@@ -16,14 +16,39 @@ export type SeedEmployee = {
 };
 
 export const seedPTOEntries: SeedPtoEntry[] = [
+    // 2025 data for John Doe (employee_id: 1)
+    { employee_id: 1, date: "2025-01-15", type: "PTO", hours: 8 },
+    { employee_id: 1, date: "2025-01-17", type: "PTO", hours: 8 },
+    { employee_id: 1, date: "2025-02-12", type: "Sick", hours: 8 },
+    { employee_id: 1, date: "2025-02-14", type: "Sick", hours: 8 },
+    { employee_id: 1, date: "2025-03-05", type: "PTO", hours: 8 },
+    { employee_id: 1, date: "2025-03-07", type: "PTO", hours: 8 },
+    { employee_id: 1, date: "2025-04-02", type: "Bereavement", hours: 8 },
+    { employee_id: 1, date: "2025-05-21", type: "PTO", hours: 8 },
+    { employee_id: 1, date: "2025-05-23", type: "PTO", hours: 8 },
+    { employee_id: 1, date: "2025-06-11", type: "PTO", hours: 4 },
+    { employee_id: 1, date: "2025-07-04", type: "PTO", hours: 8 },
+    { employee_id: 1, date: "2025-08-15", type: "PTO", hours: 8 },
+    { employee_id: 1, date: "2025-09-03", type: "Sick", hours: 8 },
+    { employee_id: 1, date: "2025-10-09", type: "PTO", hours: 8 },
+    { employee_id: 1, date: "2025-10-11", type: "PTO", hours: 8 },
+    { employee_id: 1, date: "2025-11-26", type: "PTO", hours: 8 },
+    { employee_id: 1, date: "2025-12-24", type: "PTO", hours: 8 },
+    { employee_id: 1, date: "2025-12-26", type: "PTO", hours: 8 },
+
+    // 2026 data for John Doe (employee_id: 1)
     { employee_id: 1, date: "2026-02-13", type: "Sick", hours: 8 },
     { employee_id: 1, date: "2026-02-15", type: "Sick", hours: 8 },
     { employee_id: 1, date: "2026-02-17", type: "Sick", hours: 8 },
     { employee_id: 1, date: "2026-02-21", type: "PTO", hours: 8 },
     { employee_id: 1, date: "2026-02-23", type: "PTO", hours: 8 },
     { employee_id: 1, date: "2026-02-25", type: "PTO", hours: 8 },
+
+    // 2026 data for Jane Smith (employee_id: 2)
     { employee_id: 2, date: "2026-01-15", type: "PTO", hours: 8 },
     { employee_id: 2, date: "2026-01-17", type: "PTO", hours: 8 },
+
+    // 2026 data for Admin User (employee_id: 3)
     { employee_id: 3, date: "2026-01-10", type: "PTO", hours: 8 }
 ];
 

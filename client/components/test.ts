@@ -15,6 +15,7 @@ import { playground as ptoSickCard } from './pto-sick-card/test.js';
 import { playground as ptoBereavementCard } from './pto-bereavement-card/test.js';
 import { playground as ptoJuryDutyCard } from './pto-jury-duty-card/test.js';
 import { playground as ptoEmployeeInfoCard } from './pto-employee-info-card/test.js';
+import { playground as priorYearReview } from './prior-year-review/test.js';
 
 // Export for module import
 export {
@@ -33,5 +34,6 @@ export {
     ptoSickCard,
     ptoBereavementCard,
     ptoJuryDutyCard,
-    ptoEmployeeInfoCard
+    ptoEmployeeInfoCard,
+    priorYearReview
 };

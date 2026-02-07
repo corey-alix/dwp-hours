@@ -4,36 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prior Year Review Component Test</title>
-    <link rel="stylesheet" href="/styles.css">
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; color: var(--color-text); background: var(--color-background); }
-        .test-controls { margin: 20px 0; padding: 10px; border: 1px solid var(--color-border); background: var(--color-surface); }
-        .test-controls button { margin: 5px; padding: 8px 16px; background: var(--color-primary); color: var(--color-on-primary); border: none; border-radius: 4px; }
-        .status { margin: 10px 0; padding: 10px; background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text); }
-    </style>
+    <link rel="stylesheet" href="../../styles.css" />
 </head>
 <body>
     <h1>Prior Year Review Component Test</h1>
+    <div id="test-output" style="display: block; padding: 10px; border: 1px solid var(--color-border); margin: 10px 0; background: var(--color-surface); color: var(--color-text);"></div>
 
-    <div class="instructions" style="margin: 20px 0; padding: 20px; background: var(--color-primary-light); border: 4px solid var(--color-primary); border-radius: 4px; color: var(--color-text);">
-        <h3>How to Test the Prior Year Review Component:</h3>
-        <ol>
-            <li>The component loads data for the previous year by default</li>
-            <li>Use the year selector to choose different prior years</li>
-            <li>Each month shows a mini calendar with colored PTO entries</li>
-            <li>Hours are displayed in the bottom-right corner of dated cells</li>
-            <li>Summary statistics are shown at the bottom of each month</li>
-            <li>The component handles loading states and errors gracefully</li>
-        </ol>
-    </div>
-
-    <div id="test-container"></div>
+    <prior-year-review id="prior-year-review"></prior-year-review>
 
     <script type="module">
-        import { playground } from './test.js';
-
-        const container = document.getElementById('test-container');
-        container.appendChild(playground());
+        import { priorYearReview } from "/app.js";
+        priorYearReview();
     </script>
 </body>
 </html>
