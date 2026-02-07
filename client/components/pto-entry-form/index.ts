@@ -6,7 +6,7 @@ interface PtoRequest {
 }
 
 import { querySingle } from '../test-utils';
-import { today, isWeekend, addDays, getWeekdaysBetween } from '../../../shared/dateUtils.js';
+import { today, isWeekend, addDays, getWeekdaysBetween, calculateEndDateFromHours } from '../../../shared/dateUtils.js';
 
 export class PtoEntryForm extends HTMLElement {
     private shadow: ShadowRoot;
@@ -75,6 +75,7 @@ export class PtoEntryForm extends HTMLElement {
             hoursInput.readOnly = false;
             hoursInput.value = '4'; // Default to 4 hours
             endDateInput.readOnly = true;
+            this.updateEndDateFromHours(); // Calculate end date from hours
         }
     }
 
@@ -93,6 +94,25 @@ export class PtoEntryForm extends HTMLElement {
             } catch (error) {
                 console.error('Error calculating weekdays:', error);
                 hoursInput.value = '0';
+            }
+        }
+    }
+
+    private updateEndDateFromHours(): void {
+        const startDateInput = querySingle<HTMLInputElement>('#start-date', this.shadow);
+        const endDateInput = querySingle<HTMLInputElement>('#end-date', this.shadow);
+        const hoursInput = querySingle<HTMLInputElement>('#hours', this.shadow);
+
+        const startDate = startDateInput.value;
+        const hoursValue = parseFloat(hoursInput.value);
+
+        if (startDate && !isNaN(hoursValue) && hoursValue > 0) {
+            try {
+                const endDate = calculateEndDateFromHours(startDate, hoursValue);
+                endDateInput.value = endDate;
+            } catch (error) {
+                console.error('Error calculating end date from hours:', error);
+                endDateInput.value = startDate;
             }
         }
     }
@@ -332,9 +352,8 @@ export class PtoEntryForm extends HTMLElement {
                             id="hours"
                             name="hours"
                             class="form-input"
-                            step="0.5"
-                            min="0.5"
-                            max="24"
+                            step="4"
+                            min="4"
                             required
                         >
                         <span class="error-message" id="hours-error"></span>
@@ -379,9 +398,19 @@ export class PtoEntryForm extends HTMLElement {
         const startDateInput = querySingle<HTMLInputElement>('#start-date', this.shadow);
         const endDateInput = querySingle<HTMLInputElement>('#end-date', this.shadow);
 
+        startDateInput?.addEventListener('input', () => {
+            this.validateField(startDateInput);
+        });
+
+        endDateInput?.addEventListener('input', () => {
+            this.validateField(endDateInput);
+        });
+
         startDateInput?.addEventListener('change', () => {
             if (ptoTypeSelect.value === 'Full PTO') {
                 this.updateDaysFromDateRange();
+            } else {
+                this.updateEndDateFromHours();
             }
             // Update end date min constraint
             this.updateEndDateMinConstraint();
@@ -390,6 +419,17 @@ export class PtoEntryForm extends HTMLElement {
         endDateInput?.addEventListener('change', () => {
             if (ptoTypeSelect.value === 'Full PTO') {
                 this.updateDaysFromDateRange();
+            }
+            if (endDateInput) {
+                this.validateField(endDateInput);
+            }
+        });
+
+        // Hours change listener for non-"Full PTO" types to calculate end date
+        const hoursInput = querySingle<HTMLInputElement>('#hours', this.shadow);
+        hoursInput?.addEventListener('input', () => {
+            if (ptoTypeSelect.value !== 'Full PTO') {
+                this.updateEndDateFromHours();
             }
         });
 
@@ -457,8 +497,8 @@ export class PtoEntryForm extends HTMLElement {
                 this.setFieldError(input, 'Please enter a valid number of hours');
                 return false;
             }
-            if (hours > 24) {
-                this.setFieldError(input, 'Hours cannot exceed 24 per day');
+            if (!Number.isInteger(hours) || hours % 4 !== 0) {
+                this.setFieldError(input, 'Hours must be in 4-hour increments');
                 return false;
             }
         }

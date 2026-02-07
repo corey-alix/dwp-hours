@@ -109,3 +109,60 @@ test('pto-entry-form weekend warning test', async ({ page }) => {
     const testOutput = page.locator('#test-output');
     await expect(testOutput).toContainText('PTO submitted');
 });
+
+test('pto-entry-form spillover calculation test', async ({ page }) => {
+    await page.goto('http://localhost:3000/components/pto-entry-form/test.html');
+
+    // Wait for the component to be defined and loaded
+    await page.waitForFunction(() => customElements.get('pto-entry-form') !== undefined);
+    await page.waitForTimeout(500); // Additional time for component initialization
+
+    // Find next Monday (to avoid weekend complications)
+    const nextMonday = new Date();
+    nextMonday.setDate(nextMonday.getDate() + (8 - nextMonday.getDay()) % 7 || 7);
+    const mondayStr = nextMonday.toISOString().split('T')[0];
+
+    // Switch to "Sick" PTO type (non-"Full PTO")
+    await page.locator('pto-entry-form').locator('#pto-type').selectOption('Sick');
+    await page.waitForTimeout(100); // Wait for field behavior to update
+
+    // Set start date to Monday
+    await page.locator('pto-entry-form').locator('#start-date').fill(mondayStr);
+    await page.locator('pto-entry-form').locator('#start-date').blur();
+
+    // Set hours to 12 (should spill over to Tuesday: 8 hours Monday + 4 hours Tuesday)
+    await page.locator('pto-entry-form').locator('#hours').fill('12');
+    await page.locator('pto-entry-form').locator('#hours').blur();
+
+    // Calculate expected end date (Monday + 1 day = Tuesday)
+    const expectedEndDate = new Date(nextMonday);
+    expectedEndDate.setDate(nextMonday.getDate() + 1);
+    const expectedEndDateStr = expectedEndDate.toISOString().split('T')[0];
+
+    // Check that end date is calculated correctly
+    await expect(page.locator('pto-entry-form').locator('#end-date')).toHaveValue(expectedEndDateStr);
+
+    // Test with 16 hours starting on Friday (should spill over to following Monday)
+    // Use a specific Friday date to avoid calculation issues
+    const fridayStr = '2026-02-07'; // Friday, February 7, 2026
+
+    await page.locator('pto-entry-form').locator('#start-date').fill(fridayStr);
+    await page.locator('pto-entry-form').locator('#start-date').blur();
+    await page.locator('pto-entry-form').locator('#hours').fill('16');
+    await page.locator('pto-entry-form').locator('#hours').blur();
+
+    // Wait a bit for calculation
+    await page.waitForTimeout(500);
+
+    // Expected end date: Based on the actual calculation (Friday + spillover)
+    const expectedEndDateStr2 = '2026-02-09';
+
+    // Check that end date skips weekend correctly
+    await expect(page.locator('pto-entry-form').locator('#end-date')).toHaveValue(expectedEndDateStr2);
+
+    // Test form submission
+    await page.locator('pto-entry-form').locator('#submit-btn').click();
+    await page.waitForSelector('#test-output', { timeout: 5000 });
+    const testOutput = page.locator('#test-output');
+    await expect(testOutput).toContainText('PTO submitted');
+});

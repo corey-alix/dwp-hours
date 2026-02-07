@@ -244,3 +244,39 @@ export function getWeekdaysBetween(startDateStr: string, endDateStr: string): nu
 
     return weekdays;
 }
+
+/**
+ * Calculate end date by adding hours with spillover logic (skip weekends)
+ * Assumes 8 hours per workday, spills over to next business day when exceeding 8 hours
+ * @param startDateStr - Start date in YYYY-MM-DD format
+ * @param hours - Total hours to add
+ * @returns End date in YYYY-MM-DD format
+ */
+export function calculateEndDateFromHours(startDateStr: string, hours: number): string {
+    if (!isValidDateString(startDateStr)) {
+        throw new Error('Invalid start date string format');
+    }
+
+    if (hours <= 0) {
+        return startDateStr;
+    }
+
+    let currentDateStr = startDateStr;
+    let remainingHours = hours;
+
+    while (remainingHours > 0) {
+        if (isWeekend(currentDateStr)) {
+            currentDateStr = addDays(currentDateStr, 1);
+            continue;
+        }
+
+        const hoursForDay = Math.min(remainingHours, 8);
+        remainingHours -= hoursForDay;
+
+        if (remainingHours > 0) {
+            currentDateStr = addDays(currentDateStr, 1);
+        }
+    }
+
+    return currentDateStr;
+}

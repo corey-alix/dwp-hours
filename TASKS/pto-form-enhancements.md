@@ -22,10 +22,10 @@ The implementation is divided into testable phases. Each phase builds on the pre
 - [x] Ensure End Date >= Start Date validation
 - [x] Update frontend TypeScript code in pto-entry-form component (basic structure with conditional logic)
 
-### Phase 2: Date Calculation and Spillover Logic
-- [ ] Implement spillover logic: when hours/days entered exceed 8 per day, spill over to next workday (skip weekends)
-- [ ] Ensure spillover calculation works for both hours and days (converted to hours internally)
-- [ ] Use utility function to calculate end date by adding hours/days while skipping weekends
+### Phase 2: Date Calculation and Spillover Logic ✅ COMPLETED
+- [x] Implement spillover logic: when hours/days entered exceed 8 per day, spill over to next workday (skip weekends)
+- [x] Ensure spillover calculation works for both hours and days (converted to hours internally)
+- [x] Use utility function to calculate end date by adding hours/days while skipping weekends
 
 ### Phase 3: Dynamic Field Behavior
 - [ ] Implement dynamic field behavior based on PTO type:
