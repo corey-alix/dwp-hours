@@ -124,5 +124,8 @@ Before marking any implementation complete:
 2. **Don't** skip input validation or error handling
 3. **Don't** use frameworks not approved in the tech stack
 4. **Don't** forget to update task checklists when completing items
-5. **Don't** implement authentication before database schema is complete</content>
+5. **Don't** implement authentication before database schema is complete
+
+## Documentation Conventions
+- Number items under any "Questions and Concerns" section in TASKS documents.</content>
 <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/.github/copilot-instructions.md
