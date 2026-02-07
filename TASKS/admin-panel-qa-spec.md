@@ -19,9 +19,9 @@ Create a focused QA specification for the Admin Panel component to verify view s
 - [x] Verify child events are re-dispatched with unchanged payloads (`add-employee`, `employee-edit`, `employee-delete`, `employee-acknowledge`)
 
 ### Stage 3: Interaction and Accessibility
-- [ ] Validate sidebar links are keyboard accessible and focus-visible
-- [ ] Confirm click targets inside nav links use correct `data-view`
-- [ ] Check contrast and hover states match theme tokens
+- [x] Validate sidebar links are keyboard accessible and focus-visible
+- [x] Confirm click targets inside nav links use correct `data-view`
+- [x] Check contrast and hover states match theme tokens
 
 ### Stage 4: Testing and Quality Gates
 - [ ] Run E2E test for admin panel component

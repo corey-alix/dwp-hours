@@ -95,6 +95,13 @@ export class AdminPanel extends HTMLElement {
                     border-left-color: var(--color-primary);
                 }
 
+                .nav-link:focus-visible {
+                    outline: 2px solid var(--color-primary);
+                    outline-offset: 2px;
+                    border-left-color: var(--color-primary);
+                    color: var(--color-text);
+                }
+
                 .nav-link.active {
                     background: var(--color-primary);
                     color: white;
@@ -245,7 +252,7 @@ export class AdminPanel extends HTMLElement {
         navLinks.forEach(link => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
-                const target = e.currentTarget as HTMLElement | null;
+                const target = (e.target as HTMLElement).closest('.nav-link') as HTMLElement | null;
                 const view = target?.getAttribute('data-view');
                 if (view) {
                     this.currentView = view;
