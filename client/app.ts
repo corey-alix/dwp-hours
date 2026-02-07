@@ -128,7 +128,7 @@ class UIManager {
         if (token && ts) {
             try {
                 const response = await api.validateAuth(token, ts) as ApiTypes.AuthValidateResponse;
-                this.setAuthCookie(response.publicHash);
+                this.setAuthCookie(response.authToken);
                 localStorage.setItem('currentUser', JSON.stringify(response.employee));
                 this.currentUser = response.employee as ApiTypes.Employee; // Cast to full Employee if needed, but actually it's partial
                 this.showDashboard();

@@ -300,8 +300,18 @@ initDatabase().then(async () => {
                 return res.status(401).json({ error: 'Invalid token' });
             }
 
-            // Return public hash (same as secret for simplicity)
-            res.json({ publicHash: validEmployee.hash, employee: { id: validEmployee.id, name: validEmployee.name, role: validEmployee.role } });
+            // Create session token: hash(employee_id + timestamp + salt) with 30-day expiration
+            const sessionTimestamp = Date.now();
+            const sessionToken = crypto.createHash('sha256')
+                .update(`${validEmployee.id}:${sessionTimestamp}:${process.env.HASH_SALT || 'default_salt'}`)
+                .digest('hex');
+
+            // Return session token and employee info
+            res.json({
+                authToken: sessionToken,
+                expiresAt: sessionTimestamp + (30 * 24 * 60 * 60 * 1000), // 30 days
+                employee: { id: validEmployee.id, name: validEmployee.name, role: validEmployee.role }
+            });
         } catch (error) {
             log(`Error validating token: ${error}`);
             res.status(500).json({ error: 'Internal server error' });
@@ -873,7 +883,7 @@ initDatabase().then(async () => {
 
             await employeeRepo.save(employee);
 
-            res.json({ 
+            res.json({
                 message: 'Employee updated successfully',
                 employee: {
                     id: employee.id,

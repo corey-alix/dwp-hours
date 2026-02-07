@@ -64,7 +64,8 @@ export interface AuthRequestLinkResponse {
 }
 
 export interface AuthValidateResponse {
-    publicHash: string;
+    authToken: string;
+    expiresAt: number;
     employee: {
         id: number;
         name: string;

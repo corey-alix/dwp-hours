@@ -62,7 +62,8 @@ export class TestWorkflow {
                 console.log('Mock API GET:', endpoint);
                 if (endpoint.startsWith('/api/auth/validate')) {
                     return {
-                        publicHash: 'mockhash123',
+                        authToken: 'mockauthtoken123',
+                        expiresAt: Date.now() + (30 * 24 * 60 * 60 * 1000),
                         employee: {
                             id: 1,
                             name: 'Test Employee',

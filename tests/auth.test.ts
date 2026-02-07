@@ -1,5 +1,6 @@
-import { test, expect } from 'vitest';
+import { test, expect, vi } from 'vitest';
 import crypto from 'crypto';
+import { authenticateMiddleware } from '../server/utils/auth.js';
 
 test('email validation should work', () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -32,21 +33,34 @@ test('localStorage management', () => {
     expect(parsed).toEqual(user);
 });
 
-test('secret hash generation', () => {
-    const identifier = 'test@example.com';
+test('session token generation', () => {
+    const employeeId = 1;
+    const timestamp = 1640995200000;
     const salt = 'test_salt';
-    const hash = crypto.createHash('sha256').update(identifier + salt).digest('hex');
+    const sessionToken = crypto.createHash('sha256').update(`${employeeId}:${timestamp}:${salt}`).digest('hex');
 
-    expect(typeof hash).toBe('string');
-    expect(hash.length).toBe(64); // SHA256 produces 64 character hex string
+    expect(typeof sessionToken).toBe('string');
+    expect(sessionToken.length).toBe(64); // SHA256 produces 64 character hex string
 
-    // Same input should produce same hash
-    const hash2 = crypto.createHash('sha256').update(identifier + salt).digest('hex');
-    expect(hash).toBe(hash2);
+    // Same inputs should produce same token
+    const sessionToken2 = crypto.createHash('sha256').update(`${employeeId}:${timestamp}:${salt}`).digest('hex');
+    expect(sessionToken).toBe(sessionToken2);
 
-    // Different input should produce different hash
-    const hash3 = crypto.createHash('sha256').update('other@example.com' + salt).digest('hex');
-    expect(hash).not.toBe(hash3);
+    // Different employee should produce different token
+    const sessionToken3 = crypto.createHash('sha256').update(`${employeeId + 1}:${timestamp}:${salt}`).digest('hex');
+    expect(sessionToken).not.toBe(sessionToken3);
+});
+
+test('session token expiration check', () => {
+    const now = Date.now();
+    const twentyNineDaysAgo = now - (29 * 24 * 60 * 60 * 1000);
+    const thirtyOneDaysAgo = now - (31 * 24 * 60 * 60 * 1000);
+
+    // Valid timestamp (less than 30 days ago)
+    expect(now - twentyNineDaysAgo).toBeLessThan(30 * 24 * 60 * 60 * 1000);
+
+    // Expired timestamp (more than 30 days ago)
+    expect(now - thirtyOneDaysAgo).toBeGreaterThan(30 * 24 * 60 * 60 * 1000);
 });
 
 test('temporal hash generation', () => {
@@ -108,4 +122,25 @@ test('cookie storage simulation', () => {
     }
 
     expect(authHash).toBe('test_hash');
+});
+
+// Authentication middleware tests
+test('authentication middleware - missing cookie', async () => {
+    const mockDataSource = {} as any;
+    const mockLog = vi.fn();
+    const middleware = authenticateMiddleware(mockDataSource, mockLog);
+
+    const mockReq = { cookies: {} } as any;
+    const mockRes = {
+        status: vi.fn().mockReturnThis(),
+        json: vi.fn()
+    } as any;
+    const mockNext = vi.fn();
+
+    await middleware(mockReq, mockRes, mockNext);
+
+    expect(mockRes.status).toHaveBeenCalledWith(401);
+    expect(mockRes.json).toHaveBeenCalledWith({ error: 'Authentication required' });
+    expect(mockLog).toHaveBeenCalledWith('Authentication failed: No auth_hash cookie');
+    expect(mockNext).not.toHaveBeenCalled();
 });

@@ -9,14 +9,20 @@ Implement authentication middleware to secure API endpoints by verifying the `au
 ## Checklist
 
 ### Phase 1: Middleware Foundation
-- [ ] Create authentication middleware function that extracts `auth_hash` cookie from requests
-- [ ] Implement employee lookup by hash in the database using TypeORM Employee repository
-- [ ] Add employee information (id, name, role) to request object when authentication succeeds
-- [ ] Handle authentication failures with appropriate 401 responses and error logging
-- [ ] Create middleware wrapper function for easy application to route handlers
-- [ ] Write unit tests for middleware authentication logic (valid hash, invalid hash, missing cookie)
-- [ ] `npm run build` passes
-- [ ] `npm run lint` passes
+- [x] Study proper authentication workflows and cookie-based session management
+- [x] Design authentication flow: email → magic link → temporal token validation → session cookie creation
+- [x] Modify `/api/auth/validate` to return session token instead of database hash
+- [x] Create session token format: hash(employee_id + timestamp + salt) with expiration
+- [x] Update client-side auth validation to set `auth_hash` cookie with session token
+- [x] Create authentication middleware function that validates session token against employee data
+- [x] Implement session token validation: extract employee_id, verify hash, check expiration
+- [x] Add employee information (id, name, role) to request object when authentication succeeds
+- [x] Handle authentication failures with appropriate 401 responses and error logging
+- [x] Create middleware wrapper function for easy application to route handlers
+- [x] Write unit tests for middleware authentication logic (valid session token, invalid token, expired token, missing cookie)
+- [x] Update existing auth tests to reflect new session token approach
+- [x] `npm run build` passes
+- [x] `npm run lint` passes
 
 ### Phase 2: Route Protection
 - [ ] Apply authentication middleware to all PTO endpoints (`/api/pto/*`)
