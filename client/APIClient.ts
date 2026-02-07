@@ -85,6 +85,10 @@ export class APIClient {
         return this.get('/employees');
     }
 
+    async createEmployee(employee: Omit<ApiTypes.Employee, 'id' | 'hash'>): Promise<ApiTypes.EmployeeCreateResponse> {
+        return this.post('/employees', employee);
+    }
+
     async getEmployee(id: number): Promise<ApiTypes.EmployeeResponse> {
         return this.get(`/employees/${id}`);
     }

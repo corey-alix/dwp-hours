@@ -155,6 +155,11 @@ export interface EmployeesResponse extends Array<{
 
 export interface EmployeeResponse extends Employee { }
 
+export interface EmployeeCreateResponse {
+    message: string;
+    employee: Employee;
+}
+
 export interface EmployeeUpdateResponse {
     message: string;
     employee: Employee;

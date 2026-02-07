@@ -18,12 +18,12 @@ Create an end-to-end Playwright test that adds a new employee and then edits tha
 - [x] Run `npm run test` to ensure no regressions
 
 ### Stage 2: Admin Panel Integration (Manual UI Test)
-- [ ] Wire `employee-form` events into admin panel handlers for create and update
-- [ ] Refresh employee list after create/update to reflect changes
-- [ ] Implement UI feedback for successful add/edit (list update or status message)
-- [ ] Handle `form-cancel` to close/reset the form in admin panel
-- [ ] Manual testing of add/edit flow via admin panel UI
-- [ ] Run `npm run test` to ensure no regressions
+- [x] Wire `employee-form` events into admin panel handlers for create and update
+- [x] Refresh employee list after create/update to reflect changes
+- [x] Implement UI feedback for successful add/edit (list update or status message)
+- [x] Handle `form-cancel` to close/reset the form in admin panel
+- [x] Manual testing of add/edit flow via admin panel UI
+- [x] Run `npm run test` to ensure no regressions
 
 ### Stage 3: API Readiness (API Test)
 - [ ] Confirm create/update responses return success/failure only

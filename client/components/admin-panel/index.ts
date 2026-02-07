@@ -1,11 +1,24 @@
-export class AdminPanel extends HTMLElement {
-    private shadow: ShadowRoot;
-    private _currentView = 'pto-requests';
+import { APIClient } from '../../APIClient.js';
+import type * as ApiTypes from '../../api-types.js';
 
-    constructor() {
-        super();
-        this.shadow = this.attachShadow({ mode: 'open' });
-    }
+interface Employee {
+    id: number;
+    name: string;
+    identifier: string;
+    ptoRate: number;
+    carryoverHours: number;
+    hireDate: string;
+    role: string;
+    hash?: string;
+}
+
+export class AdminPanel extends HTMLElement {
+    private shadow!: ShadowRoot;
+    private _currentView = 'pto-requests';
+    private _employees: Employee[] = [];
+    private _showEmployeeForm = false;
+    private _editingEmployee: Employee | null = null;
+    private api = new APIClient();
 
     static get observedAttributes() {
         return ['current-view'];
@@ -20,6 +33,9 @@ export class AdminPanel extends HTMLElement {
     attributeChangedCallback(name: string, oldValue: string, newValue: string) {
         if (oldValue !== newValue && name === 'current-view') {
             this._currentView = newValue;
+            if (newValue === 'employees') {
+                this.loadEmployees();
+            }
             this.render();
             this.setupEventListeners();
             this.setupChildEventListeners();
@@ -204,7 +220,10 @@ export class AdminPanel extends HTMLElement {
     private renderCurrentView(): string {
         switch (this._currentView) {
             case 'employees':
-                return '<employee-list></employee-list>';
+                const employeeForm = this._showEmployeeForm ? 
+                    `<employee-form employee='${JSON.stringify(this._editingEmployee)}' is-edit='${!!this._editingEmployee}'></employee-form>` : 
+                    '';
+                return `<employee-list></employee-list>${employeeForm}`;
             case 'pto-requests':
                 return '<pto-request-queue></pto-request-queue>';
             case 'reports':
@@ -228,16 +247,22 @@ export class AdminPanel extends HTMLElement {
     private setupChildEventListeners() {
         // Handle events from child components
         this.shadow.addEventListener('add-employee', () => {
-            this.dispatchEvent(new CustomEvent('add-employee', { bubbles: true, composed: true }));
+            this.showEmployeeForm();
         });
 
         this.shadow.addEventListener('employee-edit', ((e: Event) => {
-            this.dispatchEvent(new CustomEvent('employee-edit', {
-                detail: (e as CustomEvent).detail,
-                bubbles: true,
-                composed: true
-            }));
+            const employeeId = (e as CustomEvent).detail.employeeId;
+            this.showEmployeeForm(employeeId);
         }) as EventListener);
+
+        this.shadow.addEventListener('employee-submit', ((e: Event) => {
+            const { employee, isEdit } = (e as CustomEvent).detail;
+            this.handleEmployeeSubmit(employee, isEdit);
+        }) as EventListener);
+
+        this.shadow.addEventListener('form-cancel', () => {
+            this.hideEmployeeForm();
+        });
 
         this.shadow.addEventListener('employee-delete', ((e: Event) => {
             this.dispatchEvent(new CustomEvent('employee-delete', {
@@ -271,6 +296,73 @@ export class AdminPanel extends HTMLElement {
                 }
             });
         });
+    }
+
+    private async loadEmployees() {
+        try {
+            const response = await this.api.getEmployees();
+            this._employees = response.map((emp: any) => ({
+                id: emp.id,
+                name: emp.name,
+                identifier: emp.identifier,
+                ptoRate: 0.71, // Default, could be fetched from server
+                carryoverHours: 0, // Default, could be fetched from server
+                hireDate: emp.hire_date,
+                role: emp.role,
+                hash: '' // Not needed for display
+            }));
+            this.render();
+            this.setupChildEventListeners();
+        } catch (error) {
+            console.error('Failed to load employees:', error);
+            // Could show error message to user
+        }
+    }
+
+    private showEmployeeForm(employeeId?: number) {
+        if (employeeId) {
+            this._editingEmployee = this._employees.find(emp => emp.id === employeeId) || null;
+        } else {
+            this._editingEmployee = null;
+        }
+        this._showEmployeeForm = true;
+        this.render();
+        this.setupChildEventListeners();
+    }
+
+    private hideEmployeeForm() {
+        this._showEmployeeForm = false;
+        this._editingEmployee = null;
+        this.render();
+        this.setupChildEventListeners();
+    }
+
+    private async handleEmployeeSubmit(employee: Employee, isEdit: boolean) {
+        try {
+            if (isEdit) {
+                await this.api.updateEmployee(employee.id!, {
+                    name: employee.name,
+                    identifier: employee.identifier,
+                    ptoRate: employee.ptoRate,
+                    carryoverHours: employee.carryoverHours,
+                    role: employee.role
+                });
+            } else {
+                await this.api.createEmployee({
+                    name: employee.name,
+                    identifier: employee.identifier,
+                    ptoRate: employee.ptoRate,
+                    carryoverHours: employee.carryoverHours,
+                    hireDate: new Date().toISOString().split('T')[0], // Today's date as default
+                    role: employee.role
+                });
+            }
+            this.hideEmployeeForm();
+            await this.loadEmployees(); // Refresh the list
+        } catch (error) {
+            console.error('Failed to save employee:', error);
+            // Could show error message to user
+        }
     }
 }
 
