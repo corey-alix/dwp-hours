@@ -17,7 +17,8 @@ import {
     endOfMonth,
     getDaysInMonth,
     dateToString,
-    getWeekdaysBetween
+    getWeekdaysBetween,
+    calculateEndDateFromHours
 } from '../shared/dateUtils.js';
 
 describe('Date Utils', () => {
@@ -301,6 +302,25 @@ describe('Date Utils', () => {
         it('should handle invalid date strings', () => {
             expect(() => getWeekdaysBetween('invalid', '2026-02-10')).toThrow();
             expect(() => getWeekdaysBetween('2026-02-10', 'invalid')).toThrow();
+        });
+    });
+
+    describe('calculateEndDateFromHours', () => {
+        it('should return start date for zero hours', () => {
+            expect(calculateEndDateFromHours('2026-02-02', 0)).toBe('2026-02-02');
+        });
+
+        it('should stay on same day for up to 8 hours', () => {
+            expect(calculateEndDateFromHours('2026-02-02', 4)).toBe('2026-02-02');
+            expect(calculateEndDateFromHours('2026-02-02', 8)).toBe('2026-02-02');
+        });
+
+        it('should spill over to next weekday', () => {
+            expect(calculateEndDateFromHours('2026-02-02', 12)).toBe('2026-02-03');
+        });
+
+        it('should skip weekends when spilling', () => {
+            expect(calculateEndDateFromHours('2026-02-06', 16)).toBe('2026-02-09');
         });
     });
 });

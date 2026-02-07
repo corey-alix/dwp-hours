@@ -34,20 +34,20 @@ The implementation is divided into testable phases. Each phase builds on the pre
 - [x] Handle field conversion and calculations accordingly (days * 8 for internal storage, weekday count for "Full PTO")
 
 ### Phase 4: Validation and UI Enhancements
-- [ ] Add input validation for hours/days using [businessRules.ts](shared/businessRules.ts) (4-hour increments, positive numbers, reasonable limits)
-- [ ] Implement progressive disclosure: show end date calculation breakdown
-- [ ] Provide visual indication when spillover occurs (update end date immediately on input change)
-- [ ] Add calendar icon to open [pto-calendar](client/components/pto-calendar) for date/type selection and hour entry
+- [x] Add input validation for hours/days using [businessRules.ts](shared/businessRules.ts) (4-hour increments, positive numbers, reasonable limits)
+- [x] Implement progressive disclosure: show end date calculation breakdown
+- [x] Provide visual indication when spillover occurs (update end date immediately on input change)
+- [x] Add calendar icon to open [pto-calendar](client/components/pto-calendar) for date/type selection and hour entry
 
 ### Phase 5: Testing and Quality Assurance
-- [ ] Write unit tests for date calculation logic and field conversions
-- [ ] Add E2E tests for form behavior and spillover scenarios
-- [ ] Manual testing: verify spillover on Friday (e.g., 16 hours → Monday), type switching, readonly end date
-- [ ] Code review and linting passes
-- [ ] Build passes without errors
+- [x] Write unit tests for date calculation logic and field conversions
+- [x] Add E2E tests for form behavior and spillover scenarios
+- [x] Manual testing: verify spillover on Friday (e.g., 16 hours → Monday), type switching, readonly end date
+- [x] Code review and linting passes
+- [x] Build passes without errors
 
 ### Phase 6: Documentation and Finalization
-- [ ] Update component documentation and usage examples
+- [x] Update component documentation and usage examples
 
 ## Implementation Details
 
