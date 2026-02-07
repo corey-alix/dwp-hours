@@ -1,5 +1,6 @@
 import { querySingle } from '../test-utils.js';
 import { PtoAccrualCard } from './index.js';
+import { parseDate, today } from '../../../shared/dateUtils.js';
 
 // API response data
 const ptoStatus = {
@@ -210,7 +211,7 @@ export function playground() {
     // Process ptoEntries to get monthlyUsage
     const monthlyUsageMap: Record<string, number> = {};
     ptoEntries.forEach(entry => {
-        const month = new Date(entry.date).getMonth() + 1; // 1-based
+        const month = parseDate(entry.date).month;
         const monthStr = month.toString();
         if (!monthlyUsageMap[monthStr]) monthlyUsageMap[monthStr] = 0;
         monthlyUsageMap[monthStr] += entry.hours;
@@ -228,7 +229,7 @@ export function playground() {
         date: entry.date,
         type: entry.type as "PTO" | "Sick" | "Bereavement" | "Jury Duty",
         hours: entry.hours,
-        createdAt: new Date().toISOString()
+        createdAt: today()
     }));
 
     card.ptoEntries = fullPtoEntries;

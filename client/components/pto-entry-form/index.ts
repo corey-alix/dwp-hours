@@ -6,7 +6,7 @@ interface PtoRequest {
 }
 
 import { querySingle } from '../test-utils';
-import { today, isWeekend, addDays, getWeekdaysBetween, calculateEndDateFromHours, parseDate } from '../../../shared/dateUtils.js';
+import { today, isWeekend, addDays, getWeekdaysBetween, calculateEndDateFromHours, parseDate, compareDates } from '../../../shared/dateUtils.js';
 import { normalizePTOType, validateHours, validatePTOType, validateWeekday, VALIDATION_MESSAGES } from '../../../shared/businessRules.js';
 import type { MessageKey } from '../../../shared/businessRules.js';
 import { PtoCalendar, type CalendarEntry } from '../pto-calendar/index.js';
@@ -713,9 +713,7 @@ export class PtoEntryForm extends HTMLElement {
 
         // Cross-field validation: end date should be after start date
         if (isValid && startDateInput.value && endDateInput.value) {
-            const startDate = new Date(startDateInput.value);
-            const endDate = new Date(endDateInput.value);
-            if (endDate < startDate) {
+            if (compareDates(endDateInput.value, startDateInput.value) < 0) {
                 this.setFieldError(endDateInput, 'End date must be after start date');
                 isValid = false;
             }

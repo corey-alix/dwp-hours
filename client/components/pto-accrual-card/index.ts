@@ -1,6 +1,7 @@
 import { PtoSectionCard, monthNames } from "../utils/pto-card-base.js";
 import { PtoCalendar, CalendarEntry } from "../pto-calendar/index.js";
 import { getWorkDays, getTotalWorkDaysInYear, getAllocationRate } from "../../../server/workDays.js";
+import { getCurrentYear, today, parseDate } from '../../../shared/dateUtils.js';
 
 type CalendarData = Record<number, Record<number, { type: string; hours: number }>>;
 
@@ -28,7 +29,7 @@ export class PtoAccrualCard extends PtoSectionCard {
     private usage: UsageData[] = [];
     private _ptoEntries: PTOEntry[] = [];
     private selectedMonth: number | null = null;
-    private year: number = new Date().getFullYear();
+    private year: number = getCurrentYear();
     private _requestMode: boolean = false;
     private _annualAllocation: number = 96; // Default 96 hours annual PTO
 
@@ -102,9 +103,7 @@ export class PtoAccrualCard extends PtoSectionCard {
         const usageByMonth = new Map(this.usage.map((entry) => [entry.month, entry.hours]));
 
         // Generate rows for all 12 months
-        const currentDate = new Date();
-        const currentMonth = currentDate.getMonth() + 1; // 1-based
-        const currentYear = currentDate.getFullYear();
+        const { month: currentMonth, year: currentYear } = parseDate(today());
 
         // Calculate PTO rate for projected accruals
         const totalWorkDaysInYear = getTotalWorkDaysInYear(this.year);

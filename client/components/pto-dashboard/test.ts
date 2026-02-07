@@ -1,5 +1,6 @@
 import { querySingle } from '../test-utils.js';
 import { PtoAccrualCard, PtoBereavementCard, PtoEmployeeInfoCard, PtoJuryDutyCard, PtoSickCard, PtoSummaryCard } from './index.js';
+import { today } from '../../../shared/dateUtils.js';
 
 // API response data
 const ptoStatus = {
@@ -223,7 +224,7 @@ const fullPtoEntries = ptoEntries.map((entry, index) => ({
     date: entry.date,
     type: entry.type as "PTO" | "Sick" | "Bereavement" | "Jury Duty",
     hours: entry.hours,
-    createdAt: new Date().toISOString()
+    createdAt: today()
 }));
 
 // Filter entries by type

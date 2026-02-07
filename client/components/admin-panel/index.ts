@@ -1,5 +1,6 @@
 import { APIClient } from '../../APIClient.js';
 import type * as ApiTypes from '../../api-types.js';
+import { today } from '../../../shared/dateUtils.js';
 
 interface Employee {
     id: number;
@@ -225,8 +226,8 @@ export class AdminPanel extends HTMLElement {
     private renderCurrentView(): string {
         switch (this._currentView) {
             case 'employees':
-                const employeeForm = this._showEmployeeForm ? 
-                    `<employee-form employee='${JSON.stringify(this._editingEmployee)}' is-edit='${!!this._editingEmployee}'></employee-form>` : 
+                const employeeForm = this._showEmployeeForm ?
+                    `<employee-form employee='${JSON.stringify(this._editingEmployee)}' is-edit='${!!this._editingEmployee}'></employee-form>` :
                     '';
                 return `<employee-list employees='${JSON.stringify(this._employees)}'></employee-list>${employeeForm}`;
             case 'pto-requests':
@@ -358,7 +359,7 @@ export class AdminPanel extends HTMLElement {
                     identifier: employee.identifier,
                     ptoRate: employee.ptoRate,
                     carryoverHours: employee.carryoverHours,
-                    hireDate: new Date().toISOString().split('T')[0], // Today's date as default
+                    hireDate: today(), // Today's date as default
                     role: employee.role
                 });
             }

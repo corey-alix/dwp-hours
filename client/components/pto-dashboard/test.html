@@ -85,7 +85,7 @@
             console.log('Requests:', requests);
             const logElement = document.getElementById('submission-log');
 
-            const timestamp = new Date().toLocaleTimeString();
+            const timestamp = 'Test Time';
             const submissionText = `
 [${timestamp}] PTO Request Submitted:
 ${requests.map(req => `  - ${req.date}: ${req.hours} hours (${req.type})`).join('\n')}

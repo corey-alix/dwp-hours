@@ -2,6 +2,7 @@ import { querySingle } from '../test-utils.js';
 import { PriorYearReview } from './index.js';
 import type { PTOYearReviewResponse } from '../../api-types.js';
 import { seedPTOEntries } from '../../../scripts/seedData.js';
+import { getDaysInMonth } from '../../../shared/dateUtils.js';
 
 // Transform seed data into test format
 function createMockDataFromSeed(year: number): PTOYearReviewResponse {
@@ -20,7 +21,7 @@ function createMockDataFromSeed(year: number): PTOYearReviewResponse {
 
         // Calculate summary counts
         const summary = {
-            totalDays: new Date(year, month, 0).getDate(), // Days in month
+            totalDays: getDaysInMonth(year, month), // Days in month
             ptoHours: monthEntries.filter(e => e.type === 'PTO').reduce((sum, e) => sum + e.hours, 0),
             sickHours: monthEntries.filter(e => e.type === 'Sick').reduce((sum, e) => sum + e.hours, 0),
             bereavementHours: monthEntries.filter(e => e.type === 'Bereavement').reduce((sum, e) => sum + e.hours, 0),

@@ -1,3 +1,5 @@
+import { isValidDateString, formatDateForDisplay } from '../../../shared/dateUtils.js';
+
 export const monthNames = [
     "January",
     "February",
@@ -112,11 +114,9 @@ export class SimplePtoBucketCard extends PtoSectionCard {
 
         const rows = this.entries
             .map((entry: any) => {
-                const [year, month, day] = entry.date.split('-').map(Number);
-                const parsedDate = new Date(year, month - 1, day);
-                const label = Number.isNaN(parsedDate.getTime())
-                    ? entry.date
-                    : parsedDate.toLocaleDateString();
+                const label = isValidDateString(entry.date)
+                    ? formatDateForDisplay(entry.date)
+                    : entry.date;
                 return `<li><span>${label}</span><span>${entry.hours.toFixed(1)} hours</span></li>`;
             })
             .join("");

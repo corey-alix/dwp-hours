@@ -18,7 +18,7 @@ export function playground() {
             type: 'PTO',
             hours: 16,
             status: 'pending',
-            createdAt: '2024-02-01T10:00:00Z'
+            createdAt: '2024-02-01'
         },
         {
             id: 2,
@@ -29,7 +29,7 @@ export function playground() {
             type: 'Sick',
             hours: 8,
             status: 'pending',
-            createdAt: '2024-02-02T14:30:00Z'
+            createdAt: '2024-02-02'
         },
         {
             id: 3,
@@ -40,7 +40,7 @@ export function playground() {
             type: 'PTO',
             hours: 40,
             status: 'approved',
-            createdAt: '2024-02-01T09:15:00Z'
+            createdAt: '2024-02-01'
         }
     ];
 
