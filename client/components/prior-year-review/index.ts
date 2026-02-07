@@ -1,4 +1,5 @@
 import type { PTOYearReviewResponse } from '../../api-types.js';
+import { parseDate, addDays, getCalendarStartDate, isInMonth, compareDates } from '../../../shared/dateUtils.js';
 
 const monthNames = [
     "January", "February", "March", "April", "May", "June",
@@ -42,23 +43,15 @@ export class PriorYearReview extends HTMLElement {
         const year = this.data!.year;
 
         // Create a calendar grid that always shows 6 weeks (42 days) for consistent height
-        const firstDay = new Date(year, monthData.month - 1, 1);
-        const lastDay = new Date(year, monthData.month, 0);
+        const startDateStr = getCalendarStartDate(year, monthData.month);
+        const endDateStr = addDays(startDateStr, 41); // 6 weeks * 7 days - 1 = 41 days to add for 42 total days
 
-        // Start from the Sunday of the week containing the first day
-        const startDate = new Date(firstDay);
-        startDate.setDate(startDate.getDate() - firstDay.getDay());
+        const calendarDays: { dateStr: string; isCurrentMonth: boolean; entry?: { type: string; hours: number } }[] = [];
 
-        // End on the Saturday 5 weeks after startDate to ensure 6 weeks total
-        const endDate = new Date(startDate);
-        endDate.setDate(endDate.getDate() + 41); // 6 weeks * 7 days - 1
-
-        const calendarDays: { date: Date; isCurrentMonth: boolean; entry?: { type: string; hours: number } }[] = [];
-
-        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-            const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-            const entriesForDate = monthData.ptoEntries.filter(e => e.date === dateStr);
-            const isCurrentMonth = d.getMonth() === monthData.month - 1;
+        let currentDateStr = startDateStr;
+        while (compareDates(currentDateStr, endDateStr) <= 0) {
+            const entriesForDate = monthData.ptoEntries.filter(e => e.date === currentDateStr);
+            const isCurrentMonth = isInMonth(currentDateStr, year, monthData.month);
 
             let entry: { type: string; hours: number } | undefined;
             if (entriesForDate.length > 0) {
@@ -68,10 +61,11 @@ export class PriorYearReview extends HTMLElement {
             }
 
             calendarDays.push({
-                date: new Date(d),
+                dateStr: currentDateStr,
                 isCurrentMonth,
                 entry
             });
+            currentDateStr = addDays(currentDateStr, 1);
         }
 
         const weekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S']; // Short weekday names
@@ -84,13 +78,14 @@ export class PriorYearReview extends HTMLElement {
                         ${weekdays.map(day => `<div class="weekday">${day}</div>`).join('')}
                     </div>
                     <div class="calendar-grid">
-                        ${calendarDays.map(({ date, isCurrentMonth, entry }) => {
+                        ${calendarDays.map(({ dateStr, isCurrentMonth, entry }) => {
             const dayClass = entry ? `day type-${entry.type.replace(/\s+/g, '-')}` : 'day';
             const emptyClass = isCurrentMonth ? '' : 'empty';
             const hoursDisplay = entry ? entry.hours.toFixed(0) : '';
+            const dayNumber = parseDate(dateStr).day;
             return `
                                 <div class="${dayClass} ${emptyClass}">
-                                    <div class="date">${date.getDate()}</div>
+                                    <div class="date">${dayNumber}</div>
                                     ${hoursDisplay ? `<div class="hours">${hoursDisplay}</div>` : ''}
                                 </div>
                             `;
