@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS employees (
 CREATE TABLE IF NOT EXISTS pto_entries (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   employee_id INTEGER NOT NULL,
-  date DATE NOT NULL,  -- Changed from start_date/end_date
+  date TEXT NOT NULL,  -- Changed from start_date/end_date
   type TEXT NOT NULL CHECK (type IN ('Sick', 'PTO', 'Bereavement', 'Jury Duty')),
   hours REAL NOT NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,

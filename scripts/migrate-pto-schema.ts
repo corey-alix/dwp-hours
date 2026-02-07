@@ -53,7 +53,7 @@ async function migratePtoSchema(): Promise<void> {
             CREATE TABLE pto_entries_new (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 employee_id INTEGER NOT NULL,
-                date DATE NOT NULL,
+                date TEXT NOT NULL,
                 type TEXT NOT NULL CHECK (type IN ('Sick', 'PTO', 'Bereavement', 'Jury Duty')),
                 hours REAL NOT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
