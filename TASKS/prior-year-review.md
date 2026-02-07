@@ -52,6 +52,14 @@ Implement a prior year review feature that allows users to view PTO data from pr
 - Handle cases where user has no data for certain years
 - Integrate with existing error handling and notification systems
 
+## Phase 1 Implementation Insights
+- **API Response Structure**: The endpoint returns both detailed PTO entries per month and summary statistics, providing flexibility for frontend rendering (calendar view vs summary view)
+- **Data Aggregation**: Current implementation filters PTO entries in memory after database query; suitable for current data volumes but could be optimized with database-level aggregation if needed
+- **Year Validation**: Range validation (current year - 10 to current year - 1) prevents unreasonable requests while allowing reasonable historical access
+- **Type Safety**: Added comprehensive TypeScript interfaces ensuring type safety across API boundaries
+- **Testing**: Unit tests required updating the test route setup to include new endpoints, ensuring test infrastructure stays current
+- **Performance**: No caching implemented as requested; consider monitoring query performance as data grows
+
 ## Questions and Concerns
 1. Should the prior year review show the same detailed breakdown as the current year (calendar views, specific dates for sick/bereavement/jury duty)?
    **Decision**: Yes, it will look similar to the Corey Alix 2025.xlsx as described by SKILL.md and as can be discovered using migrate.ts with the --debug flag; color coding the dates and placing hours in the corners is enough. All 12 months go into a flex/grid so they flow responsively with a maximum of 3 months in a single row.

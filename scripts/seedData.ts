@@ -35,7 +35,7 @@ export const seedEmployees: SeedEmployee[] = [
         carryover_hours: 40,
         hire_date: "2020-01-15",
         role: "Employee",
-        hash: "test-hash-1"
+        hash: null
     },
     {
         name: "Jane Smith",
@@ -44,7 +44,7 @@ export const seedEmployees: SeedEmployee[] = [
         carryover_hours: 25,
         hire_date: "2021-06-01",
         role: "Employee",
-        hash: "test-hash-2"
+        hash: null
     },
     {
         name: "Admin User",
@@ -53,6 +53,6 @@ export const seedEmployees: SeedEmployee[] = [
         carryover_hours: 0,
         hire_date: "2019-03-10",
         role: "Admin",
-        hash: "admin-hash"
+        hash: null
     }
 ];

@@ -95,7 +95,7 @@ beforeEach(async () => {
 // Extract route setup logic (simplified version of server routes)
 function setupTestRoutes(app: express.Application, deps: { sendMagicLinkEmail: (to: string, magicLink: string) => Promise<unknown> }) {
     app.post('/api/auth/request-link', [
-        body('identifier').isEmail().normalizeEmail().withMessage('Valid email address required')
+        body('identifier').isEmail().withMessage('Valid email address required')
     ], async (req: Request, res: Response) => {
         try {
             const errors = validationResult(req);

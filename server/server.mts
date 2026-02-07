@@ -217,7 +217,7 @@ initDatabase().then(async () => {
 
     // Auth routes
     app.post('/api/auth/request-link', [
-        body('identifier').isEmail().normalizeEmail().withMessage('Valid email address required')
+        body('identifier').isEmail().withMessage('Valid email address required')
     ], async (req: Request, res: Response) => {
         try {
             const errors = validationResult(req);
