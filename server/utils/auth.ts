@@ -95,3 +95,25 @@ export async function validateSessionToken(token: string, dataSource: DataSource
 export function authenticate(dataSource: DataSource, log: (message: string) => void) {
     return authenticateMiddleware(dataSource, log);
 }
+
+/**
+ * Admin-only authentication middleware
+ * Usage: app.get('/admin-route', authenticateAdmin, handler)
+ */
+export function authenticateAdmin(dataSource: DataSource, log: (message: string) => void) {
+    return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        // First apply regular authentication
+        await authenticateMiddleware(dataSource, log)(req, res, (err?: any) => {
+            if (err || !req.employee) return;
+
+            // Check if user has admin role
+            if (req.employee.role !== 'Admin') {
+                log(`Admin access denied for user ${req.employee.id} with role ${req.employee.role}`);
+                res.status(403).json({ error: 'Admin privileges required' });
+                return;
+            }
+
+            next();
+        });
+    };
+}

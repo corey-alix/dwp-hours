@@ -25,14 +25,14 @@ Implement authentication middleware to secure API endpoints by verifying the `au
 - [x] `npm run lint` passes
 
 ### Phase 2: Route Protection
-- [ ] Apply authentication middleware to all PTO endpoints (`/api/pto/*`)
-- [ ] Apply authentication middleware to hours submission endpoints (`/api/hours`)
-- [ ] Apply authentication middleware to acknowledgement endpoints (`/api/acknowledgements`)
-- [ ] Update route handlers to use `req.employee` instead of extracting employeeId from request body
-- [ ] Implement role-based access control for admin-only operations (employee management, admin acknowledgements)
-- [ ] Test that unauthenticated requests return 401 status codes
-- [ ] `npm run build` passes
-- [ ] `npm run lint` passes
+- [x] Apply authentication middleware to all PTO endpoints (`/api/pto/*`)
+- [x] Apply authentication middleware to hours submission endpoints (`/api/hours`)
+- [x] Apply authentication middleware to acknowledgement endpoints (`/api/acknowledgements`)
+- [x] Update route handlers to use `req.employee` instead of extracting employeeId from request body
+- [x] Implement role-based access control for admin-only operations (employee management, admin acknowledgements)
+- [x] Test that unauthenticated requests return 401 status codes
+- [x] `npm run build` passes
+- [x] `npm run lint` passes
 
 ### Phase 3: Client-Side Integration
 - [ ] Update APIClient methods to remove `employeeId` parameters from request bodies for authenticated endpoints
