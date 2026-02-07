@@ -107,6 +107,11 @@ const input = querySingle<HTMLInputElement>('#input-id', ptoForm.shadowRoot);  /
 - Generate scripts in TypeScript with ESM modules (.mts extension), not plain JavaScript or CommonJS modules.
 - Use import/export syntax for ESM.
 
+### Business Rules
+- **Never implement business logic directly in client files** - all validation rules, calculations, and business constraints must be imported from `shared/businessRules.ts`
+- Client-side validation should leverage the shared business rules module for consistency with server-side validation
+- Extend `shared/businessRules.ts` as needed rather than duplicating logic in components
+
 ## Quality Gates
 
 Before marking any implementation complete:

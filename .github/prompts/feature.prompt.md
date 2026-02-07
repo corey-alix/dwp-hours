@@ -25,7 +25,7 @@ Generate a new specification document for implementing a feature in the DWP Hour
    - Documentation updates
    - Code quality gates (build, lint, manual testing)
    Use the Staged Action Plan skill ([.github/skills/staged-action-plan/SKILL.md](../skills/staged-action-plan/SKILL.md)) to break down the checklist into testable, incremental phases.
-4. **Structure**: Follow the standard task file format with sections for Description, Priority, Checklist, and Implementation Notes, as seen in existing files like [TASKS/database-schema.md](../../TASKS/database-schema.md).
+4. **Structure**: Follow the standard task file format with sections for Description, Priority, Checklist, Implementation Notes, and Questions and Concerns, as seen in existing files like [TASKS/database-schema.md](../../TASKS/database-schema.md). Add a "Questions and Concerns" section where I can provide additional feedback.
 
 ## Output Format
 
@@ -59,4 +59,9 @@ Implement user authentication system for the DWP Hours Tracker, allowing employe
 - Implement JWT tokens for session management
 - Ensure compatibility with existing employee data
 - Follow project's error handling patterns
+
+## Questions and Concerns
+1. 
+2. 
+3. 
 ```
