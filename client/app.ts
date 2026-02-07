@@ -158,7 +158,7 @@ class UIManager {
     }
 
     private setAuthCookie(hash: string): void {
-        document.cookie = `auth_hash=${hash}; path=/; max-age=31536000`; // 1 year
+        document.cookie = `auth_hash=${hash}; path=/; max-age=${10 * 365 * 24 * 60 * 60}`; // 10 years
     }
 
     private getAuthCookie(): string | null {

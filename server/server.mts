@@ -47,6 +47,12 @@ app.use(cors());
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
+// Logout endpoint (doesn't require database)
+app.post('/api/auth/logout', (req, res) => {
+    res.clearCookie('auth_hash', { path: '/' });
+    res.json({ success: true });
+});
+
 // Serve static files from client directory in development mode
 if (process.env.NODE_ENV !== 'production') {
     app.use(express.static(path.join(__dirname, '..', 'client')));
