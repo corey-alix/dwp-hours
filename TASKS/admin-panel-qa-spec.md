@@ -8,9 +8,9 @@ Create a focused QA specification for the Admin Panel component to verify view s
 
 ## Checklist
 ### Stage 1: View State and Layout
-- [ ] Verify `current-view` attribute updates the active nav state and header title
-- [ ] Confirm `currentView` property setter triggers render and nav state updates
-- [ ] Validate Settings view placeholder renders as expected
+- [x] Verify `current-view` attribute updates the active nav state and header title
+- [x] Confirm `currentView` property setter triggers render and nav state updates
+- [x] Validate Settings view placeholder renders as expected
 
 ### Stage 2: Child Component Wiring
 - [ ] Confirm `<employee-list>` renders under Employees view

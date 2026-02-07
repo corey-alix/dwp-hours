@@ -1,6 +1,6 @@
 export class AdminPanel extends HTMLElement {
     private shadow: ShadowRoot;
-    private _currentView = 'employees';
+    private _currentView = 'pto-requests';
 
     constructor() {
         super();
@@ -21,6 +21,8 @@ export class AdminPanel extends HTMLElement {
         if (oldValue !== newValue && name === 'current-view') {
             this._currentView = newValue;
             this.render();
+            this.setupEventListeners();
+            this.setupChildEventListeners();
         }
     }
 
@@ -29,7 +31,7 @@ export class AdminPanel extends HTMLElement {
     }
 
     get currentView(): string {
-        return this.getAttribute('current-view') || 'employees';
+        return this.getAttribute('current-view') || 'pto-requests';
     }
 
     private render() {
@@ -145,13 +147,13 @@ export class AdminPanel extends HTMLElement {
                     <nav>
                         <ul class="nav-menu">
                             <li class="nav-item">
-                                <a href="#" class="nav-link ${this._currentView === 'employees' ? 'active' : ''}" data-view="employees">
-                                    👥 Employees
+                                <a href="#" class="nav-link ${this._currentView === 'pto-requests' ? 'active' : ''}" data-view="pto-requests">
+                                    📋 PTO Requests
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="#" class="nav-link ${this._currentView === 'pto-requests' ? 'active' : ''}" data-view="pto-requests">
-                                    📋 PTO Requests
+                                <a href="#" class="nav-link ${this._currentView === 'employees' ? 'active' : ''}" data-view="employees">
+                                    👥 Employees
                                 </a>
                             </li>
                             <li class="nav-item">
@@ -231,7 +233,8 @@ export class AdminPanel extends HTMLElement {
         navLinks.forEach(link => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
-                const view = (e.target as HTMLElement).getAttribute('data-view');
+                const target = e.currentTarget as HTMLElement | null;
+                const view = target?.getAttribute('data-view');
                 if (view) {
                     this.currentView = view;
                     this.dispatchEvent(new CustomEvent('view-change', {
