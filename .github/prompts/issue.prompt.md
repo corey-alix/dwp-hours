@@ -34,6 +34,7 @@ Generate a comprehensive regression report by capturing the defect details and a
    - Steps to verify the regression
    - Areas to check for related issues
    - Test cases to run
+   Use the Staged Action Plan skill ([.github/skills/staged-action-plan/SKILL.md](../skills/staged-action-plan/SKILL.md)) to organize the investigation into testable phases.
 
 5. **Create Task File**:
    - Generate a new file in the `TASKS/` folder named `issue-[brief-description].md`
