@@ -1,5 +1,30 @@
 import { test, expect } from '@playwright/test';
 
+test.use({
+    viewport: { width: 1280, height: 720 },
+    deviceScaleFactor: 1,
+    locale: 'en-US',
+    timezoneId: 'UTC',
+    colorScheme: 'dark',
+    reducedMotion: 'reduce'
+});
+
+async function stabilizePage(page: { setViewportSize: (size: { width: number; height: number }) => Promise<void>; addStyleTag: (options: { content: string }) => Promise<void> }) {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.addStyleTag({
+        content: `
+            *, *::before, *::after {
+                animation: none !important;
+                transition: none !important;
+                caret-color: transparent !important;
+            }
+            html {
+                scroll-behavior: auto !important;
+            }
+        `
+    });
+}
+
 test('PTO submission form screenshot', async ({ page }) => {
     // Create a simple test page for PTO form
     await page.setContent(`
@@ -38,84 +63,97 @@ test('PTO submission form screenshot', async ({ page }) => {
         </body>
         </html>
     `);
-
+    await stabilizePage(page);
     await page.screenshot({ path: 'assets/pto-submission-form.png', fullPage: true });
 });
 
 test('admin-panel component screenshot', async ({ page }) => {
     await page.goto('http://localhost:3000/components/admin-panel/test.html');
     await page.waitForSelector('#test-output', { timeout: 10000 });
+    await stabilizePage(page);
     await page.screenshot({ path: 'assets/admin-panel-component.png', fullPage: true });
 });
 
 test('confirmation-dialog component screenshot', async ({ page }) => {
     await page.goto('http://localhost:3000/components/confirmation-dialog/test.html');
     await page.waitForSelector('#test-output', { timeout: 10000 });
+    await stabilizePage(page);
     await page.screenshot({ path: 'assets/confirmation-dialog-component.png', fullPage: true });
 });
 
 test('data-table component screenshot', async ({ page }) => {
     await page.goto('http://localhost:3000/components/data-table/test.html');
     await page.waitForSelector('#test-output', { timeout: 10000 });
+    await stabilizePage(page);
     await page.screenshot({ path: 'assets/data-table-component.png', fullPage: true });
 });
 
 test('employee-form component screenshot', async ({ page }) => {
     await page.goto('http://localhost:3000/components/employee-form/test.html');
     await page.waitForSelector('#test-output', { timeout: 10000 });
+    await stabilizePage(page);
     await page.screenshot({ path: 'assets/employee-form-component.png', fullPage: true });
 });
 
 test('employee-list component screenshot', async ({ page }) => {
     await page.goto('http://localhost:3000/components/employee-list/test.html');
     await page.waitForSelector('#test-output', { timeout: 10000 });
+    await stabilizePage(page);
     await page.screenshot({ path: 'assets/employee-list-component.png', fullPage: true });
 });
 
 test('pto-request-queue component screenshot', async ({ page }) => {
     await page.goto('http://localhost:3000/components/pto-request-queue/test.html');
     await page.waitForSelector('#test-output', { timeout: 10000 });
+    await stabilizePage(page);
     await page.screenshot({ path: 'assets/pto-request-queue-component.png', fullPage: true });
 });
 
 test('report-generator component screenshot', async ({ page }) => {
     await page.goto('http://localhost:3000/components/report-generator/test.html');
     await page.waitForSelector('#test-output', { timeout: 10000 });
+    await stabilizePage(page);
     await page.screenshot({ path: 'assets/report-generator-component.png', fullPage: true });
 });
 
 test('pto-summary-card component screenshot', async ({ page }) => {
     await page.goto('http://localhost:3000/components/pto-summary-card/test.html');
     await page.waitForSelector('#test-output', { timeout: 10000 });
+    await stabilizePage(page);
     await page.screenshot({ path: 'assets/pto-summary-card-component.png', fullPage: true });
 });
 
 test('pto-accrual-card component screenshot', async ({ page }) => {
     await page.goto('http://localhost:3000/components/pto-accrual-card/test.html');
     await page.waitForSelector('#test-output', { timeout: 10000 });
+    await stabilizePage(page);
     await page.screenshot({ path: 'assets/pto-accrual-card-component.png', fullPage: true });
 });
 
 test('pto-sick-card component screenshot', async ({ page }) => {
     await page.goto('http://localhost:3000/components/pto-sick-card/test.html');
     await page.waitForSelector('#test-output', { timeout: 10000 });
+    await stabilizePage(page);
     await page.screenshot({ path: 'assets/pto-sick-card-component.png', fullPage: true });
 });
 
 test('pto-bereavement-card component screenshot', async ({ page }) => {
     await page.goto('http://localhost:3000/components/pto-bereavement-card/test.html');
     await page.waitForSelector('#test-output', { timeout: 10000 });
+    await stabilizePage(page);
     await page.screenshot({ path: 'assets/pto-bereavement-card-component.png', fullPage: true });
 });
 
 test('pto-jury-duty-card component screenshot', async ({ page }) => {
     await page.goto('http://localhost:3000/components/pto-jury-duty-card/test.html');
     await page.waitForSelector('#test-output', { timeout: 10000 });
+    await stabilizePage(page);
     await page.screenshot({ path: 'assets/pto-jury-duty-card-component.png', fullPage: true });
 });
 
 test('pto-employee-info-card component screenshot', async ({ page }) => {
     await page.goto('http://localhost:3000/components/pto-employee-info-card/test.html');
     await page.waitForSelector('#test-output', { timeout: 10000 });
+    await stabilizePage(page);
     await page.screenshot({ path: 'assets/pto-employee-info-card-component.png', fullPage: true });
 });
