@@ -3,8 +3,8 @@
  * Handles annual PTO allocation with monthly accrual display
  */
 
-import { getWorkDays, getTotalWorkDaysInYear, calculateMonthlyAccrual } from './workDays.js';
-import { parseDate, formatDate } from '../shared/dateUtils.js';
+import { getWorkDays, getTotalWorkDaysInYear } from './workDays.js';
+import { parseDate, formatDate, today } from '../shared/dateUtils.js';
 
 export interface PTOStatus {
     employeeId: number;
@@ -87,7 +87,7 @@ function calculateProratedAllocation(employee: Employee, year: number): number {
 export function calculatePTOStatus(
     employee: Employee,
     ptoEntries: PTOEntry[],
-    currentDate: string = formatDate(new Date().getFullYear(), new Date().getMonth() + 1, new Date().getDate())
+    currentDate: string = today()
 ): PTOStatus {
     const currentDateComponents = parseDate(currentDate);
     const currentYear = currentDateComponents.year;
