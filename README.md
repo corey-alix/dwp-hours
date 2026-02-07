@@ -94,6 +94,10 @@ The system ensures accurate tracking per employee with individual rates and carr
    - **Monthly Accrual Breakdown UI**: Rendered as a two-column grid (month name on the left, hours on the right). Each row includes a clickable Calendar icon that reveals a month view. The month view uses legacy color coding for PTO types as documented in [`.github/skills/pto-spreadsheet-layout/SKILL.md`](.github/skills/pto-spreadsheet-layout/SKILL.md), and each day cell shows the number of hours in the bottom-right corner.
    - **Sick/Bereavement/Jury Duty Detail**: Each of these cards must list the specific dates taken and the hours for each date, not just the totals.
    - **PTO Section Cards**: Each `pto-section` is a dedicated web component derived from a shared base card component (one component per PTO aspect: Regular PTO, Monthly Accruals, Sick Time, Bereavement, Jury Duty, Employee Info). This keeps dashboard rendering consistent and testable.
+- **Prior Year Review**: Users can review PTO data from previous years
+  - Render all twelve months (January → December) in a grid layout for the prior year
+  - Dedicated web component integrated into the main dashboard
+  - Shows PTO usage, accruals, and balances for historical review
 - **Monthly Hours Review**: Submit and review monthly hours worked
 - **Acknowledgement System**: Monthly acknowledgement of hours review completion
   - Automatic reminders at month-end
@@ -533,6 +537,7 @@ Most API endpoints require authentication. Authentication is handled via cookie-
 ### PTO Management
 - `GET /api/pto/status` *(authenticated)*: Get comprehensive PTO status summary for authenticated user including balances, accruals, and usage by type
 - `GET /api/pto` *(authenticated)*: Retrieve PTO entries for authenticated user (admin can see all)
+- `GET /api/pto/year/:year` *(authenticated)*: Get PTO data aggregated by month for a specific historical year (prior year review)
 - `POST /api/pto` *(authenticated)*: Submit a new PTO entry (admin can submit for others)
 - `PUT /api/pto/:id` *(authenticated)*: Update an existing PTO entry (admin only or own entries)
 - `DELETE /api/pto/:id` *(authenticated)*: Delete/cancel a PTO entry (admin only or own entries)

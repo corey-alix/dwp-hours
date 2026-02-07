@@ -1110,6 +1110,76 @@ initDatabase().then(async () => {
         }
     });
 
+    // PTO Year Review endpoint
+    app.get('/api/pto/year/:year', authenticate(() => dataSource, log), async (req, res) => {
+        try {
+            const { year } = req.params;
+            const yearNum = parseInt(year as string);
+            const authenticatedEmployeeId = req.employee!.id;
+
+            // Validate year parameter
+            const currentYear = new Date().getFullYear();
+            if (isNaN(yearNum) || yearNum < currentYear - 10 || yearNum >= currentYear) {
+                return res.status(400).json({
+                    error: 'Invalid year parameter. Year must be between ' + (currentYear - 10) + ' and ' + (currentYear - 1)
+                });
+            }
+
+            const ptoEntryRepo = dataSource.getRepository(PtoEntry);
+
+            // Get PTO entries for the specified year
+            const startDate = `${yearNum}-01-01`; // January 1st
+            const endDate = `${yearNum}-12-31`; // December 31st
+
+            const ptoEntries = await ptoEntryRepo.find({
+                where: {
+                    employee_id: authenticatedEmployeeId,
+                    date: Between(startDate, endDate)
+                },
+                order: { date: 'ASC' }
+            });
+
+            // Group PTO entries by month
+            const months = [];
+            for (let month = 1; month <= 12; month++) {
+                const monthStart = new Date(yearNum, month - 1, 1);
+                const monthEnd = new Date(yearNum, month, 0); // Last day of month
+
+                const monthEntries = ptoEntries.filter(entry => {
+                    const entryDate = new Date(entry.date);
+                    return entryDate >= monthStart && entryDate <= monthEnd;
+                });
+
+                // Calculate summary for the month
+                const summary = {
+                    totalDays: monthEnd.getDate(),
+                    ptoDays: monthEntries.filter(e => e.type === 'PTO').length,
+                    sickDays: monthEntries.filter(e => e.type === 'Sick').length,
+                    bereavementDays: monthEntries.filter(e => e.type === 'Bereavement').length,
+                    juryDutyDays: monthEntries.filter(e => e.type === 'Jury Duty').length
+                };
+
+                months.push({
+                    month,
+                    ptoEntries: monthEntries.map(entry => ({
+                        date: entry.date, // Already in YYYY-MM-DD format
+                        type: entry.type,
+                        hours: entry.hours
+                    })),
+                    summary
+                });
+            }
+
+            res.json({
+                year: yearNum,
+                months
+            });
+        } catch (error) {
+            log(`Error getting PTO year review: ${error}`);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    });
+
     // Start server
     log(`Checking if port ${PORT} is available...`);
     const portInUse = await checkPortInUse(PORT);

@@ -40,6 +40,10 @@ export class APIClient {
         return this.get('/pto');
     }
 
+    async getPTOYearReview(year: number): Promise<ApiTypes.PTOYearReviewResponse> {
+        return this.get(`/pto/year/${year}`);
+    }
+
     async createPTOEntry(request: { date: string; hours: number; type: string } | { requests: Array<{ date: string; hours: number; type: string }> }): Promise<{ message: string; ptoEntry: ApiTypes.PTOEntry; ptoEntries: ApiTypes.PTOEntry[] }> {
         return this.post('/pto', request);
     }

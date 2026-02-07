@@ -177,6 +177,25 @@ export interface PTOCreateResponse {
     ptoEntry: PTOEntry;
 }
 
+export interface PTOYearReviewResponse {
+    year: number;
+    months: {
+        month: number; // 1-12
+        ptoEntries: {
+            date: string; // ISO date string
+            type: "PTO" | "Sick" | "Bereavement" | "Jury Duty";
+            hours: number;
+        }[];
+        summary: {
+            totalDays: number;
+            ptoDays: number;
+            sickDays: number;
+            bereavementDays: number;
+            juryDutyDays: number;
+        };
+    }[];
+}
+
 export interface PTOUpdateResponse {
     message: string;
     ptoEntry: PTOEntry;
