@@ -18,12 +18,12 @@ Enhance the PTO entry form component by improving the integration between form v
 - [x] `npm run test` passes
 
 ### Phase 2: Unified Submission Logic
-- [ ] Refactor submission to use the common Submit button for both views
-- [ ] Ensure form validation works consistently across both views
-- [ ] Update event handling to dispatch pto-submit from the common toolbar
+- [x] Refactor submission to use the common Submit button for both views
+- [x] Ensure form validation works consistently across both views
+- [x] Update event handling to dispatch pto-submit from the common toolbar
 - [ ] Manual testing: Submit PTO requests from both form and calendar views
-- [ ] Unit tests for submission logic pass
-- [ ] `npm run test` passes
+- [x] Unit tests for submission logic pass
+- [x] `npm run test` passes
 
 ### Phase 3: Component E2E Testing
 - [ ] Update test.html E2E test to leverage test.ts playground functionality

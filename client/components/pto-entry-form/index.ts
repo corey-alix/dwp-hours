@@ -211,14 +211,6 @@ export class PtoEntryForm extends HTMLElement {
             calendar = document.createElement('pto-calendar') as PtoCalendar;
             calendar.setAttribute('readonly', 'false');
 
-            calendar.addEventListener('pto-request-submit', (event: Event) => {
-                const customEvent = event as CustomEvent<{ requests: CalendarEntry[] }>;
-                // For unified submission, dispatch the pto-submit event directly
-                this.dispatchEvent(new CustomEvent('pto-submit', {
-                    detail: { requests: customEvent.detail.requests }
-                }));
-            });
-
             calendarContainer.appendChild(calendar);
         }
 
@@ -405,6 +397,16 @@ export class PtoEntryForm extends HTMLElement {
                     border-top: var(--border-width) var(--border-style-solid) var(--color-border);
                 }
 
+                .submit-errors {
+                    margin-top: var(--space-md);
+                    padding: var(--space-sm) var(--space-md);
+                    border-radius: var(--border-radius-md);
+                    border: var(--border-width) var(--border-style-solid) var(--color-error);
+                    background: var(--color-error-light, rgba(220, 53, 69, 0.08));
+                    color: var(--color-error);
+                    font-size: var(--font-size-sm);
+                }
+
                 .btn {
                     padding: var(--space-sm) var(--space-lg);
                     border: none;
@@ -562,6 +564,8 @@ export class PtoEntryForm extends HTMLElement {
                     <div id="calendar-container"></div>
                 </div>
 
+                <div class="submit-errors hidden" id="submit-errors" role="alert" aria-live="polite"></div>
+
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" id="cancel-btn">
                         Cancel
@@ -583,9 +587,7 @@ export class PtoEntryForm extends HTMLElement {
 
         form?.addEventListener('submit', (e) => {
             e.preventDefault();
-            if (this.validateForm()) {
-                this.handleSubmit();
-            }
+            this.handleUnifiedSubmit();
         });
 
         cancelBtn?.addEventListener('click', () => {
@@ -593,16 +595,7 @@ export class PtoEntryForm extends HTMLElement {
         });
 
         submitBtn?.addEventListener('click', () => {
-            const calendarView = querySingle<HTMLDivElement>('#calendar-view', this.shadow);
-            if (!calendarView.classList.contains('hidden')) {
-                // In calendar view, submit calendar selection
-                this.handleCalendarSubmit();
-            } else {
-                // In form view, submit form
-                if (this.validateForm()) {
-                    this.handleSubmit();
-                }
-            }
+            this.handleUnifiedSubmit();
         });
 
         calendarToggleBtn?.addEventListener('click', () => {
@@ -834,11 +827,90 @@ export class PtoEntryForm extends HTMLElement {
     }
 
     private handleCalendarSubmit(): void {
-        const calendarContainer = querySingle<HTMLDivElement>('#calendar-container', this.shadow);
-        const calendar = calendarContainer.querySelector('pto-calendar') as PtoCalendar | null;
-        if (calendar && typeof calendar.submitRequest === 'function') {
-            calendar.submitRequest();
+        const calendar = this.getCalendar();
+        if (!calendar) {
+            this.showSubmitErrors(['Calendar is not ready. Please try again.']);
+            return;
         }
+
+        const requests = calendar.getSelectedRequests();
+        if (requests.length === 0) {
+            this.showSubmitErrors(['Select at least one weekday in the calendar.']);
+            return;
+        }
+
+        const validationErrors = this.validateCalendarRequests(requests);
+        if (validationErrors.length > 0) {
+            this.showSubmitErrors(validationErrors);
+            return;
+        }
+
+        this.dispatchEvent(new CustomEvent('pto-submit', {
+            detail: { requests }
+        }));
+    }
+
+    private handleUnifiedSubmit(): void {
+        this.clearSubmitErrors();
+        const calendarView = querySingle<HTMLDivElement>('#calendar-view', this.shadow);
+        if (!calendarView.classList.contains('hidden')) {
+            this.handleCalendarSubmit();
+            return;
+        }
+
+        if (this.validateForm()) {
+            this.handleSubmit();
+        }
+    }
+
+    private validateCalendarRequests(requests: CalendarEntry[]): string[] {
+        const errors: string[] = [];
+
+        for (const request of requests) {
+            const hoursError = validateHours(request.hours);
+            if (hoursError) {
+                errors.push(`${request.date}: ${VALIDATION_MESSAGES[hoursError.messageKey as MessageKey]}`);
+            }
+
+            try {
+                const { year, month, day } = parseDate(request.date);
+                const dateObj = new Date(year, month - 1, day);
+                const weekdayError = validateWeekday(dateObj);
+                if (weekdayError) {
+                    errors.push(`${request.date}: ${VALIDATION_MESSAGES[weekdayError.messageKey as MessageKey]}`);
+                }
+            } catch (error) {
+                errors.push(`${request.date}: ${VALIDATION_MESSAGES['date.invalid']}`);
+            }
+
+            const typeError = validatePTOType(request.type);
+            if (typeError) {
+                errors.push(`${request.date}: ${VALIDATION_MESSAGES[typeError.messageKey as MessageKey]}`);
+            }
+        }
+
+        return errors;
+    }
+
+    private getCalendar(): PtoCalendar | null {
+        const calendarContainer = querySingle<HTMLDivElement>('#calendar-container', this.shadow);
+        return calendarContainer.querySelector('pto-calendar') as PtoCalendar | null;
+    }
+
+    private showSubmitErrors(messages: string[]): void {
+        const submitErrors = querySingle<HTMLDivElement>('#submit-errors', this.shadow);
+        if (messages.length === 1) {
+            submitErrors.textContent = messages[0];
+        } else {
+            submitErrors.innerHTML = `<ul>${messages.map(message => `<li>${message}</li>`).join('')}</ul>`;
+        }
+        submitErrors.classList.remove('hidden');
+    }
+
+    private clearSubmitErrors(): void {
+        const submitErrors = querySingle<HTMLDivElement>('#submit-errors', this.shadow);
+        submitErrors.textContent = '';
+        submitErrors.classList.add('hidden');
     }
 
     private getHoursForSubmit(ptoType: string): number {
