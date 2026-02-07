@@ -1,12 +1,6 @@
 import { test, expect } from '@playwright/test';
 
 test('admin-panel component test', async ({ page }) => {
-    // Listen for console messages
-    const consoleMessages: { type: string; text: string }[] = [];
-    page.on('console', msg => {
-        consoleMessages.push({ type: msg.type(), text: msg.text() });
-    });
-
     // Navigate to the main app first to authenticate
     await page.goto('http://localhost:3000');
 
@@ -29,6 +23,12 @@ test('admin-panel component test', async ({ page }) => {
     const cookies = await page.context().cookies();
     const authCookie = cookies.find(c => c.name === 'auth_hash');
     expect(authCookie).toBeTruthy();
+
+    // Listen for console messages only on the test page
+    const consoleMessages: { type: string; text: string }[] = [];
+    page.on('console', msg => {
+        consoleMessages.push({ type: msg.type(), text: msg.text() });
+    });
 
     // Now navigate to the test page
     await page.goto('/components/admin-panel/test.html');

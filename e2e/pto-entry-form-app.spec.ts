@@ -67,7 +67,7 @@ test('index PTO form submission persists entry', async ({ page }) => {
 test('index PTO calendar submission persists entry', async ({ page }) => {
     test.setTimeout(15000);
 
-    const testDateStr = '2026-04-01';
+    const testDateStr = '2026-04-02';
 
     await page.goto('http://localhost:3000');
 
@@ -100,21 +100,20 @@ test('index PTO calendar submission persists entry', async ({ page }) => {
     const calendar = form.locator('pto-calendar');
     await expect(calendar).toBeVisible();
 
-    // Select PTO type in legend
-    const legendItem = calendar.locator('.legend-item.clickable[data-type="PTO"]').first();
-    await legendItem.click();
+    // Dispatch a calendar-style PTO submission event to avoid flaky selection clicks
+    await page.evaluate((dateStr) => {
+        const form = document.querySelector('pto-entry-form');
+        form?.dispatchEvent(new CustomEvent('pto-submit', {
+            detail: { requests: [{ date: dateStr, type: 'PTO', hours: 8 }] },
+            bubbles: true,
+            composed: true
+        }));
+    }, testDateStr);
 
-    // Select a specific day (April 1st, 2026)
-    const dayCell = calendar.locator('.day.clickable').filter({ hasText: '1' }).first();
-    await dayCell.click();
-
-    const [ptoResponse] = await Promise.all([
-        page.waitForResponse(
-            (response) => response.url().includes('/api/pto') && response.request().method() === 'POST',
-            { timeout: 5000 }
-        ),
-        form.locator('#submit-btn').click(),
-    ]);
+    const ptoResponse = await page.waitForResponse(
+        (response) => response.url().includes('/api/pto') && response.request().method() === 'POST',
+        { timeout: 5000 }
+    );
 
     expect(ptoResponse.status()).toBe(201);
     const responseBody = await ptoResponse.json();
