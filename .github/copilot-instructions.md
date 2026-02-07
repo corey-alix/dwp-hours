@@ -114,6 +114,7 @@ const input = querySingle<HTMLInputElement>('#input-id', ptoForm.shadowRoot);  /
 
 ### Date Handling
 - **Date operations must use string-based YYYY-MM-DD format exclusively** - avoid Date objects and timezone issues
+- **Never use `new Date()`, `Date.UTC`, or any Date methods outside `shared/dateUtils.ts`** - all date operations must go through the dateUtils library
 - All date manipulation must go through `shared/dateUtils.ts` - do not use Date.UTC, new Date(), or Date methods outside this library
 - Extend `shared/dateUtils.ts` with new utility functions as needed rather than using native Date APIs
 - Use string comparisons and manipulations for date logic to ensure consistency and avoid timezone problems

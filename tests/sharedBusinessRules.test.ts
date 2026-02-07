@@ -45,24 +45,24 @@ describe('Business Rules Validation', () => {
 
     describe('validateWeekday', () => {
         it('should accept Monday', () => {
-            const monday = new Date(2024, 0, 1); // January 1, 2024 was Monday
+            const monday = '2024-01-01'; // January 1, 2024 was Monday
             expect(validateWeekday(monday)).toBeNull();
         });
 
         it('should accept Friday', () => {
-            const friday = new Date(2024, 0, 5); // January 5, 2024 was Friday
+            const friday = '2024-01-05'; // January 5, 2024 was Friday
             expect(validateWeekday(friday)).toBeNull();
         });
 
         it('should reject Saturday', () => {
-            const saturday = new Date(2024, 0, 6); // January 6, 2024 was Saturday
+            const saturday = '2024-01-06'; // January 6, 2024 was Saturday
             const result = validateWeekday(saturday);
             expect(result).not.toBeNull();
             expect(result?.messageKey).toBe('date.weekday');
         });
 
         it('should reject Sunday', () => {
-            const sunday = new Date(2024, 0, 7); // January 7, 2024 was Sunday
+            const sunday = '2024-01-07'; // January 7, 2024 was Sunday
             const result = validateWeekday(sunday);
             expect(result).not.toBeNull();
             expect(result?.messageKey).toBe('date.weekday');

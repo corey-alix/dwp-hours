@@ -53,11 +53,8 @@ export class PtoEntryDAL {
             return errors; // Can't continue with invalid date
         }
 
-        const [year, month, day] = data.date.split('-').map(Number);
-        const date = new Date(Date.UTC(year, month - 1, day));
-
         // Validate weekday
-        const weekdayError = validateWeekday(date);
+        const weekdayError = validateWeekday(data.date);
         if (weekdayError) {
             errors.push(weekdayError);
         }
@@ -105,8 +102,6 @@ export class PtoEntryDAL {
         }
 
         const normalizedType = normalizePTOType(data.type);
-        const [year, month, day] = data.date.split('-').map(Number);
-        const date = new Date(Date.UTC(year, month - 1, day));
 
         const ptoEntry = this.ptoEntryRepo.create({
             employee_id: data.employeeId,
@@ -168,7 +163,7 @@ export class PtoEntryDAL {
     /**
      * Gets PTO entries for an employee in a date range
      */
-    async getPtoEntries(employeeId: number, startDate?: Date, endDate?: Date): Promise<PtoEntry[]> {
+    async getPtoEntries(employeeId: number, startDate?: string, endDate?: string): Promise<PtoEntry[]> {
         const query = this.ptoEntryRepo.createQueryBuilder('pto')
             .where('pto.employee_id = :employeeId', { employeeId });
 

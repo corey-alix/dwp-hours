@@ -85,8 +85,7 @@ try {
             continue;
         }
 
-        const date = new Date(entry.date);
-        const weekdayErr = validateWeekday(date);
+        const weekdayErr = validateWeekday(entry.date);
         if (weekdayErr) {
             console.error(`Skipping invalid PTO entry (not weekday): ${JSON.stringify(entry)} - ${weekdayErr.messageKey}`);
             continue;

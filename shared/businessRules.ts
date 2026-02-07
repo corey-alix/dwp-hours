@@ -1,5 +1,4 @@
-// Shared business rules for DWP Hours Tracker
-// This module is used by both client and server for validation
+import { getDayOfWeek } from './dateUtils.js';
 
 export type PTOType = 'Sick' | 'PTO' | 'Bereavement' | 'Jury Duty';
 
@@ -41,8 +40,8 @@ export function validateHours(hours: number): ValidationError | null {
 /**
  * Validates that date is a weekday (Monday to Friday)
  */
-export function validateWeekday(date: Date): ValidationError | null {
-    const day = date.getUTCDay(); // 0 = Sunday, 6 = Saturday
+export function validateWeekday(dateStr: string): ValidationError | null {
+    const day = getDayOfWeek(dateStr); // 0 = Sunday, 6 = Saturday
     if (day === 0 || day === 6) {
         return { field: 'date', messageKey: 'date.weekday' };
     }

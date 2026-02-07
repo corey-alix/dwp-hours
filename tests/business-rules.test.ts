@@ -46,16 +46,16 @@ describe('Business Rules', () => {
 
     describe('validateWeekday', () => {
         it('should accept weekdays', () => {
-            const monday = new Date('2024-01-01'); // Monday
-            const friday = new Date('2024-01-05'); // Friday
+            const monday = '2024-01-01'; // Monday
+            const friday = '2024-01-05'; // Friday
 
             expect(validateWeekday(monday)).toBeNull();
             expect(validateWeekday(friday)).toBeNull();
         });
 
         it('should reject weekends', () => {
-            const saturday = new Date('2024-01-06'); // Saturday
-            const sunday = new Date('2024-01-07'); // Sunday
+            const saturday = '2024-01-06'; // Saturday
+            const sunday = '2024-01-07'; // Sunday
 
             const satResult = validateWeekday(saturday);
             expect(satResult).not.toBeNull();

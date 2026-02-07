@@ -159,9 +159,7 @@ export class PtoCalendar extends HTMLElement {
             if (hoursError) {
                 validationErrors.push(`${request.date}: ${VALIDATION_MESSAGES[hoursError.messageKey as MessageKey]}`);
             }
-            const [year, month, day] = request.date.split('-').map(Number);
-            const dateObj = new Date(year, month - 1, day);
-            const weekdayError = validateWeekday(dateObj);
+            const weekdayError = validateWeekday(request.date);
             if (weekdayError) {
                 validationErrors.push(`${request.date}: ${VALIDATION_MESSAGES[weekdayError.messageKey as MessageKey]}`);
             }

@@ -767,8 +767,7 @@ export class PtoEntryForm extends HTMLElement {
 
         if (input.id === 'start-date' || input.id === 'end-date') {
             try {
-                const { year, month, day } = parseDate(value);
-                const weekdayError = validateWeekday(new Date(year, month - 1, day));
+                const weekdayError = validateWeekday(value);
                 if (weekdayError) {
                     this.setFieldWarning(input, VALIDATION_MESSAGES[weekdayError.messageKey as MessageKey]);
                     // Don't return false - just warn
@@ -873,9 +872,7 @@ export class PtoEntryForm extends HTMLElement {
             }
 
             try {
-                const { year, month, day } = parseDate(request.date);
-                const dateObj = new Date(year, month - 1, day);
-                const weekdayError = validateWeekday(dateObj);
+                const weekdayError = validateWeekday(request.date);
                 if (weekdayError) {
                     errors.push(`${request.date}: ${VALIDATION_MESSAGES[weekdayError.messageKey as MessageKey]}`);
                 }
