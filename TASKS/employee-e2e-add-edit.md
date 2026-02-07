@@ -26,10 +26,10 @@ Create an end-to-end Playwright test that adds a new employee and then edits tha
 - [x] Run `npm run test` to ensure no regressions
 
 ### Stage 3: API Readiness (API Test)
-- [ ] Confirm create/update responses return success/failure only
-- [ ] Test API endpoints manually for create and update operations
-- [ ] Validate server-side email identifier format and required field checks
-- [ ] Run `npm run test` to ensure no regressions
+- [x] Confirm create/update responses return success/failure only
+- [x] Test API endpoints manually for create and update operations
+- [x] Validate server-side email identifier format and required field checks
+- [x] Run `npm run test` to ensure no regressions
 
 ### Stage 4: E2E Add Flow (Playwright Test)
 - [ ] Use `/api/test/reload-database` with a seeded snapshot as the E2E test setup
@@ -44,10 +44,10 @@ Create an end-to-end Playwright test that adds a new employee and then edits tha
 - [ ] Run `npm run test` to ensure no regressions
 
 ### Quality Gates
-- [ ] Update any relevant documentation for the admin panel flow
-- [ ] `npm run build` passes
-- [ ] `npm run lint` passes
-- [ ] Run `npm run test` to ensure no regressions
+- [x] Update any relevant documentation for the admin panel flow
+- [x] `npm run build` passes
+- [x] `npm run lint` passes
+- [x] Run `npm run test` to ensure no regressions
 
 ## Implementation Notes
 - Keep the `employee-form` component API-agnostic: emit events; parent handles API calls.

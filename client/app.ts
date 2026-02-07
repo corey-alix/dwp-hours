@@ -11,9 +11,18 @@ import { AdminPanel, PtoAccrualCard, PtoBereavementCard, PtoEmployeeInfoCard, Pt
 import type { CalendarEntry } from './components/pto-calendar/index.js';
 import { addEventListener, querySingle, createElement } from './components/test-utils.js';
 
+// Import test functions to ensure they're included in the bundle
+import * as testFunctions from './components/test.js';
+
 // Re-export playground for testing
 export * from './components/test.js';
 export { TestWorkflow } from './test.js';
+
+// Ensure AdminPanel is included in bundle
+export { AdminPanel };
+
+// Dummy reference to prevent tree-shaking
+const _adminPanelRef = AdminPanel;
 
 const api = new APIClient();
 

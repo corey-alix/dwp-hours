@@ -13,12 +13,17 @@ interface Employee {
 }
 
 export class AdminPanel extends HTMLElement {
-    private shadow!: ShadowRoot;
+    private shadow: ShadowRoot;
     private _currentView = 'pto-requests';
     private _employees: Employee[] = [];
     private _showEmployeeForm = false;
     private _editingEmployee: Employee | null = null;
     private api = new APIClient();
+
+    constructor() {
+        super();
+        this.shadow = this.attachShadow({ mode: 'open' });
+    }
 
     static get observedAttributes() {
         return ['current-view'];
