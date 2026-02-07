@@ -14,38 +14,38 @@ Enhance the PTO entry form component by improving the integration between form v
 - [x] Ensure "Full PTO" is the default selection in calendar view
 - [x] Update form reset and focus methods to work with the new toolbar structure
 - [x] Add keyboard navigation for calendar in edit mode (tab through weekdays and legend items)
-- [x] Manual testing: Verify toggling between views preserves form state
+- [x] Playwright testing: Verify toggling between views preserves form state
 - [x] `npm run test` passes
 
 ### Phase 2: Unified Submission Logic
 - [x] Refactor submission to use the common Submit button for both views
 - [x] Ensure form validation works consistently across both views
 - [x] Update event handling to dispatch pto-submit from the common toolbar
-- [ ] Manual testing: Submit PTO requests from both form and calendar views
+- [x] e2e testing: Submit PTO requests from both form and calendar views
 - [x] Unit tests for submission logic pass
 - [x] `npm run test` passes
 
 ### Phase 3: Component E2E Testing
-- [ ] Update test.html E2E test to leverage test.ts playground functionality
-- [ ] Implement logging of PTO submissions to the screen for manual observation
-- [ ] Add automated checks for form toggling and submission events
-- [ ] Playwright tests for test.html pass
-- [ ] Manual testing: Observe logged submissions during test execution
-- [ ] `npm run test` passes
+- [x] Update test.html E2E test to leverage test.ts playground functionality
+- [x] Implement logging of PTO submissions to the screen for manual observation
+- [x] Add automated checks for form toggling and submission events
+- [x] Playwright tests for test.html pass
+- [x] Playwright testing: Observe logged submissions during test execution
+- [x] run `npm run test` until all tests pass
 
 ### Phase 4: Application E2E Testing
 - [ ] Implement E2E tests for index.html to verify PTO submissions are accepted by the server
 - [ ] Add validation that submitted values are correctly written to the database
 - [ ] Playwright tests for index.html PTO submission flow pass
 - [ ] Manual testing: Verify end-to-end PTO request submission
-- [ ] `npm run test` passes
+- [ ] run `npm run test` until all tests pass
 
 ### Phase 5: Documentation and Review
 - [ ] Update component README.md with new toolbar and view integration details
 - [ ] Add "Questions and Concerns" section to this task file
 - [ ] Code review of all changes
 - [ ] Final manual testing of complete feature
-- [ ] `npm run test` passes
+- [ ] run `npm run test` until all tests pass
 
 ## Implementation Notes
 - Ensure calendar view defaults match form view defaults

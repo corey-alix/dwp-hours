@@ -19,14 +19,25 @@ describe('Business Rules Validation', () => {
             expect(validateHours(8)).toBeNull();
         });
 
+        it('should accept hours in 4-hour increments', () => {
+            expect(validateHours(12)).toBeNull();
+            expect(validateHours(16)).toBeNull();
+        });
+
         it('should reject non-integer hours', () => {
             const result = validateHours(4.5);
             expect(result).not.toBeNull();
             expect(result?.messageKey).toBe('hours.not_integer');
         });
 
-        it('should reject hours other than 4 or 8', () => {
+        it('should reject hours that are not in 4-hour increments', () => {
             const result = validateHours(6);
+            expect(result).not.toBeNull();
+            expect(result?.messageKey).toBe('hours.invalid');
+        });
+
+        it('should reject non-positive hours', () => {
+            const result = validateHours(0);
             expect(result).not.toBeNull();
             expect(result?.messageKey).toBe('hours.invalid');
         });

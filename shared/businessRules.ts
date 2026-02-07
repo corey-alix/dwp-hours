@@ -9,7 +9,7 @@ export interface ValidationError {
 }
 
 export const VALIDATION_MESSAGES = {
-    'hours.invalid': 'Hours must be 4 or 8',
+    'hours.invalid': 'Hours must be in 4-hour increments',
     'hours.not_integer': 'Hours must be a whole number',
     'date.weekday': 'Date must be a weekday (Monday to Friday)',
     'pto.duplicate': 'A PTO entry of this type already exists for this employee on this date',
@@ -26,13 +26,13 @@ export const VALIDATION_MESSAGES = {
 export type MessageKey = keyof typeof VALIDATION_MESSAGES;
 
 /**
- * Validates that hours are 4 or 8 and whole integers
+ * Validates that hours are positive and in 4-hour increments
  */
 export function validateHours(hours: number): ValidationError | null {
     if (!Number.isInteger(hours)) {
         return { field: 'hours', messageKey: 'hours.not_integer' };
     }
-    if (hours !== 4 && hours !== 8) {
+    if (hours <= 0 || hours % 4 !== 0) {
         return { field: 'hours', messageKey: 'hours.invalid' };
     }
     return null;
