@@ -1,4 +1,5 @@
 import { validateHours, validateWeekday, validatePTOType, VALIDATION_MESSAGES, MessageKey } from '../../../shared/businessRules.js';
+import { getCalendarDates, isInMonth, getDayOfWeek, parseDate, isWeekend } from '../../../shared/dateUtils.js';
 
 const monthNames = [
     "January",
@@ -191,18 +192,11 @@ export class PtoCalendar extends HTMLElement {
 
     private renderCalendar(): string {
         console.log('PtoCalendar.renderCalendar called for month:', this.month, 'year:', this.year, 'ptoEntries:', this.ptoEntries);
-        const firstDay = new Date(this.year, this.month, 1);
-        const lastDay = new Date(this.year, this.month + 1, 0);
-        const startDate = new Date(firstDay);
-        startDate.setDate(startDate.getDate() - firstDay.getDay());
 
-        const endDate = new Date(lastDay);
-        endDate.setDate(endDate.getDate() + (6 - lastDay.getDay()));
+        const calendarDates = getCalendarDates(this.year, this.month + 1);
+        const calendarDays: { dateStr: string; isCurrentMonth: boolean; entry?: PTOEntry; totalHours: number }[] = [];
 
-        const calendarDays: { date: Date; isCurrentMonth: boolean; entry?: PTOEntry; totalHours: number }[] = [];
-
-        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-            const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        for (const dateStr of calendarDates) {
             const entriesForDate = this.ptoEntries.filter(e => e.date === dateStr);
             const totalHours = entriesForDate.reduce((sum, e) => sum + e.hours, 0);
             const entry = entriesForDate.length > 0 ? entriesForDate[0] : null;
@@ -210,8 +204,8 @@ export class PtoCalendar extends HTMLElement {
                 console.log('PtoCalendar: March 1 dateStr:', dateStr, 'entriesForDate:', entriesForDate, 'totalHours:', totalHours, 'entry:', entry);
             }
             calendarDays.push({
-                date: new Date(d),
-                isCurrentMonth: d.getMonth() === this.month,
+                dateStr,
+                isCurrentMonth: isInMonth(dateStr, this.year, this.month + 1),
                 entry: entry ?? undefined,
                 totalHours
             });
@@ -226,22 +220,22 @@ export class PtoCalendar extends HTMLElement {
                 </div>
                 <div class="calendar-grid">
                     ${weekdays.map(day => `<div class="weekday">${day}</div>`).join('')}
-                    ${calendarDays.map(({ date, isCurrentMonth, entry, totalHours }) => {
-            const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                    ${calendarDays.map(({ dateStr, isCurrentMonth, entry, totalHours }) => {
             const isSelected = this.selectedCells.has(dateStr);
             const selectedHours = this.selectedCells.get(dateStr) || 8;
-            const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+            const isWeekendDate = isWeekend(dateStr);
             const dayClass = entry ? `day type-${entry.type.replace(/\s+/g, '-')}` : (isSelected && this.selectedPtoType ? `day type-${this.selectedPtoType.replace(/\s+/g, '-')}` : 'day');
             const emptyClass = isCurrentMonth ? '' : 'empty';
             const selectedClass = isSelected ? 'selected' : '';
-            const clickableClass = (!this.readonly && isCurrentMonth && !isWeekend) ? 'clickable' : '';
+            const clickableClass = (!this.readonly && isCurrentMonth && !isWeekendDate) ? 'clickable' : '';
             const hoursDisplay = totalHours > 0 ? totalHours.toFixed(0) : (isSelected ? selectedHours.toFixed(0) : '');
             const hoursElement = (!this.readonly && isSelected) ?
                 `<input type="number" class="hours-input" value="${selectedHours}" min="0" max="8" step="4" data-date="${dateStr}">` :
                 `<div class="hours">${hoursDisplay}</div>`;
+            const { day } = parseDate(dateStr);
             return `
                             <div class="${dayClass} ${emptyClass} ${selectedClass} ${clickableClass}" data-date="${dateStr}">
-                                <div class="date">${date.getDate()}</div>
+                                <div class="date">${day}</div>
                                 ${hoursElement}
                             </div>
                         `;
@@ -263,6 +257,10 @@ export class PtoCalendar extends HTMLElement {
     private render() {
         this.shadow.innerHTML = `
             <style>
+                :host {
+                    display: block;
+                }
+
                 .calendar {
                     margin-top: 16px;
                 }

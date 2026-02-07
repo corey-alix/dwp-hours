@@ -293,6 +293,66 @@ export function getWorkdaysBetween(startDateStr: string, endDateStr: string): st
 }
 
 /**
+ * Gets the first day of the month for a given year and month
+ */
+export function getFirstDayOfMonth(year: number, month: number): string {
+    return formatDate(year, month, 1);
+}
+
+/**
+ * Gets the last day of the month for a given year and month
+ */
+export function getLastDayOfMonth(year: number, month: number): string {
+    const daysInMonth = getDaysInMonth(year, month);
+    return formatDate(year, month, daysInMonth);
+}
+
+/**
+ * Gets the calendar start date (first day of the week containing the first day of the month)
+ */
+export function getCalendarStartDate(year: number, month: number): string {
+    const firstDayOfMonth = getFirstDayOfMonth(year, month);
+    const dayOfWeek = getDayOfWeek(firstDayOfMonth);
+    return addDays(firstDayOfMonth, -dayOfWeek);
+}
+
+/**
+ * Gets the calendar end date (last day of the week containing the last day of the month)
+ */
+export function getCalendarEndDate(year: number, month: number): string {
+    const lastDayOfMonth = getLastDayOfMonth(year, month);
+    const dayOfWeek = getDayOfWeek(lastDayOfMonth);
+    const daysToAdd = 6 - dayOfWeek;
+    return addDays(lastDayOfMonth, daysToAdd);
+}
+
+/**
+ * Gets all dates in a calendar month (including days from previous/next months to fill the grid)
+ */
+export function getCalendarDates(year: number, month: number): string[] {
+    const startDate = getCalendarStartDate(year, month);
+    const endDate = getCalendarEndDate(year, month);
+
+    const dates: string[] = [];
+    let currentDate = startDate;
+
+    while (compareDates(currentDate, endDate) <= 0) {
+        dates.push(currentDate);
+        currentDate = addDays(currentDate, 1);
+    }
+
+    return dates;
+}
+
+/**
+ * Checks if a date is in the current month
+ */
+export function isInMonth(dateStr: string, year: number, month: number): boolean {
+    const { year: dateYear, month: dateMonth } = parseDate(dateStr);
+    return dateYear === year && dateMonth === month;
+}
+
+/**
  * Calculate end date by adding hours with spillover logic (skip weekends)
  * Assumes 8 hours per workday, spills over to next business day when exceeding 8 hours
  * @param startDateStr - Start date in YYYY-MM-DD format
