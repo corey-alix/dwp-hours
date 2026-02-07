@@ -24,10 +24,10 @@ Create a focused QA specification for the Admin Panel component to verify view s
 - [x] Check contrast and hover states match theme tokens
 
 ### Stage 4: Testing and Quality Gates
-- [ ] Run E2E test for admin panel component
-- [ ] Manual testing of view switching and event re-dispatch
-- [ ] `npm run lint` passes
-- [ ] `npm run build` passes
+- [x] Run E2E test for admin panel component
+- [x] Manual testing of view switching and event re-dispatch
+- [x] `npm run lint` passes
+- [x] `npm run build` passes
 
 ## Implementation Notes
 - Keep changes isolated to the admin shell unless a child component issue is discovered.

@@ -210,7 +210,16 @@ export class AdminPanel extends HTMLElement {
             case 'reports':
                 return '<report-generator></report-generator>';
             case 'settings':
-                return '<div style="padding: 20px;">Settings panel coming soon...</div>';
+                return `
+                    <div style="padding: 20px;">
+                        <h3 style="margin: 0 0 12px;">Settings</h3>
+                        <ul style="margin: 0; padding-left: 18px;">
+                            <li>Total holidays for the year (placeholder)</li>
+                            <li>Total sick day limits (placeholder)</li>
+                            <li>Accrual rate rules (placeholder)</li>
+                        </ul>
+                    </div>
+                `;
             default:
                 return '<div style="padding: 20px;">Select a view from the sidebar</div>';
         }
