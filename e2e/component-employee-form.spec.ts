@@ -53,7 +53,7 @@ test('employee-form component test', async ({ page }) => {
 
     // Test valid form submission
     await nameInput.fill('Test Employee');
-    await identifierInput.fill('TE001');
+    await identifierInput.fill('test.employee@company.com');
     await ptoRateInput.fill('0.75');
     await carryoverInput.fill('20');
 
@@ -70,7 +70,7 @@ test('employee-form component test', async ({ page }) => {
 
     // Test another submission with different data
     await nameInput.fill('Another Employee');
-    await identifierInput.fill('AE003');
+    await identifierInput.fill('another.employee@company.com');
     await ptoRateInput.fill('1.0');
     await carryoverInput.fill('10');
 

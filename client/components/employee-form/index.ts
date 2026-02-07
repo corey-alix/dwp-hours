@@ -223,7 +223,7 @@ export class EmployeeForm extends HTMLElement {
 
                     <div class="form-group">
                         <label class="form-label" for="identifier">
-                            Employee ID <span class="required">*</span>
+                            Employee Email <span class="required">*</span>
                         </label>
                         <input
                             type="text"
@@ -351,9 +351,9 @@ export class EmployeeForm extends HTMLElement {
             return false;
         }
 
-        if (input.id === 'identifier' && value && !/^[A-Z]{2}\d{3}$/.test(value)) {
+        if (input.id === 'identifier' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
             input.classList.add('error');
-            errorElement.textContent = 'Employee ID must be in format: XX000 (e.g., JD001)';
+            errorElement.textContent = 'Employee email must be a valid email address';
             return false;
         }
 

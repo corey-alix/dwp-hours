@@ -790,6 +790,43 @@ initDatabase().then(async () => {
         }
     });
 
+    app.post('/api/employees', async (req, res) => {
+        try {
+            const { name, identifier, pto_rate, carryover_hours, hire_date, role } = req.body;
+
+            // Validation
+            if (!name || typeof name !== 'string' || name.trim().length === 0) {
+                return res.status(400).json({ error: 'Name is required and must be a non-empty string' });
+            }
+            if (!identifier || typeof identifier !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier)) {
+                return res.status(400).json({ error: 'Identifier must be a valid email address' });
+            }
+
+            const employeeRepo = dataSource.getRepository(Employee);
+
+            // Check if identifier already exists
+            const existingEmployee = await employeeRepo.findOne({ where: { identifier } });
+            if (existingEmployee) {
+                return res.status(409).json({ error: 'Employee with this email already exists' });
+            }
+
+            const employee = new Employee();
+            employee.name = name.trim();
+            employee.identifier = identifier;
+            employee.pto_rate = pto_rate !== undefined ? parseFloat(pto_rate) : 0.71;
+            employee.carryover_hours = carryover_hours !== undefined ? parseFloat(carryover_hours) : 0;
+            employee.hire_date = hire_date ? new Date(hire_date) : new Date();
+            employee.role = role || 'Employee';
+
+            await employeeRepo.save(employee);
+
+            res.status(201).json({ message: 'Employee created successfully' });
+        } catch (error) {
+            log(`Error creating employee: ${error}`);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    });
+
     app.put('/api/employees/:id', async (req, res) => {
         try {
             const { id } = req.params;
@@ -810,6 +847,22 @@ initDatabase().then(async () => {
                 return res.status(404).json({ error: 'Employee not found' });
             }
 
+            // Validation
+            if (name !== undefined && (typeof name !== 'string' || name.trim().length === 0)) {
+                return res.status(400).json({ error: 'Name must be a non-empty string' });
+            }
+            if (identifier !== undefined && (typeof identifier !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier))) {
+                return res.status(400).json({ error: 'Identifier must be a valid email address' });
+            }
+
+            // Check if identifier already exists (excluding current employee)
+            if (identifier !== undefined) {
+                const existingEmployee = await employeeRepo.findOne({ where: { identifier } });
+                if (existingEmployee && existingEmployee.id !== employeeIdNum) {
+                    return res.status(409).json({ error: 'Employee with this email already exists' });
+                }
+            }
+
             // Update fields if provided
             if (name !== undefined) employee.name = name;
             if (identifier !== undefined) employee.identifier = identifier;
@@ -820,7 +873,7 @@ initDatabase().then(async () => {
 
             await employeeRepo.save(employee);
 
-            res.json({ message: 'Employee updated successfully', employee });
+            res.json({ message: 'Employee updated successfully' });
         } catch (error) {
             log(`Error updating employee: ${error}`);
             res.status(500).json({ error: 'Internal server error' });
