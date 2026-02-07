@@ -14,14 +14,14 @@ Implement a prior year review feature that allows users to view PTO data from pr
   - [x] Update API documentation
   - [x] Write unit tests for the new endpoint
   - [x] Run 'npm run test' to ensure no regressions
-- [ ] **Phase 2: Create Prior Year Review Web Component**
-  - [ ] Create `prior-year-review` web component in client/components/
-  - [ ] Implement 12-month grid layout (January-December)
-  - [ ] Add year selector dropdown (previous years only)
-  - [ ] Integrate with existing PTO calculation logic
-  - [ ] Style component to match existing dashboard theme
-  - [ ] Add loading states and error handling
-  - [ ] Run 'npm run test' to ensure no regressions
+- [x] **Phase 2: Create Prior Year Review Web Component**
+  - [x] Create `prior-year-review` web component in client/components/
+  - [x] Implement 12-month grid layout (January-December)
+  - [x] Add year selector dropdown (previous years only)
+  - [x] Integrate with existing PTO calculation logic
+  - [x] Style component to match existing dashboard theme
+  - [x] Add loading states and error handling
+  - [x] Run 'npm run test' to ensure no regressions
 - [ ] **Phase 3: Integrate into Dashboard**
   - [ ] Add prior year review component to index.html
   - [ ] Update dashboard navigation to include prior year view
