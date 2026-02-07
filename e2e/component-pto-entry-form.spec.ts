@@ -202,3 +202,39 @@ test('pto-entry-form dynamic field behavior test', async ({ page }) => {
     await expect(hoursInput).toHaveAttribute('readonly', '');
     await expect(endDateInput).not.toHaveAttribute('readonly', '');
 });
+
+test('pto-entry-form calendar interaction test', async ({ page }) => {
+    await page.goto('http://localhost:3000/components/pto-entry-form/test.html');
+
+    // Wait for the component to be defined and loaded
+    await page.waitForFunction(() => customElements.get('pto-entry-form') !== undefined);
+    await page.waitForTimeout(500); // Additional time for component initialization
+
+    // Click calendar toggle button
+    await page.locator('pto-entry-form').locator('#calendar-toggle-btn').click();
+
+    // Confirm calendar view is visible
+    const calendarView = page.locator('pto-entry-form').locator('#calendar-view');
+    await expect(calendarView).not.toHaveClass(/hidden/);
+    const calendar = page.locator('pto-entry-form').locator('pto-calendar');
+    await expect(calendar).toBeVisible();
+
+    // Confirm that the "PTO" legend item is selected
+    const ptoLegend = calendar.locator('.legend-item[data-type="PTO"]');
+    await expect(ptoLegend).toHaveClass(/selected/);
+
+    // Click a weekday on the calendar
+    const weekdayCell = calendar.locator('.day.clickable:not(.weekend)').first();
+    await weekdayCell.click();
+
+    // Confirm that the cell is properly colored as "PTO"
+    await expect(weekdayCell).toHaveClass(/type-PTO/);
+
+    // Submit the form
+    await page.locator('pto-entry-form').locator('#submit-btn').click();
+
+    // Confirm that the "Submit" correctly submits a "PTO" request for the specified number of hours
+    await page.waitForSelector('#test-output', { timeout: 5000 });
+    const testOutput = page.locator('#test-output');
+    await expect(testOutput).toContainText('Calendar submit');
+});

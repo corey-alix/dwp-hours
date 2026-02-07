@@ -20,7 +20,6 @@ const PTO_TYPE_COLORS: Record<string, string> = {
     Sick: "var(--color-pto-sick)",
     Bereavement: "var(--color-pto-bereavement)",
     "Jury Duty": "var(--color-pto-jury-duty)",
-    "Planned PTO": "var(--color-pto-vacation)",
     "Work Day": "var(--color-surface)"
 };
 
@@ -93,6 +92,10 @@ export class PtoCalendar extends HTMLElement {
                 break;
             case 'readonly':
                 this.readonly = newValue === 'true';
+                // Set default PTO type to "PTO" when entering editable mode
+                if (!this.readonly && this.selectedPtoType === null) {
+                    this.selectedPtoType = 'PTO';
+                }
                 break;
         }
         this.render();
@@ -120,6 +123,10 @@ export class PtoCalendar extends HTMLElement {
 
     setReadonly(readonly: boolean) {
         this.readonly = readonly;
+        // Set default PTO type to "PTO" when entering editable mode
+        if (!readonly && this.selectedPtoType === null) {
+            this.selectedPtoType = 'PTO';
+        }
         this.setAttribute('readonly', readonly.toString());
     }
 

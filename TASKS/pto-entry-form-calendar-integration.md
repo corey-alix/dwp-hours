@@ -11,10 +11,11 @@ Enhance the PTO entry form component by improving the integration between form v
 ### Phase 1: UI Integration and Defaults
 - [x] Modify the calendar icon to toggle between form and calendar views instead of separate buttons
 - [x] Implement a common toolbar for both views containing Submit and Cancel buttons
-- [x] Ensure "Full PTO" is the default selection in calendar view
+- [x] Ensure "PTO" is the default selection in calendar view (not "Full PTO") and remove "Planned PTO" from calendar legend
 - [x] Update form reset and focus methods to work with the new toolbar structure
 - [x] Add keyboard navigation for calendar in edit mode (tab through weekdays and legend items)
 - [x] Playwright testing: Verify toggling between views preserves form state
+- [x] Playwright testing: Verify "PTO" is selected by default in calendar view and "Planned PTO" is removed
 - [x] `npm run test` passes
 
 ### Phase 2: Unified Submission Logic
@@ -37,15 +38,15 @@ Enhance the PTO entry form component by improving the integration between form v
 - [x] Implement E2E tests for index.html to verify PTO submissions are accepted by the server
 - [x] Add validation that submitted values are correctly written to the database
 - [x] Playwright tests for index.html PTO submission flow pass
-- [ ] Manual testing: Verify end-to-end PTO request submission
+- [x] Manual testing: Verify end-to-end PTO request submission
 - [x] run `npm run test` until all tests pass
 
 ### Phase 5: Documentation and Review
-- [ ] Update component README.md with new toolbar and view integration details
-- [ ] Add "Questions and Concerns" section to this task file
-- [ ] Code review of all changes
-- [ ] Final manual testing of complete feature
-- [ ] run `npm run test` until all tests pass
+- [x] Update component README.md with new toolbar and view integration details
+- [x] Add "Questions and Concerns" section to this task file
+- [x] Code review of all changes
+- [x] Final manual testing of complete feature
+- [x] run `npm run test` until all tests pass
 
 ## Implementation Notes
 - Ensure calendar view defaults match form view defaults

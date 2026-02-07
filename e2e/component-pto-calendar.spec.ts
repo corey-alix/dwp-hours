@@ -18,9 +18,19 @@ test('pto-calendar component test', async ({ page }) => {
     const legend = await page.locator('pto-calendar').locator('.legend');
     await expect(legend).toBeVisible();
 
-    // Check legend items count (should be 6: PTO, Sick, Bereavement, Jury Duty, Planned PTO, Work Day)
+    // Check legend items count (should be 5: PTO, Sick, Bereavement, Jury Duty, Work Day)
     const legendItems = await page.locator('pto-calendar').locator('.legend-item');
-    await expect(legendItems).toHaveCount(6);
+    await expect(legendItems).toHaveCount(5);
+
+    // Set calendar to editable mode to test default selection
+    await page.evaluate(() => {
+        const calendar = document.querySelector('pto-calendar') as any;
+        calendar.setReadonly(false);
+    });
+
+    // Verify "PTO" is selected by default in editable mode
+    const ptoLegendItem = await page.locator('pto-calendar').locator('.legend-item[data-type="PTO"]');
+    await expect(ptoLegendItem).toHaveClass(/selected/);
 
     // Wait for the component to be in editable mode (legend items should be clickable)
     await page.waitForFunction(() => {
@@ -47,13 +57,14 @@ test('pto-calendar component test', async ({ page }) => {
         calendar.setReadonly(false);
     });
 
-    // Test legend item selection
+    // Test legend item selection - click on Sick (since PTO is already selected by default)
     await page.evaluate(() => {
         const calendar = document.querySelector('pto-calendar') as any;
-        const legendItem = calendar.shadowRoot.querySelector('.legend-item[data-type="PTO"]') as HTMLElement;
+        const legendItem = calendar.shadowRoot.querySelector('.legend-item[data-type="Sick"]') as HTMLElement;
         legendItem.click();
     });
-    await expect(legendItem).toHaveClass(/selected/);
+    const sickLegendItem = await page.locator('pto-calendar').locator('.legend-item').filter({ hasText: 'Sick' });
+    await expect(sickLegendItem).toHaveClass(/selected/);
 
     // Test cell selection - click on a weekday cell
     const calendarCells = await page.locator('pto-calendar').locator('.day.clickable');

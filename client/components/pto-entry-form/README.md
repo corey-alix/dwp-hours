@@ -9,6 +9,30 @@ The PTO Entry Form component collects time-off requests with PTO-type specific b
 - **Progressive disclosure**: Shows a calculation breakdown with spillover indication
 - **Validation**: Uses shared business rules for hours, type, and weekday warnings
 - **Calendar toggle**: Opens `pto-calendar` for selecting dates and hours
+- **Unified toolbar**: Common Submit and Cancel buttons for both form and calendar views
+- **View switching**: Toggle between form and calendar views with calendar icon
+- **Keyboard navigation**: Tab through weekdays and legend items in calendar edit mode
+
+## Usage
+
+### Basic Implementation
+```html
+<pto-entry-form></pto-entry-form>
+```
+
+### Event Handling
+```javascript
+const form = document.querySelector('pto-entry-form');
+
+form.addEventListener('pto-submit', (e) => {
+    const request = e.detail.ptoRequest;
+    // request = { startDate, endDate, ptoType, hours }
+});
+
+form.addEventListener('form-cancel', () => {
+    // handle cancel
+});
+```
 
 ## Usage
 
@@ -48,6 +72,22 @@ When hours span multiple workdays, the calculation text is highlighted to indica
 
 ### Calendar Toggle
 Selecting dates/hours in the calendar applies them to the form and switches back to the form view.
+
+## Toolbar and View Integration
+
+### Common Toolbar
+Both form and calendar views share a common toolbar with Submit and Cancel buttons. The Submit button validates and submits the PTO request from either view, while the Cancel button resets the form.
+
+### View Switching
+- The calendar icon in the toolbar toggles between form view (default) and calendar view
+- Form view is optimized for single-day entries
+- Calendar view allows selecting multiple dates and PTO types
+- View switching preserves form state
+
+### Calendar View Features
+- Defaults to "Full PTO" selection
+- Keyboard navigation: Tab through weekdays and legend items to toggle PTO types
+- Date selection applies to form fields when switching back
 
 ## Testing
 Run the component E2E test:
