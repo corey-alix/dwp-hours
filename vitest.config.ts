@@ -5,6 +5,7 @@ export default defineConfig({
         exclude: ['e2e/**', 'node_modules/**'],
         environment: 'node',
         globals: false,
+        bail: 1
     },
     esbuild: {
         target: 'node18',

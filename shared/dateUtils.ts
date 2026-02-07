@@ -224,22 +224,18 @@ export function getWeekdaysBetween(startDateStr: string, endDateStr: string): nu
         throw new Error('Invalid date string format');
     }
 
-    const startDate = new Date(startDateStr);
-    const endDate = new Date(endDateStr);
-
-    if (startDate > endDate) {
+    if (compareDates(startDateStr, endDateStr) > 0) {
         return 0; // Return 0 if start date is after end date
     }
 
     let weekdays = 0;
-    const currentDate = new Date(startDate);
+    let currentDateStr = startDateStr;
 
-    while (currentDate <= endDate) {
-        const dateStr = dateToString(currentDate);
-        if (!isWeekend(dateStr)) {
+    while (compareDates(currentDateStr, endDateStr) <= 0) {
+        if (!isWeekend(currentDateStr)) {
             weekdays++;
         }
-        currentDate.setDate(currentDate.getDate() + 1);
+        currentDateStr = addDays(currentDateStr, 1);
     }
 
     return weekdays;

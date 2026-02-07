@@ -282,16 +282,16 @@ describe('Date Utils', () => {
     describe('getWeekdaysBetween', () => {
         it('should count weekdays between two dates inclusive', () => {
             // Monday to Friday (5 weekdays)
-            expect(getWeekdaysBetween('2026-02-10', '2026-02-14')).toBe(5);
+            expect(getWeekdaysBetween('2026-02-09', '2026-02-13')).toBe(5);
 
             // Single weekday
             expect(getWeekdaysBetween('2026-02-10', '2026-02-10')).toBe(1);
 
             // Including weekend (Friday to Sunday = only Friday is weekday)
-            expect(getWeekdaysBetween('2026-02-07', '2026-02-09')).toBe(1); // Fri only (Sat-Sun skipped)
+            expect(getWeekdaysBetween('2026-02-06', '2026-02-08')).toBe(1); // Fri only (Sat-Sun skipped)
 
             // Week with weekend in middle
-            expect(getWeekdaysBetween('2026-02-10', '2026-02-16')).toBe(5); // Mon-Fri (skip Sat-Sun)
+            expect(getWeekdaysBetween('2026-02-09', '2026-02-15')).toBe(5); // Mon-Fri (skip Sat-Sun)
         });
 
         it('should return 0 when start date is after end date', () => {
