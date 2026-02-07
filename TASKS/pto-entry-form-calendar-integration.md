@@ -34,11 +34,11 @@ Enhance the PTO entry form component by improving the integration between form v
 - [x] run `npm run test` until all tests pass
 
 ### Phase 4: Application E2E Testing
-- [ ] Implement E2E tests for index.html to verify PTO submissions are accepted by the server
-- [ ] Add validation that submitted values are correctly written to the database
-- [ ] Playwright tests for index.html PTO submission flow pass
+- [x] Implement E2E tests for index.html to verify PTO submissions are accepted by the server
+- [x] Add validation that submitted values are correctly written to the database
+- [x] Playwright tests for index.html PTO submission flow pass
 - [ ] Manual testing: Verify end-to-end PTO request submission
-- [ ] run `npm run test` until all tests pass
+- [x] run `npm run test` until all tests pass
 
 ### Phase 5: Documentation and Review
 - [ ] Update component README.md with new toolbar and view integration details
