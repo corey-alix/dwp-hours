@@ -18,7 +18,7 @@ import net from "net";
 import { sendMagicLinkEmail } from "./utils/mailer.js";
 import { PtoEntryDAL } from "./dal/PtoEntryDAL.js";
 import { VALIDATION_MESSAGES, MessageKey } from "../shared/businessRules.js";
-import { performBulkMigration } from "./bulkMigration.js";
+import { performBulkMigration, performFileMigration } from "./bulkMigration.js";
 import { authenticate, authenticateAdmin } from "./utils/auth.js";
 
 const VERSION = `1.0.0`; // INCREMENT BEFORE EACH CHANGE
@@ -906,6 +906,69 @@ initDatabase().then(async () => {
         }
     });
 
+    // Admin endpoints for employee data
+    app.get('/api/employees/:id/monthly-hours', authenticateAdmin(() => dataSource, log), async (req, res) => {
+        try {
+            const { id } = req.params;
+            const employeeIdNum = parseInt(id as string);
+
+            if (isNaN(employeeIdNum)) {
+                log(`Employee monthly hours retrieval failed: Invalid employee ID: ${id}`);
+                return res.status(400).json({ error: 'Invalid employee ID' });
+            }
+
+            const employeeRepo = dataSource.getRepository(Employee);
+            const monthlyHoursRepo = dataSource.getRepository(MonthlyHours);
+
+            const employee = await employeeRepo.findOne({ where: { id: employeeIdNum } });
+            if (!employee) {
+                log(`Employee monthly hours retrieval failed: Employee not found: ${employeeIdNum}`);
+                return res.status(404).json({ error: 'Employee not found' });
+            }
+
+            const hours = await monthlyHoursRepo.find({
+                where: { employee_id: employeeIdNum },
+                order: { month: 'DESC' }
+            });
+
+            res.json(hours);
+        } catch (error) {
+            log(`Error getting employee monthly hours: ${error}`);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    });
+
+    app.get('/api/employees/:id/pto-entries', authenticateAdmin(() => dataSource, log), async (req, res) => {
+        try {
+            const { id } = req.params;
+            const employeeIdNum = parseInt(id as string);
+
+            if (isNaN(employeeIdNum)) {
+                log(`Employee PTO entries retrieval failed: Invalid employee ID: ${id}`);
+                return res.status(400).json({ error: 'Invalid employee ID' });
+            }
+
+            const employeeRepo = dataSource.getRepository(Employee);
+            const ptoEntryRepo = dataSource.getRepository(PtoEntry);
+
+            const employee = await employeeRepo.findOne({ where: { id: employeeIdNum } });
+            if (!employee) {
+                log(`Employee PTO entries retrieval failed: Employee not found: ${employeeIdNum}`);
+                return res.status(404).json({ error: 'Employee not found' });
+            }
+
+            const ptoEntries = await ptoEntryRepo.find({
+                where: { employee_id: employeeIdNum },
+                order: { date: 'DESC' }
+            });
+
+            res.json(ptoEntries);
+        } catch (error) {
+            log(`Error getting employee PTO entries: ${error}`);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    });
+
     // PTO Management routes
     app.get('/api/pto', authenticate(() => dataSource, log), async (req, res) => {
         try {
@@ -1196,6 +1259,32 @@ initDatabase().then(async () => {
                 return res.status(400).json({ error: error.message });
             }
             log(`Error in bulk migration: ${error}`);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    });
+
+    // File-based bulk data import endpoint for migration
+    app.post('/api/migrate/file', authenticateAdmin(() => dataSource, log), async (req, res) => {
+        try {
+            const { employeeEmail, filePath } = req.body;
+            if (!filePath) {
+                return res.status(400).json({ error: 'File path is required' });
+            }
+            const result = await performFileMigration(
+                dataSource,
+                ptoEntryDAL,
+                log,
+                today,
+                isValidDateString,
+                { employeeEmail, filePath }
+            );
+            res.json(result);
+        } catch (error) {
+            log(`Error in file migration: ${error}`);
+            // Check if it's a validation error
+            if (error instanceof Error && error.message === 'Valid employee email is required') {
+                return res.status(400).json({ error: error.message });
+            }
             res.status(500).json({ error: 'Internal server error' });
         }
     });
