@@ -33,14 +33,12 @@ test.describe('Authentication Logout', () => {
         expect(authCookie?.value).toBeTruthy();
         expect(authCookie?.value).not.toBe('');
 
-        // Step 5: Call the /logout endpoint
-        const logoutResponse = await page.request.post('http://localhost:3000/api/auth/logout');
-        expect(logoutResponse.status()).toBe(200);
-        const logoutData = await logoutResponse.json();
-        expect(logoutData.success).toBe(true);
+        // Step 5: Click the logout button
+        const logoutBtn = page.locator('#logout-btn');
+        await expect(logoutBtn).toBeVisible();
+        await logoutBtn.click();
 
-        // Step 6: Verify cookie is gone
-        await page.reload(); // Reload to ensure cookie state is updated
+        // Step 6: Verify we're back to login form
         await expect(page.locator('#login-form')).toBeVisible(); // Should show login form again
 
         // Check that auth_hash cookie is no longer present

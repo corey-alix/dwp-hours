@@ -13,14 +13,15 @@ import "reflect-metadata";
 import { DataSource, Not, IsNull, Between, Like } from "typeorm";
 import { Employee, PtoEntry, MonthlyHours, Acknowledgement, AdminAcknowledgement } from "./entities/index.js";
 import { calculatePTOStatus } from "./ptoCalculations.js";
-import { dateToString } from "../shared/dateUtils.js";
+import { dateToString, getDateComponents, formatDate, endOfMonth, compareDates, isValidDateString, today } from "../shared/dateUtils.js";
 import net from "net";
 import { sendMagicLinkEmail } from "./utils/mailer.js";
 import { PtoEntryDAL } from "./dal/PtoEntryDAL.js";
 import { VALIDATION_MESSAGES, MessageKey } from "../shared/businessRules.js";
+import { performBulkMigration } from "./bulkMigration.js";
 import { authenticate, authenticateAdmin } from "./utils/auth.js";
 
-const VERSION = `1.0.0`;
+const VERSION = `1.0.0`; // INCREMENT BEFORE EACH CHANGE
 const START_TIME = new Date().toISOString();
 
 // running file
@@ -422,28 +423,28 @@ initDatabase().then(async () => {
             }
 
             // Parse month (expected format: YYYY-MM)
-            const monthDate = new Date(month + '-01');
-            if (isNaN(monthDate.getTime())) {
+            const monthStart = month + '-01';
+            if (!isValidDateString(monthStart)) {
                 log(`Hours submission failed: Invalid month format: ${month}`);
                 return res.status(400).json({ error: 'Invalid month format. Use YYYY-MM' });
             }
 
             // Check if hours already exist for this month
             const existingHours = await monthlyHoursRepo.findOne({
-                where: { employee_id: employeeId, month: monthDate }
+                where: { employee_id: employeeId, month: month }
             });
 
             if (existingHours) {
                 // Update existing hours
                 existingHours.hours_worked = hoursNum;
-                existingHours.submitted_at = new Date();
+                existingHours.submitted_at = new Date(today());
                 await monthlyHoursRepo.save(existingHours);
                 res.json({ message: 'Hours updated successfully', hours: existingHours });
             } else {
                 // Create new hours entry
                 const newHours = monthlyHoursRepo.create({
                     employee_id: employeeId,
-                    month: monthDate,
+                    month: month,
                     hours_worked: hoursNum
                 });
                 await monthlyHoursRepo.save(newHours);
@@ -473,7 +474,7 @@ initDatabase().then(async () => {
             if (year) {
                 const yearNum = parseInt(year as string);
                 if (!isNaN(yearNum)) {
-                    whereCondition.month = Between(new Date(yearNum, 0, 1), new Date(yearNum, 11, 31));
+                    whereCondition.month = Between(`${yearNum}-01-01`, `${yearNum}-12-31`);
                 }
             }
 
@@ -510,15 +511,15 @@ initDatabase().then(async () => {
             }
 
             // Parse month (expected format: YYYY-MM)
-            const monthDate = new Date(month + '-01');
-            if (isNaN(monthDate.getTime())) {
+            const monthStart = month + '-01';
+            if (!isValidDateString(monthStart)) {
                 log(`Acknowledgement submission failed: Invalid month format: ${month}`);
                 return res.status(400).json({ error: 'Invalid month format. Use YYYY-MM' });
             }
 
             // Check if acknowledgement already exists for this month
             const existingAck = await acknowledgementRepo.findOne({
-                where: { employee_id: employeeId, month: monthDate }
+                where: { employee_id: employeeId, month: month }
             });
 
             if (existingAck) {
@@ -529,7 +530,7 @@ initDatabase().then(async () => {
             // Create new acknowledgement
             const newAck = acknowledgementRepo.create({
                 employee_id: employeeId,
-                month: monthDate
+                month: month
             });
             await acknowledgementRepo.save(newAck);
 
@@ -569,6 +570,7 @@ initDatabase().then(async () => {
     app.get('/api/monthly-summary/:month', authenticate(() => dataSource, log), async (req, res) => {
         try {
             const { month } = req.params;
+            const monthStr = Array.isArray(month) ? month[0] : month;
             const requestedEmployeeId = req.employee!.id;
 
             const employeeRepo = dataSource.getRepository(Employee);
@@ -582,23 +584,20 @@ initDatabase().then(async () => {
             }
 
             // Parse month (expected format: YYYY-MM)
-            const monthDate = new Date(month + '-01');
-            if (isNaN(monthDate.getTime())) {
-                log(`Monthly summary request failed: Invalid month format: ${month}`);
+            const monthStart = monthStr + '-01';
+            if (!isValidDateString(monthStart)) {
+                log(`Monthly summary request failed: Invalid month format: ${monthStr}`);
                 return res.status(400).json({ error: 'Invalid month format. Use YYYY-MM' });
             }
 
             // Get monthly hours for the month
             const monthlyHours = await monthlyHoursRepo.findOne({
-                where: { employee_id: requestedEmployeeId, month: monthDate }
+                where: { employee_id: requestedEmployeeId, month: monthStr }
             });
 
             // Get PTO entries for the month
-            const startOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
-            const endOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
-
-            const startOfMonthStr = startOfMonth.toISOString().split('T')[0];
-            const endOfMonthStr = endOfMonth.toISOString().split('T')[0];
+            const startOfMonthStr = monthStart;
+            const endOfMonthStr = endOfMonth(monthStart);
 
             const ptoEntries = await ptoEntryRepo
                 .createQueryBuilder('entry')
@@ -804,7 +803,7 @@ initDatabase().then(async () => {
             employee.identifier = identifier;
             employee.pto_rate = pto_rate !== undefined ? parseFloat(pto_rate) : 0.71;
             employee.carryover_hours = carryover_hours !== undefined ? parseFloat(carryover_hours) : 0;
-            employee.hire_date = hire_date ? new Date(hire_date) : new Date();
+            employee.hire_date = hire_date ? new Date(hire_date) : new Date(today());
             employee.role = role || 'Employee';
 
             await employeeRepo.save(employee);
@@ -927,8 +926,8 @@ initDatabase().then(async () => {
 
             if (startDate || endDate) {
                 whereCondition.date = {};
-                if (startDate) whereCondition.date.$gte = new Date(startDate as string);
-                if (endDate) whereCondition.date.$lte = new Date(endDate as string);
+                if (startDate) whereCondition.date.$gte = startDate as string;
+                if (endDate) whereCondition.date.$lte = endDate as string;
             }
 
             const ptoEntries = await ptoEntryRepo.find({
@@ -1118,7 +1117,7 @@ initDatabase().then(async () => {
             const authenticatedEmployeeId = req.employee!.id;
 
             // Validate year parameter
-            const currentYear = new Date().getFullYear();
+            const currentYear = parseInt(today().split('-')[0]);
             if (isNaN(yearNum) || yearNum < currentYear - 10 || yearNum >= currentYear) {
                 return res.status(400).json({
                     error: 'Invalid year parameter. Year must be between ' + (currentYear - 10) + ' and ' + (currentYear - 1)
@@ -1142,17 +1141,17 @@ initDatabase().then(async () => {
             // Group PTO entries by month
             const months = [];
             for (let month = 1; month <= 12; month++) {
-                const monthStart = new Date(yearNum, month - 1, 1);
-                const monthEnd = new Date(yearNum, month, 0); // Last day of month
+                const monthStart = formatDate(yearNum, month, 1);
+                const monthEnd = endOfMonth(monthStart);
 
                 const monthEntries = ptoEntries.filter(entry => {
-                    const entryDate = new Date(entry.date);
-                    return entryDate >= monthStart && entryDate <= monthEnd;
+                    return compareDates(entry.date, monthStart) >= 0 && compareDates(entry.date, monthEnd) <= 0;
                 });
 
                 // Calculate summary for the month
+                const { day: totalDays } = getDateComponents(monthEnd);
                 const summary = {
-                    totalDays: monthEnd.getDate(),
+                    totalDays,
                     ptoHours: monthEntries.filter(e => e.type === 'PTO').reduce((sum, e) => sum + e.hours, 0),
                     sickHours: monthEntries.filter(e => e.type === 'Sick').reduce((sum, e) => sum + e.hours, 0),
                     bereavementHours: monthEntries.filter(e => e.type === 'Bereavement').reduce((sum, e) => sum + e.hours, 0),
@@ -1176,6 +1175,27 @@ initDatabase().then(async () => {
             });
         } catch (error) {
             log(`Error getting PTO year review: ${error}`);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    });
+
+    // Bulk data import endpoint for migration
+    app.post('/api/migrate/bulk', authenticateAdmin(() => dataSource, log), async (req, res) => {
+        try {
+            const result = await performBulkMigration(
+                dataSource,
+                ptoEntryDAL,
+                log,
+                today,
+                isValidDateString,
+                req.body
+            );
+            res.json(result);
+        } catch (error) {
+            if (error instanceof Error && error.message === 'Valid employee email is required') {
+                return res.status(400).json({ error: error.message });
+            }
+            log(`Error in bulk migration: ${error}`);
             res.status(500).json({ error: 'Internal server error' });
         }
     });

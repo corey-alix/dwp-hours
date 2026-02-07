@@ -9,8 +9,8 @@ export class MonthlyHours {
     @Column({ type: "integer" })
     employee_id!: number;
 
-    @Column({ type: "date" })
-    month!: Date;
+    @Column({ type: "text" })
+    month!: string;
 
     @Column({ type: "real" })
     hours_worked!: number;

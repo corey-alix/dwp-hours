@@ -32,7 +32,7 @@ CREATE INDEX IF NOT EXISTS idx_pto_entries_date ON pto_entries(date);
 CREATE TABLE IF NOT EXISTS monthly_hours (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   employee_id INTEGER NOT NULL,
-  month DATE NOT NULL,
+  month TEXT NOT NULL,
   hours_worked REAL NOT NULL,
   submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS monthly_hours (
 CREATE TABLE IF NOT EXISTS acknowledgements (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   employee_id INTEGER NOT NULL,
-  month DATE NOT NULL,
+  month TEXT NOT NULL,
   acknowledged_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
 );

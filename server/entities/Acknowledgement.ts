@@ -9,8 +9,8 @@ export class Acknowledgement {
     @Column({ type: "integer" })
     employee_id!: number;
 
-    @Column({ type: "date" })
-    month!: Date;
+    @Column({ type: "text" })
+    month!: string;
 
     @Column({ type: "datetime", default: () => "CURRENT_TIMESTAMP" })
     acknowledged_at!: Date;

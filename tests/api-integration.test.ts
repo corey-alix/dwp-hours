@@ -118,13 +118,8 @@ function setupIntegrationRoutes(app: express.Application) {
                 return res.status(404).json({ error: 'Employee not found' });
             }
 
-            const monthDate = new Date(month + '-01');
-            if (isNaN(monthDate.getTime())) {
-                return res.status(400).json({ error: 'Invalid month format. Use YYYY-MM' });
-            }
-
             const existingHours = await dataSource.getRepository(MonthlyHours).findOne({
-                where: { employee_id: employeeIdNum, month: monthDate }
+                where: { employee_id: employeeIdNum, month: month }
             });
 
             if (existingHours) {
@@ -135,7 +130,7 @@ function setupIntegrationRoutes(app: express.Application) {
             } else {
                 const newHours = dataSource.getRepository(MonthlyHours).create({
                     employee_id: employeeIdNum,
-                    month: monthDate,
+                    month: month,
                     hours_worked: hoursNum
                 });
                 await dataSource.getRepository(MonthlyHours).save(newHours);
