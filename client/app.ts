@@ -3,7 +3,7 @@ import type * as ApiTypes from './api-types.js';
 import { APIClient } from './APIClient.js';
 
 // Import date utilities
-import { addDays, isWeekend } from '../shared/dateUtils.js';
+import { addDays, isWeekend, getCurrentYear, formatDateForDisplay, getWorkdaysBetween, parseDate, formatDate, getCurrentMonth } from '../shared/dateUtils.js';
 
 // Import components and test utilities
 import './components/index.js';
@@ -336,7 +336,7 @@ class UIManager {
 
     private handleAcknowledgeEmployee(employeeId: number): void {
         // Show month selection dialog for acknowledgment
-        const month = prompt("Enter month to acknowledge (YYYY-MM):", new Date().toISOString().slice(0, 7));
+        const month = prompt("Enter month to acknowledge (YYYY-MM):", getCurrentMonth());
         if (month) {
             this.submitAdminAcknowledgment(employeeId, month);
         }
@@ -372,8 +372,8 @@ class UIManager {
             const entries = await api.getPTOEntries();
 
             const statusDiv = querySingle("#pto-status");
-            const hireDate = new Date(status.hireDate).toLocaleDateString();
-            const nextRolloverDate = new Date(status.nextRolloverDate).toLocaleDateString('en-US', {
+            const hireDate = formatDateForDisplay(status.hireDate);
+            const nextRolloverDate = formatDateForDisplay(status.nextRolloverDate, {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric'
@@ -397,22 +397,22 @@ class UIManager {
             const accrualCard = createElement<PtoAccrualCard>('pto-accrual-card');
             accrualCard.monthlyAccruals = status.monthlyAccruals;
             accrualCard.ptoEntries = entries;
-            accrualCard.calendarYear = new Date().getFullYear();
-            accrualCard.monthlyUsage = this.buildMonthlyUsage(entries, new Date().getFullYear());
+            accrualCard.calendarYear = getCurrentYear();
+            accrualCard.monthlyUsage = this.buildMonthlyUsage(entries, getCurrentYear());
             accrualCard.setAttribute('request-mode', 'true'); // Enable calendar editing
             accrualCard.setAttribute('annual-allocation', status.annualAllocation.toString());
 
             const sickCard = createElement<PtoSickCard>('pto-sick-card');
             sickCard.bucket = status.sickTime;
-            sickCard.usageEntries = this.buildUsageEntries(entries, new Date().getFullYear(), 'Sick');
+            sickCard.usageEntries = this.buildUsageEntries(entries, getCurrentYear(), 'Sick');
 
             const bereavementCard = createElement('pto-bereavement-card') as PtoBereavementCard;
             bereavementCard.bucket = status.bereavementTime;
-            bereavementCard.usageEntries = this.buildUsageEntries(entries, new Date().getFullYear(), 'Bereavement');
+            bereavementCard.usageEntries = this.buildUsageEntries(entries, getCurrentYear(), 'Bereavement');
 
             const juryDutyCard = createElement('pto-jury-duty-card') as PtoJuryDutyCard;
             juryDutyCard.bucket = status.juryDutyTime;
-            juryDutyCard.usageEntries = this.buildUsageEntries(entries, new Date().getFullYear(), 'Jury Duty');
+            juryDutyCard.usageEntries = this.buildUsageEntries(entries, getCurrentYear(), 'Jury Duty');
 
             const employeeInfoCard = createElement('pto-employee-info-card') as PtoEmployeeInfoCard;
             employeeInfoCard.info = { hireDate, nextRolloverDate };
@@ -448,13 +448,12 @@ class UIManager {
                 continue;
             }
 
-            const entryDate = new Date(entry.date);
-            if (Number.isNaN(entryDate.getTime()) || entryDate.getFullYear() !== year) {
+            const { year: entryYear } = parseDate(entry.date);
+            if (entryYear !== year) {
                 continue;
             }
 
-            const dateKey = `${entryDate.getFullYear()}-${String(entryDate.getMonth() + 1).padStart(2, '0')}-${String(entryDate.getDate()).padStart(2, '0')}`;
-            hoursByDate.set(dateKey, (hoursByDate.get(dateKey) ?? 0) + entry.hours);
+            hoursByDate.set(entry.date, (hoursByDate.get(entry.date) ?? 0) + entry.hours);
         }
 
         const result = Array.from(hoursByDate.entries())
@@ -475,13 +474,12 @@ class UIManager {
                 continue;
             }
 
-            const entryDate = new Date(entry.date);
-            if (Number.isNaN(entryDate.getTime()) || entryDate.getFullYear() !== year) {
+            const { year: entryYear, month: entryMonth } = parseDate(entry.date);
+            if (entryYear !== year) {
                 continue;
             }
 
-            const month = entryDate.getMonth() + 1;
-            usageByMonth.set(month, (usageByMonth.get(month) ?? 0) + (entry.hours ?? 0));
+            usageByMonth.set(entryMonth, (usageByMonth.get(entryMonth) ?? 0) + (entry.hours ?? 0));
         }
 
         return Array.from(usageByMonth.entries())
@@ -489,22 +487,8 @@ class UIManager {
             .sort((a, b) => a.month - b.month);
     }
 
-    private getWorkdaysBetween(startDate: Date, endDate: Date): Date[] {
-        const days: Date[] = [];
-        const current = new Date(startDate);
-        current.setHours(0, 0, 0, 0);
-        const end = new Date(endDate);
-        end.setHours(0, 0, 0, 0);
-
-        while (current <= end) {
-            const dayOfWeek = current.getDay();
-            if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-                days.push(new Date(current));
-            }
-            current.setDate(current.getDate() + 1);
-        }
-
-        return days;
+    private getWorkdaysBetween(startDateStr: string, endDateStr: string): string[] {
+        return getWorkdaysBetween(startDateStr, endDateStr);
     }
 
     private async handlePtoRequestSubmit(e: CustomEvent): Promise<void> {
@@ -589,26 +573,27 @@ class UIManager {
         const accrualCard = createElement<PtoAccrualCard>('pto-accrual-card');
         accrualCard.monthlyAccruals = status.monthlyAccruals;
         accrualCard.ptoEntries = entries;
-        accrualCard.calendarYear = new Date().getFullYear();
-        accrualCard.monthlyUsage = this.buildMonthlyUsage(entries, new Date().getFullYear());
+        accrualCard.calendarYear = getCurrentYear();
+        accrualCard.monthlyUsage = this.buildMonthlyUsage(entries, getCurrentYear());
         accrualCard.setAttribute('request-mode', 'true');
         accrualCard.setAttribute('annual-allocation', status.annualAllocation.toString());
 
         const sickCard = createElement<PtoSickCard>('pto-sick-card');
         sickCard.bucket = status.sickTime;
-        sickCard.usageEntries = this.buildUsageEntries(entries, new Date().getFullYear(), 'Sick');
+        sickCard.usageEntries = this.buildUsageEntries(entries, getCurrentYear(), 'Sick');
 
         const bereavementCard = createElement<PtoBereavementCard>('pto-bereavement-card');
         bereavementCard.bucket = status.bereavementTime;
-        bereavementCard.usageEntries = this.buildUsageEntries(entries, new Date().getFullYear(), 'Bereavement');
+        bereavementCard.usageEntries = this.buildUsageEntries(entries, getCurrentYear(), 'Bereavement');
 
         const juryDutyCard = createElement<PtoJuryDutyCard>('pto-jury-duty-card');
         juryDutyCard.bucket = status.juryDutyTime;
-        juryDutyCard.usageEntries = this.buildUsageEntries(entries, new Date().getFullYear(), 'Jury Duty');
+        juryDutyCard.usageEntries = this.buildUsageEntries(entries, getCurrentYear(), 'Jury Duty');
 
         const employeeInfoCard = createElement<PtoEmployeeInfoCard>('pto-employee-info-card');
         employeeInfoCard.info = {
-            hireDate: new Date(status.hireDate).toLocaleDateString(), nextRolloverDate: new Date(status.nextRolloverDate).toLocaleDateString('en-US', {
+            hireDate: formatDateForDisplay(status.hireDate),
+            nextRolloverDate: formatDateForDisplay(status.nextRolloverDate, {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric'

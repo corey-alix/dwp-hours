@@ -242,6 +242,57 @@ export function getWeekdaysBetween(startDateStr: string, endDateStr: string): nu
 }
 
 /**
+ * Gets the current year
+ */
+export function getCurrentYear(): number {
+    const now = new Date();
+    return now.getFullYear();
+}
+
+/**
+ * Gets the current month in YYYY-MM format
+ */
+export function getCurrentMonth(): string {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    return `${year.toString().padStart(4, '0')}-${month.toString().padStart(2, '0')}`;
+}
+
+/**
+ * Formats a date string for display using locale formatting
+ */
+export function formatDateForDisplay(dateStr: string, options?: Intl.DateTimeFormatOptions): string {
+    const { year, month, day } = parseDate(dateStr);
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString('en-US', options);
+}
+
+/**
+ * Gets all workdays (weekdays) between two dates as an array of date strings
+ * @param startDateStr - Start date in YYYY-MM-DD format
+ * @param endDateStr - End date in YYYY-MM-DD format
+ * @returns Array of YYYY-MM-DD strings representing workdays
+ */
+export function getWorkdaysBetween(startDateStr: string, endDateStr: string): string[] {
+    if (!isValidDateString(startDateStr) || !isValidDateString(endDateStr)) {
+        throw new Error('Invalid date string format');
+    }
+
+    const workdays: string[] = [];
+    let currentDateStr = startDateStr;
+
+    while (compareDates(currentDateStr, endDateStr) <= 0) {
+        if (!isWeekend(currentDateStr)) {
+            workdays.push(currentDateStr);
+        }
+        currentDateStr = addDays(currentDateStr, 1);
+    }
+
+    return workdays;
+}
+
+/**
  * Calculate end date by adding hours with spillover logic (skip weekends)
  * Assumes 8 hours per workday, spills over to next business day when exceeding 8 hours
  * @param startDateStr - Start date in YYYY-MM-DD format
