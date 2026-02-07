@@ -32,11 +32,11 @@ Create an end-to-end Playwright test that adds a new employee and then edits tha
 - [x] Run `npm run test` to ensure no regressions
 
 ### Stage 4: E2E Add Flow (Playwright Test)
-- [ ] Use `/api/test/reload-database` with a seeded snapshot as the E2E test setup
-- [ ] Add Playwright E2E test for adding a new employee
-- [ ] Assert new employee appears in list after submission
-- [ ] Run `npm run test` to ensure no regressions
-- [ ] Add negative test case for invalid email identifier format
+- [x] Use `/api/test/reload-database` with a seeded snapshot as the E2E test setup
+- [x] Add Playwright E2E test for adding a new employee
+- [x] Assert new employee appears in list after submission
+- [x] Run `npm run test` to ensure no regressions
+- [x] Add negative test case for invalid email identifier format
 
 ### Stage 5: E2E Edit Flow (Playwright Test)
 - [ ] Extend E2E test to edit the created employee and assert updates

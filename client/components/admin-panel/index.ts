@@ -228,7 +228,7 @@ export class AdminPanel extends HTMLElement {
                 const employeeForm = this._showEmployeeForm ? 
                     `<employee-form employee='${JSON.stringify(this._editingEmployee)}' is-edit='${!!this._editingEmployee}'></employee-form>` : 
                     '';
-                return `<employee-list></employee-list>${employeeForm}`;
+                return `<employee-list employees='${JSON.stringify(this._employees)}'></employee-list>${employeeForm}`;
             case 'pto-requests':
                 return '<pto-request-queue></pto-request-queue>';
             case 'reports':
