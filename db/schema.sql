@@ -68,5 +68,17 @@ CREATE TABLE IF NOT EXISTS admin_acknowledgements (
 
 -- Create indexes for admin acknowledgements
 CREATE INDEX IF NOT EXISTS idx_admin_acknowledgements_employee_id ON admin_acknowledgements(employee_id);
-CREATE INDEX IF NOT EXISTS idx_admin_acknowledgements_month ON admin_acknowledgements(month);
 CREATE INDEX IF NOT EXISTS idx_admin_acknowledgements_admin_id ON admin_acknowledgements(admin_id);
+CREATE INDEX IF NOT EXISTS idx_admin_acknowledgements_month ON admin_acknowledgements(month);
+
+-- Create sessions table
+CREATE TABLE IF NOT EXISTS sessions (
+  token TEXT PRIMARY KEY,
+  employee_id INTEGER NOT NULL,
+  expires_at DATETIME NOT NULL,
+  FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+-- Create indexes for sessions
+CREATE INDEX IF NOT EXISTS idx_sessions_employee_id ON sessions(employee_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);

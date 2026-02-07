@@ -40,12 +40,14 @@ try {
         DELETE FROM acknowledgements;
         DELETE FROM monthly_hours;
         DELETE FROM pto_entries;
+        DELETE FROM sessions;
         DELETE FROM employees;
         DELETE FROM sqlite_sequence WHERE name='employees';
         DELETE FROM sqlite_sequence WHERE name='pto_entries';
         DELETE FROM sqlite_sequence WHERE name='monthly_hours';
         DELETE FROM sqlite_sequence WHERE name='acknowledgements';
         DELETE FROM sqlite_sequence WHERE name='admin_acknowledgements';
+        DELETE FROM sqlite_sequence WHERE name='sessions';
     `);
 
     // Insert seed employees

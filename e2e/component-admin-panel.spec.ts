@@ -7,7 +7,30 @@ test('admin-panel component test', async ({ page }) => {
         consoleMessages.push({ type: msg.type(), text: msg.text() });
     });
 
-    // Navigate to the test page
+    // Navigate to the main app first to authenticate
+    await page.goto('http://localhost:3000');
+
+    // Fill out login form with admin user email
+    await page.fill('#identifier', 'admin@example.com');
+    await page.click('#login-form button[type="submit"]');
+
+    // Wait for magic link to appear
+    await page.waitForSelector('#login-message', { timeout: 10000 });
+    const magicLink = page.locator('#login-message a');
+    await expect(magicLink).toBeVisible();
+
+    // Click the magic link to login
+    await magicLink.click();
+
+    // Wait for dashboard to load (confirms authentication worked)
+    await page.waitForSelector('#dashboard', { timeout: 10000 });
+
+    // Check that auth cookie is set
+    const cookies = await page.context().cookies();
+    const authCookie = cookies.find(c => c.name === 'auth_hash');
+    expect(authCookie).toBeTruthy();
+
+    // Now navigate to the test page
     await page.goto('/components/admin-panel/test.html');
 
     // Wait for the page to load and component to initialize

@@ -23,16 +23,7 @@ import { authenticate, authenticateAdmin } from "./utils/auth.js";
 
 dotenv.config();
 
-// Configuration validation
-const requiredEnvVars = ['HASH_SALT'];
-const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
 
-if (missingEnvVars.length > 0) {
-    console.error('Missing required environment variables:', missingEnvVars);
-    console.error('Please set the following in your .env file:');
-    missingEnvVars.forEach(envVar => console.error(`- ${envVar}`));
-    process.exit(1);
-}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -301,16 +292,18 @@ initDatabase().then(async () => {
                 return res.status(401).json({ error: 'Invalid token' });
             }
 
-            // Create session token: hash(employee_id + timestamp + salt) with 30-day expiration
+            // Create session token: employeeId.timestamp.signature (sha256 of employeeId:timestamp:salt)
             const sessionTimestamp = Date.now();
-            const sessionToken = crypto.createHash('sha256')
+            const signature = crypto.createHash('sha256')
                 .update(`${validEmployee.id}:${sessionTimestamp}:${process.env.HASH_SALT || 'default_salt'}`)
                 .digest('hex');
+            const sessionToken = `${validEmployee.id}.${sessionTimestamp}.${signature}`;
 
             // Return session token and employee info
+            log(`Auth validation successful for employee ${validEmployee.id} (${validEmployee.name})`);
             res.json({
                 authToken: sessionToken,
-                expiresAt: sessionTimestamp + (30 * 24 * 60 * 60 * 1000), // 30 days
+                expiresAt: sessionTimestamp + (1 * 24 * 60 * 60 * 1000), // 1 day for testing
                 employee: { id: validEmployee.id, name: validEmployee.name, role: validEmployee.role }
             });
         } catch (error) {
@@ -320,27 +313,20 @@ initDatabase().then(async () => {
     });
 
     // PTO routes
-    app.get('/api/pto/status/:employeeId', authenticate(dataSource, log), async (req, res) => {
+    app.get('/api/pto/status', authenticate(() => dataSource, log), async (req, res) => {
         try {
-            const { employeeId } = req.params;
-            const requestedEmployeeId = parseInt(employeeId as string);
             const authenticatedEmployeeId = req.employee!.id;
-
-            // Allow users to view their own PTO status, or admins to view anyone's PTO status
-            const targetEmployeeId = (req.employee!.role === 'Admin' && !isNaN(requestedEmployeeId))
-                ? requestedEmployeeId
-                : authenticatedEmployeeId;
 
             const employeeRepo = dataSource.getRepository(Employee);
             const ptoEntryRepo = dataSource.getRepository(PtoEntry);
 
-            const employee = await employeeRepo.findOne({ where: { id: targetEmployeeId } });
+            const employee = await employeeRepo.findOne({ where: { id: authenticatedEmployeeId } });
             if (!employee) {
-                log(`PTO status request failed: Employee not found: ${targetEmployeeId}`);
+                log(`PTO status request failed: Employee not found: ${authenticatedEmployeeId}`);
                 return res.status(404).json({ error: 'Employee not found' });
             }
 
-            const ptoEntries = await ptoEntryRepo.find({ where: { employee_id: targetEmployeeId } });
+            const ptoEntries = await ptoEntryRepo.find({ where: { employee_id: authenticatedEmployeeId } });
 
             // Convert to PTO calculation format
             const hireDate = employee.hire_date instanceof Date
@@ -376,7 +362,7 @@ initDatabase().then(async () => {
     });
 
     // Monthly Hours routes
-    app.post('/api/hours', authenticate(dataSource, log), async (req, res) => {
+    app.post('/api/hours', authenticate(() => dataSource, log), async (req, res) => {
         try {
             const { month, hours } = req.body;
             const employeeId = req.employee!.id; // Use authenticated user's ID
@@ -442,28 +428,21 @@ initDatabase().then(async () => {
         }
     });
 
-    app.get('/api/hours/:employeeId', authenticate(dataSource, log), async (req, res) => {
+    app.get('/api/hours', authenticate(() => dataSource, log), async (req, res) => {
         try {
-            const { employeeId } = req.params;
             const { year } = req.query;
-            const requestedEmployeeId = parseInt(employeeId as string);
-            const authenticatedEmployeeId = req.employee!.id;
-
-            // Allow users to view their own hours, or admins to view anyone's hours
-            const targetEmployeeId = (req.employee!.role === 'Admin' && !isNaN(requestedEmployeeId))
-                ? requestedEmployeeId
-                : authenticatedEmployeeId;
+            const requestedEmployeeId = req.employee!.id;
 
             const employeeRepo = dataSource.getRepository(Employee);
             const monthlyHoursRepo = dataSource.getRepository(MonthlyHours);
 
-            const employee = await employeeRepo.findOne({ where: { id: targetEmployeeId } });
+            const employee = await employeeRepo.findOne({ where: { id: requestedEmployeeId } });
             if (!employee) {
-                log(`Hours retrieval failed: Employee not found: ${targetEmployeeId}`);
+                log(`Hours retrieval failed: Employee not found: ${requestedEmployeeId}`);
                 return res.status(404).json({ error: 'Employee not found' });
             }
 
-            let whereCondition: any = { employee_id: targetEmployeeId };
+            let whereCondition: any = { employee_id: requestedEmployeeId };
             if (year) {
                 const yearNum = parseInt(year as string);
                 if (!isNaN(yearNum)) {
@@ -476,7 +455,7 @@ initDatabase().then(async () => {
                 order: { month: 'DESC' }
             });
 
-            res.json({ employeeId: targetEmployeeId, hours });
+            res.json({ employeeId: requestedEmployeeId, hours });
         } catch (error) {
             log(`Error getting hours: ${error}`);
             res.status(500).json({ error: 'Internal server error' });
@@ -484,7 +463,7 @@ initDatabase().then(async () => {
     });
 
     // Acknowledgement routes
-    app.post('/api/acknowledgements', authenticate(dataSource, log), async (req, res) => {
+    app.post('/api/acknowledgements', authenticate(() => dataSource, log), async (req, res) => {
         try {
             const { month } = req.body;
             const employeeId = req.employee!.id; // Use authenticated user's ID
@@ -534,32 +513,25 @@ initDatabase().then(async () => {
         }
     });
 
-    app.get('/api/acknowledgements/:employeeId', authenticate(dataSource, log), async (req, res) => {
+    app.get('/api/acknowledgements', authenticate(() => dataSource, log), async (req, res) => {
         try {
-            const { employeeId } = req.params;
-            const requestedEmployeeId = parseInt(employeeId as string);
-            const authenticatedEmployeeId = req.employee!.id;
-
-            // Allow users to view their own acknowledgements, or admins to view anyone's acknowledgements
-            const targetEmployeeId = (req.employee!.role === 'Admin' && !isNaN(requestedEmployeeId))
-                ? requestedEmployeeId
-                : authenticatedEmployeeId;
+            const requestedEmployeeId = req.employee!.id;
 
             const employeeRepo = dataSource.getRepository(Employee);
             const acknowledgementRepo = dataSource.getRepository(Acknowledgement);
 
-            const employee = await employeeRepo.findOne({ where: { id: targetEmployeeId } });
+            const employee = await employeeRepo.findOne({ where: { id: requestedEmployeeId } });
             if (!employee) {
-                log(`Acknowledgement retrieval failed: Employee not found: ${targetEmployeeId}`);
+                log(`Acknowledgement retrieval failed: Employee not found: ${requestedEmployeeId}`);
                 return res.status(404).json({ error: 'Employee not found' });
             }
 
             const acknowledgements = await acknowledgementRepo.find({
-                where: { employee_id: targetEmployeeId },
+                where: { employee_id: requestedEmployeeId },
                 order: { month: 'DESC' }
             });
 
-            res.json({ employeeId: targetEmployeeId, acknowledgements });
+            res.json({ employeeId: requestedEmployeeId, acknowledgements });
         } catch (error) {
             log(`Error getting acknowledgements: ${error}`);
             res.status(500).json({ error: 'Internal server error' });
@@ -567,24 +539,18 @@ initDatabase().then(async () => {
     });
 
     // Monthly summary for acknowledgements
-    app.get('/api/monthly-summary/:employeeId/:month', authenticate(dataSource, log), async (req, res) => {
+    app.get('/api/monthly-summary/:month', authenticate(() => dataSource, log), async (req, res) => {
         try {
-            const { employeeId, month } = req.params;
-            const requestedEmployeeId = parseInt(employeeId as string);
-            const authenticatedEmployeeId = req.employee!.id;
-
-            // Allow users to view their own summaries, or admins to view anyone's summaries
-            const targetEmployeeId = (req.employee!.role === 'Admin' && !isNaN(requestedEmployeeId))
-                ? requestedEmployeeId
-                : authenticatedEmployeeId;
+            const { month } = req.params;
+            const requestedEmployeeId = req.employee!.id;
 
             const employeeRepo = dataSource.getRepository(Employee);
             const ptoEntryRepo = dataSource.getRepository(PtoEntry);
             const monthlyHoursRepo = dataSource.getRepository(MonthlyHours);
 
-            const employee = await employeeRepo.findOne({ where: { id: targetEmployeeId } });
+            const employee = await employeeRepo.findOne({ where: { id: requestedEmployeeId } });
             if (!employee) {
-                log(`Monthly summary request failed: Employee not found: ${targetEmployeeId}`);
+                log(`Monthly summary request failed: Employee not found: ${requestedEmployeeId}`);
                 return res.status(404).json({ error: 'Employee not found' });
             }
 
@@ -597,7 +563,7 @@ initDatabase().then(async () => {
 
             // Get monthly hours for the month
             const monthlyHours = await monthlyHoursRepo.findOne({
-                where: { employee_id: targetEmployeeId, month: monthDate }
+                where: { employee_id: requestedEmployeeId, month: monthDate }
             });
 
             // Get PTO entries for the month
@@ -609,7 +575,7 @@ initDatabase().then(async () => {
 
             const ptoEntries = await ptoEntryRepo
                 .createQueryBuilder('entry')
-                .where('entry.employee_id = :employeeId', { employeeId: targetEmployeeId })
+                .where('entry.employee_id = :employeeId', { employeeId: requestedEmployeeId })
                 .andWhere('entry.date >= :startDate', { startDate: startOfMonthStr })
                 .andWhere('entry.date <= :endDate', { endDate: endOfMonthStr })
                 .getMany();
@@ -629,7 +595,7 @@ initDatabase().then(async () => {
             });
 
             res.json({
-                employeeId: targetEmployeeId,
+                employeeId: requestedEmployeeId,
                 month,
                 hoursWorked: monthlyHours ? monthlyHours.hours_worked : 0,
                 ptoUsage: ptoByCategory
@@ -641,7 +607,7 @@ initDatabase().then(async () => {
     });
 
     // Admin Acknowledgement routes
-    app.post('/api/admin-acknowledgements', authenticateAdmin(dataSource, log), async (req, res) => {
+    app.post('/api/admin-acknowledgements', authenticateAdmin(() => dataSource, log), async (req, res) => {
         try {
             const { employeeId, month } = req.body;
             const adminId = req.employee!.id; // Use authenticated admin's ID
@@ -699,7 +665,7 @@ initDatabase().then(async () => {
         }
     });
 
-    app.get('/api/admin-acknowledgements/:employeeId', authenticateAdmin(dataSource, log), async (req, res) => {
+    app.get('/api/admin-acknowledgements/:employeeId', authenticateAdmin(() => dataSource, log), async (req, res) => {
         try {
             const { employeeId } = req.params;
             const employeeIdNum = parseInt(employeeId as string);
@@ -733,7 +699,7 @@ initDatabase().then(async () => {
     });
 
     // Enhanced Employee routes
-    app.get('/api/employees', authenticateAdmin(dataSource, log), async (req, res) => {
+    app.get('/api/employees', authenticateAdmin(() => dataSource, log), async (req, res) => {
         try {
             const { search, role } = req.query;
             const employeeRepo = dataSource.getRepository(Employee);
@@ -761,7 +727,7 @@ initDatabase().then(async () => {
         }
     });
 
-    app.get('/api/employees/:id', authenticateAdmin(dataSource, log), async (req, res) => {
+    app.get('/api/employees/:id', authenticateAdmin(() => dataSource, log), async (req, res) => {
         try {
             const { id } = req.params;
             const employeeIdNum = parseInt(id as string);
@@ -786,7 +752,7 @@ initDatabase().then(async () => {
         }
     });
 
-    app.post('/api/employees', authenticateAdmin(dataSource, log), async (req, res) => {
+    app.post('/api/employees', authenticateAdmin(() => dataSource, log), async (req, res) => {
         try {
             const { name, identifier, pto_rate, carryover_hours, hire_date, role } = req.body;
 
@@ -823,7 +789,7 @@ initDatabase().then(async () => {
         }
     });
 
-    app.put('/api/employees/:id', authenticateAdmin(dataSource, log), async (req, res) => {
+    app.put('/api/employees/:id', authenticateAdmin(() => dataSource, log), async (req, res) => {
         try {
             const { id } = req.params;
             const employeeIdNum = parseInt(id as string);
@@ -887,7 +853,7 @@ initDatabase().then(async () => {
         }
     });
 
-    app.delete('/api/employees/:id', authenticateAdmin(dataSource, log), async (req, res) => {
+    app.delete('/api/employees/:id', authenticateAdmin(() => dataSource, log), async (req, res) => {
         try {
             const { id } = req.params;
             const employeeIdNum = parseInt(id as string);
@@ -915,7 +881,7 @@ initDatabase().then(async () => {
     });
 
     // PTO Management routes
-    app.get('/api/pto', authenticate(dataSource, log), async (req, res) => {
+    app.get('/api/pto', authenticate(() => dataSource, log), async (req, res) => {
         try {
             const { type, startDate, endDate } = req.query;
             const authenticatedEmployeeId = req.employee!.id;
@@ -958,7 +924,7 @@ initDatabase().then(async () => {
         }
     });
 
-    app.post('/api/pto', authenticate(dataSource, log), async (req, res) => {
+    app.post('/api/pto', authenticate(() => dataSource, log), async (req, res) => {
         try {
             const { date, hours, type, requests } = req.body;
             const authenticatedEmployeeId = req.employee!.id;
@@ -1041,7 +1007,7 @@ initDatabase().then(async () => {
         }
     });
 
-    app.put('/api/pto/:id', authenticate(dataSource, log), async (req, res) => {
+    app.put('/api/pto/:id', authenticate(() => dataSource, log), async (req, res) => {
         try {
             const { id } = req.params;
             const ptoIdNum = parseInt(id as string);
@@ -1087,7 +1053,7 @@ initDatabase().then(async () => {
         }
     });
 
-    app.delete('/api/pto/:id', authenticate(dataSource, log), async (req, res) => {
+    app.delete('/api/pto/:id', authenticate(() => dataSource, log), async (req, res) => {
         try {
             const { id } = req.params;
             const ptoIdNum = parseInt(id as string);

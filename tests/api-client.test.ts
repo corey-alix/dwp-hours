@@ -22,7 +22,9 @@ describe('APIClient', () => {
 
             const result = await apiClient.get('/test-endpoint');
 
-            expect(fetchMock).toHaveBeenCalledWith('/api/test-endpoint');
+            expect(fetchMock).toHaveBeenCalledWith('/api/test-endpoint', {
+                credentials: 'include'
+            });
             expect(result).toEqual(mockResponse);
         });
     });
@@ -43,6 +45,7 @@ describe('APIClient', () => {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(requestData),
+                credentials: 'include'
             });
             expect(result).toEqual(mockResponse);
         });
@@ -68,6 +71,7 @@ describe('APIClient', () => {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(request),
+                credentials: 'include'
             });
             expect(result).toEqual(mockResponse);
         });
@@ -97,6 +101,7 @@ describe('APIClient', () => {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ requests }),
+                credentials: 'include'
             });
             expect(result).toEqual(mockResponse);
         });
@@ -113,15 +118,17 @@ describe('APIClient', () => {
                 json: () => Promise.resolve(mockResponse)
             });
 
-            const result = await apiClient.getPTOStatus(1);
+            const result = await apiClient.getPTOStatus();
 
-            expect(fetchMock).toHaveBeenCalledWith('/api/pto/status/1');
+            expect(fetchMock).toHaveBeenCalledWith('/api/pto/status', {
+                credentials: 'include'
+            });
             expect(result).toEqual(mockResponse);
         });
     });
 
     describe('getPTOEntries', () => {
-        it('should get PTO entries for a specific employee', async () => {
+        it('should get PTO entries for the authenticated user', async () => {
             const mockResponse = [
                 { date: '2026-03-06', type: 'PTO', hours: 4 },
                 { date: '2026-03-07', type: 'PTO', hours: 8 }
@@ -130,23 +137,11 @@ describe('APIClient', () => {
                 json: () => Promise.resolve(mockResponse)
             });
 
-            const result = await apiClient.getPTOEntries(1);
-
-            expect(fetchMock).toHaveBeenCalledWith('/api/pto?employeeId=1');
-            expect(result).toEqual(mockResponse);
-        });
-
-        it('should get all PTO entries when no employee ID is provided', async () => {
-            const mockResponse = [
-                { date: '2026-03-06', type: 'PTO', hours: 4 }
-            ];
-            fetchMock.mockResolvedValueOnce({
-                json: () => Promise.resolve(mockResponse)
-            });
-
             const result = await apiClient.getPTOEntries();
 
-            expect(fetchMock).toHaveBeenCalledWith('/api/pto');
+            expect(fetchMock).toHaveBeenCalledWith('/api/pto', {
+                credentials: 'include'
+            });
             expect(result).toEqual(mockResponse);
         });
     });
@@ -166,6 +161,7 @@ describe('APIClient', () => {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ identifier: 'test@example.com' }),
+                credentials: 'include'
             });
             expect(result).toEqual(mockResponse);
         });
@@ -183,7 +179,9 @@ describe('APIClient', () => {
 
             const result = await apiClient.validateAuth('token123', '1234567890');
 
-            expect(fetchMock).toHaveBeenCalledWith('/api/auth/validate?token=token123&ts=1234567890');
+            expect(fetchMock).toHaveBeenCalledWith('/api/auth/validate?token=token123&ts=1234567890', {
+                credentials: 'include'
+            });
             expect(result).toEqual(mockResponse);
         });
     });
@@ -202,7 +200,9 @@ describe('APIClient', () => {
 
             const result = await apiClient.health();
 
-            expect(fetchMock).toHaveBeenCalledWith('/api/health');
+            expect(fetchMock).toHaveBeenCalledWith('/api/health', {
+                credentials: 'include'
+            });
             expect(result).toEqual(mockResponse);
         });
     });

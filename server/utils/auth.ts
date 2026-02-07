@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import { DataSource, Not, IsNull } from "typeorm";
-import { Employee } from "../entities/Employee.js";
+import { DataSource } from "typeorm";
+import { Employee } from "../entities/index.js";
 import crypto from "crypto";
 
 // Extend Express Request interface to include authenticated employee
@@ -19,19 +19,32 @@ declare global {
 /**
  * Authentication middleware that validates session token from auth_hash cookie
  */
-export function authenticateMiddleware(dataSource: DataSource, log: (message: string) => void) {
+export function authenticateMiddleware(dataSourceProvider: () => DataSource, log: (message: string) => void) {
     return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
-            const authToken = req.cookies?.auth_hash;
+            const dataSource = dataSourceProvider();
+            // Parse cookie manually since we don't have cookie-parser
+            const cookieHeader = req.headers.cookie;
+            let authToken: string | undefined;
+            if (cookieHeader) {
+                const cookies = cookieHeader.split(';').map(c => c.trim());
+                for (const cookie of cookies) {
+                    const [name, value] = cookie.split('=');
+                    if (name === 'auth_hash') {
+                        authToken = value;
+                        break;
+                    }
+                }
+            }
 
             if (!authToken) {
-                log('Authentication failed: No auth_hash cookie');
+                log(`Authentication failed: No auth_hash cookie. Cookie header: ${cookieHeader}`);
                 res.status(401).json({ error: 'Authentication required' });
                 return;
             }
 
             // Validate session token format and expiration
-            const employee = await validateSessionToken(authToken, dataSource);
+            const employee = await validateSessionToken(authToken, dataSource, log);
             if (!employee) {
                 log(`Authentication failed: Invalid session token: ${authToken}`);
                 res.status(401).json({ error: 'Invalid authentication' });
@@ -55,55 +68,60 @@ export function authenticateMiddleware(dataSource: DataSource, log: (message: st
 
 /**
  * Validates a session token and returns the associated employee
- * Session token format: hash(employee_id + timestamp + salt)
  */
-export async function validateSessionToken(token: string, dataSource: DataSource): Promise<Employee | null> {
-    const employeeRepo = dataSource.getRepository(Employee);
-
-    // Try all employees to find one whose session token matches
-    // In production, this could be optimized with a session store
-    const employees = await employeeRepo.find({ where: { hash: Not(IsNull()) } });
-
-    for (const employee of employees) {
-        // Try different timestamps within the last 30 days (in 1-hour increments for efficiency)
-        const now = Date.now();
-        const thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
-
-        // Check timestamps in 1-hour increments (reduce search space)
-        for (let ts = thirtyDaysAgo; ts <= now; ts += 60 * 60 * 1000) {
-            const expectedToken = crypto.createHash('sha256')
-                .update(`${employee.id}:${ts}:${process.env.HASH_SALT || 'default_salt'}`)
-                .digest('hex');
-
-            if (expectedToken === token) {
-                // Check if token is not expired (30 days)
-                if (now - ts <= 30 * 24 * 60 * 60 * 1000) {
-                    return employee;
-                }
-                break; // Token expired
-            }
+export async function validateSessionToken(token: string, dataSource: DataSource, log: (message: string) => void): Promise<Employee | null> {
+    try {
+        const parts = token.split('.');
+        if (parts.length !== 3) {
+            return null;
         }
-    }
 
-    return null;
+        const employeeId = Number(parts[0]);
+        const timestamp = Number(parts[1]);
+        const signature = parts[2];
+
+        if (!Number.isFinite(employeeId) || !Number.isFinite(timestamp) || !signature) {
+            return null;
+        }
+
+        const expectedSignature = crypto.createHash('sha256')
+            .update(`${employeeId}:${timestamp}:${process.env.HASH_SALT || 'default_salt'}`)
+            .digest('hex');
+
+        if (expectedSignature !== signature) {
+            return null;
+        }
+
+        const now = Date.now();
+        const sessionTtlMs = 1 * 24 * 60 * 60 * 1000;
+        if (timestamp > now || now - timestamp > sessionTtlMs) {
+            return null;
+        }
+
+        const employeeRepo = dataSource.getRepository(Employee);
+        return await employeeRepo.findOne({ where: { id: employeeId } });
+    } catch (error) {
+        log(`Error in validateSessionToken: ${error}`);
+        throw error;
+    }
 }
 
 /**
  * Middleware wrapper for easy application to route handlers
  * Usage: app.get('/protected-route', authenticate, handler)
  */
-export function authenticate(dataSource: DataSource, log: (message: string) => void) {
-    return authenticateMiddleware(dataSource, log);
+export function authenticate(dataSourceProvider: () => DataSource, log: (message: string) => void) {
+    return authenticateMiddleware(dataSourceProvider, log);
 }
 
 /**
  * Admin-only authentication middleware
  * Usage: app.get('/admin-route', authenticateAdmin, handler)
  */
-export function authenticateAdmin(dataSource: DataSource, log: (message: string) => void) {
+export function authenticateAdmin(dataSourceProvider: () => DataSource, log: (message: string) => void) {
     return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         // First apply regular authentication
-        await authenticateMiddleware(dataSource, log)(req, res, (err?: any) => {
+        await authenticateMiddleware(dataSourceProvider, log)(req, res, (err?: any) => {
             if (err || !req.employee) return;
 
             // Check if user has admin role

@@ -385,7 +385,7 @@ class UIManager {
                 notifications.error('You must be logged in to perform this action.');
                 return;
             }
-            const response = await api.submitAdminAcknowledgement(employeeId, month, this.currentUser!.id);
+            const response = await api.submitAdminAcknowledgement(employeeId, month);
             notifications.success(response.message || 'Acknowledgment submitted successfully.');
         } catch (error: any) {
             console.error("Failed to submit admin acknowledgment:", error);
@@ -404,8 +404,8 @@ class UIManager {
         if (!this.currentUser) return;
 
         try {
-            const status = await api.getPTOStatus(this.currentUser!.id);
-            const entries = await api.getPTOEntries(this.currentUser!.id);
+            const status = await api.getPTOStatus();
+            const entries = await api.getPTOEntries();
 
             const statusDiv = querySingle("#pto-status");
             const hireDate = new Date(status.hireDate).toLocaleDateString();
@@ -550,15 +550,14 @@ class UIManager {
         }
 
         try {
-            // Submit all requests to API
-            const requestsWithId = requests.map(request => ({
-                employeeId: this.currentUser!.id,
+            // Submit all requests to API (no need to include employeeId - auth provides it)
+            const requestsWithoutId = requests.map(request => ({
                 date: request.date,
                 type: request.type,
                 hours: request.hours
             }));
 
-            await api.createPTOEntry({ requests: requestsWithId });
+            await api.createPTOEntry({ requests: requestsWithoutId });
 
             notifications.success(`Successfully submitted ${requests.length} PTO request(s)!`);
 
@@ -576,8 +575,8 @@ class UIManager {
 
         try {
             // Re-query PTO status from server
-            const status = await api.getPTOStatus(this.currentUser!.id);
-            const entries = await api.getPTOEntries(this.currentUser!.id);
+            const status = await api.getPTOStatus();
+            const entries = await api.getPTOEntries();
 
             // Re-render all PTO components with fresh data
             await this.renderPTOStatus(status, entries);

@@ -24,7 +24,7 @@ describe('Database Schema and Persistence', () => {
         const tables = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
         const tableNames = tables[0].values.map(row => row[0]).sort();
 
-        expect(tableNames).toEqual(['acknowledgements', 'admin_acknowledgements', 'employees', 'monthly_hours', 'pto_entries']);
+        expect(tableNames).toEqual(['acknowledgements', 'admin_acknowledgements', 'employees', 'monthly_hours', 'pto_entries', 'sessions']);
 
         db.close();
     });
@@ -59,7 +59,9 @@ describe('Database Schema and Persistence', () => {
             'idx_monthly_hours_employee_id',
             'idx_monthly_hours_month',
             'idx_pto_entries_date',
-            'idx_pto_entries_employee_id'
+            'idx_pto_entries_employee_id',
+            'idx_sessions_employee_id',
+            'idx_sessions_expires_at'
         ]);
 
         // Test UNIQUE constraint on employees.identifier

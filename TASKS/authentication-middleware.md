@@ -35,13 +35,14 @@ Implement authentication middleware to secure API endpoints by verifying the `au
 - [x] `npm run lint` passes
 
 ### Phase 3: Client-Side Integration
-- [ ] Update APIClient methods to remove `employeeId` parameters from request bodies for authenticated endpoints
-- [ ] Ensure client automatically sends `auth_hash` cookie with requests (verify cookie configuration)
-- [ ] Update PTO form component to receive employee context from parent app for validation
-- [ ] Test end-to-end authentication flow with protected endpoints
-- [ ] Verify error handling for expired/invalid authentication
-- [ ] `npm run build` passes
-- [ ] `npm run lint` passes
+- [x] Update APIClient methods to remove `employeeId` parameters from request bodies for authenticated endpoints
+- [x] Ensure client automatically sends `auth_hash` cookie with requests (verify cookie configuration)
+- [x] Update PTO form component to receive employee context from parent app for validation
+- [x] Test end-to-end authentication flow with protected endpoints
+- [x] Verify error handling for expired/invalid authentication
+- [x] `npm run build` passes
+- [x] `npm run lint` passes
+- [ ] Run `npm run test` to ensure no regressions
 
 ### Phase 4: Security and Edge Cases
 - [ ] Implement proper CORS handling for cookie-based authentication
@@ -52,6 +53,7 @@ Implement authentication middleware to secure API endpoints by verifying the `au
 - [ ] Security review of authentication implementation
 - [ ] `npm run build` passes
 - [ ] `npm run lint` passes
+- [ ] Run `npm run test` to ensure no regressions
 
 ### Quality Gates
 - [ ] Update API documentation to reflect authentication requirements

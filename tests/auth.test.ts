@@ -128,9 +128,9 @@ test('cookie storage simulation', () => {
 test('authentication middleware - missing cookie', async () => {
     const mockDataSource = {} as any;
     const mockLog = vi.fn();
-    const middleware = authenticateMiddleware(mockDataSource, mockLog);
+    const middleware = authenticateMiddleware(() => mockDataSource, mockLog);
 
-    const mockReq = { cookies: {} } as any;
+    const mockReq = { headers: {} } as any;
     const mockRes = {
         status: vi.fn().mockReturnThis(),
         json: vi.fn()
@@ -141,6 +141,6 @@ test('authentication middleware - missing cookie', async () => {
 
     expect(mockRes.status).toHaveBeenCalledWith(401);
     expect(mockRes.json).toHaveBeenCalledWith({ error: 'Authentication required' });
-    expect(mockLog).toHaveBeenCalledWith('Authentication failed: No auth_hash cookie');
+    expect(mockLog).toHaveBeenCalledWith(expect.stringContaining('Authentication failed: No auth_hash cookie'));
     expect(mockNext).not.toHaveBeenCalled();
 });

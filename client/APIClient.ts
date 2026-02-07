@@ -5,7 +5,9 @@ export class APIClient {
     private baseURL = "/api";
 
     async get(endpoint: string): Promise<any> {
-        const response = await fetch(`${this.baseURL}${endpoint}`);
+        const response = await fetch(`${this.baseURL}${endpoint}`, {
+            credentials: 'include'
+        });
         return response.json();
     }
 
@@ -16,6 +18,7 @@ export class APIClient {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify(data),
+            credentials: 'include'
         });
         return response.json();
     }
@@ -29,16 +32,15 @@ export class APIClient {
         return this.get(`/auth/validate?token=${token}&ts=${ts}`);
     }
 
-    async getPTOStatus(employeeId: number): Promise<ApiTypes.PTOStatusResponse> {
-        return this.get(`/pto/status/${employeeId}`);
+    async getPTOStatus(): Promise<ApiTypes.PTOStatusResponse> {
+        return this.get('/pto/status');
     }
 
-    async getPTOEntries(employeeId?: number): Promise<ApiTypes.PTOEntry[]> {
-        const endpoint = employeeId ? `/pto?employeeId=${employeeId}` : '/pto';
-        return this.get(endpoint);
+    async getPTOEntries(): Promise<ApiTypes.PTOEntry[]> {
+        return this.get('/pto');
     }
 
-    async createPTOEntry(request: { employeeId: number; date: string; hours: number; type: string } | { requests: Array<{ employeeId: number; date: string; hours: number; type: string }> }): Promise<{ message: string; ptoEntry: ApiTypes.PTOEntry; ptoEntries: ApiTypes.PTOEntry[] }> {
+    async createPTOEntry(request: { date: string; hours: number; type: string } | { requests: Array<{ date: string; hours: number; type: string }> }): Promise<{ message: string; ptoEntry: ApiTypes.PTOEntry; ptoEntries: ApiTypes.PTOEntry[] }> {
         return this.post('/pto', request);
     }
 
@@ -49,32 +51,33 @@ export class APIClient {
     async deletePTOEntry(id: number): Promise<ApiTypes.GenericMessageResponse> {
         const response = await fetch(`${this.baseURL}/pto/${id}`, {
             method: "DELETE",
+            credentials: 'include'
         });
         return response.json();
     }
 
-    async submitHours(employeeId: number, month: string, hoursWorked: number): Promise<ApiTypes.HoursSubmitResponse> {
-        return this.post('/hours', { employeeId, month, hoursWorked });
+    async submitHours(month: string, hoursWorked: number): Promise<ApiTypes.HoursSubmitResponse> {
+        return this.post('/hours', { month, hoursWorked });
     }
 
-    async getHours(employeeId: number): Promise<ApiTypes.HoursResponse> {
-        return this.get(`/hours/${employeeId}`);
+    async getHours(): Promise<ApiTypes.HoursResponse> {
+        return this.get('/hours');
     }
 
-    async submitAcknowledgement(employeeId: number, month: string): Promise<ApiTypes.AcknowledgementSubmitResponse> {
-        return this.post('/acknowledgements', { employeeId, month });
+    async submitAcknowledgement(month: string): Promise<ApiTypes.AcknowledgementSubmitResponse> {
+        return this.post('/acknowledgements', { month });
     }
 
-    async getAcknowledgements(employeeId: number): Promise<ApiTypes.AcknowledgementResponse> {
-        return this.get(`/acknowledgements/${employeeId}`);
+    async getAcknowledgements(): Promise<ApiTypes.AcknowledgementResponse> {
+        return this.get('/acknowledgements');
     }
 
-    async getMonthlySummary(employeeId: number, month: string): Promise<ApiTypes.MonthlySummaryResponse> {
-        return this.get(`/monthly-summary/${employeeId}/${month}`);
+    async getMonthlySummary(month: string): Promise<ApiTypes.MonthlySummaryResponse> {
+        return this.get(`/monthly-summary/${month}`);
     }
 
-    async submitAdminAcknowledgement(employeeId: number, month: string, adminId: number): Promise<ApiTypes.AdminAcknowledgementSubmitResponse> {
-        return this.post('/admin-acknowledgements', { employeeId, month, adminId });
+    async submitAdminAcknowledgement(employeeId: number, month: string): Promise<ApiTypes.AdminAcknowledgementSubmitResponse> {
+        return this.post('/admin-acknowledgements', { employeeId, month });
     }
 
     async getAdminAcknowledgements(employeeId: number): Promise<ApiTypes.AdminAcknowledgementResponse> {
