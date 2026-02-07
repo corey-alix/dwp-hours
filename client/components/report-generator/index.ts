@@ -8,14 +8,15 @@ interface ReportData {
 }
 
 import { querySingle } from '../test-utils';
+import { startOfYear, endOfYear, today } from '../../../shared/dateUtils.js';
 
 export class ReportGenerator extends HTMLElement {
     private shadow: ShadowRoot;
     private _reportData: ReportData[] = [];
     private _reportType: 'summary' | 'detailed' = 'summary';
     private _dateRange: { start: string; end: string } = {
-        start: new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0],
-        end: new Date(new Date().getFullYear(), 11, 31).toISOString().split('T')[0]
+        start: startOfYear(),
+        end: endOfYear()
     };
 
     constructor() {
@@ -462,14 +463,14 @@ export class ReportGenerator extends HTMLElement {
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
         link.setAttribute('href', url);
-        link.setAttribute('download', `pto-report-${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute('download', `pto-report-${today()}.csv`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
 
         this.dispatchEvent(new CustomEvent('report-exported', {
-            detail: { format: 'csv', filename: `pto-report-${new Date().toISOString().split('T')[0]}.csv` }
+            detail: { format: 'csv', filename: `pto-report-${today()}.csv` }
         }));
     }
 }

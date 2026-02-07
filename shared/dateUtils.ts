@@ -387,3 +387,19 @@ export function calculateEndDateFromHours(startDateStr: string, hours: number): 
 
     return currentDateStr;
 }
+
+/**
+ * Gets the start of the current year (January 1st)
+ */
+export function startOfYear(): string {
+    const { year } = parseDate(today());
+    return formatDate(year, 1, 1);
+}
+
+/**
+ * Gets the end of the current year (December 31st)
+ */
+export function endOfYear(): string {
+    const { year } = parseDate(today());
+    return formatDate(year, 12, 31);
+}
