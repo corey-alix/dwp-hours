@@ -77,15 +77,9 @@ test('pto-entry-form weekend warning test', async ({ page }) => {
     await page.waitForFunction(() => customElements.get('pto-entry-form') !== undefined);
     await page.waitForTimeout(500); // Additional time for component initialization
 
-    // Find next Saturday
-    const nextSaturday = new Date();
-    nextSaturday.setDate(nextSaturday.getDate() + (6 - nextSaturday.getDay()) % 7 || 7);
-    const saturdayStr = nextSaturday.toISOString().split('T')[0];
-
-    // Find next Sunday
-    const nextSunday = new Date(nextSaturday);
-    nextSunday.setDate(nextSaturday.getDate() + 1);
-    const sundayStr = nextSunday.toISOString().split('T')[0];
+    // Use fixed weekend dates for determinism
+    const saturdayStr = '2026-02-07'; // Saturday
+    const sundayStr = '2026-02-08'; // Sunday
 
     // Fill start date with Saturday
     await page.locator('pto-entry-form').locator('#start-date').fill(saturdayStr);

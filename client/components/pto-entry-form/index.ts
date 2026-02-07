@@ -10,6 +10,7 @@ import { today, isWeekend, addDays, getWeekdaysBetween, calculateEndDateFromHour
 
 export class PtoEntryForm extends HTMLElement {
     private shadow: ShadowRoot;
+    private dateWatchInterval: number | null = null;
 
     constructor() {
         super();
@@ -28,6 +29,10 @@ export class PtoEntryForm extends HTMLElement {
 
     disconnectedCallback() {
         // Clean up event listeners if needed
+        if (this.dateWatchInterval !== null) {
+            window.clearInterval(this.dateWatchInterval);
+            this.dateWatchInterval = null;
+        }
     }
 
     private getNextBusinessDay(dateStr: string): string {
@@ -110,10 +115,25 @@ export class PtoEntryForm extends HTMLElement {
             try {
                 const endDate = calculateEndDateFromHours(startDate, hoursValue);
                 endDateInput.value = endDate;
+                this.updateWeekendWarning(endDateInput);
             } catch (error) {
                 console.error('Error calculating end date from hours:', error);
                 endDateInput.value = startDate;
+                this.updateWeekendWarning(endDateInput);
             }
+        }
+    }
+
+    private updateWeekendWarning(input: HTMLInputElement): void {
+        const value = input.value.trim();
+        if (!value) {
+            return;
+        }
+
+        if (isWeekend(value)) {
+            this.setFieldWarning(input, 'Warning: Selected date is a weekend. PTO is typically for weekdays.');
+        } else {
+            this.clearFieldError(input);
         }
     }
 
@@ -132,6 +152,9 @@ export class PtoEntryForm extends HTMLElement {
                 if (ptoTypeSelect.value === 'Full PTO') {
                     this.updateDaysFromDateRange();
                 }
+            }
+            if (endDateInput.value) {
+                this.updateWeekendWarning(endDateInput);
             }
         }
     }
@@ -397,14 +420,33 @@ export class PtoEntryForm extends HTMLElement {
         // Date change listeners for "Full PTO" days calculation and min date constraints
         const startDateInput = querySingle<HTMLInputElement>('#start-date', this.shadow);
         const endDateInput = querySingle<HTMLInputElement>('#end-date', this.shadow);
+        let lastStartDateValue = startDateInput?.value ?? '';
+        let lastEndDateValue = endDateInput?.value ?? '';
 
         startDateInput?.addEventListener('input', () => {
-            this.validateField(startDateInput);
+            if (startDateInput) {
+                this.updateWeekendWarning(startDateInput);
+            }
         });
 
         endDateInput?.addEventListener('input', () => {
-            this.validateField(endDateInput);
+            if (endDateInput) {
+                this.updateWeekendWarning(endDateInput);
+            }
         });
+
+        if (this.dateWatchInterval === null) {
+            this.dateWatchInterval = window.setInterval(() => {
+                if (startDateInput && startDateInput.value !== lastStartDateValue) {
+                    lastStartDateValue = startDateInput.value;
+                    this.updateWeekendWarning(startDateInput);
+                }
+                if (endDateInput && endDateInput.value !== lastEndDateValue) {
+                    lastEndDateValue = endDateInput.value;
+                    this.updateWeekendWarning(endDateInput);
+                }
+            }, 200);
+        }
 
         startDateInput?.addEventListener('change', () => {
             if (ptoTypeSelect.value === 'Full PTO') {
@@ -421,7 +463,7 @@ export class PtoEntryForm extends HTMLElement {
                 this.updateDaysFromDateRange();
             }
             if (endDateInput) {
-                this.validateField(endDateInput);
+                this.updateWeekendWarning(endDateInput);
             }
         });
 
@@ -440,7 +482,12 @@ export class PtoEntryForm extends HTMLElement {
                 this.validateField(input as HTMLInputElement | HTMLSelectElement);
             });
             input.addEventListener('input', () => {
-                this.clearFieldError(input as HTMLInputElement | HTMLSelectElement);
+                const element = input as HTMLInputElement | HTMLSelectElement;
+                if (element.id === 'start-date' || element.id === 'end-date') {
+                    this.updateWeekendWarning(element as HTMLInputElement);
+                } else {
+                    this.clearFieldError(element);
+                }
             });
         });
     }
