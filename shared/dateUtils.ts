@@ -56,6 +56,22 @@ export function formatDate(year: number, month: number, day: number): string {
 }
 
 /**
+ * Parses MM/DD/YY string into YYYY-MM-DD format
+ */
+export function parseMMDDYY(dateStr: string): string {
+    const match = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+    if (!match) {
+        throw new Error(`Invalid MM/DD/YY format: ${dateStr}`);
+    }
+
+    const month = parseInt(match[1], 10);
+    const day = parseInt(match[2], 10);
+    const year = parseInt(match[3], 10) + 2000;
+
+    return formatDate(year, month, day);
+}
+
+/**
  * Gets the number of days in a month
  */
 export function getDaysInMonth(year: number, month: number): number {
@@ -342,6 +358,20 @@ export function getCalendarDates(year: number, month: number): string[] {
     }
 
     return dates;
+}
+
+/**
+ * Gets the number of weeks in a month (including partial weeks)
+ * @param year - The year
+ * @param month - The month (1-12)
+ * @returns Number of weeks needed to display the month in a calendar
+ */
+export function getWeeksInMonth(year: number, month: number): number {
+    const firstDayOfMonth = getFirstDayOfMonth(year, month);
+    const daysInMonth = getDaysInMonth(year, month);
+    const startWeekDay = getDayOfWeek(firstDayOfMonth);
+    // Calculate number of weeks: ceil((daysInMonth + startWeekDay) / 7)
+    return Math.ceil((daysInMonth + startWeekDay) / 7);
 }
 
 /**

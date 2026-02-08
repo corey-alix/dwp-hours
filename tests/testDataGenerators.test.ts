@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateImportTestData, extractMonthlyPTOHours, extractMonthlyWorkDays, extractMonthCellRange } from '../shared/testDataGenerators';
+import { generateImportTestData, extractMonthlyPTOHours, extractMonthlyWorkDays, extractMonthCellRange, extractHireDate, extractYear, extractEmployeeName } from '../shared/testDataGenerators';
 import fs from 'fs';
 import path from 'path';
 
@@ -90,5 +90,20 @@ describe('testDataGenerators', () => {
   it('should extract the cell range for December', () => {
     const range = extractMonthCellRange(sheetData, 'December');
     expect(range).toBe('R33:X37');
+  });
+
+  it('should extract hire date from R2', () => {
+    const hireDate = extractHireDate(sheetData);
+    expect(hireDate).toBe('2023-02-13');
+  });
+
+  it('should extract year from B2', () => {
+    const year = extractYear(sheetData);
+    expect(year).toBe(2025);
+  });
+
+  it('should extract employee name from J2', () => {
+    const employeeName = extractEmployeeName(sheetData);
+    expect(employeeName).toBe('Corey Alix');
   });
 });

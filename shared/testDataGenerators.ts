@@ -1,4 +1,5 @@
 import { SHEET_TEMPLATE } from "./SHEET_TEMPLATE";
+import { parseMMDDYY, getWeeksInMonth } from "./dateUtils";
 
 interface JsonSheet {
     cells: {
@@ -49,6 +50,44 @@ export function extractMonthlyWorkDays(sheetData: JsonSheet): number[] {
     return workDays;
 }
 
+export function extractHireDate(sheetData: JsonSheet): string | null {
+    const cellKey = 'R2';
+    const cell = sheetData.cells[cellKey];
+    if (!cell || typeof cell.value !== 'string') {
+        return null;
+    }
+
+    const match = cell.value.match(/^Hire Date:\s*(.+)$/);
+    if (!match) {
+        return null;
+    }
+
+    const dateStr = match[1];
+    try {
+        return parseMMDDYY(dateStr);
+    } catch {
+        return null;
+    }
+}
+
+export function extractYear(sheetData: JsonSheet): number | null {
+    const cellKey = 'B2';
+    const cell = sheetData.cells[cellKey];
+    if (!cell || typeof cell.value !== 'number') {
+        return null;
+    }
+    return cell.value;
+}
+
+export function extractEmployeeName(sheetData: JsonSheet): string | null {
+    const cellKey = 'J2';
+    const cell = sheetData.cells[cellKey];
+    if (!cell || typeof cell.value !== 'string') {
+        return null;
+    }
+    return cell.value;
+}
+
 export function generateImportTestData(): JsonSheetsTemplate {
     return SHEET_TEMPLATE as JsonSheetsTemplate;
 }
@@ -62,16 +101,6 @@ function colToLetter(col: number): string {
         col = Math.floor(col / 26);
     }
     return result;
-}
-
-// Helper function to get number of weeks in a month for 2025
-function getWeeksInMonth(month: number, year: number = 2025): number {
-    const firstDay = new Date(year, month - 1, 1);
-    const lastDay = new Date(year, month, 0);
-    const daysInMonth = lastDay.getDate();
-    const startWeekDay = firstDay.getDay(); // 0 = Sunday
-    // Calculate number of weeks: ceil((daysInMonth + startWeekDay) / 7)
-    return Math.ceil((daysInMonth + startWeekDay) / 7);
 }
 
 export function extractMonthCellRange(sheetData: JsonSheet, monthName: string): string | null {
@@ -113,7 +142,7 @@ export function extractMonthCellRange(sheetData: JsonSheet, monthName: string): 
     if (monthIndex === -1) return null;
 
     const monthNum = monthIndex + 1;
-    const numWeeks = getWeeksInMonth(monthNum);
+    const numWeeks = getWeeksInMonth(2025, monthNum);
 
     // Calculate end position
     const endRow = startRow + numWeeks - 1;
