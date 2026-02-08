@@ -7,7 +7,7 @@ import { addDays, isWeekend, getCurrentYear, formatDateForDisplay, getWorkdaysBe
 
 // Import components and test utilities
 import './components/index.js';
-import { AdminPanel, PtoAccrualCard, PtoBereavementCard, PtoEmployeeInfoCard, PtoEntryForm, PtoJuryDutyCard, PtoSickCard, PtoSummaryCard } from './components/index.js';
+import { AdminPanel, PtoAccrualCard, PtoBereavementCard, PtoEmployeeInfoCard, PtoEntryForm, PtoJuryDutyCard, PtoSickCard, PtoSummaryCard, PriorYearReview } from './components/index.js';
 import type { CalendarEntry } from './components/pto-calendar/index.js';
 import { addEventListener, querySingle, createElement } from './components/test-utils.js';
 
@@ -191,6 +191,21 @@ class UIManager {
         const newPTOBtn = querySingle<HTMLButtonElement>("#new-pto-btn");
         addEventListener(newPTOBtn, "click", () => this.showPTOForm());
 
+        // Year selector buttons
+        try {
+            const currentYearBtn = querySingle<HTMLButtonElement>("#current-year-btn");
+            addEventListener(currentYearBtn, "click", () => this.showCurrentYearView());
+        } catch (error) {
+            // Element doesn't exist in test environment, skip
+        }
+
+        try {
+            const priorYearBtn = querySingle<HTMLButtonElement>("#prior-year-btn");
+            addEventListener(priorYearBtn, "click", () => this.showPriorYearView());
+        } catch (error) {
+            // Element doesn't exist in test environment, skip
+        }
+
         // PTO Request Mode Toggle (only if it exists - for test.html compatibility)
         try {
             const toggleRequestModeBtn = querySingle<HTMLButtonElement>("#toggle-pto-request-mode");
@@ -286,6 +301,9 @@ class UIManager {
             querySingle("#admin-panel").classList.remove("hidden");
         }
         querySingle("#logout-btn").classList.remove("hidden");
+
+        // Initialize to current year view
+        this.showCurrentYearView();
     }
 
     private showPTOForm(): void {
@@ -295,6 +313,32 @@ class UIManager {
         // Set available PTO balance on the form for validation
         const ptoForm = querySingle<PtoEntryForm>("#pto-entry-form");
         ptoForm.setAttribute('available-pto-balance', this.availablePtoBalance.toString());
+    }
+
+    private showCurrentYearView(): void {
+        // Update button states
+        querySingle("#current-year-btn").classList.add("active");
+        querySingle("#prior-year-btn").classList.remove("active");
+
+        // Show current year view, hide prior year view
+        querySingle("#pto-status").classList.remove("hidden");
+        querySingle("#prior-year-view").classList.add("hidden");
+
+        // Reload current year data
+        this.loadPTOStatus();
+    }
+
+    private async showPriorYearView(): Promise<void> {
+        // Update button states
+        querySingle("#current-year-btn").classList.remove("active");
+        querySingle("#prior-year-btn").classList.add("active");
+
+        // Show prior year view, hide current year view
+        querySingle("#pto-status").classList.add("hidden");
+        querySingle("#prior-year-view").classList.remove("hidden");
+
+        // Load prior year data
+        await this.loadPriorYearReview();
     }
 
     private togglePTORequestMode(): void {
@@ -444,6 +488,23 @@ class UIManager {
                 <h3>PTO Status</h3>
                 <p>Error loading PTO status. Please try again later.</p>
             `;
+        }
+    }
+
+    private async loadPriorYearReview(): Promise<void> {
+        if (!this.currentUser) return;
+
+        try {
+            const priorYear = getCurrentYear() - 1;
+            const reviewData = await api.getPTOYearReview(priorYear);
+
+            const priorYearReview = querySingle('prior-year-review') as PriorYearReview;
+            priorYearReview.data = reviewData;
+        } catch (error) {
+            console.error("Failed to load prior year review:", error);
+            const priorYearReview = querySingle('prior-year-review') as PriorYearReview;
+            priorYearReview.data = null;
+            notifications.error('Failed to load prior year data. Please try again later.');
         }
     }
 

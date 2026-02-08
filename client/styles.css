@@ -107,6 +107,43 @@ button[type="button"]:hover {
 }
 
 /* Dashboard */
+.dashboard-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-lg);
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.year-selector {
+  display: flex;
+  gap: var(--space-sm);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  border: var(--border-width) var(--border-style-solid) var(--color-border);
+}
+
+.year-btn {
+  padding: var(--space-sm) var(--space-md);
+  background-color: var(--color-background);
+  color: var(--color-text);
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s, color 0.3s;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.year-btn.active {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.year-btn:hover:not(.active) {
+  background-color: var(--color-surface-hover);
+}
+
 #pto-status {
   background: var(--color-surface);
   padding: var(--space-2xl);

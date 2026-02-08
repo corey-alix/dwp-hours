@@ -21,12 +21,12 @@ Implement a prior year review feature that allows users to view PTO data from pr
   - [x] Style component to match existing dashboard theme
   - [x] Add loading states and error handling
   - [x] Run 'npm run test' to ensure no regressions
-- [ ] **Phase 3: Integrate into Dashboard**
-  - [ ] Add prior year review component to index.html
-  - [ ] Update dashboard navigation to include prior year view
-  - [ ] Ensure responsive design works on mobile devices
-  - [ ] Add toggle between current year and prior year views
-  - [ ] Run 'npm run test' to ensure no regressions
+- [x] **Phase 3: Integrate into Dashboard**
+  - [x] Add prior year review component to index.html
+  - [x] Update dashboard navigation to include prior year view
+  - [x] Ensure responsive design works on mobile devices
+  - [x] Add toggle between current year and prior year views
+  - [x] Run 'npm run test' to ensure no regressions
 - [ ] **Phase 4: Testing and Validation**
   - [ ] Write unit tests for the web component
   - [ ] Add E2E tests for prior year review functionality

@@ -27,8 +27,17 @@
 
       <div id="dashboard" class="hidden">
         <h2>PTO Dashboard</h2>
-        <button id="toggle-pto-request-mode">Submit PTO Requests</button>
+        <div class="dashboard-controls">
+          <div class="year-selector">
+            <button id="current-year-btn" class="year-btn active">Current Year</button>
+            <button id="prior-year-btn" class="year-btn">Prior Year</button>
+          </div>
+          <button id="toggle-pto-request-mode">Submit PTO Requests</button>
+        </div>
         <div id="pto-status"></div>
+        <div id="prior-year-view" class="hidden">
+          <prior-year-review id="prior-year-review"></prior-year-review>
+        </div>
         <button id="new-pto-btn">Submit Time Off</button>
       </div>
 
