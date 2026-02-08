@@ -1,6 +1,5 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
-import bodyParser from "body-parser";
 import helmet from "helmet";
 import { body, validationResult } from "express-validator";
 import initSqlJs from "sql.js";
@@ -54,8 +53,8 @@ app.use(helmet({
 }));
 
 app.use(cors());
-app.use(bodyParser.json({ limit: '10mb' }));
-app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Logout endpoint (doesn't require database)
 app.post('/api/auth/logout', (req, res) => {
@@ -282,7 +281,7 @@ initDatabase().then(async () => {
             if (!employee) {
                 if (shouldReturnMagicLink) {
                     const timestamp = Date.now();
-                    const magicLink = `http://localhost:3000/?token=missing-user&ts=${timestamp}`;
+                    const magicLink = `http://localhost:${PORT}/?token=missing-user&ts=${timestamp}`;
                     log(`Magic link for ${identifier}: ${magicLink}`);
                     return res.json({
                         message: 'Magic link generated',

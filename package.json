@@ -89,7 +89,6 @@
     "author": "",
     "license": "MIT",
     "dependencies": {
-        "body-parser": "^2.2.2",
         "cors": "^2.8.6",
         "date-fns": "github:date-fns/date-fns#v4.1.0",
         "dotenv": "^17.2.3",
