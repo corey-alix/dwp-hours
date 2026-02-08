@@ -25,7 +25,7 @@ export class PtoSummaryCard extends PtoSectionCard {
         }
     }
 
-    set summary(value: SummaryData) {
+    set summary(value: SummaryData | null) {
         this.data = value;
         this.render();
     }

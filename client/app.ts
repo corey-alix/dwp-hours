@@ -416,29 +416,68 @@ class UIManager {
         console.log('loadPTOStatus called, currentUser:', this.currentUser);
         if (!this.currentUser) return;
 
+        // Create loading structure first
+        const statusDiv = querySingle("#pto-status");
+        const hireDate = "Loading..."; // Placeholder
+        const nextRolloverDate = "Loading..."; // Placeholder
+
+        statusDiv.innerHTML = `
+            <h3>Your PTO Status</h3>
+            <div class="pto-summary"></div>
+        `;
+
+        const summaryContainer = querySingle('.pto-summary', statusDiv) as HTMLElement;
+
+        // Create cards with loading states
+        const summaryCard = createElement<PtoSummaryCard>('pto-summary-card');
+        summaryCard.summary = null; // Will show loading
+
+        const accrualCard = createElement<PtoAccrualCard>('pto-accrual-card');
+        accrualCard.monthlyAccruals = [];
+        accrualCard.ptoEntries = [];
+        accrualCard.calendarYear = getCurrentYear();
+        accrualCard.monthlyUsage = [];
+        accrualCard.setAttribute('request-mode', 'true');
+        accrualCard.setAttribute('annual-allocation', '0');
+
+        const sickCard = createElement<PtoSickCard>('pto-sick-card');
+        sickCard.bucket = null; // Will show loading
+        sickCard.usageEntries = [];
+
+        const bereavementCard = createElement('pto-bereavement-card') as PtoBereavementCard;
+        bereavementCard.bucket = null; // Will show loading
+        bereavementCard.usageEntries = [];
+
+        const juryDutyCard = createElement('pto-jury-duty-card') as PtoJuryDutyCard;
+        juryDutyCard.bucket = null; // Will show loading
+        juryDutyCard.usageEntries = [];
+
+        const employeeInfoCard = createElement('pto-employee-info-card') as PtoEmployeeInfoCard;
+        employeeInfoCard.info = { hireDate, nextRolloverDate };
+
+        summaryContainer.appendChild(summaryCard);
+        summaryContainer.appendChild(accrualCard);
+        summaryContainer.appendChild(sickCard);
+        summaryContainer.appendChild(bereavementCard);
+        summaryContainer.appendChild(juryDutyCard);
+        summaryContainer.appendChild(employeeInfoCard);
+
         try {
+            // Fetch data
             const status = await api.getPTOStatus();
             const entries = await api.getPTOEntries();
 
             // Store available PTO balance for form validation
             this.availablePtoBalance = status.availablePTO;
 
-            const statusDiv = querySingle("#pto-status");
-            const hireDate = formatDateForDisplay(status.hireDate);
-            const nextRolloverDate = formatDateForDisplay(status.nextRolloverDate, {
+            const realHireDate = formatDateForDisplay(status.hireDate);
+            const realNextRolloverDate = formatDateForDisplay(status.nextRolloverDate, {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric'
             });
 
-            statusDiv.innerHTML = `
-                <h3>Your PTO Status</h3>
-                <div class="pto-summary"></div>
-            `;
-
-            const summaryContainer = querySingle('.pto-summary', statusDiv) as HTMLElement;
-
-            const summaryCard = createElement<PtoSummaryCard>('pto-summary-card');
+            // Update cards with real data
             summaryCard.summary = {
                 annualAllocation: status.annualAllocation,
                 availablePTO: status.availablePTO,
@@ -446,35 +485,21 @@ class UIManager {
                 carryoverFromPreviousYear: status.carryoverFromPreviousYear
             };
 
-            const accrualCard = createElement<PtoAccrualCard>('pto-accrual-card');
             accrualCard.monthlyAccruals = status.monthlyAccruals;
             accrualCard.ptoEntries = entries;
-            accrualCard.calendarYear = getCurrentYear();
             accrualCard.monthlyUsage = this.buildMonthlyUsage(entries, getCurrentYear());
-            accrualCard.setAttribute('request-mode', 'true'); // Enable calendar editing
             accrualCard.setAttribute('annual-allocation', status.annualAllocation.toString());
 
-            const sickCard = createElement<PtoSickCard>('pto-sick-card');
             sickCard.bucket = status.sickTime;
             sickCard.usageEntries = this.buildUsageEntries(entries, getCurrentYear(), 'Sick');
 
-            const bereavementCard = createElement('pto-bereavement-card') as PtoBereavementCard;
             bereavementCard.bucket = status.bereavementTime;
             bereavementCard.usageEntries = this.buildUsageEntries(entries, getCurrentYear(), 'Bereavement');
 
-            const juryDutyCard = createElement('pto-jury-duty-card') as PtoJuryDutyCard;
             juryDutyCard.bucket = status.juryDutyTime;
             juryDutyCard.usageEntries = this.buildUsageEntries(entries, getCurrentYear(), 'Jury Duty');
 
-            const employeeInfoCard = createElement('pto-employee-info-card') as PtoEmployeeInfoCard;
-            employeeInfoCard.info = { hireDate, nextRolloverDate };
-
-            summaryContainer.appendChild(summaryCard);
-            summaryContainer.appendChild(accrualCard);
-            summaryContainer.appendChild(sickCard);
-            summaryContainer.appendChild(bereavementCard);
-            summaryContainer.appendChild(juryDutyCard);
-            summaryContainer.appendChild(employeeInfoCard);
+            employeeInfoCard.info = { hireDate: realHireDate, nextRolloverDate: realNextRolloverDate };
 
             // Handle PTO request submission
             addEventListener(accrualCard, 'pto-request-submit', (e: CustomEvent) => {

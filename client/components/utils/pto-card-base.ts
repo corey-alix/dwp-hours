@@ -113,6 +113,18 @@ const PTO_CARD_CSS = `
             color: var(--color-text-secondary);
             font-style: italic;
         }
+
+        @media (max-width: 480px) {
+            .usage-list li {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--space-xs);
+            }
+
+            .usage-list li span:first-child {
+                font-weight: var(--font-weight-medium);
+            }
+        }
     </style>
 `;
 

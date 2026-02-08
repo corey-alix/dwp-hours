@@ -20,12 +20,12 @@ Enhance the Sick, Bereavement, and Jury Duty PTO cards to show detailed date and
   - [x] Add expandable toggle functionality to each card
   - [x] Style detailed listings to match existing design patterns
   - [x] Run 'npm run test' to ensure no regressions
-- [ ] **Phase 3: Update Dashboard Integration**
-  - [ ] Modify loadPTOStatus in app.ts to pass detailed entries to cards
-  - [ ] Ensure data is properly filtered by current year
-  - [ ] Add loading states for detailed data
-  - [ ] Test responsive behavior on mobile devices
-  - [ ] Run 'npm run test' to ensure no regressions
+- [x] **Phase 3: Update Dashboard Integration**
+  - [x] Modify loadPTOStatus in app.ts to pass detailed entries to cards
+  - [x] Ensure data is properly filtered by current year
+  - [x] Add loading states for detailed data
+  - [x] Test responsive behavior on mobile devices
+  - [x] Run 'npm run test' to ensure no regressions
 - [ ] **Phase 4: Testing and Validation**
   - [ ] Write unit tests for enhanced card components
   - [ ] Add E2E tests for expandable card functionality
