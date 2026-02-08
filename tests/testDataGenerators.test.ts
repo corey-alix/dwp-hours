@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateImportTestData, extractMonthlyPTOHours, extractMonthlyWorkDays, extractMonthCellRange, extractHireDate, extractYear, extractEmployeeName, extractSickHoursStatus, extractLegend } from '../shared/testDataGenerators';
+import { generateImportTestData, extractMonthlyPTOHours, extractMonthlyWorkDays, extractMonthCellRange, extractHireDate, extractYear, extractEmployeeName, extractSickHoursStatus, extractLegend, extractDailyRates, extractPreviousYearsCarryOverPTO } from '../shared/testDataGenerators';
 import fs from 'fs';
 import path from 'path';
 
@@ -107,6 +107,11 @@ describe('testDataGenerators', () => {
     expect(employeeName).toBe('Corey Alix');
   });
 
+  it('should extract previous years carry over PTO from L42 or compute V42 - O42', () => {
+    const carryOverPTO = extractPreviousYearsCarryOverPTO(sheetData);
+    expect(carryOverPTO).toBe(95.64);
+  });
+
   it('should extract sick hours status from AB32, AB33, AB34', () => {
     const sickHoursStatus = extractSickHoursStatus(sheetData);
     expect(sickHoursStatus).not.toBeNull();
@@ -128,5 +133,11 @@ describe('testDataGenerators', () => {
       { name: 'Bereavement', color: 'FFBFBFBF' },
       { name: 'Jury Duty', color: 'FFFF0000' }
     ]);
+  });
+
+  it('should extract daily rates from F42 to F53', () => {
+    const dailyRates = extractDailyRates(sheetData);
+    expect(dailyRates).toHaveLength(12); // January to December
+    expect(dailyRates).toEqual([0.68, 0.68, 0.71, 0.71, 0.71, 0.71, 0.71, 0.71, 0.71, 0.71, 0.71, 0.71]);
   });
 });

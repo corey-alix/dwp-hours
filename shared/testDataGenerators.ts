@@ -1,3 +1,36 @@
+/**
+ * This file contains utilities for extracting data from the DWP Hours Tracker spreadsheet template.
+ * The spreadsheet is used for managing employee PTO and hours tracking, containing monthly PTO hours,
+ * work days, sick time status, employee information, and various calculated fields.
+ *
+ * Data Location Map:
+ *
+ * Employee Information:
+ * - Employee Name: Cell J2
+ * - Hire Date: Cell R2 (formatted as "Hire Date: MM/DD/YY")
+ * - Year: Cell B2
+ *
+ * Monthly Data (Rows 42-53):
+ * - Work Days: Column D (D42-D53)
+ * - Daily Rates: Column F (F42-F53)
+ * - Previous Years Carry Over PTO: Cell L42 (or computed as V42 - J42 if blank)
+ * - PTO Hours: Column S (S42-S53)
+ *
+ * Sick Time Status:
+ * - Allowed Hours: Cell AB32
+ * - Used Hours: Cell AB33
+ * - Remaining Hours: Cell AB34
+ *
+ * Legend:
+ * - Legend Entries: Column Z, rows 9-14 (Z9-Z14)
+ *   - Each entry includes a name and color
+ *
+ * Monthly Sections:
+ * - Month Headers: Located dynamically by searching for month names (January-December)
+ * - Month Data Ranges: Calculated as starting 2 rows below month header, spanning 7 columns
+ *   (typically days of week), with height equal to number of weeks in the month
+ */
+
 import { SHEET_TEMPLATE } from "./SHEET_TEMPLATE";
 import { parseMMDDYY, getWeeksInMonth } from "./dateUtils";
 
@@ -88,6 +121,45 @@ export function extractEmployeeName(sheetData: JsonSheet): string | null {
     return cell.value;
 }
 
+export function extractPreviousYearsCarryOverPTO(sheetData: JsonSheet): number {
+    // Try to extract from L42 first
+    const carryOverCell = sheetData.cells['L42'];
+    if (carryOverCell && carryOverCell.value !== undefined && carryOverCell.value !== null && carryOverCell.value !== '') {
+        if (typeof carryOverCell.value === 'number') {
+            return carryOverCell.value;
+        } else if (typeof carryOverCell.value === 'object' && carryOverCell.value && 'result' in carryOverCell.value && typeof carryOverCell.value.result === 'number') {
+            return carryOverCell.value.result;
+        }
+    }
+
+    // If L42 is blank, compute V42 - J42
+    const v42Cell = sheetData.cells['V42'];
+    const j42Cell = sheetData.cells['O42'];
+
+    let v42Value = 0;
+    let j42Value = 0;
+
+    // Extract V42 value
+    if (v42Cell && v42Cell.value !== undefined) {
+        if (typeof v42Cell.value === 'number') {
+            v42Value = v42Cell.value;
+        } else if (typeof v42Cell.value === 'object' && v42Cell.value && 'result' in v42Cell.value && typeof v42Cell.value.result === 'number') {
+            v42Value = v42Cell.value.result;
+        }
+    }
+
+    // Extract J42 value
+    if (j42Cell && j42Cell.value !== undefined) {
+        if (typeof j42Cell.value === 'number') {
+            j42Value = j42Cell.value;
+        } else if (typeof j42Cell.value === 'object' && j42Cell.value && 'result' in j42Cell.value && typeof j42Cell.value.result === 'number') {
+            j42Value = j42Cell.value.result;
+        }
+    }
+
+    return v42Value - j42Value;
+}
+
 export interface SickHoursStatus {
     allowed: number;
     used: number;
@@ -168,6 +240,23 @@ export function extractLegend(sheetData: JsonSheet): LegendEntry[] {
     return legend;
 }
 
+export function extractDailyRates(sheetData: JsonSheet): number[] {
+    const rates: number[] = [];
+    for (let row = 42; row <= 53; row++) {
+        const cellKey = `F${row}`;
+        const cell = sheetData.cells[cellKey];
+        let value = 0;
+        if (cell && cell.value !== undefined) {
+            if (typeof cell.value === 'number') {
+                value = cell.value;
+            } else if (typeof cell.value === 'object' && cell.value && 'result' in cell.value && typeof cell.value.result === 'number') {
+                value = cell.value.result;
+            }
+        }
+        rates.push(value);
+    }
+    return rates;
+}
 
 export function generateImportTestData(): JsonSheetsTemplate {
     return SHEET_TEMPLATE as JsonSheetsTemplate;
