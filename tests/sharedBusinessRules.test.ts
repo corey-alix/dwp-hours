@@ -5,6 +5,8 @@ import {
     validatePTOType,
     normalizePTOType,
     validateDateString,
+    validateAnnualLimits,
+    validatePTOBalance,
     VALIDATION_MESSAGES,
     type PTOType
 } from '../shared/businessRules.js';
@@ -111,6 +113,75 @@ describe('Business Rules Validation', () => {
         });
     });
 
+    describe('validatePTOBalance', () => {
+        it('should accept request within balance', () => {
+            expect(validatePTOBalance(4, 8)).toBeNull();
+            expect(validatePTOBalance(8, 8)).toBeNull();
+        });
+
+        it('should reject request exceeding balance', () => {
+            const result = validatePTOBalance(12, 8);
+            expect(result).not.toBeNull();
+            expect(result?.messageKey).toBe('hours.exceed_pto_balance');
+        });
+
+        it('should reject request when balance is zero', () => {
+            const result = validatePTOBalance(4, 0);
+            expect(result).not.toBeNull();
+            expect(result?.messageKey).toBe('hours.exceed_pto_balance');
+        });
+    });
+
+    describe('validateAnnualLimits', () => {
+        it('should accept Sick time within annual limit', () => {
+            expect(validateAnnualLimits('Sick', 4, 20)).toBeNull();
+        });
+
+        it('should reject Sick time exceeding annual limit', () => {
+            const result = validateAnnualLimits('Sick', 8, 20);
+            expect(result).not.toBeNull();
+            expect(result?.messageKey).toBe('hours.exceed_annual_sick');
+        });
+
+        it('should accept Bereavement within annual limit', () => {
+            expect(validateAnnualLimits('Bereavement', 4, 36)).toBeNull();
+        });
+
+        it('should reject Bereavement exceeding annual limit', () => {
+            const result = validateAnnualLimits('Bereavement', 8, 36);
+            expect(result).not.toBeNull();
+            expect(result?.messageKey).toBe('hours.exceed_annual_other');
+        });
+
+        it('should accept Jury Duty within annual limit', () => {
+            expect(validateAnnualLimits('Jury Duty', 4, 36)).toBeNull();
+        });
+
+        it('should reject Jury Duty exceeding annual limit', () => {
+            const result = validateAnnualLimits('Jury Duty', 8, 36);
+            expect(result).not.toBeNull();
+            expect(result?.messageKey).toBe('hours.exceed_annual_other');
+        });
+
+        it('should accept PTO when balance is sufficient', () => {
+            expect(validateAnnualLimits('PTO', 4, 0, 8)).toBeNull();
+        });
+
+        it('should reject PTO when balance is insufficient', () => {
+            const result = validateAnnualLimits('PTO', 12, 0, 8);
+            expect(result).not.toBeNull();
+            expect(result?.messageKey).toBe('hours.exceed_pto_balance');
+        });
+
+        it('should skip PTO balance check when balance not provided', () => {
+            expect(validateAnnualLimits('PTO', 100, 0)).toBeNull();
+        });
+
+        it('should handle edge case of exact balance match for PTO', () => {
+            expect(validateAnnualLimits('PTO', 8, 0, 8)).toBeNull();
+        });
+    });
+
     describe('VALIDATION_MESSAGES', () => {
         it('should contain all expected message keys', () => {
             const expectedKeys = [
@@ -123,7 +194,10 @@ describe('Business Rules Validation', () => {
                 'employee.not_found',
                 'entry.not_found',
                 'hours.exceed_annual_sick',
-                'hours.exceed_annual_other'
+                'hours.exceed_annual_other',
+                'hours.exceed_pto_balance',
+                'date.future_limit',
+                'month.acknowledged'
             ];
 
             expectedKeys.forEach(key => {

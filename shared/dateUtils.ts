@@ -172,7 +172,7 @@ export function today(): string {
 /**
  * Gets the day of the week (0 = Sunday, 6 = Saturday)
  */
-export function getDayOfWeek(dateStr: string): number {
+export function getDayOfWeek(dateStr: string) {
     const { year, month, day } = parseDate(dateStr);
     const date = new Date(year, month - 1, day);
     return date.getDay();

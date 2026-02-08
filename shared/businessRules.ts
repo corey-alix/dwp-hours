@@ -7,6 +7,21 @@ export interface ValidationError {
     messageKey: string;
 }
 
+// Business rules constants
+export const BUSINESS_RULES_CONSTANTS = {
+    HOUR_INCREMENT: 4,
+    WEEKEND_DAYS: [0, 6] as number[], // Sunday = 0, Saturday = 6
+    ANNUAL_LIMITS: {
+        SICK: 24,
+        OTHER: 40 // Bereavement and Jury Duty
+    },
+    FUTURE_LIMIT: {
+        YEARS_AHEAD: 1,
+        END_OF_YEAR_MONTH: 11, // December (0-based)
+        END_OF_YEAR_DAY: 31
+    }
+} as const;
+
 export const VALIDATION_MESSAGES = {
     'hours.invalid': 'Hours must be in 4-hour increments',
     'hours.not_integer': 'Hours must be a whole number',
@@ -32,7 +47,7 @@ export function validateHours(hours: number): ValidationError | null {
     if (!Number.isInteger(hours)) {
         return { field: 'hours', messageKey: 'hours.not_integer' };
     }
-    if (hours <= 0 || hours % 4 !== 0) {
+    if (hours <= 0 || hours % BUSINESS_RULES_CONSTANTS.HOUR_INCREMENT !== 0) {
         return { field: 'hours', messageKey: 'hours.invalid' };
     }
     return null;
@@ -43,7 +58,7 @@ export function validateHours(hours: number): ValidationError | null {
  */
 export function validateWeekday(dateStr: string): ValidationError | null {
     const day = getDayOfWeek(dateStr); // 0 = Sunday, 6 = Saturday
-    if (day === 0 || day === 6) {
+    if (BUSINESS_RULES_CONSTANTS.WEEKEND_DAYS.includes(day)) {
         return { field: 'date', messageKey: 'date.weekday' };
     }
     return null;
@@ -83,14 +98,20 @@ export function validateDateString(dateStr: string): ValidationError | null {
 
 /**
  * Validates annual hour limits (requires total hours for the year)
- * This is a basic check; full annual calculation would need more context
+ * For PTO type, validates against available balance if provided
  */
-export function validateAnnualLimits(type: PTOType, hours: number, totalAnnualHours: number): ValidationError | null {
-    if (type === 'Sick' && totalAnnualHours + hours > 24) {
-        return { field: 'hours', messageKey: 'hours.exceed_annual_sick' };
-    }
-    if ((type === 'Bereavement' || type === 'Jury Duty') && totalAnnualHours + hours > 40) {
-        return { field: 'hours', messageKey: 'hours.exceed_annual_other' };
+export function validateAnnualLimits(type: PTOType, hours: number, totalAnnualHours: number, availableBalance?: number): ValidationError | null {
+    if (type === 'PTO' && availableBalance !== undefined) {
+        if (hours > availableBalance) {
+            return { field: 'hours', messageKey: 'hours.exceed_pto_balance' };
+        }
+    } else {
+        if (type === 'Sick' && totalAnnualHours + hours > BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.SICK) {
+            return { field: 'hours', messageKey: 'hours.exceed_annual_sick' };
+        }
+        if ((type === 'Bereavement' || type === 'Jury Duty') && totalAnnualHours + hours > BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.OTHER) {
+            return { field: 'hours', messageKey: 'hours.exceed_annual_other' };
+        }
     }
     return null;
 }
@@ -110,7 +131,11 @@ export function validatePTOBalance(requestedHours: number, availableBalance: num
  */
 export function validateDateFutureLimit(date: Date): ValidationError | null {
     const now = new Date();
-    const nextYear = new Date(now.getFullYear() + 1, 11, 31); // End of next year
+    const nextYear = new Date(
+        now.getFullYear() + BUSINESS_RULES_CONSTANTS.FUTURE_LIMIT.YEARS_AHEAD,
+        BUSINESS_RULES_CONSTANTS.FUTURE_LIMIT.END_OF_YEAR_MONTH,
+        BUSINESS_RULES_CONSTANTS.FUTURE_LIMIT.END_OF_YEAR_DAY
+    ); // End of next year
     if (date > nextYear) {
         return { field: 'date', messageKey: 'date.future_limit' };
     }
