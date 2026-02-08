@@ -6,7 +6,7 @@ export class PtoBereavementCard extends SimplePtoBucketCard {
     }
 
     static get observedAttributes() {
-        return ["data", "entries"];
+        return ["data", "entries", "expanded"];
     }
 
     connectedCallback() {
