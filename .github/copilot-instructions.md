@@ -45,6 +45,9 @@ This project uses specialized agent skills located in `.github/skills/` director
 - **testing-strategy**: Advises on testing approaches and coverage
 - **dependency-management**: Manages task priorities and dependencies
 
+## Development Best Practices and Learnings
+For comprehensive development guidance, patterns, and lessons learned from recent implementations, refer to the [README.md Development Best Practices and Learnings section](../README.md#development-best-practices-and-learnings). This includes code quality practices, testing strategies, architecture insights, performance considerations, and documentation guidelines derived from actual project implementations.
+
 ## Code Patterns and Conventions
 
 ### Backend Patterns
