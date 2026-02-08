@@ -1,5 +1,16 @@
 import { test, expect } from '@playwright/test';
 
+test.beforeEach(async () => {
+    // Seed database before each test for isolation
+    const response = await fetch('http://localhost:3000/api/test/seed', {
+        method: 'POST',
+        headers: { 'x-test-seed': 'true', 'Content-Type': 'application/json' }
+    });
+    if (!response.ok) {
+        throw new Error(`Failed to seed database: ${response.statusText}`);
+    }
+});
+
 test('index PTO form submission persists entry', async ({ page }) => {
     test.setTimeout(15000);
 

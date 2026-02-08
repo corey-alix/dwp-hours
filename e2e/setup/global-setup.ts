@@ -27,18 +27,5 @@ export default async function globalSetup() {
         throw error;
     }
 
-    console.log('🔄 Resetting database for E2E tests...');
-
-    try {
-        // Run the seed script and reload to reset database to clean state
-        execSync('npm run playwright:seed', {
-            cwd: path.join(__dirname, '..', '..'),
-            stdio: 'inherit'
-        });
-
-        console.log('✅ Database reset complete');
-    } catch (error) {
-        console.error('❌ Failed to reset database:', error);
-        throw error;
-    }
+    // Database seeding is now handled per test via /api/test/seed
 }

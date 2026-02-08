@@ -20,6 +20,7 @@ import { PtoEntryDAL } from "./dal/PtoEntryDAL.js";
 import { VALIDATION_MESSAGES, MessageKey, validatePTOBalance } from "../shared/businessRules.js";
 import { performBulkMigration, performFileMigration } from "./bulkMigration.js";
 import { authenticate, authenticateAdmin } from "./utils/auth.js";
+import { seedEmployees, seedPTOEntries } from "../scripts/seedData.js";
 
 const VERSION = `1.0.0`; // INCREMENT BEFORE EACH CHANGE
 const START_TIME = new Date().toISOString();
@@ -213,6 +214,50 @@ initDatabase().then(async () => {
         } catch (error) {
             log(`Database reload error: ${error} `);
             res.status(500).json({ error: 'Database reload failed' });
+        }
+    });
+
+    // Test-only database seed endpoint
+    app.post('/api/test/seed', async (req: Request, res: Response) => {
+        try {
+            // Only allow in test environment or with special header
+            if (process.env.NODE_ENV === 'test' || req.headers['x-test-seed'] === 'true') {
+                log('Seeding database for testing...');
+
+                // Clear all tables
+                db.exec('DELETE FROM admin_acknowledgements;');
+                db.exec('DELETE FROM acknowledgements;');
+                db.exec('DELETE FROM monthly_hours;');
+                db.exec('DELETE FROM pto_entries;');
+                db.exec('DELETE FROM employees;');
+
+                // Reset auto-increment counters
+                db.exec('DELETE FROM sqlite_sequence WHERE name IN ("employees", "pto_entries", "monthly_hours", "acknowledgements", "admin_acknowledgements");');
+
+                // Insert seed employees
+                for (const emp of seedEmployees) {
+                    db.exec(
+                        `INSERT INTO employees (name, identifier, pto_rate, carryover_hours, hire_date, role, hash) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                        [emp.name, emp.identifier, emp.pto_rate, emp.carryover_hours, emp.hire_date, emp.role, emp.hash]
+                    );
+                }
+
+                // Insert seed PTO entries
+                for (const entry of seedPTOEntries) {
+                    db.exec(
+                        `INSERT INTO pto_entries (employee_id, date, type, hours, created_at) VALUES (?, ?, ?, ?, ?)`,
+                        [entry.employee_id, entry.date, entry.type, entry.hours, new Date().toISOString()]
+                    );
+                }
+
+                log('Database seeded successfully.');
+                res.json({ message: 'Database seeded successfully' });
+            } else {
+                res.status(403).json({ error: 'Forbidden: Database seeding only allowed in test environment' });
+            }
+        } catch (error) {
+            log(`Database seed error: ${error} `);
+            res.status(500).json({ error: 'Database seeding failed' });
         }
     });
 
