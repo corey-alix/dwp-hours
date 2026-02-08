@@ -37,13 +37,14 @@ export class PtoSummaryCard extends PtoSectionCard {
         }
 
         const formatValue = (val: number) => val < 0 ? `(${val.toFixed(2)})` : val.toFixed(2);
+        const getValueClass = (val: number) => val < 0 ? 'negative-balance' : '';
 
         const body = `
-            <div class="row"><span class="label">Carryover</span><span>${formatValue(this.data.carryoverFromPreviousYear)} hours</span></div>
-            <div class="row"><span class="label">Annual Allocated</span><span>${formatValue(this.data.annualAllocation)} hours</span></div>
-            <div class="row"><span class="label">Used</span><span>${formatValue(this.data.usedPTO)} hours</span></div>
+            <div class="row"><span class="label">Carryover</span><span class="${getValueClass(this.data.carryoverFromPreviousYear)}">${formatValue(this.data.carryoverFromPreviousYear)} hours</span></div>
+            <div class="row"><span class="label">Annual Allocated</span><span class="${getValueClass(this.data.annualAllocation)}">${formatValue(this.data.annualAllocation)} hours</span></div>
+            <div class="row"><span class="label">Used</span><span class="${getValueClass(this.data.usedPTO)}">${formatValue(this.data.usedPTO)} hours</span></div>
             <hr>
-            <div class="row"><span class="label">Available</span><span>${formatValue(this.data.availablePTO)} hours</span></div>
+            <div class="row"><span class="label">Available</span><span class="${getValueClass(this.data.availablePTO)}">${formatValue(this.data.availablePTO)} hours</span></div>
         `;
 
         this.renderCard("Regular PTO", body);

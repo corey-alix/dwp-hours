@@ -58,6 +58,11 @@ export class PtoSectionCard extends HTMLElement {
                     font-weight: var(--font-weight-semibold);
                     color: var(--color-text);
                 }
+
+                .card .negative-balance {
+                    color: var(--color-error);
+                    font-weight: var(--font-weight-semibold);
+                }
             </style>
             <div class="card">
                 <h4>${title}</h4>
