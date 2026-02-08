@@ -75,9 +75,7 @@ export function jsonToWorkbook(data: ExcelData): ExcelJS.Workbook {
 
             if (cellData.formula) {
                 cell.value = { formula: cellData.formula };
-                if (cellData.value !== undefined) {
-                    (cell.value as any).result = cellData.value;
-                }
+                // Don't set result to avoid [object Object] issues
             } else if (cellData.value !== undefined) {
                 cell.value = cellData.value;
             } else if (cellData.color) {
@@ -133,12 +131,8 @@ export function workbookToJson(workbook: ExcelJS.Workbook): ExcelData {
                 // Get cell value
                 if (cell.value !== null && cell.value !== undefined) {
                     if (typeof cell.value === 'object' && 'formula' in cell.value) {
-                        // Handle formula cells
+                        // Handle formula cells - only store the formula, ignore computed value
                         cellData.formula = (cell.value as any).formula;
-                        // Formulas might also have a cached result
-                        if ((cell.value as any).result !== undefined) {
-                            cellData.value = (cell.value as any).result;
-                        }
                     } else {
                         cellData.value = cell.value;
                     }

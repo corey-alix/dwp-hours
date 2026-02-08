@@ -13,8 +13,10 @@
  * Monthly Data (Rows 42-53):
  * - Work Days: Column D (D42-D53)
  * - Daily Rates: Column F (F42-F53)
- * - Previous Years Carry Over PTO: Cell L42 (or computed as V42 - J42 if blank)
+ * - Previous Years Carry Over PTO: Cell L42 (or computed as V42 - J42 if L42 is blank)
  * - PTO Hours: Column S (S42-S53)
+ * - Employee Signoffs: Column X (X42-X53)
+ * - Admin Signoffs: Column Y (Y42-Y53)
  *
  * Sick Time Status:
  * - Allowed Hours: Cell AB32
@@ -134,10 +136,10 @@ export function extractPreviousYearsCarryOverPTO(sheetData: JsonSheet): number {
 
     // If L42 is blank, compute V42 - J42
     const v42Cell = sheetData.cells['V42'];
-    const j42Cell = sheetData.cells['O42'];
+    const o42Cell = sheetData.cells['J42'];
 
     let v42Value = 0;
-    let j42Value = 0;
+    let o42Value = 0;
 
     // Extract V42 value
     if (v42Cell && v42Cell.value !== undefined) {
@@ -148,16 +150,52 @@ export function extractPreviousYearsCarryOverPTO(sheetData: JsonSheet): number {
         }
     }
 
-    // Extract J42 value
-    if (j42Cell && j42Cell.value !== undefined) {
-        if (typeof j42Cell.value === 'number') {
-            j42Value = j42Cell.value;
-        } else if (typeof j42Cell.value === 'object' && j42Cell.value && 'result' in j42Cell.value && typeof j42Cell.value.result === 'number') {
-            j42Value = j42Cell.value.result;
+    // Extract O42 value
+    if (o42Cell && o42Cell.value !== undefined) {
+        if (typeof o42Cell.value === 'number') {
+            o42Value = o42Cell.value;
+        } else if (typeof o42Cell.value === 'object' && o42Cell.value && 'result' in o42Cell.value && typeof o42Cell.value.result === 'number') {
+            o42Value = o42Cell.value.result;
         }
     }
 
-    return v42Value - j42Value;
+    return v42Value - o42Value;
+}
+
+export function extractEmployeeSignoffs(sheetData: JsonSheet): string[] {
+    const signoffs: string[] = [];
+    for (let row = 42; row <= 53; row++) {
+        const cellKey = `X${row}`;
+        const cell = sheetData.cells[cellKey];
+        let value = '';
+        if (cell && cell.value !== undefined) {
+            if (typeof cell.value === 'string') {
+                value = cell.value;
+            } else if (typeof cell.value === 'object' && cell.value && 'result' in cell.value && typeof cell.value.result === 'string') {
+                value = cell.value.result;
+            }
+        }
+        signoffs.push(value);
+    }
+    return signoffs;
+}
+
+export function extractAdminSignoffs(sheetData: JsonSheet): string[] {
+    const signoffs: string[] = [];
+    for (let row = 42; row <= 53; row++) {
+        const cellKey = `Y${row}`;
+        const cell = sheetData.cells[cellKey];
+        let value = '';
+        if (cell && cell.value !== undefined) {
+            if (typeof cell.value === 'string') {
+                value = cell.value;
+            } else if (typeof cell.value === 'object' && cell.value && 'result' in cell.value && typeof cell.value.result === 'string') {
+                value = cell.value.result;
+            }
+        }
+        signoffs.push(value);
+    }
+    return signoffs;
 }
 
 export interface SickHoursStatus {

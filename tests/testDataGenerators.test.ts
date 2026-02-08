@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateImportTestData, extractMonthlyPTOHours, extractMonthlyWorkDays, extractMonthCellRange, extractHireDate, extractYear, extractEmployeeName, extractSickHoursStatus, extractLegend, extractDailyRates, extractPreviousYearsCarryOverPTO } from '../shared/testDataGenerators';
+import { generateImportTestData, extractMonthlyPTOHours, extractMonthlyWorkDays, extractMonthCellRange, extractHireDate, extractYear, extractEmployeeName, extractSickHoursStatus, extractLegend, extractDailyRates, extractPreviousYearsCarryOverPTO, extractEmployeeSignoffs, extractAdminSignoffs } from '../shared/testDataGenerators';
 import fs from 'fs';
 import path from 'path';
 
@@ -111,7 +111,17 @@ describe('testDataGenerators', () => {
     const carryOverPTO = extractPreviousYearsCarryOverPTO(sheetData);
     expect(carryOverPTO).toBe(95.64);
   });
+  it('should extract employee signoffs from X42 to X53', () => {
+    const employeeSignoffs = extractEmployeeSignoffs(sheetData);
+    expect(employeeSignoffs).toHaveLength(12); // January to December
+    expect(employeeSignoffs).toEqual(['CA', 'CA', 'CA', 'CA', 'CA', 'CA', 'CA', 'CA', 'CA', 'CA', 'CA', 'CA']);
+  });
 
+  it('should extract admin signoffs from Y42 to Y53', () => {
+    const adminSignoffs = extractAdminSignoffs(sheetData);
+    expect(adminSignoffs).toHaveLength(12); // January to December
+    expect(adminSignoffs).toEqual(['Mandi', 'Mandi', 'Mandi', 'Mandi', 'Mandi', 'Mandi', 'Mandi', 'Mandi', 'Mandi', 'Mandi', 'Mandi', 'Mandi']);
+  });
   it('should extract sick hours status from AB32, AB33, AB34', () => {
     const sickHoursStatus = extractSickHoursStatus(sheetData);
     expect(sickHoursStatus).not.toBeNull();
