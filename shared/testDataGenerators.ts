@@ -88,6 +88,87 @@ export function extractEmployeeName(sheetData: JsonSheet): string | null {
     return cell.value;
 }
 
+export interface SickHoursStatus {
+    allowed: number;
+    used: number;
+    remaining: number;
+}
+
+export interface LegendEntry {
+    name: string;
+    color: string;
+}
+
+export function extractSickHoursStatus(sheetData: JsonSheet): SickHoursStatus | null {
+    const allowedCell = sheetData.cells['AB32'];
+    const usedCell = sheetData.cells['AB33'];
+    const remainingCell = sheetData.cells['AB34'];
+
+    if (!allowedCell) {
+        return null;
+    }
+
+    // Extract allowed hours (should be 24)
+    let allowed = 0;
+    if (typeof allowedCell.value === 'number') {
+        allowed = allowedCell.value;
+    } else if (typeof allowedCell.value === 'object' && allowedCell.value && 'result' in allowedCell.value && typeof allowedCell.value.result === 'number') {
+        allowed = allowedCell.value.result;
+    }
+
+    // Extract used hours (may not exist in template, default to 0)
+    let used = 0;
+    if (usedCell) {
+        if (typeof usedCell.value === 'number') {
+            used = usedCell.value;
+        } else if (typeof usedCell.value === 'object' && usedCell.value && 'result' in usedCell.value && typeof usedCell.value.result === 'number') {
+            used = usedCell.value.result;
+        }
+    }
+
+    // Extract remaining hours (formula result or calculated)
+    let remaining = 0;
+    if (remainingCell) {
+        if (typeof remainingCell.value === 'number') {
+            remaining = remainingCell.value;
+        } else if (typeof remainingCell.value === 'object' && remainingCell.value && 'result' in remainingCell.value && typeof remainingCell.value.result === 'number') {
+            remaining = remainingCell.value.result;
+        } else if (remainingCell.formula) {
+            // If it's a formula AB32-AB33, calculate it
+            remaining = allowed - used;
+        }
+    } else {
+        // If no remaining cell, calculate it
+        remaining = allowed - used;
+    }
+
+    return {
+        allowed,
+        used,
+        remaining
+    };
+}
+
+export function extractLegend(sheetData: JsonSheet): LegendEntry[] {
+    const legend: LegendEntry[] = [];
+
+    // Legend entries are in Z9 through Z14
+    for (let row = 9; row <= 14; row++) {
+        const cellKey = `Z${row}`;
+        const cell = sheetData.cells[cellKey];
+
+        if (cell && typeof cell.value === 'string' && cell.color) {
+            legend.push({
+                name: cell.value,
+                color: cell.color
+            });
+        }
+    }
+
+    return legend;
+}
+
+
 export function generateImportTestData(): JsonSheetsTemplate {
     return SHEET_TEMPLATE as JsonSheetsTemplate;
 }

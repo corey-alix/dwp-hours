@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateImportTestData, extractMonthlyPTOHours, extractMonthlyWorkDays, extractMonthCellRange, extractHireDate, extractYear, extractEmployeeName } from '../shared/testDataGenerators';
+import { generateImportTestData, extractMonthlyPTOHours, extractMonthlyWorkDays, extractMonthCellRange, extractHireDate, extractYear, extractEmployeeName, extractSickHoursStatus, extractLegend } from '../shared/testDataGenerators';
 import fs from 'fs';
 import path from 'path';
 
@@ -105,5 +105,28 @@ describe('testDataGenerators', () => {
   it('should extract employee name from J2', () => {
     const employeeName = extractEmployeeName(sheetData);
     expect(employeeName).toBe('Corey Alix');
+  });
+
+  it('should extract sick hours status from AB32, AB33, AB34', () => {
+    const sickHoursStatus = extractSickHoursStatus(sheetData);
+    expect(sickHoursStatus).not.toBeNull();
+    expect(sickHoursStatus).toEqual({
+      allowed: 24,
+      used: 0,
+      remaining: 24
+    });
+  });
+
+  it('should extract legend entries from Z9 to Z14', () => {
+    const legend = extractLegend(sheetData);
+    expect(legend).toHaveLength(6);
+    expect(legend).toEqual([
+      { name: 'Sick', color: 'FF00B050' },
+      { name: 'Full PTO', color: 'FFFFFF00' },
+      { name: 'Partial PTO', color: 'FFFFC000' },
+      { name: 'Planned PTO', color: 'FF00B0F0' },
+      { name: 'Bereavement', color: 'FFBFBFBF' },
+      { name: 'Jury Duty', color: 'FFFF0000' }
+    ]);
   });
 });
