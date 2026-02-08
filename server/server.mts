@@ -1039,55 +1039,6 @@ initDatabase().then(async () => {
                     return res.status(400).json({ error: 'Invalid employee ID or hours' });
                 }
 
-                // Calculate PTO balance for validation if type is PTO
-                if (reqType === 'PTO') {
-                    const employeeRepo = dataSource.getRepository(Employee);
-                    const ptoEntryRepo = dataSource.getRepository(PtoEntry);
-
-                    const employee = await employeeRepo.findOne({ where: { id: empIdNum } });
-                    if (!employee) {
-                        return res.status(404).json({ error: 'Employee not found' });
-                    }
-
-                    const ptoEntries = await ptoEntryRepo.find({ where: { employee_id: empIdNum } });
-
-                    // Convert to PTO calculation format
-                    const hireDate = employee.hire_date instanceof Date
-                        ? employee.hire_date
-                        : new Date(employee.hire_date as any);
-
-                    const employeeData = {
-                        id: employee.id,
-                        name: employee.name,
-                        identifier: employee.identifier,
-                        pto_rate: employee.pto_rate,
-                        carryover_hours: employee.carryover_hours,
-                        hire_date: dateToString(hireDate),
-                        role: employee.role
-                    };
-
-                    const ptoEntriesData = ptoEntries.map(entry => ({
-                        id: entry.id,
-                        employee_id: entry.employee_id,
-                        date: entry.date,
-                        type: entry.type,
-                        hours: entry.hours,
-                        created_at: dateToString(entry.created_at instanceof Date ? entry.created_at : new Date(entry.created_at as any))
-                    }));
-
-                    const ptoStatus = calculatePTOStatus(employeeData, ptoEntriesData);
-                    const availablePTO = ptoStatus.availablePTO;
-
-                    const balanceError = validatePTOBalance(reqHoursNum, availablePTO);
-                    if (balanceError) {
-                        const fieldErrors = [{
-                            field: balanceError.field,
-                            message: VALIDATION_MESSAGES[balanceError.messageKey as MessageKey]
-                        }];
-                        return res.status(400).json({ error: 'validation_failed', fieldErrors });
-                    }
-                }
-
                 const result = await ptoEntryDAL.createPtoEntry({
                     employeeId: empIdNum,
                     date: reqDate,

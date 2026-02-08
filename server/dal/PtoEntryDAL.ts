@@ -8,8 +8,11 @@ import {
     validatePTOType,
     normalizePTOType,
     validateDateString,
-    validateAnnualLimits
+    validateAnnualLimits,
+    validatePTOBalance
 } from "../../shared/businessRules.js";
+import { calculatePTOStatus } from "../ptoCalculations.js";
+import { dateToString } from "../../shared/dateUtils.js";
 
 export interface CreatePtoEntryData {
     employeeId: number;
@@ -70,6 +73,52 @@ export class PtoEntryDAL {
         const typeError = validatePTOType(normalizedType);
         if (typeError) {
             errors.push(typeError);
+        }
+
+        // For PTO type, validate against available balance
+        if (normalizedType === 'PTO' && !typeError && !hoursError) {
+            try {
+                // Get all existing PTO entries for the employee
+                const existingPtoEntries = await this.ptoEntryRepo.find({
+                    where: { employee_id: data.employeeId }
+                });
+
+                // Convert employee and PTO entries to calculation format
+                const employeeData = {
+                    id: employee.id,
+                    name: employee.name,
+                    identifier: employee.identifier,
+                    pto_rate: employee.pto_rate,
+                    carryover_hours: employee.carryover_hours,
+                    hire_date: employee.hire_date instanceof Date ? dateToString(employee.hire_date) : employee.hire_date,
+                    role: employee.role
+                };
+
+                const ptoEntriesData = existingPtoEntries
+                    .filter(entry => entry.id !== excludeId) // Exclude current entry if updating
+                    .map(entry => ({
+                        id: entry.id,
+                        employee_id: entry.employee_id,
+                        date: entry.date,
+                        type: entry.type as PTOType,
+                        hours: entry.hours,
+                        created_at: entry.created_at instanceof Date ? dateToString(entry.created_at) : entry.created_at
+                    }));
+
+                // Calculate current PTO status
+                const ptoStatus = calculatePTOStatus(employeeData, ptoEntriesData);
+                const availableBalance = ptoStatus.availablePTO;
+
+                // Validate PTO balance
+                const balanceError = validatePTOBalance(data.hours, availableBalance);
+                if (balanceError) {
+                    errors.push(balanceError);
+                }
+            } catch (error) {
+                // Log error but don't fail validation - allow graceful degradation
+                console.error('Error calculating PTO balance for validation:', error);
+                // Continue with other validations
+            }
         }
 
         // Check for duplicate

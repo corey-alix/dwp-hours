@@ -27,20 +27,20 @@ Implement PTO balance validation constraints in businessRules.ts to prevent PTO 
 - [x] Ensure npm run test passes all tests
 
 ### Phase 2: Server-Side Validation Integration
-- [ ] Update PtoEntryDAL.ts to use PTO balance validation
-  - [ ] Modify validatePtoEntryData to calculate available PTO balance
-  - [ ] Integrate PTO balance check into validation pipeline
-  - [ ] Ensure validation runs before database operations
-  - [ ] Handle cases where PTO balance calculation fails gracefully
+- [x] Update PtoEntryDAL.ts to use PTO balance validation
+  - [x] Modify validatePtoEntryData to calculate available PTO balance
+  - [x] Integrate PTO balance check into validation pipeline
+  - [x] Ensure validation runs before database operations
+  - [x] Handle cases where PTO balance calculation fails gracefully
 - [x] Update PTO creation endpoint to pass available balance to validation
   - [x] Modify POST /api/pto endpoint to calculate current PTO status
   - [x] Pass available PTO balance to validation functions
   - [x] Ensure validation errors are properly returned to client
-- [ ] Add server-side unit tests for PTO balance validation
-  - [ ] Test PTO creation with sufficient/insufficient balance
-  - [ ] Test validation error responses
-  - [ ] Ensure database operations are prevented when validation fails
-- [ ] Ensure npm run test passes all tests
+- [x] Add server-side unit tests for PTO balance validation
+  - [x] Test PTO creation with sufficient/insufficient balance
+  - [x] Test validation error responses
+  - [x] Ensure database operations are prevented when validation fails
+- [x] Ensure npm run test passes all tests
 
 ### Phase 3: Client-Side Validation Integration
 - [x] Update PTO entry form components to use business rules validation
@@ -94,6 +94,8 @@ Implement PTO balance validation constraints in businessRules.ts to prevent PTO 
 - **Performance**: Balance calculations should be cached where possible to avoid repeated computations
 - **Testing**: Use mock data for available balance in unit tests to avoid database dependencies
 - **Backward Compatibility**: Ensure existing PTO entries without balance validation continue to work
+- **MVP Context**: This is a new MVP implementation with no existing production dependencies, allowing for cleaner API design without backward compatibility concerns
+- **Dependency Management**: All project dependencies are included in the linting process, enabling confident refactoring without external dependency risks
 
 ## Questions and Concerns
 1. **Historical entries exceeding balance**: Implement handling for historical PTO entries that may have exceeded available balance due to lack of prior validation.
@@ -109,3 +111,57 @@ Implement PTO balance validation constraints in businessRules.ts to prevent PTO 
 - Client-side validation receives available balance via `available-pto-balance` attribute on the form component
 - Validation prevents both form submission and API acceptance when PTO balance would be exceeded
 - Balance is updated after successful submissions to reflect changes immediately
+
+## Learnings and Best Practices
+
+### ✅ Completed Successfully
+1. **Magic Number Extraction**: Always extract magic numbers into named constants at the top of files for maintainability. This makes business rules self-documenting and easy to modify.
+
+2. **Backward Compatibility**: When modifying function signatures, use optional parameters to maintain backward compatibility with existing code.
+
+3. **MVP Context - No Backward Compatibility Required**: This is a new MVP implementation with no existing production dependencies. Changes can be made without concern for breaking existing code, allowing for cleaner API design and more direct implementation approaches.
+
+4. **Comprehensive Unit Testing**: Validation functions require extensive unit tests covering:
+   - Normal operation scenarios
+   - Edge cases (zero balance, exact balance matches)
+   - Error conditions and message validation
+   - Integration with existing functions
+
+5. **Task Checklist Maintenance**: Update task checklists immediately when items are completed to maintain accurate progress tracking.
+
+6. **Dependency Management**: All project dependencies are included in the linting process, allowing for confident refactoring without external dependency concerns.
+
+### 🔧 Key Technical Insights
+1. **Business Rules Constants**: Created `BUSINESS_RULES_CONSTANTS` object containing:
+   - `HOUR_INCREMENT: 4` - PTO hours must be in 4-hour increments
+   - `WEEKEND_DAYS: [0, 6]` - Sunday (0) and Saturday (6) are non-work days
+   - `ANNUAL_LIMITS: { SICK: 24, OTHER: 40 }` - Annual limits for different PTO types
+   - `FUTURE_LIMIT` - Date validation boundaries
+
+2. **Validation Function Design**: 
+   - `validatePTOBalance()` - Dedicated function for balance checking
+   - `validateAnnualLimits()` - Extended to include balance validation for PTO type
+   - Maintains separation between balance validation (PTO) and annual limits (Sick/Bereavement/Jury Duty)
+
+3. **Error Message Consistency**: All validation errors use standardized message keys from `VALIDATION_MESSAGES` for consistent user experience.
+
+### 🚀 Recommendations for Remaining Tasks
+1. **Server-Side Integration**: Focus on `PtoEntryDAL.ts` - ensure `validatePtoEntryData()` calls balance validation before database operations.
+
+2. **Client-Side UI**: Implement red text display for negative balances using CSS classes. Consider adding visual indicators (warning icons) for low balance states.
+
+3. **Testing Strategy**: 
+   - Unit tests should use mock balance data to avoid database dependencies
+   - E2E tests should verify both client and server validation work together
+   - Test edge cases: zero balance, negative balance, exact balance matches
+
+4. **Performance Considerations**: Cache PTO balance calculations where possible to avoid repeated computations during form validation.
+
+5. **Error Handling**: Ensure graceful degradation when balance calculations fail - log errors but don't break the user experience.
+
+### ⚠️ Potential Challenges
+1. **Historical Data**: Existing PTO entries may have been created before balance validation. Consider adding migration logic or special handling for these cases.
+
+2. **Real-time Balance Updates**: Ensure balance displays update immediately after successful PTO submissions to prevent user confusion.
+
+3. **Concurrent Submissions**: Consider race conditions where multiple PTO requests are submitted simultaneously with the same balance.
