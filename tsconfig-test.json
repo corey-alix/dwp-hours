@@ -1,9 +1,17 @@
 {
   "extends": "./tsconfig-base.json",
   "compilerOptions": {
-    "lib": ["ES2020", "DOM"],
+    "lib": [
+      "ES2020",
+      "DOM"
+    ],
     "allowImportingTsExtensions": true
   },
-  "include": ["tests/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": [
+    "tests/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }
