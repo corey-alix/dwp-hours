@@ -65,6 +65,36 @@ test('pto-dashboard component test', async ({ page }) => {
 
     // Assert pto-sick-card values
     await test.step('Assert pto-sick-card values', async () => {
+        // Wait for the playground function to set data
+        await page.waitForTimeout(500);
+
+        // Set test data for the sick card
+        await page.locator('pto-sick-card').evaluate((card: any) => {
+            card.bucket = { allowed: 24, used: 24, remaining: 0 };
+            card.usageEntries = [
+                { date: '2026-02-16', hours: 8 },
+                { date: '2026-02-14', hours: 8 },
+                { date: '2026-02-12', hours: 8 }
+            ];
+        });
+        await page.waitForTimeout(100); // Wait for render
+
+        // Check if toggle button exists
+        const toggleButton = page.locator('pto-sick-card').locator('.toggle-button');
+        await expect(toggleButton).toBeVisible();
+        await expect(toggleButton).toContainText('Show Details');
+
+        // First expand the sick card details by clicking the toggle button
+        await page.evaluate(() => {
+            const card = document.querySelector('pto-sick-card');
+            const button = card?.shadowRoot?.querySelector('.toggle-button') as HTMLButtonElement;
+            button?.dispatchEvent(new Event('click', { bubbles: true }));
+        });
+        await page.waitForTimeout(100); // Wait for render
+
+        // Check button text changed
+        await expect(toggleButton).toContainText('Hide Details');
+
         const sickData = await page.evaluate(() => {
             const card = document.querySelector('pto-sick-card');
             if (!card) return { rows: [], entries: [] };
@@ -79,13 +109,16 @@ test('pto-dashboard component test', async ({ page }) => {
         expect(sickData.rows[0]).toBe('Allowed24 hours');
         expect(sickData.rows[1]).toBe('Used24.00 hours');
         expect(sickData.rows[2]).toBe('Remaining0.00 hours');
-        expect(sickData.entries[0]).toBe('2/16/20268.0 hours');
-        expect(sickData.entries[1]).toBe('2/14/20268.0 hours');
-        expect(sickData.entries[2]).toBe('2/12/20268.0 hours');
+        expect(sickData.entries[0]).toBe('2/16/2026 8.0 hours');
+        expect(sickData.entries[1]).toBe('2/14/2026 8.0 hours');
+        expect(sickData.entries[2]).toBe('2/12/2026 8.0 hours');
     });
 
     // Assert pto-bereavement-card values
     await test.step('Assert pto-bereavement-card values', async () => {
+        // First expand the bereavement card details
+        await page.locator('pto-bereavement-card').locator('.toggle-button').click();
+
         const bereavementData = await page.evaluate(() => {
             const card = document.querySelector('pto-bereavement-card');
             if (!card) return { rows: [], entries: [] };
@@ -101,13 +134,16 @@ test('pto-dashboard component test', async ({ page }) => {
         expect(bereavementData.rows[1]).toBe('Used24.00 hours');
         expect(bereavementData.rows[2]).toBe('Remaining16.00 hours');
         // Check usage entries
-        expect(bereavementData.entries[0]).toBe('1/21/20268.0 hours');
-        expect(bereavementData.entries[1]).toBe('1/22/20268.0 hours');
-        expect(bereavementData.entries[2]).toBe('1/23/20268.0 hours');
+        expect(bereavementData.entries[0]).toBe('1/21/2026 8.0 hours');
+        expect(bereavementData.entries[1]).toBe('1/22/2026 8.0 hours');
+        expect(bereavementData.entries[2]).toBe('1/23/2026 8.0 hours');
     });
 
     // Assert pto-jury-duty-card values
     await test.step('Assert pto-jury-duty-card values', async () => {
+        // First expand the jury duty card details
+        await page.locator('pto-jury-duty-card').locator('.toggle-button').click();
+
         const juryData = await page.evaluate(() => {
             const card = document.querySelector('pto-jury-duty-card');
             if (!card) return { rows: [], entries: [] };
@@ -124,8 +160,8 @@ test('pto-dashboard component test', async ({ page }) => {
         expect(juryData.rows[2]).toBe('Remaining-40.00 hours');
         // Check that there are 10 jury duty entries
         expect(juryData.entries.length).toBe(10);
-        expect(juryData.entries[0]).toBe('7/20/20268.0 hours');
-        expect(juryData.entries[9]).toBe('7/31/20268.0 hours');
+        expect(juryData.entries[0]).toBe('7/20/2026 8.0 hours');
+        expect(juryData.entries[9]).toBe('7/31/2026 8.0 hours');
     });
 
     // Assert pto-employee-info-card values

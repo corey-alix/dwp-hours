@@ -17,9 +17,10 @@ export default defineConfig({
     /* Reporter to use. See https://playwright.dev/docs/test-reporters */
     reporter: 'list',
     timeout: 5 * 1000,
+    globalSetup: './scripts/pretest.mjs',
     /* Web server to start before running tests */
     webServer: {
-        command: 'PORT=${PORT:-3000} NODE_ENV=test npm run start:prod',
+        command: 'PORT=${PORT:-3000} NODE_ENV=test pnpm run start:prod',
         port: parseInt(process.env.PORT || '3000', 10),
         reuseExistingServer: true, // Reuse server if available and on correct port
     },
