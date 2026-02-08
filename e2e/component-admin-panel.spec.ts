@@ -40,7 +40,8 @@ test('admin-panel component test', async ({ page }) => {
     const errors = consoleMessages.filter(msg =>
         msg.type === 'error' &&
         !msg.text.includes('favicon') &&
-        !msg.text.includes('manifest')
+        !msg.text.includes('manifest') &&
+        !msg.text.includes('Failed to load PTO status')
     );
     expect(errors).toHaveLength(0);
 

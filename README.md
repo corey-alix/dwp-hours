@@ -98,6 +98,7 @@ The system ensures accurate tracking per employee with individual rates and carr
   - Render all twelve months (January → December) in a grid layout for the prior year
   - Dedicated web component integrated into the main dashboard
   - Shows PTO usage, accruals, and balances for historical review
+  - Self-contained component with external year selection for flexible dashboard integration
 - **Monthly Hours Review**: Submit and review monthly hours worked
 - **Acknowledgement System**: Monthly acknowledgement of hours review completion
   - Automatic reminders at month-end
@@ -185,6 +186,30 @@ addEventListener(button, 'click', handler);
 ```
 
 This approach ensures reliable DOM interactions, easier debugging during development, and consistent error handling patterns throughout the codebase.
+
+## Prior Year Review Component
+
+The Prior Year Review feature provides historical PTO data visualization through a dedicated web component that renders all 12 months of a selected year in a responsive grid layout.
+
+**Component Architecture:**
+- **Self-contained Web Component**: Uses Shadow DOM for style encapsulation and clean integration
+- **External Year Selection**: Year selection is handled at the dashboard level, not within the component
+- **Responsive Grid Layout**: Displays months in a flexible grid (maximum 3 months per row on larger screens)
+- **Calendar Visualization**: Each month renders as a full calendar with PTO entries color-coded by type
+- **Data Structure**: Accepts structured PTO data with monthly summaries and detailed entry lists
+
+**Key Features:**
+- **Color-Coded PTO Types**: PTO (yellow), Sick (red), Bereavement (purple), Jury Duty (green)
+- **Hours Display**: PTO hours shown in bottom-right corner of calendar days
+- **Monthly Summaries**: Each month includes summary bars showing total hours by PTO type
+- **Consistent Height**: All calendars display exactly 6 weeks (42 days) for perfect alignment
+- **Read-Only View**: Historical data is displayed read-only for review purposes
+
+**Integration Points:**
+- **API Endpoint**: `/api/pto/year/:year` provides historical PTO data for any valid year
+- **Dashboard Controls**: Year toggle buttons switch between current year and prior year views
+- **Error Handling**: Graceful handling of missing data with user-friendly "No data available" messages
+- **Theming**: Uses CSS custom properties for consistent styling with the rest of the application
 
 ## Notification System
 
