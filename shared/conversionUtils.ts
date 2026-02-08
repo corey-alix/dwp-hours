@@ -75,8 +75,14 @@ export function jsonToWorkbook(data: ExcelData): ExcelJS.Workbook {
 
             if (cellData.formula) {
                 cell.value = { formula: cellData.formula };
+                if (cellData.value !== undefined) {
+                    (cell.value as any).result = cellData.value;
+                }
             } else if (cellData.value !== undefined) {
                 cell.value = cellData.value;
+            } else if (cellData.color) {
+                // Set empty value to ensure cell exists for color-only cells
+                cell.value = '';
             }
 
             if (cellData.color) {
@@ -136,6 +142,10 @@ export function workbookToJson(workbook: ExcelJS.Workbook): ExcelData {
                     } else {
                         cellData.value = cell.value;
                     }
+                }
+
+                if (cellData.value === '') {
+                    cellData.value = undefined;
                 }
 
                 // Get cell background color

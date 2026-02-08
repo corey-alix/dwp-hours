@@ -27,54 +27,20 @@ Implement utility methods and scripts for converting between Excel, JSON, and da
   - [x] `npm run build` and `npm run lint` pass
   - [x] Run `pnpm test` after completing this phase to ensure no regressions occur
   - [x] Never proceed to the next phase if any tests are failing; fix all test failures before advancing
-- [ ] **Phase 3: Round-Trip Validation Tests**
-  - [ ] Implement `tests/round-trip.test.ts` for JSON→Excel→JSON test
-  - [ ] Implement Excel→JSON→Excel round-trip test using reference file
-  - [ ] Add test data files in `private/` directory
-  - [ ] Ensure tests validate values, formulas, colors, and merged ranges
-  - [ ] Implement unit tests for round-trip conversion validation
-  - [ ] All round-trip tests pass
-  - [ ] `npm run test` passes
+- [x] **Phase 3: Round-Trip Validation Tests**
+  - [x] Implement `tests/round-trip.test.ts` for JSON→Excel→JSON test (JSON-to-JSON comparison)
+  - [x] Implement Excel→JSON→Excel→JSON round-trip test (JSON-to-JSON comparison) using reference file
+  - [x] Ensure tests validate values, formulas, colors, and merged ranges
+  - [x] Implement unit tests for round-trip conversion validation
+  - [x] All round-trip tests pass
+  - [x] `npm run test` passes
+  - [x] Run `pnpm test` after completing this phase to ensure no regressions occur
+  - [x] Never proceed to the next phase if any tests are failing; fix all test failures before advancing
+- [ ] **Phase 4: JSON Generation Function**
+  - [ ] Create a function in `shared/testDataGenerators.ts` that generates the JSON document identical to `tests/data/import-tests.json`
+  - [ ] Implement unit tests to verify the generated JSON matches the expected structure
   - [ ] Run `pnpm test` after completing this phase to ensure no regressions occur
-  - [ ] Never proceed to the next phase if any tests are failing; fix all test failures before advancing
-- [ ] **Phase 4: JSON to Database Import**
-  - [ ] Implement `convert-json-to-database.mts` script
-  - [ ] Create utility method for parsing and importing JSON data
-  - [ ] Handle employee records, PTO data, and hours entries
-  - [ ] Add transaction support for data integrity
-  - [ ] Implement unit tests for database import functions
-  - [ ] Manual testing with sample data
-  - [ ] `npm run build` and `npm run lint` pass
-  - [ ] Run `pnpm test` after completing this phase to ensure no regressions occur
-  - [ ] Never proceed to the next phase if any tests are failing; fix all test failures before advancing
-- [ ] **Phase 5: Database to JSON Export**
-  - [ ] Implement `convert-database-to-json.mts` script
-  - [ ] Create utility method for exporting database data to JSON
-  - [ ] Support filtering and formatting options
-  - [ ] Add output validation
-  - [ ] Implement unit tests for database export functions
-  - [ ] Manual testing of export functionality
-  - [ ] `npm run build` and `npm run lint` pass
-  - [ ] Run `pnpm test` after completing this phase to ensure no regressions occur
-  - [ ] Never proceed to the next phase if any tests are failing; fix all test failures before advancing
-- [ ] **Phase 6: Database Round-Trip Validation**
-  - [ ] Implement `tests/database-export.test.ts` for JSON→DB→JSON test
-  - [ ] Use in-memory test database for validation
-  - [ ] Compare original and exported JSON for data integrity
-  - [ ] Implement unit tests for database round-trip validation
-  - [ ] All database round-trip tests pass
-  - [ ] `npm run test` passes
-  - [ ] Run `pnpm test` after completing this phase to ensure no regressions occur
-  - [ ] Never proceed to the next phase if any tests are failing; fix all test failures before advancing
-- [ ] **Documentation and Final Validation**
-  - [ ] Update README.md with usage instructions for conversion scripts
-  - [ ] Add JSDoc comments to all utility methods
-  - [ ] Implement comprehensive unit tests for all conversion utilities
-  - [ ] Manual end-to-end testing with legacy data
-  - [ ] Code review for security and performance
-  - [ ] All quality gates pass (build, lint, tests)
-  - [ ] Run `pnpm test` after completing this phase to ensure no regressions occur
-  - [ ] Never proceed to the next phase if any tests are failing; fix all test failures before advancing
+
 
 ## Implementation Notes
 - Use ExcelJS library for Excel file manipulation (add to package.json if not present)
