@@ -7,7 +7,7 @@ test('index PTO form submission persists entry', async ({ page }) => {
 
     await page.goto('http://localhost:3000');
 
-    await page.fill('#identifier', 'john.doe@gmail.com');
+    await page.fill('#identifier', 'jane.smith@example.com');
     await page.click('#login-form button[type="submit"]');
 
     await page.waitForSelector('#login-message a', { timeout: 10000 });
