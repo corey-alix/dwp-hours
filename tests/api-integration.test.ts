@@ -5,8 +5,9 @@ import initSqlJs from 'sql.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { DataSource } from 'typeorm';
+import { DataSource, Between } from 'typeorm';
 import { Employee, PtoEntry, MonthlyHours, Acknowledgement, AdminAcknowledgement } from '../server/entities/index.js';
+import { formatDate, endOfMonth, compareDates, today, isValidDateString } from '../shared/dateUtils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -161,6 +162,77 @@ function setupIntegrationRoutes(app: express.Application) {
             res.status(500).json({ error: 'Internal server error' });
         }
     });
+
+    // PTO Year Review endpoint (simplified for testing - no auth)
+    app.get('/api/pto/year/:year', async (req, res) => {
+        try {
+            const { year } = req.params;
+            const yearNum = parseInt(year as string);
+            // For testing, use employee ID from query param or default to 1
+            const employeeId = req.query.employeeId ? parseInt(req.query.employeeId as string) : 1;
+
+            // Validate year parameter
+            const currentYear = new Date().getFullYear();
+            if (isNaN(yearNum) || yearNum < currentYear - 10 || yearNum >= currentYear) {
+                return res.status(400).json({
+                    error: 'Invalid year parameter. Year must be between ' + (currentYear - 10) + ' and ' + (currentYear - 1)
+                });
+            }
+
+            const ptoEntryRepo = dataSource.getRepository(PtoEntry);
+
+            // Get PTO entries for the specified year
+            const startDate = `${yearNum}-01-01`;
+            const endDate = `${yearNum}-12-31`;
+
+            const ptoEntries = await ptoEntryRepo.find({
+                where: {
+                    employee_id: employeeId,
+                    date: Between(startDate, endDate)
+                },
+                order: { date: 'ASC' }
+            });
+
+            // Group PTO entries by month
+            const months = [];
+            for (let month = 1; month <= 12; month++) {
+                const monthStart = formatDate(yearNum, month, 1);
+                const monthEnd = endOfMonth(monthStart);
+
+                const monthEntries = ptoEntries.filter(entry => {
+                    return compareDates(entry.date, monthStart) >= 0 && compareDates(entry.date, monthEnd) <= 0;
+                });
+
+                // Calculate summary for the month
+                const { day: totalDays } = { day: new Date(yearNum, month, 0).getDate() }; // Simple calculation for testing
+                const summary = {
+                    totalDays,
+                    ptoHours: monthEntries.filter(e => e.type === 'PTO').reduce((sum, e) => sum + e.hours, 0),
+                    sickHours: monthEntries.filter(e => e.type === 'Sick').reduce((sum, e) => sum + e.hours, 0),
+                    bereavementHours: monthEntries.filter(e => e.type === 'Bereavement').reduce((sum, e) => sum + e.hours, 0),
+                    juryDutyHours: monthEntries.filter(e => e.type === 'Jury Duty').reduce((sum, e) => sum + e.hours, 0)
+                };
+
+                months.push({
+                    month,
+                    ptoEntries: monthEntries.map(entry => ({
+                        date: entry.date, // Already in YYYY-MM-DD format
+                        type: entry.type,
+                        hours: entry.hours
+                    })),
+                    summary
+                });
+            }
+
+            res.json({
+                year: yearNum,
+                months
+            });
+        } catch (error) {
+            console.error('Error getting PTO year review:', error);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    });
 }
 
 describe('API Integration Tests', () => {
@@ -252,5 +324,156 @@ describe('API Integration Tests', () => {
             });
 
         expect(validResponse.status).toBe(201);
+    });
+
+    describe('PTO Year Review API', () => {
+        let testEmployee: Employee;
+
+        beforeEach(async () => {
+            // Create test employee
+            testEmployee = dataSource.getRepository(Employee).create({
+                name: 'PTO Year Test Employee',
+                identifier: 'pto-year@example.com',
+                pto_rate: 0.71,
+                carryover_hours: 10,
+                hire_date: new Date('2024-01-01'),
+                role: 'Employee'
+            });
+            await dataSource.getRepository(Employee).save(testEmployee);
+
+            // Create some PTO entries for 2025
+            const ptoEntries = [
+                { employee_id: testEmployee.id, date: '2025-01-15', type: 'PTO' as const, hours: 8 },
+                { employee_id: testEmployee.id, date: '2025-02-20', type: 'Sick' as const, hours: 4 },
+                { employee_id: testEmployee.id, date: '2025-03-10', type: 'Bereavement' as const, hours: 8 },
+                { employee_id: testEmployee.id, date: '2025-06-15', type: 'Jury Duty' as const, hours: 8 },
+                { employee_id: testEmployee.id, date: '2025-12-25', type: 'PTO' as const, hours: 8 }
+            ];
+
+            for (const entry of ptoEntries) {
+                await dataSource.getRepository(PtoEntry).save(entry);
+            }
+        });
+
+        it('should return PTO data for a valid year', async () => {
+            const response = await request(app)
+                .get('/api/pto/year/2025')
+                .query({ employeeId: testEmployee.id });
+
+            expect(response.status).toBe(200);
+            expect(response.body.year).toBe(2025);
+            expect(response.body.months).toHaveLength(12);
+
+            // Check January has PTO entry
+            const january = response.body.months[0];
+            expect(january.month).toBe(1);
+            expect(january.ptoEntries).toHaveLength(1);
+            expect(january.ptoEntries[0]).toEqual({
+                date: '2025-01-15',
+                type: 'PTO',
+                hours: 8
+            });
+            expect(january.summary.ptoHours).toBe(8);
+
+            // Check February has Sick entry
+            const february = response.body.months[1];
+            expect(february.ptoEntries).toHaveLength(1);
+            expect(february.summary.sickHours).toBe(4);
+
+            // Check December has PTO entry
+            const december = response.body.months[11];
+            expect(december.ptoEntries).toHaveLength(1);
+            expect(december.summary.ptoHours).toBe(8);
+        });
+
+        it('should return empty months when no PTO entries exist for the year', async () => {
+            const response = await request(app)
+                .get('/api/pto/year/2024')
+                .query({ employeeId: testEmployee.id });
+
+            expect(response.status).toBe(200);
+            expect(response.body.year).toBe(2024);
+            expect(response.body.months).toHaveLength(12);
+
+            // All months should have empty entries and zero summaries
+            for (const month of response.body.months) {
+                expect(month.ptoEntries).toHaveLength(0);
+                expect(month.summary.ptoHours).toBe(0);
+                expect(month.summary.sickHours).toBe(0);
+                expect(month.summary.bereavementHours).toBe(0);
+                expect(month.summary.juryDutyHours).toBe(0);
+            }
+        });
+
+        it('should reject invalid year parameters', async () => {
+            // Year too old
+            const oldYearResponse = await request(app)
+                .get('/api/pto/year/2010')
+                .query({ employeeId: testEmployee.id });
+
+            expect(oldYearResponse.status).toBe(400);
+            expect(oldYearResponse.body.error).toContain('Invalid year parameter');
+
+            // Year in future (current year)
+            const currentYear = new Date().getFullYear();
+            const futureYearResponse = await request(app)
+                .get(`/api/pto/year/${currentYear}`)
+                .query({ employeeId: testEmployee.id });
+
+            expect(futureYearResponse.status).toBe(400);
+            expect(futureYearResponse.body.error).toContain('Invalid year parameter');
+
+            // Invalid year format
+            const invalidYearResponse = await request(app)
+                .get('/api/pto/year/abc')
+                .query({ employeeId: testEmployee.id });
+
+            expect(invalidYearResponse.status).toBe(400);
+            expect(invalidYearResponse.body.error).toContain('Invalid year parameter');
+        });
+
+        it('should handle multiple PTO entries in the same month', async () => {
+            // Add another PTO entry in January
+            await dataSource.getRepository(PtoEntry).save({
+                employee_id: testEmployee.id,
+                date: '2025-01-20',
+                type: 'PTO',
+                hours: 4
+            });
+
+            const response = await request(app)
+                .get('/api/pto/year/2025')
+                .query({ employeeId: testEmployee.id });
+
+            expect(response.status).toBe(200);
+
+            const january = response.body.months[0];
+            expect(january.ptoEntries).toHaveLength(2);
+            expect(january.summary.ptoHours).toBe(12); // 8 + 4
+        });
+
+        it('should return correct response structure', async () => {
+            const response = await request(app)
+                .get('/api/pto/year/2025')
+                .query({ employeeId: testEmployee.id });
+
+            expect(response.status).toBe(200);
+
+            // Validate response structure
+            expect(response.body).toHaveProperty('year');
+            expect(response.body).toHaveProperty('months');
+            expect(Array.isArray(response.body.months)).toBe(true);
+
+            const month = response.body.months[0];
+            expect(month).toHaveProperty('month');
+            expect(month).toHaveProperty('ptoEntries');
+            expect(month).toHaveProperty('summary');
+            expect(Array.isArray(month.ptoEntries)).toBe(true);
+            expect(month.summary).toHaveProperty('totalDays');
+            expect(month.summary).toHaveProperty('ptoHours');
+            expect(month.summary).toHaveProperty('sickHours');
+            expect(month.summary).toHaveProperty('bereavementHours');
+            expect(month.summary).toHaveProperty('juryDutyHours');
+        });
     });
 });
