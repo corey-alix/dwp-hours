@@ -63,39 +63,6 @@ Enhance the Sick, Bereavement, and Jury Duty PTO cards to show detailed date and
 - Use existing theming system for consistent styling
 - **NEW**: Make "Dates Used" entries clickable to open the calendar for the month containing that date
 
-## Key Learnings from Implementation
-
-### Component Architecture
-- **Base Class Pattern**: `SimplePtoBucketCard` provides expandable functionality, toggle buttons, and detailed listings rendering
-- **Data Properties**: Cards receive data through `bucket` (summary data) and `usageEntries` (detailed entries) properties
-- **Attribute Observation**: Subclasses must observe "expanded" attribute for toggle functionality to work
-- **Event Handling**: Toggle button clicks are handled internally by the base class
-
-### Dashboard Integration
-- **Dynamic Creation**: Cards are created programmatically in `loadPTOStatus()` and `renderPTOStatus()` methods
-- **Loading States**: Cards show "Loading..." when `bucket` data is null, providing good UX during data fetch
-- **Data Flow**: `buildUsageEntries()` filters entries by year and type, returning `{date, hours}[]` format
-- **DOM Updates**: Cards are appended to `.pto-summary` container and updated when data arrives
-
-### Styling & Responsiveness
-- **CSS Custom Properties**: Uses design tokens like `var(--color-primary)`, `var(--space-md)`, etc.
-- **Mobile-First**: Added `@media (max-width: 480px)` for vertical stacking of date/hours on small screens
-- **Consistent Theming**: Detailed listings match existing card styling patterns
-
-### Testing Strategy
-- **Component Tests**: Individual `.test.ts` files for each card component
-- **E2E Tests**: Playwright tests in `e2e/` directory cover full user workflows
-- **Data Setup**: Test files include realistic PTO data scenarios for validation
-- **Loading Verification**: Browser logs confirm loading states and data updates
-
-### Performance Considerations
-- **Large Entry Lists**: Current implementation renders all entries at once. For users with many PTO entries, consider:
-  - Virtual scrolling for lists > 20 entries
-  - Pagination (show 10 entries at a time with "Show More" button)
-  - Lazy loading of detailed data only when expanded
-- **Memory Usage**: Each card stores full entry arrays - monitor for memory issues with large datasets
-- **DOM Performance**: Many list items may impact rendering performance on low-end devices
-
 ## Questions and Concerns
 1. ~~Should the detailed listings show all historical entries or only current year?~~ **RESOLVED**: Current year only (implemented via `buildUsageEntries()` filtering)
 2. ~~How should the expandable toggle be visually indicated (chevron, "Show Details" text, etc.)?~~ **RESOLVED**: "Show Details"/"Hide Details" text with chevron (▼) - implemented in base class
