@@ -36,10 +36,10 @@ Implement utility methods and scripts for converting between Excel, JSON, and da
   - [x] `npm run test` passes
   - [x] Run `pnpm test` after completing this phase to ensure no regressions occur
   - [x] Never proceed to the next phase if any tests are failing; fix all test failures before advancing
-- [ ] **Phase 4: JSON Generation Function**
-  - [ ] Create a function in `shared/testDataGenerators.ts` that generates the JSON document identical to `tests/data/import-tests.json`
-  - [ ] Implement unit tests to verify the generated JSON matches the expected structure
-  - [ ] Run `pnpm test` after completing this phase to ensure no regressions occur
+- [x] **Phase 4: JSON Generation Function**
+  - [x] Create a function in `shared/testDataGenerators.ts` that generates the JSON document identical to `tests/data/import-tests.json`
+  - [x] Implement unit tests to verify the generated JSON matches the expected structure
+  - [x] Run `pnpm test` after completing this phase to ensure no regressions occur
 
 
 ## Implementation Notes
