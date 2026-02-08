@@ -238,7 +238,7 @@ export class PtoEntryForm extends HTMLElement {
         }
 
         if (isWeekend(value)) {
-            this.setFieldWarning(input, 'Warning: Selected date is a weekend. PTO is typically for weekdays.');
+            this.setFieldWarning(input, VALIDATION_MESSAGES['date.weekday']);
         } else {
             this.clearFieldError(input);
         }
