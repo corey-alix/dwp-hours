@@ -3,5 +3,5 @@
         "server"
     ],
     "ext": "mts",
-    "exec": "npm-run-all build start:prod"
+    "exec": "pnpm run build:server && pnpm run start:prod"
 }

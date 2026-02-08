@@ -1,10 +1,18 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
+import fs from 'fs';
 
 test.describe('File-Based Data Migration API', () => {
     test.setTimeout(60000); // Allow more time for migration operations
 
     test('should execute full migration from Excel file and verify data integrity', async ({ page }) => {
+        // Check if the required Excel file exists
+        const filePath = path.join(process.cwd(), 'private', 'Corey Alix 2025.xlsx');
+        if (!fs.existsSync(filePath)) {
+            console.warn('Excel file not found, skipping migration test. Please provide "private/Corey Alix 2025.xlsx"');
+            test.skip();
+            return;
+        }
         // First, reload database to ensure clean state
         await page.request.post('/api/test/reload-database', {
             headers: { 'x-test-reload': 'true' }
@@ -14,7 +22,7 @@ test.describe('File-Based Data Migration API', () => {
         await page.waitForTimeout(1000);
 
         // Log in as admin to get authentication cookie
-        await page.goto('http://localhost:3000');
+        await page.goto('/');
         await page.fill('#identifier', 'admin@example.com');
         await page.click('#login-form button[type="submit"]');
         await page.waitForSelector('#login-message', { timeout: 10000 });
@@ -23,7 +31,6 @@ test.describe('File-Based Data Migration API', () => {
         await page.waitForSelector('#dashboard', { timeout: 10000 });
 
         // Execute file-based migration
-        const filePath = path.join(process.cwd(), 'private', 'Corey Alix 2025.xlsx');
         const response = await page.request.post('/api/migrate/file', {
             data: {
                 employeeEmail: 'test-coreyalix@gmail.com',
@@ -104,7 +111,7 @@ test.describe('File-Based Data Migration API', () => {
 
     test('should handle missing Excel file gracefully', async ({ page }) => {
         // Log in as admin first
-        await page.goto('http://localhost:3000');
+        await page.goto('/');
         await page.fill('#identifier', 'admin@example.com');
         await page.click('#login-form button[type="submit"]');
         await page.waitForSelector('#login-message', { timeout: 10000 });
@@ -127,7 +134,7 @@ test.describe('File-Based Data Migration API', () => {
 
     test('should validate employee email format', async ({ page }) => {
         // Log in as admin first
-        await page.goto('http://localhost:3000');
+        await page.goto('/');
         await page.fill('#identifier', 'admin@example.com');
         await page.click('#login-form button[type="submit"]');
         await page.waitForSelector('#login-message', { timeout: 10000 });

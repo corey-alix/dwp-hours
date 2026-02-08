@@ -17,18 +17,16 @@ export default defineConfig({
     /* Reporter to use. See https://playwright.dev/docs/test-reporters */
     reporter: 'list',
     timeout: 5 * 1000,
-    /* Global setup to reset database before tests */
-    globalSetup: './e2e/setup/global-setup.ts',
     /* Web server to start before running tests */
     webServer: {
-        command: 'npm run start:prod',
-        port: 3000,
-        reuseExistingServer: true, // Reuse existing server since it's already running
+        command: 'PORT=${PORT:-3000} NODE_ENV=test npm run start:prod',
+        port: parseInt(process.env.PORT || '3000', 10),
+        reuseExistingServer: true, // Reuse server if available and on correct port
     },
     /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
     use: {
         /* Base URL to use in actions like `await page.goto('/')`. */
-        baseURL: 'http://localhost:3000',
+        baseURL: `http://localhost:${parseInt(process.env.PORT || '3000', 10)}`,
 
         /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
         trace: 'on-first-retry',

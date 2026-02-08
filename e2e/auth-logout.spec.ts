@@ -5,7 +5,7 @@ test.describe('Authentication Logout', () => {
         test.setTimeout(10000);
 
         // Step 1: Navigate to login page
-        await page.goto('http://localhost:3000/index.html');
+        await page.goto('/index.html');
         await expect(page.locator('#login-form')).toBeVisible();
 
         // Step 2: Login using email address

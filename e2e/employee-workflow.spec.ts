@@ -42,7 +42,7 @@ test.describe('Employee Authentication & Workflow', () => {
         const testDateStr = '2026-03-12'; // Thursday
 
         // Navigate to the actual application
-        await page.goto('http://localhost:3000');
+        await page.goto('/');
 
         // Fill out login form with test user email
         await page.fill('#identifier', 'john.doe@gmail.com');

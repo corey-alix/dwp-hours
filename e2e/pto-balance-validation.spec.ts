@@ -6,7 +6,7 @@ test.describe('PTO Balance Validation', () => {
     test('should prevent PTO submission when balance is insufficient', async ({ page }) => {
         const testDateStr = '2026-04-01';
 
-        await page.goto('http://localhost:3000');
+        await page.goto('/');
 
         // Login as John Doe (has ~12 hours available PTO)
         await page.fill('#identifier', 'john.doe@gmail.com');
@@ -73,7 +73,7 @@ test.describe('PTO Balance Validation', () => {
     test('should allow PTO submission when balance is sufficient', async ({ page }) => {
         const testDateStr = '2026-04-02';
 
-        await page.goto('http://localhost:3000');
+        await page.goto('/');
 
         // Login as John Doe
         await page.fill('#identifier', 'john.doe@gmail.com');
@@ -139,7 +139,7 @@ test.describe('PTO Balance Validation', () => {
         // For now, we'll test the CSS class application logic
         // In a real scenario, we'd need seed data with negative balance or create it
 
-        await page.goto('http://localhost:3000');
+        await page.goto('/');
 
         // Login as John Doe (positive balance)
         await page.fill('#identifier', 'john.doe@gmail.com');
@@ -171,7 +171,7 @@ test.describe('PTO Balance Validation', () => {
     test('should validate balance on form changes', async ({ page }) => {
         const testDateStr = '2026-04-03';
 
-        await page.goto('http://localhost:3000');
+        await page.goto('/');
 
         // Login as John Doe
         await page.fill('#identifier', 'john.doe@gmail.com');
@@ -220,7 +220,7 @@ test.describe('PTO Balance Validation', () => {
         // For John Doe, it's approximately 12 hours, but let's use a smaller amount
         const testDateStr = '2026-04-04';
 
-        await page.goto('http://localhost:3000');
+        await page.goto('/');
 
         // Login as John Doe
         await page.fill('#identifier', 'john.doe@gmail.com');

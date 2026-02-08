@@ -305,7 +305,7 @@ initDatabase().then(async () => {
             const timestamp = Date.now();
             const temporalHash = crypto.createHash('sha256').update(secretHash + timestamp).digest('hex');
 
-            const magicLink = `http://localhost:3000/?token=${temporalHash}&ts=${timestamp}`;
+            const magicLink = `http://localhost:${PORT}/?token=${temporalHash}&ts=${timestamp}`;
 
             if (shouldReturnMagicLink) {
                 log(`Magic link for ${identifier}: ${magicLink}`);
@@ -1314,6 +1314,10 @@ initDatabase().then(async () => {
             const { employeeEmail, filePath } = req.body;
             if (!filePath) {
                 return res.status(400).json({ error: 'File path is required' });
+            }
+            // Validate employee email before file operations
+            if (!employeeEmail || typeof employeeEmail !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(employeeEmail)) {
+                return res.status(400).json({ error: 'Valid employee email is required' });
             }
             const result = await performFileMigration(
                 dataSource,

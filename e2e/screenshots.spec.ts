@@ -69,91 +69,91 @@ test('PTO submission form screenshot', async ({ page }) => {
 });
 
 test('admin-panel component screenshot', async ({ page }) => {
-    await page.goto('http://localhost:3000/components/admin-panel/test.html');
+    await page.goto('/components/admin-panel/test.html');
     await page.waitForSelector('#test-output', { timeout: 10000 });
     await stabilizePage(page);
     await compareAndUpdateScreenshot(await page.screenshot({ fullPage: true }), 'assets/admin-panel-component.png');
 });
 
 test('confirmation-dialog component screenshot', async ({ page }) => {
-    await page.goto('http://localhost:3000/components/confirmation-dialog/test.html');
+    await page.goto('/components/confirmation-dialog/test.html');
     await page.waitForSelector('#test-output', { timeout: 10000 });
     await stabilizePage(page);
     await compareAndUpdateScreenshot(await page.screenshot({ fullPage: true }), 'assets/confirmation-dialog-component.png');
 });
 
 test('data-table component screenshot', async ({ page }) => {
-    await page.goto('http://localhost:3000/components/data-table/test.html');
+    await page.goto('/components/data-table/test.html');
     await page.waitForSelector('#test-output', { timeout: 10000 });
     await stabilizePage(page);
     await compareAndUpdateScreenshot(await page.screenshot({ fullPage: true }), 'assets/data-table-component.png');
 });
 
 test('employee-form component screenshot', async ({ page }) => {
-    await page.goto('http://localhost:3000/components/employee-form/test.html');
+    await page.goto('/components/employee-form/test.html');
     await page.waitForSelector('#test-output', { timeout: 10000 });
     await stabilizePage(page);
     await compareAndUpdateScreenshot(await page.screenshot({ fullPage: true }), 'assets/employee-form-component.png');
 });
 
 test('employee-list component screenshot', async ({ page }) => {
-    await page.goto('http://localhost:3000/components/employee-list/test.html');
+    await page.goto('/components/employee-list/test.html');
     await page.waitForSelector('#test-output', { timeout: 10000 });
     await stabilizePage(page);
     await compareAndUpdateScreenshot(await page.screenshot({ fullPage: true }), 'assets/employee-list-component.png');
 });
 
 test('pto-request-queue component screenshot', async ({ page }) => {
-    await page.goto('http://localhost:3000/components/pto-request-queue/test.html');
+    await page.goto('/components/pto-request-queue/test.html');
     await page.waitForSelector('#test-output', { timeout: 10000 });
     await stabilizePage(page);
     await compareAndUpdateScreenshot(await page.screenshot({ fullPage: true }), 'assets/pto-request-queue-component.png');
 });
 
 test('report-generator component screenshot', async ({ page }) => {
-    await page.goto('http://localhost:3000/components/report-generator/test.html');
+    await page.goto('/components/report-generator/test.html');
     await page.waitForSelector('#test-output', { timeout: 10000 });
     await stabilizePage(page);
     await compareAndUpdateScreenshot(await page.screenshot({ fullPage: true }), 'assets/report-generator-component.png');
 });
 
 test('pto-summary-card component screenshot', async ({ page }) => {
-    await page.goto('http://localhost:3000/components/pto-summary-card/test.html');
+    await page.goto('/components/pto-summary-card/test.html');
     await page.waitForSelector('#test-output', { timeout: 10000 });
     await stabilizePage(page);
     await compareAndUpdateScreenshot(await page.screenshot({ fullPage: true }), 'assets/pto-summary-card-component.png');
 });
 
 test('pto-accrual-card component screenshot', async ({ page }) => {
-    await page.goto('http://localhost:3000/components/pto-accrual-card/test.html');
+    await page.goto('/components/pto-accrual-card/test.html');
     await page.waitForSelector('#test-output', { timeout: 10000 });
     await stabilizePage(page);
     await compareAndUpdateScreenshot(await page.screenshot({ fullPage: true }), 'assets/pto-accrual-card-component.png');
 });
 
 test('pto-sick-card component screenshot', async ({ page }) => {
-    await page.goto('http://localhost:3000/components/pto-sick-card/test.html');
+    await page.goto('/components/pto-sick-card/test.html');
     await page.waitForSelector('#test-output', { timeout: 10000 });
     await stabilizePage(page);
     await compareAndUpdateScreenshot(await page.screenshot({ fullPage: true }), 'assets/pto-sick-card-component.png');
 });
 
 test('pto-bereavement-card component screenshot', async ({ page }) => {
-    await page.goto('http://localhost:3000/components/pto-bereavement-card/test.html');
+    await page.goto('/components/pto-bereavement-card/test.html');
     await page.waitForSelector('#test-output', { timeout: 10000 });
     await stabilizePage(page);
     await compareAndUpdateScreenshot(await page.screenshot({ fullPage: true }), 'assets/pto-bereavement-card-component.png');
 });
 
 test('pto-jury-duty-card component screenshot', async ({ page }) => {
-    await page.goto('http://localhost:3000/components/pto-jury-duty-card/test.html');
+    await page.goto('/components/pto-jury-duty-card/test.html');
     await page.waitForSelector('#test-output', { timeout: 10000 });
     await stabilizePage(page);
     await compareAndUpdateScreenshot(await page.screenshot({ fullPage: true }), 'assets/pto-jury-duty-card-component.png');
 });
 
 test('pto-employee-info-card component screenshot', async ({ page }) => {
-    await page.goto('http://localhost:3000/components/pto-employee-info-card/test.html');
+    await page.goto('/components/pto-employee-info-card/test.html');
     await page.waitForSelector('#test-output', { timeout: 10000 });
     await stabilizePage(page);
     await compareAndUpdateScreenshot(await page.screenshot({ fullPage: true }), 'assets/pto-employee-info-card-component.png');

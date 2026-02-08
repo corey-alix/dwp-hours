@@ -5,7 +5,7 @@ test.describe('Main Test Page', () => {
         test.setTimeout(30000); // Extended timeout for the full workflow
 
         // Navigate to the main test.html page
-        await page.goto('http://localhost:3000/test.html');
+        await page.goto('/test.html');
 
         // Wait for the page to load and TestWorkflow to initialize
         await page.waitForSelector('#test-progress', { timeout: 10000 });

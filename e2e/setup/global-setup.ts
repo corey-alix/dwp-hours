@@ -10,20 +10,27 @@ export default async function globalSetup() {
 
     try {
         // Run lint
-        execSync('npm run lint', {
+        execSync('pnpm run lint', {
             cwd: path.join(__dirname, '..', '..'),
             stdio: 'inherit'
         });
         console.log('✅ Lint passed');
 
         // Run build
-        execSync('npm run build', {
+        execSync('pnpm run build', {
             cwd: path.join(__dirname, '..', '..'),
             stdio: 'inherit'
         });
         console.log('✅ Build complete');
+
+        // Build test assets
+        execSync('pnpm run build:test-assets', {
+            cwd: path.join(__dirname, '..', '..'),
+            stdio: 'inherit'
+        });
+        console.log('✅ Test assets built');
     } catch (error) {
-        console.error('❌ Lint or build failed:', error);
+        console.error('❌ Setup failed:', error);
         throw error;
     }
 

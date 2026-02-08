@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.beforeEach(async () => {
     // Seed database before each test for isolation
-    const response = await fetch('http://localhost:3000/api/test/seed', {
+    const response = await fetch(`http://localhost:${process.env.PORT || 3000}/api/test/seed`, {
         method: 'POST',
         headers: { 'x-test-seed': 'true', 'Content-Type': 'application/json' }
     });
@@ -16,7 +16,7 @@ test('index PTO form submission persists entry', async ({ page }) => {
 
     const testDateStr = '2026-04-01';
 
-    await page.goto('http://localhost:3000');
+    await page.goto('/');
 
     await page.fill('#identifier', 'jane.smith@example.com');
     await page.click('#login-form button[type="submit"]');
@@ -80,7 +80,7 @@ test('index PTO calendar submission persists entry', async ({ page }) => {
 
     const testDateStr = '2026-04-02';
 
-    await page.goto('http://localhost:3000');
+    await page.goto('/');
 
     await page.fill('#identifier', 'jane.smith@example.com');
     await page.click('#login-form button[type="submit"]');

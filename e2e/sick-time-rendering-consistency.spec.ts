@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Sick Time Rendering Consistency', () => {
     test('should not show sick time for 2/2/2026 in dashboard if no data exists, but report should match data', async ({ page }) => {
         // Navigate to login page
-        await page.goto('http://localhost:3000/index.html');
+        await page.goto('/index.html');
 
         // Enter employee identifier (assuming john.doe@gmail.com has seeded data)
         await page.fill('#identifier', 'john.doe@gmail.com');

@@ -4,7 +4,7 @@ test.describe('Magic link POC', () => {
     test('posting email returns a magic link', async ({ page }) => {
         test.setTimeout(5000);
 
-        await page.goto('http://localhost:3000/index.html');
+        await page.goto('/index.html');
         await expect(page.locator('#login-form')).toBeVisible();
 
         await page.fill('#identifier', 'john.doe@gmail.com');

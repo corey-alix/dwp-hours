@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { calculateEndDateFromHours } from '../shared/dateUtils.js';
 
 test('pto-entry-form component test', async ({ page }) => {
-    await page.goto('http://localhost:3000/components/pto-entry-form/test.html');
+    await page.goto('/components/pto-entry-form/test.html');
 
     // Wait for the component to be defined and loaded
     await page.waitForFunction(() => customElements.get('pto-entry-form') !== undefined);
@@ -79,7 +79,7 @@ test('pto-entry-form component test', async ({ page }) => {
 });
 
 test('pto-entry-form weekend warning test', async ({ page }) => {
-    await page.goto('http://localhost:3000/components/pto-entry-form/test.html');
+    await page.goto('/components/pto-entry-form/test.html');
 
     // Wait for the component to be defined and loaded
     await page.waitForFunction(() => customElements.get('pto-entry-form') !== undefined);
@@ -113,7 +113,7 @@ test('pto-entry-form weekend warning test', async ({ page }) => {
 });
 
 test('pto-entry-form spillover calculation test', async ({ page }) => {
-    await page.goto('http://localhost:3000/components/pto-entry-form/test.html');
+    await page.goto('/components/pto-entry-form/test.html');
 
     // Wait for the component to be defined and loaded
     await page.waitForFunction(() => customElements.get('pto-entry-form') !== undefined);
@@ -163,7 +163,7 @@ test('pto-entry-form spillover calculation test', async ({ page }) => {
 });
 
 test('pto-entry-form dynamic field behavior test', async ({ page }) => {
-    await page.goto('http://localhost:3000/components/pto-entry-form/test.html');
+    await page.goto('/components/pto-entry-form/test.html');
 
     // Wait for the component to be defined and loaded
     await page.waitForFunction(() => customElements.get('pto-entry-form') !== undefined);
@@ -196,7 +196,7 @@ test('pto-entry-form dynamic field behavior test', async ({ page }) => {
 });
 
 test('pto-entry-form calendar interaction test', async ({ page }) => {
-    await page.goto('http://localhost:3000/components/pto-entry-form/test.html');
+    await page.goto('/components/pto-entry-form/test.html');
 
     // Wait for the component to be defined and loaded
     await page.waitForFunction(() => customElements.get('pto-entry-form') !== undefined);
