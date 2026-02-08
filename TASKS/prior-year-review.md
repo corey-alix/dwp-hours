@@ -59,7 +59,56 @@ Implement a prior year review feature that allows users to view PTO data from pr
 - **Testing**: Unit tests required updating the test route setup to include new endpoints, ensuring test infrastructure stays current
 - **Performance**: No caching implemented as requested; consider monitoring query performance as data grows
 
+## Phase 4 Testing and Validation Learnings
+- **Critical Dependency**: The `/api/pto/year/:year` endpoint must be implemented in server.mts before Phase 4 testing can begin (currently missing despite Phase 1 being marked complete)
+- **Component Testing Patterns**: Use the existing `client/components/prior-year-review/test.html` and `test.ts` files which provide:
+  - Mock data generation from seed data for different years
+  - External year selector for testing different data scenarios
+  - Playground function for manual testing and validation
+- **E2E Testing Approach**: Follow `e2e/component-pto-calendar.spec.ts` pattern for testing the year toggle functionality:
+  - Test year button clicks and active state changes
+  - Verify correct view switching between current year cards and prior year calendar
+  - Test responsive design on mobile devices
+  - Validate component loading states and error handling
+- **Data Scenario Testing**: Test with multiple historical data scenarios:
+  - Years with complete data across all months (2025 in seed data)
+  - Years with partial data (some months empty)
+  - Years with no data (should show "No data available")
+  - Invalid years (should be handled gracefully)
+- **API Integration Testing**: Add tests to `tests/api-integration.test.ts` for the PTO year endpoint:
+  - Valid year requests (200-299 status codes)
+  - Invalid year validation (400 status codes)
+  - Authentication requirements
+  - Response structure validation
+- **Error Handling Validation**: Test error scenarios:
+  - Network failures (API unavailable)
+  - Invalid responses (malformed data)
+  - Authentication errors (expired tokens)
+  - Component error states and user notifications
+- **Cross-browser Testing**: Validate calendar grid rendering and color coding across different browsers
+- **Performance Testing**: Monitor component render time for years with many PTO entries
+
 ## Questions and Concerns
+1. Should the prior year review show the same detailed breakdown as the current year (calendar views, specific dates for sick/bereavement/jury duty)?
+   **Decision**: Yes, it will look similar to the Corey Alix 2025.xlsx as described by SKILL.md and as can be discovered using migrate.ts with the --debug flag; color coding the dates and placing hours in the corners is enough. All 12 months go into a flex/grid so they flow responsively with a maximum of 3 months in a single row.
+
+2. How should year selection be handled - dropdown, buttons, or calendar picker?
+   **Decision**: Year selection is handled externally at the dashboard level, not within the component itself.
+
+3. Should there be a limit on how far back users can view (e.g., last 5 years, 10 years)?
+   **Decision**: 1 year
+
+4. How should the component handle users with no historical data?
+   **Decision**: Do not allow that year to be selected; do not even add it to the selection list.
+
+5. Should the prior year view be read-only, or allow any interactions (like viewing details)?
+   **Decision**: Yes, prior year is readonly
+
+6. How should timezone considerations for historical data display?
+   **Decision**: there will be no time component, just dates
+
+7. Should we cache historical calculations to improve performance?
+   **Decision**: no
 1. Should the prior year review show the same detailed breakdown as the current year (calendar views, specific dates for sick/bereavement/jury duty)?
    **Decision**: Yes, it will look similar to the Corey Alix 2025.xlsx as described by SKILL.md and as can be discovered using migrate.ts with the --debug flag; color coding the dates and placing hours in the corners is enough. All 12 months go into a flex/grid so they flow responsively with a maximum of 3 months in a single row.
 
