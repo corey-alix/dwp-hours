@@ -7,13 +7,14 @@ interface PtoRequest {
 
 import { querySingle } from '../test-utils';
 import { today, isWeekend, addDays, getWeekdaysBetween, calculateEndDateFromHours, parseDate, compareDates } from '../../../shared/dateUtils.js';
-import { normalizePTOType, validateHours, validatePTOType, validateWeekday, VALIDATION_MESSAGES } from '../../../shared/businessRules.js';
+import { normalizePTOType, validateHours, validatePTOType, validateWeekday, validatePTOBalance, VALIDATION_MESSAGES } from '../../../shared/businessRules.js';
 import type { MessageKey } from '../../../shared/businessRules.js';
 import { PtoCalendar, type CalendarEntry } from '../pto-calendar/index.js';
 
 export class PtoEntryForm extends HTMLElement {
     private shadow: ShadowRoot;
     private dateWatchInterval: number | null = null;
+    private availablePtoBalance: number = 0;
 
     constructor() {
         super();
@@ -21,7 +22,13 @@ export class PtoEntryForm extends HTMLElement {
     }
 
     static get observedAttributes() {
-        return [];
+        return ['available-pto-balance'];
+    }
+
+    attributeChangedCallback(name: string, oldValue: string, newValue: string) {
+        if (name === 'available-pto-balance') {
+            this.availablePtoBalance = parseFloat(newValue) || 0;
+        }
     }
 
     connectedCallback() {
@@ -752,6 +759,17 @@ export class PtoEntryForm extends HTMLElement {
                 this.setFieldError(input, VALIDATION_MESSAGES[hoursError.messageKey as MessageKey]);
                 return false;
             }
+
+            // Check PTO balance if type is PTO
+            const ptoTypeInput = querySingle<HTMLSelectElement>('#pto-type', this.shadow);
+            const normalizedType = normalizePTOType(ptoTypeInput.value);
+            if (normalizedType === 'PTO') {
+                const balanceError = validatePTOBalance(hours, this.availablePtoBalance);
+                if (balanceError) {
+                    this.setFieldError(input, VALIDATION_MESSAGES[balanceError.messageKey as MessageKey]);
+                    return false;
+                }
+            }
         }
 
         if (input.id === 'pto-type') {
@@ -867,6 +885,14 @@ export class PtoEntryForm extends HTMLElement {
             const hoursError = validateHours(request.hours);
             if (hoursError) {
                 errors.push(`${request.date}: ${VALIDATION_MESSAGES[hoursError.messageKey as MessageKey]}`);
+            }
+
+            // Check PTO balance if type is PTO
+            if (request.type === 'PTO') {
+                const balanceError = validatePTOBalance(request.hours, this.availablePtoBalance);
+                if (balanceError) {
+                    errors.push(`${request.date}: ${VALIDATION_MESSAGES[balanceError.messageKey as MessageKey]}`);
+                }
             }
 
             try {

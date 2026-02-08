@@ -71,7 +71,7 @@ test('index PTO calendar submission persists entry', async ({ page }) => {
 
     await page.goto('http://localhost:3000');
 
-    await page.fill('#identifier', 'john.doe@gmail.com');
+    await page.fill('#identifier', 'jane.smith@example.com');
     await page.click('#login-form button[type="submit"]');
 
     await page.waitForSelector('#login-message a', { timeout: 10000 });
@@ -104,7 +104,7 @@ test('index PTO calendar submission persists entry', async ({ page }) => {
     await page.evaluate((dateStr) => {
         const form = document.querySelector('pto-entry-form');
         form?.dispatchEvent(new CustomEvent('pto-submit', {
-            detail: { requests: [{ date: dateStr, type: 'PTO', hours: 8 }] },
+            detail: { requests: [{ date: dateStr, type: 'PTO', hours: 4 }] },
             bubbles: true,
             composed: true
         }));
@@ -120,7 +120,7 @@ test('index PTO calendar submission persists entry', async ({ page }) => {
     expect(responseBody).toHaveProperty('ptoEntry');
     expect(responseBody.ptoEntry.date).toBe(testDateStr);
     expect(responseBody.ptoEntry.type).toBe('PTO');
-    expect(responseBody.ptoEntry.hours).toBe(8);
+    expect(responseBody.ptoEntry.hours).toBe(4);
 
     await expect(page.locator('.notification-toast.success')).toBeVisible();
 
@@ -131,7 +131,7 @@ test('index PTO calendar submission persists entry', async ({ page }) => {
 
     expect(Array.isArray(entries)).toBe(true);
     const matching = entries.find((entry: { date: string; type: string; hours: number }) => (
-        entry.date === testDateStr && entry.type === 'PTO' && entry.hours === 8
+        entry.date === testDateStr && entry.type === 'PTO' && entry.hours === 4
     ));
     expect(matching).toBeTruthy();
 });

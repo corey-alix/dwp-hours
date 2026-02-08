@@ -211,6 +211,9 @@ test('pto-entry-form calendar interaction test', async ({ page }) => {
     const calendar = page.locator('pto-entry-form').locator('pto-calendar');
     await expect(calendar).toBeVisible();
 
+    // Wait for calendar cells to be rendered
+    await page.waitForSelector('pto-entry-form pto-calendar .day.clickable');
+
     // Confirm that the "PTO" legend item is selected
     const ptoLegend = calendar.locator('.legend-item[data-type="PTO"]');
     await expect(ptoLegend).toHaveClass(/selected/);
@@ -225,8 +228,13 @@ test('pto-entry-form calendar interaction test', async ({ page }) => {
     // Submit the form
     await page.locator('pto-entry-form').locator('#submit-btn').click();
 
+    // Wait for the event to be logged
+    await page.waitForFunction(() => {
+        const output = document.querySelector('#test-output');
+        return output && output.textContent && output.textContent.includes('Calendar submit');
+    });
+
     // Confirm that the "Submit" correctly submits a "PTO" request for the specified number of hours
-    await page.waitForSelector('#test-output', { timeout: 5000 });
     const testOutput = page.locator('#test-output');
     await expect(testOutput).toContainText('Calendar submit');
 });

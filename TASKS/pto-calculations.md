@@ -4,7 +4,7 @@
 Implement PTO balance calculations for an annual allocation system with monthly accrual tracking. Each employee receives 12 days (96 hours) of PTO annually, allocated at the start of each year with automatic rollover. Use work days per month to show how PTO accrues monthly for informational purposes. Additionally, track annual sick time allocation (24 hours per year) and other leave types like Bereavement and Jury Duty.
 
 ## Completion Status
-**Overall Progress: ~95% Complete (core functionality implemented, API and frontend updated)**
+**Overall Progress: ~95% Complete (core functionality implemented, API and frontend updated, PTO balance validation now implemented)**
 
 **✅ Fully Implemented:**
 - Annual PTO allocation system (96 hours/year)
@@ -125,7 +125,7 @@ Bereavement/Jury Duty = 40 Hours - Used Hours (resets annually)
   - New hires (prorated annual allocation) *[Implemented]*
   - Carryover limits and policies *[Need to implement]*
   - Year transitions and rollover timing *[Need to implement]*
-- [ ] Validate PTO submission doesn't exceed available balance *[Endpoint exists but validation needs implementation]*
+- [x] Validate PTO submission doesn't exceed available balance *[Endpoint exists but validation needs implementation]*
 - [ ] Validate sick time usage doesn't exceed 24 hours annually *[Validation needs implementation in submission]*
 - [ ] Validate Bereavement/Jury Duty usage doesn't exceed 40 hours annually *[Validation needs implementation in submission]*
 - [ ] Add business logic for PTO approval workflows

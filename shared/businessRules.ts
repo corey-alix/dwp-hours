@@ -18,6 +18,7 @@ export const VALIDATION_MESSAGES = {
     'entry.not_found': 'PTO entry not found',
     'hours.exceed_annual_sick': 'Sick time cannot exceed 24 hours annually',
     'hours.exceed_annual_other': 'Bereavement/Jury Duty cannot exceed 40 hours annually',
+    'hours.exceed_pto_balance': 'PTO request exceeds available PTO balance',
     'date.future_limit': 'Entries cannot be made into the next year',
     'month.acknowledged': 'This month has been acknowledged by the administrator and is no longer editable'
 } as const;
@@ -90,6 +91,16 @@ export function validateAnnualLimits(type: PTOType, hours: number, totalAnnualHo
     }
     if ((type === 'Bereavement' || type === 'Jury Duty') && totalAnnualHours + hours > 40) {
         return { field: 'hours', messageKey: 'hours.exceed_annual_other' };
+    }
+    return null;
+}
+
+/**
+ * Validates that PTO request does not exceed available PTO balance
+ */
+export function validatePTOBalance(requestedHours: number, availableBalance: number): ValidationError | null {
+    if (requestedHours > availableBalance) {
+        return { field: 'hours', messageKey: 'hours.exceed_pto_balance' };
     }
     return null;
 }
