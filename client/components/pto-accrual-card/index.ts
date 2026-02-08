@@ -28,7 +28,7 @@ export class PtoAccrualCard extends PtoSectionCard {
     private accruals: AccrualData[] = [];
     private usage: UsageData[] = [];
     private _ptoEntries: PTOEntry[] = [];
-    private selectedMonth: number | null = null;
+    protected selectedMonth: number | null = null;
     private year: number = getCurrentYear();
     private _requestMode: boolean = false;
     private _annualAllocation: number = 96; // Default 96 hours annual PTO
@@ -92,6 +92,19 @@ export class PtoAccrualCard extends PtoSectionCard {
     set annualAllocation(value: number) {
         this._annualAllocation = value;
         this.setAttribute("annual-allocation", value.toString());
+    }
+
+    /**
+     * Navigate to a specific month in the calendar view
+     * @param month - The month to navigate to (1-12)
+     * @param year - Optional year to navigate to, defaults to current year
+     */
+    navigateToMonth(month: number, year?: number) {
+        this.selectedMonth = month;
+        if (year !== undefined) {
+            this.year = year;
+        }
+        this.render();
     }
 
     private render() {

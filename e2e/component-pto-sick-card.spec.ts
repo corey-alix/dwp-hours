@@ -19,4 +19,60 @@ test('pto-sick-card component test', async ({ page }) => {
 
     await expect(page.locator('pto-sick-card')).toBeVisible();
     await expect(page.locator('#test-output')).toContainText('Sick time data set.');
+
+    // Wait for the async tests to complete
+    await expect(page.locator('#test-output')).toContainText('Toggle and date click tests completed', { timeout: 5000 });
+
+    // Test expandable functionality - the playground function may have already expanded it
+    const card = page.locator('pto-sick-card');
+
+    // Check that toggle button exists
+    const toggleButton = card.locator('.toggle-button');
+    await expect(toggleButton).toBeVisible();
+
+    // Check current state - might be expanded or collapsed
+    const isExpanded = await toggleButton.getAttribute('aria-expanded') === 'true';
+
+    if (isExpanded) {
+        await expect(toggleButton).toContainText('Hide Details');
+    } else {
+        await expect(toggleButton).toContainText('Show Details');
+    }
+
+    // If collapsed, expand it
+    if (!isExpanded) {
+        await toggleButton.click();
+        await expect(toggleButton).toContainText('Hide Details');
+    }
+
+    // Check that detailed listings are visible
+    const usageSection = card.locator('.usage-section');
+    await expect(usageSection).toBeVisible();
+
+    // Check that dates are displayed
+    const dateElements = card.locator('.usage-date');
+    await expect(dateElements).toHaveCount(3); // We have 3 test entries
+
+    // Test clickable date functionality
+    const firstDate = dateElements.first();
+    await expect(firstDate).toHaveCSS('cursor', 'pointer');
+    await expect(firstDate).toHaveCSS('text-decoration', 'underline');
+
+    // Click on date and check for event (we can't directly test the event, but we can check console logs)
+    const initialConsoleCount = consoleMessages.length;
+    await firstDate.click();
+
+    // Wait a bit for event handling
+    await page.waitForTimeout(100);
+
+    // Check that navigate-to-month event was fired (look for console logs)
+    const eventLogs = consoleMessages.slice(initialConsoleCount).filter(msg =>
+        msg.text.includes('navigate-to-month event fired!')
+    );
+    expect(eventLogs.length).toBeGreaterThan(0);
+
+    // Click toggle to collapse
+    await toggleButton.click();
+    await expect(toggleButton).toContainText('Show Details');
+    await expect(usageSection).not.toBeVisible();
 });

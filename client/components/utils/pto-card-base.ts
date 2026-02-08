@@ -1,4 +1,4 @@
-import { isValidDateString, formatDateForDisplay } from '../../../shared/dateUtils.js';
+import { isValidDateString, formatDateForDisplay, parseDate } from '../../../shared/dateUtils.js';
 
 const PTO_CARD_CSS = `
     <style>
@@ -90,6 +90,13 @@ const PTO_CARD_CSS = `
             margin-bottom: var(--space-sm);
         }
 
+        .usage-help {
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-normal);
+            color: var(--color-text-muted);
+            font-style: italic;
+        }
+
         .usage-list {
             list-style: none;
             padding: 0;
@@ -106,6 +113,25 @@ const PTO_CARD_CSS = `
 
         .usage-list li:last-child {
             border-bottom: none;
+        }
+
+        .usage-date {
+            cursor: pointer;
+            text-decoration: underline;
+            color: var(--color-primary);
+            transition: background-color var(--transition-fast);
+            padding: var(--space-xs);
+            border-radius: var(--border-radius-sm);
+            margin: calc(var(--space-xs) * -1);
+        }
+
+        .usage-date:hover {
+            background: var(--color-surface-hover);
+        }
+
+        .usage-date:focus {
+            outline: 2px solid var(--color-primary);
+            outline-offset: 2px;
         }
 
         .empty {
@@ -269,11 +295,15 @@ export class SimplePtoBucketCard extends PtoSectionCard {
 
         const usageSection = this.expanded && hasEntries ? (() => {
             const rows = this.entries
-                .map((entry: any) => {
+                .map((entry: any, index: number) => {
                     const label = isValidDateString(entry.date)
                         ? formatDateForDisplay(entry.date)
                         : entry.date;
-                    return `<li><span>${label}</span> <span>${entry.hours.toFixed(1)} hours</span></li>`;
+                    const dateAttr = isValidDateString(entry.date) ? `data-date="${entry.date}"` : '';
+                    const clickableClass = isValidDateString(entry.date) ? 'usage-date' : '';
+                    const tabIndex = isValidDateString(entry.date) ? 'tabindex="0"' : '';
+                    const ariaLabel = isValidDateString(entry.date) ? `aria-label="Navigate to ${label} in calendar"` : '';
+                    return `<li><span class="${clickableClass}" ${dateAttr} ${tabIndex} ${ariaLabel}>${label}</span> <span>${entry.hours.toFixed(1)} hours</span></li>`;
                 })
                 .join("");
 
@@ -283,7 +313,7 @@ export class SimplePtoBucketCard extends PtoSectionCard {
 
             return `
                 <div class="usage-section">
-                    <div class="usage-title">Dates Used</div>
+                    <div class="usage-title">Dates Used <span class="usage-help">(click dates to view in calendar)</span></div>
                     ${list}
                 </div>
             `;
@@ -307,5 +337,28 @@ export class SimplePtoBucketCard extends PtoSectionCard {
                 this.render();
             });
         }
+
+        // Add event listeners for clickable dates
+        this.shadow.querySelectorAll<HTMLSpanElement>('.usage-date').forEach((dateElement) => {
+            const handleClick = () => {
+                const dateStr = dateElement.dataset.date;
+                if (dateStr && isValidDateString(dateStr)) {
+                    const { year, month } = parseDate(dateStr);
+                    // Dispatch custom event to navigate to the month containing this date
+                    this.dispatchEvent(new CustomEvent('navigate-to-month', {
+                        detail: { month, year },
+                        bubbles: true
+                    }));
+                }
+            };
+
+            dateElement.addEventListener('click', handleClick);
+            dateElement.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleClick();
+                }
+            });
+        });
     }
 }

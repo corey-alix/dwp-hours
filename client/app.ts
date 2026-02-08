@@ -506,6 +506,20 @@ class UIManager {
                 e.stopPropagation();
                 this.handlePtoRequestSubmit(e);
             });
+
+            // Handle navigation to month from PTO detail cards
+            const handleNavigateToMonth = (e: CustomEvent) => {
+                e.stopPropagation();
+                const { month, year } = e.detail;
+                console.log('App: navigate-to-month event received:', { month, year });
+                accrualCard.navigateToMonth(month, year);
+                // Scroll to the accrual card
+                accrualCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            };
+
+            addEventListener(sickCard, 'navigate-to-month', handleNavigateToMonth);
+            addEventListener(bereavementCard, 'navigate-to-month', handleNavigateToMonth);
+            addEventListener(juryDutyCard, 'navigate-to-month', handleNavigateToMonth);
         } catch (error) {
             console.error("Failed to load PTO status:", error);
             const statusDiv = querySingle("#pto-status");
