@@ -110,6 +110,7 @@ const notifications = new NotificationManager();
 // UI Manager
 class UIManager {
     private currentUser: { id: number; name: string; role: string } | null = null;
+    private availablePtoBalance: number = 0;
 
     constructor() {
         this.init();
@@ -290,6 +291,10 @@ class UIManager {
     private showPTOForm(): void {
         this.hideAllSections();
         querySingle("#pto-form").classList.remove("hidden");
+
+        // Set available PTO balance on the form for validation
+        const ptoForm = querySingle<PtoEntryForm>("#pto-entry-form");
+        ptoForm.setAttribute('available-pto-balance', this.availablePtoBalance.toString());
     }
 
     private togglePTORequestMode(): void {
@@ -370,6 +375,9 @@ class UIManager {
         try {
             const status = await api.getPTOStatus();
             const entries = await api.getPTOEntries();
+
+            // Store available PTO balance for form validation
+            this.availablePtoBalance = status.availablePTO;
 
             const statusDiv = querySingle("#pto-status");
             const hireDate = formatDateForDisplay(status.hireDate);
@@ -536,6 +544,9 @@ class UIManager {
             // Re-query PTO status from server
             const status = await api.getPTOStatus();
             const entries = await api.getPTOEntries();
+
+            // Update stored available PTO balance
+            this.availablePtoBalance = status.availablePTO;
 
             // Re-render all PTO components with fresh data
             await this.renderPTOStatus(status, entries);
