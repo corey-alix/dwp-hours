@@ -371,9 +371,7 @@ This approach minimizes duplication, eases updates (change one var, propagates e
 
 The following features are planned for upcoming development:
 
-1. **Prior Year Review Component**: Complete the integration of the prior year review web component into the main dashboard, allowing users to view historical PTO data from previous years with year selection and navigation controls.
-
-2. **Detailed Date/Hour Listings for PTO Cards**: Enhance the Sick, Bereavement, and Jury Duty summary cards to display specific dates taken and hours for each entry, providing detailed breakdowns beyond just totals.
+1. **Detailed Date/Hour Listings for PTO Cards**: Enhance the Sick, Bereavement, and Jury Duty summary cards to display specific dates taken and hours for each entry, providing detailed breakdowns beyond just totals.
 
 ## Development Best Practices and Learnings
 
