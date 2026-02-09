@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { getWorkdaysBetween, parseDate } from '../shared/dateUtils.js';
 
 // Import or copy the buildUsageEntries function from client/app.ts
 // For testing, you may need to extract it to a separate utils file
@@ -11,9 +12,9 @@ function buildUsageEntries(entries: any[], year: number, type: string): { date: 
             continue;
         }
 
-        const start = new Date(entry.start_date ?? entry.startDate);
-        const end = new Date(entry.end_date ?? entry.endDate ?? entry.start_date ?? entry.startDate);
-        if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+        const start = entry.start_date ?? entry.startDate;
+        const end = entry.end_date ?? entry.endDate ?? entry.start_date ?? entry.startDate;
+        if (!start || !end) {
             continue;
         }
 
@@ -24,35 +25,17 @@ function buildUsageEntries(entries: any[], year: number, type: string): { date: 
 
         const hoursPerDay = (entry.hours ?? 0) / workdays.length;
         for (const day of workdays) {
-            if (day.getFullYear() !== year) {
+            const { year: dayYear } = parseDate(day);
+            if (dayYear !== year) {
                 continue;
             }
-            const dateKey = day.toISOString().slice(0, 10);
-            hoursByDate.set(dateKey, (hoursByDate.get(dateKey) ?? 0) + hoursPerDay);
+            hoursByDate.set(day, (hoursByDate.get(day) ?? 0) + hoursPerDay);
         }
     }
 
     return Array.from(hoursByDate.entries())
         .map(([date, hours]) => ({ date, hours }))
         .sort((a, b) => a.date.localeCompare(b.date));
-}
-
-function getWorkdaysBetween(startDate: Date, endDate: Date): Date[] {
-    const days: Date[] = [];
-    const current = new Date(startDate);
-    current.setHours(0, 0, 0, 0);
-    const end = new Date(endDate);
-    end.setHours(0, 0, 0, 0);
-
-    while (current <= end) {
-        const dayOfWeek = current.getDay();
-        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-            days.push(new Date(current));
-        }
-        current.setDate(current.getDate() + 1);
-    }
-
-    return days;
 }
 
 describe('Sick Time Data Processing', () => {
@@ -66,14 +49,14 @@ describe('Sick Time Data Processing', () => {
 
         const usageEntries = buildUsageEntries(mockEntries, 2026, 'Sick');
 
-        // Should include entries for existing dates, including 2/2 due to timezone parsing
-        expect(usageEntries).toContainEqual({ date: '2026-02-02', hours: 8 });
+        // Should include entries for existing dates
         expect(usageEntries).toContainEqual({ date: '2026-02-03', hours: 8 });
-        expect(usageEntries).toContainEqual({ date: '2026-02-16', hours: 8 });
+        expect(usageEntries).toContainEqual({ date: '2026-02-04', hours: 8 });
+        expect(usageEntries).toContainEqual({ date: '2026-02-17', hours: 8 });
 
         // Verify correct count and sorting
         expect(usageEntries.length).toBeGreaterThanOrEqual(3);
-        expect(usageEntries[0].date).toBe('2026-02-02'); // Sorted by date
+        expect(usageEntries[0].date).toBe('2026-02-03'); // Sorted by date
     });
 
     it('should filter out entries from different years', () => {
@@ -85,7 +68,7 @@ describe('Sick Time Data Processing', () => {
 
         const usage2026 = buildUsageEntries(mixedYearEntries, 2026, 'Sick');
         expect(usage2026).toHaveLength(1);
-        expect(usage2026[0].date).toBe('2026-02-02');
+        expect(usage2026[0].date).toBe('2026-02-03');
     });
 
     it('should only process Sick type entries', () => {
@@ -96,6 +79,6 @@ describe('Sick Time Data Processing', () => {
 
         const sickUsage = buildUsageEntries(mixedTypeEntries, 2026, 'Sick');
         expect(sickUsage).toHaveLength(1);
-        expect(sickUsage[0].date).toBe('2026-02-02');
+        expect(sickUsage[0].date).toBe('2026-02-03');
     });
 });
