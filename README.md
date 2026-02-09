@@ -371,6 +371,53 @@ Structured prompts for common development activities:
 - Node.js (v16 or higher)
 - pnpm (recommended) or npm
 
+#### Windows + WSL setup
+
+If you're on Windows, install WSL and set up Node.js and pnpm inside your WSL distro (recommended: Ubuntu).
+
+1. **Install WSL** (PowerShell as Administrator)
+
+```powershell
+wsl --install -d Ubuntu
+```
+
+Reboot if prompted, then launch **Ubuntu** from the Start menu to finish setup.
+
+2. **Update packages** (inside WSL)
+
+```bash
+sudo apt update && sudo apt upgrade -y
+```
+
+3. **Install/Update Git to the latest version (WSL)**
+
+   ```bash
+   sudo apt install -y software-properties-common
+   sudo add-apt-repository ppa:git-core/ppa -y
+   sudo apt update
+   sudo apt install -y git
+   git --version
+   ```
+
+4. **Install Node.js (LTS) inside WSL**
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+sudo apt install -y nodejs
+node --version
+npm --version
+```
+
+5. **Install pnpm inside WSL**
+
+```bash
+corepack enable
+corepack prepare pnpm@latest --activate
+pnpm --version
+```
+
+> Note: Install dependencies and run all project commands from within WSL (not Windows CMD/PowerShell) to avoid path and toolchain issues.
+
 ### Quick Start
 
 1. **Clone and Install**
