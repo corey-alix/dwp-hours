@@ -19,6 +19,7 @@ import {
   dateToString,
   getWeekdaysBetween,
   calculateEndDateFromHours,
+  getDayName,
 } from "../shared/dateUtils.js";
 
 describe("Date Utils", () => {
@@ -167,6 +168,23 @@ describe("Date Utils", () => {
       expect(getDayOfWeek("2026-02-05")).toBe(4);
       // January 1, 2026 is a Thursday (4)
       expect(getDayOfWeek("2026-01-01")).toBe(4);
+    });
+  });
+
+  describe("getDayName", () => {
+    it("should return correct day name", () => {
+      // February 5, 2026 is a Thursday
+      expect(getDayName("2026-02-05")).toBe("Thursday");
+      // January 1, 2026 is a Thursday
+      expect(getDayName("2026-01-01")).toBe("Thursday");
+      // Test all days
+      expect(getDayName("2026-02-09")).toBe("Monday"); // Sunday = 0, Monday = 1, etc.
+      expect(getDayName("2026-02-10")).toBe("Tuesday");
+      expect(getDayName("2026-02-11")).toBe("Wednesday");
+      expect(getDayName("2026-02-12")).toBe("Thursday");
+      expect(getDayName("2026-02-13")).toBe("Friday");
+      expect(getDayName("2026-02-14")).toBe("Saturday");
+      expect(getDayName("2026-02-15")).toBe("Sunday");
     });
   });
 

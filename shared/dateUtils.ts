@@ -489,3 +489,41 @@ export function endOfYear(): string {
   const { year } = parseDate(today());
   return formatDate(year, 12, 31);
 }
+
+/**
+ * Gets the name of the day of the week for a given date
+ * @param dateStr - Date string in YYYY-MM-DD format
+ * @returns Name of the day (e.g., "Monday", "Tuesday", etc.)
+ */
+export function getDayName(dateStr: string): string {
+  const dayOfWeek = getDayOfWeek(dateStr);
+  const dayNames = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+  return dayNames[dayOfWeek];
+}
+
+/**
+ * Gets the next business day (skips weekends)
+ * If the input date is a weekday (Mon-Fri), returns the same date
+ * If the input date is Saturday or Sunday, returns the following Monday
+ * @param dateStr - Date string in YYYY-MM-DD format
+ * @returns Next business day in YYYY-MM-DD format
+ */
+export function getNextBusinessDay(dateStr: string): string {
+  if (!isValidDateString(dateStr)) {
+    throw new Error(`Invalid date string: ${dateStr}`);
+  }
+
+  let currentDate = dateStr;
+  while (isWeekend(currentDate)) {
+    currentDate = addDays(currentDate, 1);
+  }
+  return currentDate;
+}
