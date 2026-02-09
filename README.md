@@ -8,18 +8,7 @@ A Node.js application for tracking monthly hours worked and managing Paid Time O
 
 This application allows employees to log various types of time off (Sick, PTO, Bereavement, Jury Duty) for specific date ranges, including total hours. Users can view their PTO status for the entire year, broken down by month. An admin panel provides oversight for managing users and reviewing PTO usage.
 
-**PTO Calculation Rules:**
-
-- At the start of each year, the system automatically debits PTO entries with **96 hours of "PTO"** and **24 hours of "Sick"** dated January 1st
-- PTO carryover from the prior year is added as an additional PTO entry on January 1st
-- "Sick" time is **reset to 24 hours at the start of each year** (no carryover for sick time)
-- In addition, employees **accrue pto_rate hours per work day** to their PTO balance throughout the year
-- **Work days** are the total non-weekend (Monday-Friday) days in each month
-- **Monthly accrual** = pto_rate × work_days_in_month
-- **Available PTO** = Sum of allocation entries + Accrued - Used PTO Hours
-- **Time Off Types**: "Sick", "PTO", "Bereavement", "Jury Duty" are all tracked as separate PTO types
-- Each type has its own balance and usage tracking
-- At year-end, usage reports must break down hours by type
+**📋 PTO Calculation Rules**: For detailed information about PTO business logic, calculations, and rules, see [`.github/skills/pto-calculation-rules-assistant/SKILL.md`](.github/skills/pto-calculation-rules-assistant/SKILL.md).
 
 The system ensures accurate tracking per employee with individual rates and carryover balances.
 
@@ -128,152 +117,42 @@ _Displays employee information and PTO rate details._
 - **API Integration**: RESTful API for programmatic access
 - **Responsive Design**: Vanilla CSS for clean, accessible UI
 
-## Architecture
+**📋 Architecture**: For detailed information about the system architecture, tech stack, and design patterns, see [`.github/skills/architecture-guidance/SKILL.md`](.github/skills/architecture-guidance/SKILL.md).
 
-- **Frontend**: Vanilla HTML, CSS, and TypeScript
-- **Backend**: Node.js with TypeORM and SQLite database
-- **Development Server**: http-serve for local development
-- **Database**: SQLite with TypeORM entities for:
-  - `Employee`: Employee information and authentication
-  - `PtoEntry`: Time off tracking with relationships
-  - `MonthlyHours`: Monthly hours worked submissions
-  - `Acknowledgement`: Monthly review acknowledgements
-- **ORM**: TypeORM with DataMapper pattern and sql.js driver for WSL compatibility
-- **Automated Systems**: Monthly reminder scheduler and daily follow-up system
+**📋 Date Management**: For detailed information about the date handling system and YYYY-MM-DD patterns, see [`.github/skills/date-management-assistant/SKILL.md`](.github/skills/date-management-assistant/SKILL.md).
 
-### Date Management
+**📋 DOM Utilities**: For detailed information about the DOM manipulation utilities and type-safe element queries, see [`.github/skills/dom-utilities-assistant/SKILL.md`](.github/skills/dom-utilities-assistant/SKILL.md).
 
-This project uses a lightweight bespoke date management library to ensure consistency and avoid timezone-related issues. All dates are persisted in the database as strings in YYYY-MM-DD format (ISO 8601 date-only representation). This approach:
+**📋 Prior Year Review Component**: For detailed information about the historical PTO visualization component, see [`client/components/prior-year-review/README.md`](client/components/prior-year-review/README.md).
 
-- Eliminates timezone ambiguity
-- Simplifies date comparisons and calculations
-- Ensures compatibility across different environments
-- Avoids the complexities of Date objects in JavaScript
+**📋 Notification System**: For detailed information about the toast notification system and user feedback patterns, see [`.github/skills/notification-system-assistant/SKILL.md`](.github/skills/notification-system-assistant/SKILL.md).
 
-Date parsing and formatting is handled through custom utility functions that work exclusively with YYYY-MM-DD strings, providing a reliable and performant date management system tailored to the application's needs.
+## Components Reference
 
-**Key Implementation Areas:**
+This application is built using web components for modular, reusable UI elements. Each component includes comprehensive documentation with usage examples, theming integration, and implementation details.
 
-- **Database Layer**: All date fields are stored as TEXT columns containing YYYY-MM-DD formatted strings, ensuring timezone-agnostic storage.
+### Core Components
 
-- **Server-side Calculations**: Functions in `workDays.ts` and `ptoCalculations.ts` perform date arithmetic using Date objects but convert results to string formats for consistency.
+- **Admin Panel**: Main administrative interface with navigation between different management views - [`client/components/admin-panel/README.md`](client/components/admin-panel/README.md)
+- **Confirmation Dialog**: Modal dialog for user confirmations with customizable messages and actions - [`client/components/confirmation-dialog/README.md`](client/components/confirmation-dialog/README.md)
+- **Data Table**: Sortable, paginated table component for displaying tabular data - [`client/components/data-table/README.md`](client/components/data-table/README.md)
+- **Employee Form**: Comprehensive form for creating and editing employee records - [`client/components/employee-form/README.md`](client/components/employee-form/README.md)
+- **Employee List**: Employee management interface with search, filtering, and action buttons - [`client/components/employee-list/README.md`](client/components/employee-list/README.md)
+- **PTO Entry Form**: Form for submitting time-off requests with calendar integration - [`client/components/pto-entry-form/README.md`](client/components/pto-entry-form/README.md)
+- **PTO Request Queue**: Administrative interface for reviewing and managing PTO requests - [`client/components/pto-request-queue/README.md`](client/components/pto-request-queue/README.md)
+- **Report Generator**: Comprehensive reporting tool with filtering and export capabilities - [`client/components/report-generator/README.md`](client/components/report-generator/README.md)
 
-- **Client-side Components**: Components like `pto-calendar` and `pto-dashboard` construct date strings directly from year, month, and day components to avoid timezone issues, as seen in the calendar rendering logic.
+### PTO Dashboard Components
 
-- **API Endpoints**: Date parameters are accepted and returned as YYYY-MM-DD strings, maintaining consistency across the application.
-
-- **Test Data**: Seed files and test utilities use hardcoded date strings in YYYY-MM-DD format for predictable testing.
-
-This approach ensures that date handling is predictable, testable, and free from timezone-related bugs throughout the application.
-
-## DOM Utilities
-
-This project uses a lightweight bespoke DOM utility library (`client/components/test-utils.ts`) to facilitate robust DOM manipulation with enhanced error logging and debugging capabilities. Direct use of native DOM APIs like `document.getElementById()`, `document.querySelector()`, etc. is discouraged in favor of utility functions that provide:
-
-- **Automatic error logging** when elements are not found
-- **Type-safe element queries** with TypeScript generics
-- **Consistent error handling** across the application
-- **Debug-friendly console output** for development
-
-**Key Utility Functions:**
-
-- **`querySingle<T>(selector: string): T`** - Finds a single element by selector, throws descriptive error if not found
-- **`queryMultiple<T>(selector: string): T[]`** - Finds multiple elements by selector, throws error if none found
-- **`getElementById<T>(id: string): T`** - Finds element by ID with error logging
-- **`addEventListener(element, event, handler, options?)`** - Safely adds event listeners with error handling
-- **`createElement<T>(tagName, attributes?)`** - Creates elements with optional attributes
-
-**Usage Examples:**
-
-```typescript
-// ❌ Avoid direct DOM queries
-const button = document.getElementById("my-button") as HTMLButtonElement;
-if (!button) {
-  console.error("Button not found");
-  throw new Error("Button not found");
-}
-button.addEventListener("click", handler);
-
-// ✅ Use DOM utilities
-import { getElementById, addEventListener } from "./components/test-utils.js";
-const button = getElementById<HTMLButtonElement>("my-button");
-addEventListener(button, "click", handler);
-```
-
-This approach ensures reliable DOM interactions, easier debugging during development, and consistent error handling patterns throughout the codebase.
-
-## Prior Year Review Component
-
-The Prior Year Review feature provides historical PTO data visualization through a dedicated web component that renders all 12 months of a selected year in a responsive grid layout.
-
-**Component Architecture:**
-
-- **Self-contained Web Component**: Uses Shadow DOM for style encapsulation and clean integration
-- **External Year Selection**: Year selection is handled at the dashboard level, not within the component
-- **Responsive Grid Layout**: Displays months in a flexible grid (maximum 3 months per row on larger screens)
-- **Calendar Visualization**: Each month renders as a full calendar with PTO entries color-coded by type
-- **Data Structure**: Accepts structured PTO data with monthly summaries and detailed entry lists
-
-**Key Features:**
-
-- **Color-Coded PTO Types**: PTO (yellow), Sick (red), Bereavement (purple), Jury Duty (green)
-- **Hours Display**: PTO hours shown in bottom-right corner of calendar days
-- **Monthly Summaries**: Each month includes summary bars showing total hours by PTO type
-- **Consistent Height**: All calendars display exactly 6 weeks (42 days) for perfect alignment
-- **Read-Only View**: Historical data is displayed read-only for review purposes
-
-**Integration Points:**
-
-- **API Endpoint**: `/api/pto/year/:year` provides historical PTO data for any valid year
-- **Dashboard Controls**: Year toggle buttons switch between current year and prior year views
-- **Error Handling**: Graceful handling of missing data with user-friendly "No data available" messages
-- **Theming**: Uses CSS custom properties for consistent styling with the rest of the application
-
-## Notification System
-
-This project uses a lightweight bespoke notification/toaster system to provide user feedback without blocking the UI or interfering with automated testing. All `alert()` calls have been replaced with toast notifications that:
-
-- **Non-blocking**: Don't interrupt user workflow or testing
-- **Auto-dismiss**: Automatically disappear after 5 seconds (configurable)
-- **Type-safe**: Support success, error, info, and warning types
-- **Accessible**: Include close buttons and proper ARIA attributes
-- **Test-friendly**: Don't interfere with Playwright or other testing frameworks
-
-**Key Features:**
-
-- **Toast Types**: `success`, `error`, `info`, `warning` with color-coded styling
-- **Auto-dismiss**: Configurable duration (default 5 seconds)
-- **Manual close**: Click the × button to dismiss immediately
-- **Smooth animations**: Slide-in and fade-out effects
-- **Stacking**: Multiple notifications stack vertically in top-right corner
-
-**Usage Examples:**
-
-```typescript
-// Success notification
-notifications.success("PTO submitted successfully!");
-
-// Error notification with title
-notifications.error(
-  "Failed to submit PTO. Please try again.",
-  "Submission Error",
-);
-
-// Info notification with custom duration
-notifications.info("Feature coming soon!", undefined, 3000);
-
-// Warning notification
-notifications.warning("Session will expire in 5 minutes.");
-```
-
-**Implementation Details:**
-
-- **CSS Classes**: `.notification-toast`, `.notification-success`, `.notification-error`, etc.
-- **Animation**: CSS transitions with `slideIn` keyframe
-- **Positioning**: Fixed position in top-right corner with z-index 1000
-- **Accessibility**: Proper contrast ratios and keyboard navigation support
-
-This system ensures a smooth user experience and reliable automated testing without modal interruptions.
+- **PTO Accrual Card**: Monthly PTO accrual tracking with calendar integration - [`client/components/pto-accrual-card/README.md`](client/components/pto-accrual-card/README.md)
+- **PTO Bereavement Card**: Bereavement leave bucket management - [`client/components/pto-bereavement-card/README.md`](client/components/pto-bereavement-card/README.md)
+- **PTO Calendar**: Interactive monthly calendar for PTO entry visualization and selection - [`client/components/pto-calendar/README.md`](client/components/pto-calendar/README.md)
+- **PTO Dashboard**: Component aggregation hub for PTO management interface - [`client/components/pto-dashboard/README.md`](client/components/pto-dashboard/README.md)
+- **PTO Employee Info Card**: Employee information display for PTO context - [`client/components/pto-employee-info-card/README.md`](client/components/pto-employee-info-card/README.md)
+- **PTO Jury Duty Card**: Jury duty leave bucket management - [`client/components/pto-jury-duty-card/README.md`](client/components/pto-jury-duty-card/README.md)
+- **PTO Sick Card**: Sick leave bucket management - [`client/components/pto-sick-card/README.md`](client/components/pto-sick-card/README.md)
+- **PTO Summary Card**: Overall PTO balance and allocation summary - [`client/components/pto-summary-card/README.md`](client/components/pto-summary-card/README.md)
+- **Prior Year Review**: Historical PTO data visualization in monthly grid layout - [`client/components/prior-year-review/README.md`](client/components/prior-year-review/README.md)
 
 ## Theming System
 
@@ -415,78 +294,68 @@ The following features are planned for upcoming development:
 9. ✅ **COMPLETED**: Complete theming tips best practices implementation. See ./TASKS/theming-tips-consistency.md for Phase 5 items
 10. LATER: See ./TASKS/deployment-automation.md for details on implementing automated deployment with Netlify
 
-## Development Best Practices and Learnings
-
-Based on recent implementation experiences, the following generalized findings facilitate the development process:
-
-### Code Quality and Maintainability
-
-- **Magic Number Extraction**: Always extract magic numbers into named constants at the top of files for maintainability. This makes business rules self-documenting and easy to modify.
-- **Backward Compatibility**: When modifying function signatures, use optional parameters to maintain backward compatibility with existing code.
-- **MVP Context**: In new implementations without existing production dependencies, changes can be made without backward compatibility concerns, allowing for cleaner API design.
-- **Business Rules Constants**: Organize constants into structured objects (e.g., `BUSINESS_RULES_CONSTANTS`) containing validation rules, limits, and configuration values.
-- **Error Message Consistency**: Use standardized message keys from a centralized `VALIDATION_MESSAGES` object for consistent user experience across client and server.
-
-### Testing Strategies
-
-- **Comprehensive Unit Testing**: Validation functions require extensive unit tests covering normal operation, edge cases (zero balance, exact matches), error conditions, and integration with existing functions.
-- **E2E Testing Sufficiency**: For web components, E2E tests provide sufficient coverage for component integration and user workflows, often more effectively than isolated unit tests in Node.js environments.
-- **Test State Management**: Implement API-based database seeding endpoints (e.g., `/api/test/seed`) for per-test isolation, ensuring tests can use the same seed data without state conflicts.
-- **Test Isolation Challenges**: E2E tests modifying database state require careful management; use per-test database resets to maintain independence.
-- **Performance Validation**: E2E test execution times validate that operations complete within acceptable limits (e.g., < 100ms for balance calculations).
-
-### Architecture and Design
-
-- **Web Component Architecture**: Shadow DOM with attribute-based data passing works well for client-side validation without complex state management.
-- **Validation Function Design**: Create dedicated functions for different validation types (e.g., `validatePTOBalance()`, `validateAnnualLimits()`) to maintain separation of concerns.
-- **Business Rules Import Strategy**: Client components can import compiled shared business rules (e.g., `shared/businessRules.js`) for consistent validation logic between client and server.
-- **Component Query Patterns**: Use type-safe DOM queries (e.g., `querySingle<T>()` from `test-utils.ts`) for error-throwing behavior and type safety in web components.
-- **CSS Class-Based Styling**: Implement conditional styling using CSS classes (e.g., `.negative-balance`) for clean separation of concerns and consistent theming.
-
-### Design System Patterns
-- **CSS Custom Properties Hierarchy**: The design system uses a layered approach with base tokens (colors, spacing, typography) and semantic tokens (surface colors, text colors, border styles) that provide consistent theming across all components
-- **Component Communication**: Custom events enable loose coupling between components while maintaining clear data flow patterns (e.g., `navigate-to-month` event for calendar navigation)
-- **Shadow DOM Encapsulation**: Strict encapsulation prevents style leakage but requires careful event bubbling strategies and shared design token imports
-- **Responsive Breakpoints**: Mobile-first approach with `480px` breakpoint for vertical stacking, ensuring touch-friendly interfaces on small screens
-- **Focus Management**: Consistent focus outlines using `var(--color-primary)` with `2px solid` style, providing clear visual feedback for keyboard navigation
-- **Form Validation States**: Three-tier validation system (real-time warnings, blur-triggered validation, submit-time confirmation) with distinct visual styling for each state
-- **Interactive Element Patterns**: Clickable elements use `cursor: pointer`, `text-decoration: underline`, and hover states to clearly indicate interactivity
-- **Loading States**: Skeleton screens and "Loading..." text provide immediate feedback during async operations, improving perceived performance
-
-### Performance and Validation
-
-- **Client-Side Validation Effectiveness**: Provides immediate user feedback and prevents unnecessary API calls, with server-side validation as the authoritative layer.
-- **Validation Timing**: Client validation on field blur and form submission events, with server validation ensuring security.
-- **Balance Data Synchronization**: Use component attributes (e.g., `available-pto-balance`) updated after successful operations to maintain current data for validation.
-- **Edge Case Robustness**: Handle boundary conditions (zero balance, negative balance, exact matches) consistently across all scenarios.
-- **Build System Integration**: Multi-stage build processes (lint → build → test) catch issues early, ensuring TypeScript compilation, ESLint, and Stylelint pass before testing.
-
-### Documentation and Process
-
-- **Task Checklist Maintenance**: Update task checklists immediately upon completion to maintain accurate progress tracking.
-- **Dependency Management**: When all project dependencies are included in linting, confident refactoring is possible without external concerns.
-- **Error Response Structure**: API validation errors should return structured responses with field-specific error messages for precise client-side display.
-- **Web Component Testing Patterns**: Use specific locator patterns (e.g., `page.locator('component-name').locator('#element-id')`) for shadow DOM testing.
-- **Documentation Updates**: Maintain API documentation, component READMEs, and centralized error message references for comprehensive coverage.
-
-### CI/CD and Quality Assurance
-
-- **GitHub Actions Integration**: Use GitHub Actions for seamless CI/CD with automatic test execution on pushes and pull requests to main branch.
-- **Quality Gates**: Implement multi-stage pipelines (lint → build → unit tests → E2E tests) to catch issues early and ensure code quality.
-- **Test Reporting**: Use JUnit XML format for machine-readable test results that CI systems transform into structured UI displays with timing and pass/fail indicators.
-- **Branch Protection**: Configure repository branch protection rules requiring CI status checks to pass before merging, ensuring all quality gates succeed.
-- **Git Hooks Strategy**: Use Husky for local development hooks - pre-commit for fast feedback (linting on feature branches, full tests on main), pre-push for gatekeeper validation on main branch pushes.
-- **Performance Monitoring**: Track CI pipeline duration and test execution times to identify performance regressions and optimization opportunities.
-- **Bypass Mechanisms**: Provide `--no-verify` flags for urgent fixes while maintaining CI as the primary quality gate.
-- **Sequential Testing**: Use sequential test execution for simplicity and reliability, achieving parallelism through multiple branch testing.
-
-### Potential Challenges and Resolutions
-
-- **Historical Data**: In MVP implementations, no migration logic is needed for historical entries since it's a new system.
+**📋 Development Best Practices and Learnings**: For detailed information about development best practices, testing strategies, and implementation learnings, see [`.github/skills/development-best-practices-assistant/SKILL.md`](.github/skills/development-best-practices-assistant/SKILL.md).
 - **Real-time Updates**: Ensure UI updates immediately after successful operations to prevent user confusion.
 - **Concurrent Submissions**: Consider race conditions in multi-user scenarios.
 - **E2E Test Maintenance**: As test suites grow, focus on critical workflows and use database resets for state management.
 - **Browser Compatibility**: Web component shadow DOM has excellent modern browser support but may need fallbacks for legacy browsers.
+
+## Development Resources
+
+This project includes comprehensive documentation and specialized assistants to support development activities. All resources are accessible through the `.github/` directory.
+
+### Specialized Skills
+
+The project uses AI-assisted development with specialized skill documents that provide focused guidance for specific development activities:
+
+#### Core Development Skills
+- **Architecture Guidance**: System architecture, tech stack, and design patterns - [`.github/skills/architecture-guidance/SKILL.md`](.github/skills/architecture-guidance/SKILL.md)
+- **Code Review QA**: Code quality standards and review processes - [`.github/skills/code-review-qa/SKILL.md`](.github/skills/code-review-qa/SKILL.md)
+- **Task Implementation**: Guidelines for implementing tasks from the TASKS folder - [`.github/skills/task-implementation-assistant/SKILL.md`](.github/skills/task-implementation-assistant/SKILL.md)
+- **Testing Strategy**: Testing approaches and coverage guidelines - [`.github/skills/testing-strategy/SKILL.md`](.github/skills/testing-strategy/SKILL.md)
+- **Dependency Management**: Managing task priorities and dependencies - [`.github/skills/dependency-management/SKILL.md`](.github/skills/dependency-management/SKILL.md)
+
+#### Technical Implementation Skills
+- **Date Management**: Date handling patterns and YYYY-MM-DD usage - [`.github/skills/date-management-assistant/SKILL.md`](.github/skills/date-management-assistant/SKILL.md)
+- **DOM Utilities**: Type-safe DOM manipulation and element queries - [`.github/skills/dom-utilities-assistant/SKILL.md`](.github/skills/dom-utilities-assistant/SKILL.md)
+- **Web Components**: Web component development and patterns - [`.github/skills/web-components-assistant/SKILL.md`](.github/skills/web-components-assistant/SKILL.md)
+- **CSS Theming**: Comprehensive theming system and CSS custom properties - [`.github/skills/css-theming-assistant/SKILL.md`](.github/skills/css-theming-assistant/SKILL.md)
+- **Notification System**: Toast notifications and user feedback patterns - [`.github/skills/notification-system-assistant/SKILL.md`](.github/skills/notification-system-assistant/SKILL.md)
+
+#### Business Logic Skills
+- **PTO Calculation Rules**: PTO business logic, calculations, and rules - [`.github/skills/pto-calculation-rules-assistant/SKILL.md`](.github/skills/pto-calculation-rules-assistant/SKILL.md)
+- **PTO Spreadsheet Layout**: Legacy Excel spreadsheet structure and data patterns - [`.github/skills/pto-spreadsheet-layout/SKILL.md`](.github/skills/pto-spreadsheet-layout/SKILL.md)
+
+#### Database & Build Skills
+- **SQL.js Database**: Database operations and SQLite best practices - [`.github/skills/sql-js-database-assistant/SKILL.md`](.github/skills/sql-js-database-assistant/SKILL.md)
+- **TypeORM Assistant**: ORM patterns and entity relationships - [`.github/skills/typeorm-assistant/SKILL.md`](.github/skills/typeorm-assistant/SKILL.md)
+- **Build Configuration**: TypeScript, esbuild, and configuration management - [`.github/skills/esbuild-configuration-assistant/SKILL.md`](.github/skills/esbuild-configuration-assistant/SKILL.md)
+- **TSConfig Configuration**: TypeScript configuration patterns - [`.github/skills/tsconfig-configuration-assistant/SKILL.md`](.github/skills/tsconfig-configuration-assistant/SKILL.md)
+
+#### Testing & Quality Skills
+- **Vitest Testing**: Unit testing patterns and utilities - [`.github/skills/vitest-testing-assistant/SKILL.md`](.github/skills/vitest-testing-assistant/SKILL.md)
+- **Playwright Testing**: End-to-end testing strategies - [`.github/skills/playwright-testing-assistant/SKILL.md`](.github/skills/playwright-testing-assistant/SKILL.md)
+- **Development Best Practices**: Code quality, testing, and implementation learnings - [`.github/skills/development-best-practices-assistant/SKILL.md`](.github/skills/development-best-practices-assistant/SKILL.md)
+
+#### Specialized Tools Skills
+- **Calendar Day Assistant**: Calendar-specific functionality - [`.github/skills/calendar-day-assistant/SKILL.md`](.github/skills/calendar-day-assistant/SKILL.md)
+- **CSS Subgrid Assistant**: Advanced CSS layout techniques - [`.github/skills/css-subgrid-assistant/SKILL.md`](.github/skills/css-subgrid-assistant/SKILL.md)
+- **ExcelJS Integration**: Excel file processing and generation - [`.github/skills/exceljs/SKILL.md`](.github/skills/exceljs/SKILL.md)
+- **Package.json Commenter**: Package configuration and dependency management - [`.github/skills/package-json-commenter/SKILL.md`](.github/skills/package-json-commenter/SKILL.md)
+- **Staged Action Plan**: Development planning and execution strategies - [`.github/skills/staged-action-plan/SKILL.md`](.github/skills/staged-action-plan/SKILL.md)
+
+### Development Prompts
+
+Structured prompts for common development activities:
+
+- **Feature Development**: Guidelines for implementing new features - [`.github/prompts/feature.prompt.md`](.github/prompts/feature.prompt.md)
+- **Issue Resolution**: Process for debugging and fixing issues - [`.github/prompts/issue.prompt.md`](.github/prompts/issue.prompt.md)
+- **Skill Creation**: Template for creating new skill documents - [`.github/prompts/skill.prompt.md`](.github/prompts/skill.prompt.md)
+- **Prompt Engineering**: Best practices for writing effective prompts - [`.github/prompts/prompt.prompt.md`](.github/prompts/prompt.prompt.md)
+
+### AI Assistant Configuration
+
+- **GitHub Copilot Instructions**: Comprehensive setup and usage guidelines for AI-assisted development - [`.github/copilot-instructions.md`](.github/copilot-instructions.md)
 
 ## Getting Started
 
