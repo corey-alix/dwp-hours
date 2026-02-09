@@ -16,11 +16,10 @@ declare -A PLANET_PORTS=(
     ["master"]=3000
 )
 
-WORKTREE_NAME=$(git branch --show-current 2>/dev/null || git rev-parse --short HEAD)
+WORKTREE_NAME=$(basename "$PWD")
 PORT=${PLANET_PORTS[$WORKTREE_NAME]}
 if [ -z "$PORT" ]; then
     PORT=$((BASE_PORT + $(echo "$WORKTREE_NAME" | cksum | cut -d' ' -f1) % 100))
 fi
 
-export PORT=$PORT
-echo "PORT set to $PORT"
+printf "%s\n" "$PORT"
