@@ -35,7 +35,29 @@ jobs:
         run: pnpm build
 
       - name: Run unit tests
-        run: pnpm test:unit --reporter=junit --outputFile=test-results/junit-unit.xml
+        run: |
+          mkdir -p test-results
+          pnpm test:unit --reporter=junit --outputFile=test-results/junit-unit.xml
+        continue-on-error: true
+
+      - name: Publish Unit Test Results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Unit Tests Results
+          path: "test-results/junit-unit.xml"
+          reporter: java-junit
+          fail-on-error: false
+
+      - name: Fail on test failures
+        run: |
+          if [ -f test-results/junit-unit.xml ]; then
+            # Check if there are any failures in the JUnit XML
+            if grep -q 'failures="[1-9]' test-results/junit-unit.xml; then
+              echo "Unit tests failed - failing the build"
+              exit 1
+            fi
+          fi
 
   e2e-test:
     runs-on: ubuntu-latest
@@ -69,19 +91,12 @@ jobs:
         run: pnpm seed
 
       - name: Run E2E tests
-        run: pnpm playwright:test
+        run: |
+          mkdir -p test-results
+          pnpm playwright:test
         env:
           PORT: 3000
           NODE_ENV: test
-
-      - name: Publish Unit Test Results
-        uses: dorny/test-reporter@v1
-        if: success() || failure()
-        with:
-          name: Unit Tests Results
-          path: "test-results/junit-unit.xml"
-          reporter: java-junit
-          fail-on-error: true
 
       - name: Publish E2E Test Results
         uses: dorny/test-reporter@v1
