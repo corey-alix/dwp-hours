@@ -512,6 +512,52 @@ Based on recent implementation experiences, the following generalized findings f
 - **Test**: `npm test` - Run unit tests with Vitest
 - **E2E Test**: `npm run test:e2e` - Run end-to-end tests with Playwright (9 tests passing covering admin panel components and employee workflow)
 
+## CI/CD Pipeline
+
+The project uses GitHub Actions for continuous integration and deployment with automated testing, quality checks, and deployment to Netlify.
+
+### Pipeline Status
+
+[![CI/CD Pipeline](https://github.com/your-org/dwp-hours-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/dwp-hours-tracker/actions/workflows/ci.yml)
+
+### Workflow Overview
+
+The CI/CD pipeline runs on every push to `main` branch and pull request:
+
+1. **Quality Checks**: Linting, TypeScript compilation, and build verification
+2. **Unit Tests**: Automated unit test execution with JUnit reporting
+3. **E2E Tests**: Full end-to-end test suite with Playwright
+4. **Test Reporting**: Detailed test results published to GitHub Actions UI
+5. **Deployment**: Automatic deployment to Netlify on successful main branch builds
+
+### Local Development Hooks
+
+- **Pre-commit**: Runs full test suite on main branch, linting on feature branches
+- **Pre-push**: Validates pushes to main with full test suite, allows fast iteration on feature branches
+
+### Branch Protection
+
+Branch protection rules require CI to pass before merging to main. Developers can bypass hooks using `--no-verify` flags for urgent fixes.
+
+### Test Results
+
+Test results are automatically published to:
+- GitHub Actions UI with detailed pass/fail status
+- Pull request comments with test summaries
+- JUnit XML files for external tool integration
+
+### Performance Monitoring
+
+The pipeline includes performance monitoring through:
+- Test execution timing validation (< 100ms for balance calculations)
+- Build time tracking
+- Test failure rate monitoring
+- CI pipeline duration metrics
+
+### Troubleshooting
+
+See [CI/CD Troubleshooting Guide](docs/ci-cd-troubleshooting.md) for common issues and solutions.
+
 ### Project Structure
 
 ```
