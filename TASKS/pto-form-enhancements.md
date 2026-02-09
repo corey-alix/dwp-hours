@@ -38,7 +38,7 @@ The implementation is divided into testable phases. Each phase builds on the pre
   - "Full PTO": Change "Hours" label to "Days", make Hours readonly, End Date editable
   - Other types: Keep "Hours" label, make Hours editable, End Date readonly
 - [x] Handle field conversion and calculations accordingly (days \* 8 for internal storage, weekday count for "Full PTO")
-- [x] **FIXED**: Preserve required asterisk (*) when updating label text from "Hours" to "Days"
+- [x] **FIXED**: Preserve required asterisk (\*) when updating label text from "Hours" to "Days"
 
 ### Phase 4: Validation and UI Enhancements ✅ COMPLETED
 
@@ -56,12 +56,14 @@ The implementation is divided into testable phases. Each phase builds on the pre
 #### Required Unit Tests
 
 **Pre-requisite: Date Utilities Foundation Tests**
+
 - [x] Extend `dateUtils.test.ts` with `getDayName()` function tests:
   - Verify day name accuracy for test date validation
   - Ensure AI can correctly identify days of the week for test scenarios
   - Add helper function `getDayName(dateStr)` to return "Monday", "Tuesday", etc.
 
 **Date Calculation Logic Tests:**
+
 - [x] `calculateEndDateFromHours()` function tests:
   - Basic spillover: 8 hours = same day, 16 hours = next workday
   - Weekend skipping: Friday 16 hours → Monday (skip Saturday/Sunday)
@@ -79,6 +81,7 @@ The implementation is divided into testable phases. Each phase builds on the pre
   - Year boundary handling
 
 **Field Conversion Logic Tests:**
+
 - [x] Hours to days conversion for "Full PTO" display:
   - 8 hours = 1 day, 16 hours = 2 days, 4 hours = 0.5 days
   - Non-multiple of 8 handling
@@ -91,48 +94,53 @@ The implementation is divided into testable phases. Each phase builds on the pre
   - Preserve values during type switching
 
 **Dynamic Field Behavior Tests:**
+
 - [x] Field readonly state changes:
   - "Full PTO": Hours readonly, End Date editable
   - Other types: Hours editable, End Date readonly
 - [x] Label text changes:
   - "Full PTO" = "Days" label, other types = "Hours" label
-  - Required asterisk (*) preservation during label changes
+  - Required asterisk (\*) preservation during label changes
 - [x] Input validation integration:
   - Business rules validation calls
   - Error message display
   - Invalid input rejection
 
 **Integration Tests:**
+
 - [x] Form submission with different PTO types
 - [x] Calendar integration button functionality
 - [x] Progressive disclosure calculation display
 - [x] Weekend date defaulting logic
 
 #### Test File Location
+
 - **Primary Test File**: `client/components/pto-entry-form/test.ts`
 - **Coverage Requirements**: Minimum 80% code coverage for new date calculation functions
 - **Test Framework**: Vitest with existing test patterns
 
 #### Test Data Scenarios
+
 ```typescript
 // Example test cases to implement
-describe('PTO Form Date Calculations', () => {
-  test('Friday 16 hours spills to Monday', () => {
-    const startDate = '2026-02-14'; // Friday
+describe("PTO Form Date Calculations", () => {
+  test("Friday 16 hours spills to Monday", () => {
+    const startDate = "2026-02-14"; // Friday
     const hours = 16;
-    const expectedEndDate = '2026-02-17'; // Monday
+    const expectedEndDate = "2026-02-17"; // Monday
     expect(calculateEndDateFromHours(startDate, hours)).toBe(expectedEndDate);
   });
 
-  test('Full PTO: 3 weekdays = 3 days', () => {
-    const startDate = '2026-02-10'; // Monday
-    const endDate = '2026-02-12'; // Wednesday
+  test("Full PTO: 3 weekdays = 3 days", () => {
+    const startDate = "2026-02-10"; // Monday
+    const endDate = "2026-02-12"; // Wednesday
     expect(calculateWorkDaysBetween(startDate, endDate)).toBe(3);
   });
 });
 ```
 
 #### Completion Criteria for Unit Tests
+
 - [x] All date calculation functions have comprehensive test coverage
 - [x] Field conversion logic is fully tested
 - [x] Dynamic behavior switching is tested
@@ -141,6 +149,7 @@ describe('PTO Form Date Calculations', () => {
 - [x] Code coverage meets minimum requirements
 
 #### Validation Steps After Unit Tests
+
 1. Run full test suite: `npm run test:unit`
 2. Verify code coverage: `npm run test:coverage`
 3. Run E2E tests to ensure no regressions: `npm run test:e2e`
@@ -254,7 +263,7 @@ private addCalendarIcon(): void {
 ## Completion Criteria
 
 - [x] **Phase 1**: Form Setup and Initialization ✅ COMPLETED
-- [x] **Phase 2**: Date Calculation and Spillover Logic ✅ COMPLETED  
+- [x] **Phase 2**: Date Calculation and Spillover Logic ✅ COMPLETED
 - [x] **Phase 3**: Dynamic Field Behavior ✅ COMPLETED - Fixed required asterisk preservation
 - [x] **Phase 4**: Validation and UI Enhancements ✅ COMPLETED
 - [x] **Phase 5**: Testing and Quality Assurance ✅ COMPLETED - Unit tests implemented and passing

@@ -73,10 +73,10 @@ export function playground() {
         <label for="external-year-select" style="font-weight: 600;">Select Year:</label>
         <select id="external-year-select" style="margin-left: 8px; padding: 4px 8px;">
             ${Object.keys(mockDataMap)
-      .sort()
-      .reverse()
-      .map((year) => `<option value="${year}">${year}</option>`)
-      .join("")}
+              .sort()
+              .reverse()
+              .map((year) => `<option value="${year}">${year}</option>`)
+              .join("")}
         </select>
     `;
 

@@ -20,7 +20,8 @@ The Report Generator component provides comprehensive PTO reporting capabilities
 <report-generator
   report-data='[{"employeeId": 1, "employeeName": "John Doe", "totalPTOHours": 96, "usedPTOHours": 40, "remainingPTOHours": 56, "carryoverHours": 0}]'
   report-type="summary"
-  date-range='{"start": "2024-01-01", "end": "2024-12-31"}'>
+  date-range='{"start": "2024-01-01", "end": "2024-12-31"}'
+>
 </report-generator>
 ```
 
@@ -42,10 +43,10 @@ The Report Generator component provides comprehensive PTO reporting capabilities
 type ReportData = {
   employeeId: number;
   employeeName: string;
-  totalPTOHours: number;     // Total allocated PTO hours
-  usedPTOHours: number;      // Hours used in period
+  totalPTOHours: number; // Total allocated PTO hours
+  usedPTOHours: number; // Hours used in period
   remainingPTOHours: number; // Hours remaining
-  carryoverHours: number;    // Carried over from previous year
+  carryoverHours: number; // Carried over from previous year
 };
 ```
 
@@ -89,4 +90,4 @@ type ReportData = {
 - **Date Integration**: Uses shared date utilities for formatting
 - **Export Logic**: Handles report generation and download
 - **Type Safety**: Full TypeScript interfaces for report data</content>
-<parameter name="filePath">/home/ca0v/code/ca0v/earth/client/components/report-generator/README.md
+  <parameter name="filePath">/home/ca0v/code/ca0v/earth/client/components/report-generator/README.md

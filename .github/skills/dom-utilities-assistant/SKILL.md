@@ -9,6 +9,7 @@ Specialized assistant for implementing robust DOM manipulation patterns in the D
 The DWP Hours Tracker uses a lightweight bespoke DOM utility library to facilitate robust DOM manipulation with enhanced error logging and debugging capabilities. Direct use of native DOM APIs like `document.getElementById()`, `document.querySelector()`, etc. is discouraged in favor of utility functions.
 
 ### Core Principles
+
 - **Type-Safe Queries**: Use TypeScript generics for compile-time type checking
 - **Automatic Error Logging**: Descriptive errors when elements are not found
 - **Consistent Error Handling**: Standardized error patterns across the application
@@ -18,19 +19,23 @@ The DWP Hours Tracker uses a lightweight bespoke DOM utility library to facilita
 ### Key Utility Functions
 
 #### Element Queries
+
 - **`querySingle<T>(selector: string): T`** - Finds a single element by selector, throws descriptive error if not found
 - **`queryMultiple<T>(selector: string): T[]`** - Finds multiple elements by selector, throws error if none found
 - **`getElementById<T>(id: string): T`** - Finds element by ID with error logging
 
 #### Event Management
+
 - **`addEventListener(element, event, handler, options?)`** - Safely adds event listeners with error handling
 
 #### Element Creation
+
 - **`createElement<T>(tagName, attributes?)`** - Creates elements with optional attributes
 
 ## Usage Patterns
 
 ### ❌ Avoid Direct DOM APIs
+
 ```typescript
 const button = document.getElementById("my-button") as HTMLButtonElement;
 if (!button) {
@@ -41,6 +46,7 @@ button.addEventListener("click", handler);
 ```
 
 ### ✅ Use DOM Utilities
+
 ```typescript
 import { getElementById, addEventListener } from "./components/test-utils.js";
 const button = getElementById<HTMLButtonElement>("my-button");

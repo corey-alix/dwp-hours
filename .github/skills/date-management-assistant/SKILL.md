@@ -9,6 +9,7 @@ Specialized assistant for implementing consistent date handling patterns in the 
 The DWP Hours Tracker uses a lightweight bespoke date management library to ensure consistency and avoid timezone-related issues. All dates are persisted in the database as strings in YYYY-MM-DD format (ISO 8601 date-only representation).
 
 ### Core Principles
+
 - **String-Based Dates**: All dates stored and manipulated as YYYY-MM-DD formatted strings
 - **Timezone Agnostic**: Eliminates timezone ambiguity by avoiding Date objects where possible
 - **Consistency**: Simplifies date comparisons and calculations across client and server
@@ -18,26 +19,31 @@ The DWP Hours Tracker uses a lightweight bespoke date management library to ensu
 ### Key Implementation Areas
 
 #### Database Layer
+
 - All date fields stored as TEXT columns containing YYYY-MM-DD formatted strings
 - Ensures timezone-agnostic storage and retrieval
 - Compatible with SQLite TEXT type for reliable querying
 
 #### Server-side Calculations
+
 - Functions in `shared/workDays.ts` and `shared/ptoCalculations.ts` perform date arithmetic
 - Use Date objects internally but convert results to YYYY-MM-DD strings for consistency
 - Maintain separation between calculation logic and data representation
 
 #### Client-side Components
+
 - Components like `pto-calendar` and `pto-dashboard` construct date strings directly
 - Build dates from year, month, and day components to avoid timezone issues
 - Calendar rendering logic uses string-based date construction
 
 #### API Endpoints
+
 - Date parameters accepted and returned as YYYY-MM-DD strings
 - Maintains consistency across client-server communication
 - Simplifies API contracts and reduces serialization issues
 
 #### Test Data
+
 - Seed files and test utilities use hardcoded YYYY-MM-DD date strings
 - Ensures predictable testing without timezone dependencies
 - Facilitates deterministic test execution

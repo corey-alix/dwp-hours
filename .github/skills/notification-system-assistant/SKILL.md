@@ -9,6 +9,7 @@ Specialized assistant for implementing the bespoke notification/toaster system i
 The DWP Hours Tracker uses a lightweight bespoke notification/toaster system to provide user feedback without blocking the UI or interfering with automated testing. All `alert()` calls have been replaced with toast notifications.
 
 ### Core Features
+
 - **Non-blocking**: Don't interrupt user workflow or testing execution
 - **Auto-dismiss**: Automatically disappear after 5 seconds (configurable)
 - **Type-safe**: Support success, error, info, and warning types
@@ -16,12 +17,14 @@ The DWP Hours Tracker uses a lightweight bespoke notification/toaster system to 
 - **Test-friendly**: Compatible with Playwright and other testing frameworks
 
 ### Toast Types
+
 - **`success`**: Green styling for positive confirmations
 - **`error`**: Red styling for error messages
 - **`info`**: Blue styling for informational messages
 - **`warning`**: Yellow/Orange styling for warnings
 
 ### Key Features
+
 - **Auto-dismiss**: Configurable duration (default 5 seconds)
 - **Manual close**: Click the × button to dismiss immediately
 - **Smooth animations**: Slide-in and fade-out effects
@@ -50,6 +53,7 @@ notifications.warning("Session will expire in 5 minutes.");
 ## Implementation Details
 
 ### CSS Classes
+
 - `.notification-toast` - Base notification styling
 - `.notification-success` - Success variant
 - `.notification-error` - Error variant
@@ -57,14 +61,17 @@ notifications.warning("Session will expire in 5 minutes.");
 - `.notification-warning` - Warning variant
 
 ### Animation
+
 - CSS transitions with `slideIn` keyframe for smooth appearance
 - Fade-out effects for dismissal
 
 ### Positioning
+
 - Fixed position in top-right corner
 - High z-index (1000) to appear above other content
 
 ### Accessibility
+
 - Proper contrast ratios for all variants
 - Keyboard navigation support
 - ARIA attributes for screen readers

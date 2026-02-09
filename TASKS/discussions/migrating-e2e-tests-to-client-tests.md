@@ -60,6 +60,7 @@ The following E2E tests are strong candidates for initial migration due to their
 - **[component-confirmation-dialog.spec.ts](e2e/component-confirmation-dialog.spec.ts)**: This test examines dialog display, message rendering, and button interaction handling (confirm/cancel actions). It tests component lifecycle and event handling in isolation. The JSDOM version would create the dialog component, trigger show/hide events, and verify the resulting DOM changes and callback executions.
 
 These tests are ideal candidates because they:
+
 - Test components in relative isolation without dependencies on full application state
 - Focus on rendering and basic interactions rather than complex user journeys
 - Don't require real API calls or external service integrations

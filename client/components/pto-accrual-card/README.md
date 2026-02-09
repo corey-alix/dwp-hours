@@ -23,7 +23,8 @@ The PTO Accrual Card component displays employee PTO accrual information, includ
   pto-entries='[{"id": 1, "employeeId": 1, "date": "2024-01-15", "type": "PTO", "hours": 8}]'
   year="2024"
   request-mode="false"
-  annual-allocation="96">
+  annual-allocation="96"
+>
 </pto-accrual-card>
 ```
 
@@ -40,19 +41,19 @@ The PTO Accrual Card component displays employee PTO accrual information, includ
 
 ```typescript
 type AccrualData = {
-  month: number;  // 0-11 for Jan-Dec
-  hours: number;  // Hours accrued that month
+  month: number; // 0-11 for Jan-Dec
+  hours: number; // Hours accrued that month
 };
 
 type UsageData = {
-  month: number;  // 0-11 for Jan-Dec
-  hours: number;  // Hours used that month
+  month: number; // 0-11 for Jan-Dec
+  hours: number; // Hours used that month
 };
 
 type PTOEntry = {
   id: number;
   employeeId: number;
-  date: string;  // YYYY-MM-DD format
+  date: string; // YYYY-MM-DD format
   type: "PTO" | "Sick" | "Bereavement" | "Jury Duty";
   hours: number;
   createdAt: string;
@@ -94,4 +95,4 @@ The component inherits theming from the base PTO card component:
 - **Work Day Logic**: Integrates with server work day calculations
 - **Reactive Updates**: Updates when attributes change
 - **Type Safety**: Full TypeScript interfaces for data structures</content>
-<parameter name="filePath">/home/ca0v/code/ca0v/earth/client/components/pto-accrual-card/README.md
+  <parameter name="filePath">/home/ca0v/code/ca0v/earth/client/components/pto-accrual-card/README.md

@@ -174,4 +174,4 @@ Each web component must be updated to use semantic CSS custom properties instead
 - **Naming and Structure**: Consistent naming with category prefixes, modular files, use Sass/Less for complex maps
 - **Enforcement**: Stylelint rules to ban hardcoded values, enforce var() usage
 - **Best Practices**: Inherit via `:host` in web components, test with visual regression tools</content>
-<parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/.github/skills/css-theming-assistant/SKILL.md
+  <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/.github/skills/css-theming-assistant/SKILL.md

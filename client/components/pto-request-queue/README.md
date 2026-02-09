@@ -17,12 +17,13 @@ The PTO Request Queue component displays a queue of PTO requests for administrat
 
 ```html
 <pto-request-queue
-  requests='[{"id": 1, "employeeId": 1, "employeeName": "John Doe", "startDate": "2024-02-01", "endDate": "2024-02-05", "type": "PTO", "hours": 40, "status": "pending", "createdAt": "2024-01-25"}]'>
+  requests='[{"id": 1, "employeeId": 1, "employeeName": "John Doe", "startDate": "2024-02-01", "endDate": "2024-02-05", "type": "PTO", "hours": 40, "status": "pending", "createdAt": "2024-01-25"}]'
+>
 </pto-request-queue>
 ```
 
 ```javascript
-const queue = document.querySelector('pto-request-queue');
+const queue = document.querySelector("pto-request-queue");
 queue.requests = [
   {
     id: 1,
@@ -33,13 +34,13 @@ queue.requests = [
     type: "PTO",
     hours: 40,
     status: "pending",
-    createdAt: "2024-01-25"
-  }
+    createdAt: "2024-01-25",
+  },
 ];
 
 // Listen for approval/rejection events
-queue.addEventListener('request-approved', (event) => {
-  console.log('Approved request:', event.detail);
+queue.addEventListener("request-approved", (event) => {
+  console.log("Approved request:", event.detail);
 });
 ```
 
@@ -58,12 +59,12 @@ type PTORequest = {
   id: number;
   employeeId: number;
   employeeName: string;
-  startDate: string;    // YYYY-MM-DD format
-  endDate: string;      // YYYY-MM-DD format
+  startDate: string; // YYYY-MM-DD format
+  endDate: string; // YYYY-MM-DD format
   type: "Sick" | "PTO" | "Bereavement" | "Jury Duty";
   hours: number;
   status: "pending" | "approved" | "rejected";
-  createdAt: string;    // ISO date string
+  createdAt: string; // ISO date string
 };
 ```
 
@@ -106,4 +107,4 @@ type PTORequest = {
 - **Reactive Updates**: Updates when requests data changes
 - **Status Filtering**: Prioritizes pending requests in display
 - **Type Safety**: Full TypeScript interfaces for request data</content>
-<parameter name="filePath">/home/ca0v/code/ca0v/earth/client/components/pto-request-queue/README.md
+  <parameter name="filePath">/home/ca0v/code/ca0v/earth/client/components/pto-request-queue/README.md
