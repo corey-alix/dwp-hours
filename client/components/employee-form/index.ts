@@ -8,6 +8,8 @@ interface Employee {
     hash?: string;
 }
 
+import { querySingle } from '../test-utils';
+
 export class EmployeeForm extends HTMLElement {
     private shadow: ShadowRoot;
     private _employee: Employee | null = null;
@@ -290,8 +292,8 @@ export class EmployeeForm extends HTMLElement {
     }
 
     private setupEventListeners() {
-        const form = this.shadow.getElementById('employee-form') as HTMLFormElement;
-        const cancelBtn = this.shadow.getElementById('cancel-btn') as HTMLButtonElement;
+        const form = querySingle<HTMLFormElement>('#employee-form', this.shadow);
+        const cancelBtn = querySingle<HTMLButtonElement>('#cancel-btn', this.shadow);
 
         form?.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -329,8 +331,8 @@ export class EmployeeForm extends HTMLElement {
     private validateForm(): boolean {
         let isValid = true;
 
-        const nameInput = this.shadow.getElementById('name') as HTMLInputElement;
-        const identifierInput = this.shadow.getElementById('identifier') as HTMLInputElement;
+        const nameInput = querySingle<HTMLInputElement>('#name', this.shadow);
+        const identifierInput = querySingle<HTMLInputElement>('#identifier', this.shadow);
 
         if (!this.validateField(nameInput)) isValid = false;
         if (!this.validateField(identifierInput)) isValid = false;
@@ -340,7 +342,7 @@ export class EmployeeForm extends HTMLElement {
 
     private validateField(input: HTMLInputElement): boolean {
         const value = input.value.trim();
-        const errorElement = this.shadow.getElementById(`${input.id}-error`) as HTMLElement;
+        const errorElement = querySingle<HTMLElement>(`#${input.id}-error`, this.shadow);
 
         input.classList.remove('error');
         errorElement.textContent = '';

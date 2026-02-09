@@ -2,13 +2,25 @@ import { querySingle } from '../test-utils.js';
 import { addEventListener } from '../test-utils.js';
 import { PtoRequestQueue } from './index.js';
 
+interface PTORequest {
+    id: number;
+    employeeId: number;
+    employeeName: string;
+    startDate: string;
+    endDate: string;
+    type: 'Sick' | 'PTO' | 'Bereavement' | 'Jury Duty';
+    hours: number;
+    status: 'pending' | 'approved' | 'rejected';
+    createdAt: string;
+}
+
 export function playground() {
     console.log('Starting PTO Request Queue playground test...');
 
-    const ptoQueue = querySingle('pto-request-queue') as PtoRequestQueue;
+    const ptoQueue = querySingle<PtoRequestQueue>('pto-request-queue');
 
     // Sample PTO requests data
-    const sampleRequests = [
+    const sampleRequests: PTORequest[] = [
         {
             id: 1,
             employeeId: 1,
@@ -45,7 +57,7 @@ export function playground() {
     ];
 
     // Set initial data
-    ptoQueue.requests = sampleRequests as any;
+    ptoQueue.requests = sampleRequests;
 
     // Test event listeners
     addEventListener(ptoQueue, 'request-approve', (e: CustomEvent) => {
@@ -61,7 +73,7 @@ export function playground() {
     // Test data updates
     setTimeout(() => {
         console.log('Testing data update...');
-        const updatedRequests = [...sampleRequests, {
+        const updatedRequests: PTORequest[] = [...sampleRequests, {
             id: 4,
             employeeId: 1,
             employeeName: 'John Doe',
@@ -72,7 +84,7 @@ export function playground() {
             status: 'pending',
             createdAt: '2024-02-03T11:45:00Z'
         }];
-        ptoQueue.requests = updatedRequests as any;
+        ptoQueue.requests = updatedRequests;
         querySingle('#test-output').textContent = 'Added new PTO request for John Doe';
     }, 3000);
 

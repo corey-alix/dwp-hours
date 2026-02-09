@@ -231,7 +231,7 @@ class UIManager {
 
         // Admin panel events (only if it exists)
         try {
-            const adminPanel = querySingle('admin-panel') as AdminPanel;
+            const adminPanel = querySingle<AdminPanel>('admin-panel');
             if (adminPanel) {
                 addEventListener(adminPanel, 'add-employee', () => this.handleAddEmployee());
                 addEventListener(adminPanel, 'employee-edit', (e: CustomEvent) => this.handleEditEmployee(e.detail.employeeId));
@@ -343,7 +343,7 @@ class UIManager {
 
     private togglePTORequestMode(): void {
         try {
-            const accrualCard = querySingle('pto-accrual-card') as PtoAccrualCard;
+            const accrualCard = querySingle<PtoAccrualCard>('pto-accrual-card');
             const currentMode = accrualCard.getAttribute('request-mode') === 'true';
             accrualCard.setAttribute('request-mode', (!currentMode).toString());
 
@@ -426,7 +426,7 @@ class UIManager {
             <div class="pto-summary"></div>
         `;
 
-        const summaryContainer = querySingle('.pto-summary', statusDiv) as HTMLElement;
+        const summaryContainer = querySingle<HTMLElement>('.pto-summary', statusDiv);
 
         // Create cards with loading states
         const summaryCard = createElement<PtoSummaryCard>('pto-summary-card');
@@ -537,11 +537,11 @@ class UIManager {
             const priorYear = getCurrentYear() - 1;
             const reviewData = await api.getPTOYearReview(priorYear);
 
-            const priorYearReview = querySingle('prior-year-review') as PriorYearReview;
+            const priorYearReview = querySingle<PriorYearReview>('prior-year-review');
             priorYearReview.data = reviewData;
         } catch (error) {
             console.error("Failed to load prior year review:", error);
-            const priorYearReview = querySingle('prior-year-review') as PriorYearReview;
+            const priorYearReview = querySingle<PriorYearReview>('prior-year-review');
             priorYearReview.data = null;
             notifications.error('Failed to load prior year data. Please try again later.');
         }

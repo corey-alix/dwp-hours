@@ -206,36 +206,53 @@ const ptoEntries = [
 export function playground() {
     console.log('Starting PTO Accrual Card test...');
 
-    const card = querySingle<PtoAccrualCard>('pto-accrual-card');
+    // Wait for component to be defined and ready
+    customElements.whenDefined('pto-accrual-card').then(() => {
+        console.log('pto-accrual-card component defined, waiting for element...');
 
-    // Process ptoEntries to get monthlyUsage
-    const monthlyUsageMap: Record<string, number> = {};
-    ptoEntries.forEach(entry => {
-        const month = parseDate(entry.date).month;
-        const monthStr = month.toString();
-        if (!monthlyUsageMap[monthStr]) monthlyUsageMap[monthStr] = 0;
-        monthlyUsageMap[monthStr] += entry.hours;
+        const waitForComponent = () => {
+            const card = document.querySelector('pto-accrual-card') as PtoAccrualCard;
+            if (card && card.shadowRoot) {
+                console.log('PTO Accrual Card component found and ready, initializing...');
+
+                // Process ptoEntries to get monthlyUsage
+                const monthlyUsageMap: Record<string, number> = {};
+                ptoEntries.forEach(entry => {
+                    const month = parseDate(entry.date).month;
+                    const monthStr = month.toString();
+                    if (!monthlyUsageMap[monthStr]) monthlyUsageMap[monthStr] = 0;
+                    monthlyUsageMap[monthStr] += entry.hours;
+                });
+                const monthlyUsage = Object.keys(monthlyUsageMap).map(month => ({
+                    month: parseInt(month),
+                    hours: monthlyUsageMap[month]
+                }));
+
+                // Set data
+                // Convert simplified PTO entries to full PTOEntry format for the component
+                const fullPtoEntries = ptoEntries.map((entry, index) => ({
+                    id: index + 1,
+                    employeeId: 1,
+                    date: entry.date,
+                    type: entry.type as "PTO" | "Sick" | "Bereavement" | "Jury Duty",
+                    hours: entry.hours,
+                    createdAt: today()
+                }));
+
+                card.ptoEntries = fullPtoEntries;
+                card.monthlyAccruals = ptoStatus.monthlyAccruals;
+                card.monthlyUsage = monthlyUsage;
+                card.calendarYear = 2026;
+
+                querySingle('#test-output').textContent = 'Accrual data set. Click calendar buttons to view details.';
+            } else {
+                console.log('PTO Accrual Card component not ready yet, retrying...');
+                setTimeout(waitForComponent, 100);
+            }
+        };
+
+        waitForComponent();
+    }).catch(error => {
+        console.error('Error waiting for pto-accrual-card component:', error);
     });
-    const monthlyUsage = Object.keys(monthlyUsageMap).map(month => ({
-        month: parseInt(month),
-        hours: monthlyUsageMap[month]
-    }));
-
-    // Set data
-    // Convert simplified PTO entries to full PTOEntry format for the component
-    const fullPtoEntries = ptoEntries.map((entry, index) => ({
-        id: index + 1,
-        employeeId: 1,
-        date: entry.date,
-        type: entry.type as "PTO" | "Sick" | "Bereavement" | "Jury Duty",
-        hours: entry.hours,
-        createdAt: today()
-    }));
-
-    card.ptoEntries = fullPtoEntries;
-    card.monthlyAccruals = ptoStatus.monthlyAccruals;
-    card.monthlyUsage = monthlyUsage;
-    card.calendarYear = 2026;
-
-    querySingle('#test-output').textContent = 'Accrual data set. Click calendar buttons to view details.';
 }

@@ -1,5 +1,6 @@
 import { PtoSectionCard, monthNames } from "../utils/pto-card-base.js";
 import { PtoCalendar, CalendarEntry } from "../pto-calendar/index.js";
+import { querySingle } from "../test-utils.js";
 import { getWorkDays, getTotalWorkDaysInYear, getAllocationRate } from "../../../server/workDays.js";
 import { getCurrentYear, today, parseDate } from '../../../shared/dateUtils.js';
 
@@ -345,7 +346,7 @@ export class PtoAccrualCard extends PtoSectionCard {
         });
 
         // Handle PTO request submission
-        const calendar = this.shadow.querySelector('pto-calendar') as any;
+        const calendar = this.shadow.querySelector<PtoCalendar>('pto-calendar');
         if (calendar) {
             calendar.addEventListener('pto-request-submit', (e: any) => {
                 console.log('PtoAccrualCard received pto-request-submit event from calendar:', e.detail);

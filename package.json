@@ -15,7 +15,7 @@
         "build:client//": "build client js and assets in parallel",
         "build:client:js": "esbuild client/app.ts --bundle --outfile=public/app.js --format=esm --sourcemap",
         "build:client:js//": "bundle client app.ts to public/app.js with esbuild",
-        "build:client:assets": "cp client/index.html client/styles.css client/test.html public/",
+        "build:client:assets": "cp client/index.html client/styles.css client/tokens.css client/test.html public/",
         "build:client:assets//": "copy client files to public directory",
         "build:test-assets": "cp -r client/components public/ && cp client/test.html public/",
         "build:test-assets//": "copy client components and test.html to public",
