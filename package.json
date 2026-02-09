@@ -85,7 +85,7 @@
         "lint:json//": "check JSON file formatting and syntax",
         "lint:markdown": "markdownlint '**/*.md'",
         "lint:markdown//": "lint all markdown files in the project",
-        "lint:links": "markdown-link-check -c .markdown-link-check.json .github TASKS",
+        "lint:links": "markdown-link-check -c .markdown-link-check.json README.md .github TASKS",
         "lint:links//": "check for broken external links in markdown files in .github and TASKS directories",
         "format": "prettier --write .",
         "dev:external": "pnpm run build:test-assets && http-serve public -p ${PORT:-3000} -o",
