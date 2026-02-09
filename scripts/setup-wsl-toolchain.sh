@@ -30,9 +30,11 @@ sudo apt install -y nodejs
 node --version
 npm --version
 
-log "Installing pnpm via Corepack"
-sudo corepack enable
-sudo corepack prepare pnpm@latest --activate
+log "Installing pnpm"
+curl -fsSL https://get.pnpm.io/install.sh | sh -
+
+export PNPM_HOME="$HOME/.local/share/pnpm"
+export PATH="$PNPM_HOME:$PATH"
 
 pnpm --version
 
