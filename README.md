@@ -446,7 +446,8 @@ The project uses GitHub Actions for continuous integration and deployment with a
 
 ### Pipeline Status
 
-[![CI/CD Pipeline](https://github.com/your-org/dwp-hours-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/dwp-hours-tracker/actions/workflows/ci.yml)
+<!-- CI/CD Pipeline badge will be added once repository is set up -->
+<!-- [![CI/CD Pipeline](https://github.com/your-org/dwp-hours-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/dwp-hours-tracker/actions/workflows/ci.yml) -->
 
 ### Workflow Overview
 
@@ -1000,7 +1001,6 @@ Here are some similar open-source projects and commercial solutions that can ser
 
 1. **Time Off Management Systems**:
    - [OrangeHRM](https://www.orangehrm.com/): Open-source HR management with time off tracking
-   - [Sentrifugo](https://www.sentrifugo.com/): HRMS with leave management
 
 2. **Time Tracking Applications**:
    - [Kimai](https://www.kimai.org/): Open-source time tracking software
