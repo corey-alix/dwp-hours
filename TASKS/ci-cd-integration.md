@@ -74,3 +74,21 @@ Implement continuous integration and continuous deployment (CI/CD) for the testi
 6. ~~Which specific Node.js version should be pinned in the CI workflow (e.g., latest LTS, or match local development environment)?~~ **RESOLVED**: Use the latest LTS version of Node.js to ensure stability and access to recent features.
 7. ~~Should the CI workflow include dependency caching to speed up subsequent runs?~~ **RESOLVED**: Include pnpm caching for dependencies. While infrequent commits to main may reduce the benefit, caching will still help when multiple CI runs occur (e.g., during active development periods).
 8. ~~How should we configure the CI workflow to handle database initialization and seeding for tests?~~ **RESOLVED**: Use the existing database initialization logic from server.mts (SQL.js with file-based SQLite). Set up database reload and seeding endpoints for test environments, ensuring proper isolation between test runs.
+
+## Learnings and Insights
+
+### Phase 3 Implementation (Test Reporting & Notifications)
+- **JUnit XML Format**: While the XML appears verbose and "awful" for human reading, it's specifically designed as machine-readable format that CI systems transform into beautiful, structured UI displays with drill-down capabilities, timing information, and clear pass/fail indicators.
+- **Test Result Publishing**: The `dorny/test-reporter` GitHub Action provides excellent integration, automatically publishing structured test results directly in the Actions UI and enabling PR comments without additional configuration.
+- **Playwright Multi-Reporter**: Playwright supports multiple reporters simultaneously (e.g., `['list', ['junit', { outputFile: '...' }]]`), allowing both console output for local development and structured XML output for CI systems.
+- **PR Integration**: Adding both `push` and `pull_request` triggers to workflows enables comprehensive CI coverage while supporting PR-specific features like automated test result comments.
+
+### CI/CD Pipeline Management
+- **pnpm Lockfile Synchronization**: Always run `pnpm install` after modifying `package.json` to update the lockfile. CI environments use `--frozen-lockfile` by default for security, which will fail if the lockfile doesn't match the package.json exactly.
+- **Dependency Auditing**: Regular cleanup of unused dependencies (like `@types/body-parser`) reduces bundle size, maintenance overhead, and potential security surface area. The impact was measurable: ~1.8KB reduction in lockfile size.
+- **YAML Formatting**: CI workflow files should be properly formatted with Prettier to maintain consistency and avoid linting failures that can block deployments.
+
+### Development Workflow Improvements
+- **Test Execution Patterns**: The existing npm scripts (`npm test`, `npm run test:e2e`) provide excellent consistency and should be preserved rather than creating CI-specific alternatives.
+- **Sequential Test Execution**: While potentially slower than parallel execution, sequential tests provide simpler debugging, clearer output, and avoid complex race conditions in database-dependent E2E tests.
+- **Caching Strategy**: pnpm's built-in caching combined with GitHub Actions' dependency caching provides good performance benefits, especially valuable during active development periods with multiple CI runs.
