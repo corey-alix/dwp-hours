@@ -1,5 +1,5 @@
 import { APIClient } from "../../APIClient.js";
-import type * as ApiTypes from "../../api-types.js";
+import type * as ApiTypes from "../../../shared/api-models.js";
 import { today } from "../../../shared/dateUtils.js";
 
 interface Employee {

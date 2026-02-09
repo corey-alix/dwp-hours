@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, beforeAll } from "vitest";
 import { JSDOM } from "jsdom";
-import type { PTOYearReviewResponse } from "../../client/api-types.js";
+import type { PTOYearReviewResponse } from "../../shared/api-models.js";
 
 // Set up DOM environment for component testing
 beforeAll(async () => {

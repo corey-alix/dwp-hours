@@ -38,6 +38,8 @@ import {
 import { performBulkMigration, performFileMigration } from "./bulkMigration.js";
 import { authenticate, authenticateAdmin } from "./utils/auth.js";
 import { seedEmployees, seedPTOEntries } from "../scripts/seedData.js";
+import type { PTOCreateResponse, PTOUpdateResponse, EmployeeCreateResponse, EmployeeUpdateResponse, HoursSubmitResponse, AcknowledgementSubmitResponse, AdminAcknowledgementSubmitResponse } from "../shared/api-models.js";
+import { serializePTOEntry, serializeEmployee, serializeMonthlyHours, serializeAcknowledgement, serializeAdminAcknowledgement } from "../shared/entity-transforms.js";
 
 const VERSION = `1.0.0`; // INCREMENT BEFORE EACH CHANGE
 const START_TIME = new Date().toISOString();
@@ -613,10 +615,11 @@ initDatabase()
             existingHours.hours_worked = hoursNum;
             existingHours.submitted_at = new Date(today());
             await monthlyHoursRepo.save(existingHours);
-            res.json({
+            const response: HoursSubmitResponse = {
               message: "Hours updated successfully",
-              hours: existingHours,
-            });
+              hours: serializeMonthlyHours(existingHours),
+            };
+            res.json(response);
           } else {
             // Create new hours entry
             const newHours = monthlyHoursRepo.create({
@@ -625,12 +628,11 @@ initDatabase()
               hours_worked: hoursNum,
             });
             await monthlyHoursRepo.save(newHours);
-            res
-              .status(201)
-              .json({
-                message: "Hours submitted successfully",
-                hours: newHours,
-              });
+            const response: HoursSubmitResponse = {
+              message: "Hours submitted successfully",
+              hours: serializeMonthlyHours(newHours),
+            };
+            res.status(201).json(response);
           }
         } catch (error) {
           log(`Error submitting hours: ${error}`);
@@ -743,12 +745,12 @@ initDatabase()
           });
           await acknowledgementRepo.save(newAck);
 
-          res
-            .status(201)
-            .json({
-              message: "Acknowledgement submitted successfully",
-              acknowledgement: newAck,
-            });
+          const response: AcknowledgementSubmitResponse = {
+            message: "Acknowledgement submitted successfully",
+            acknowledgement: serializeAcknowledgement(newAck),
+          };
+
+          res.status(201).json(response);
         } catch (error) {
           log(`Error submitting acknowledgement: ${error}`);
           res.status(500).json({ error: "Internal server error" });
@@ -947,12 +949,12 @@ initDatabase()
           });
           await adminAckRepo.save(newAck);
 
-          res
-            .status(201)
-            .json({
-              message: "Admin acknowledgement submitted successfully",
-              acknowledgement: newAck,
-            });
+          const response: AdminAcknowledgementSubmitResponse = {
+            message: "Admin acknowledgement submitted successfully",
+            acknowledgement: serializeAdminAcknowledgement(newAck),
+          };
+
+          res.status(201).json(response);
         } catch (error) {
           log(`Error submitting admin acknowledgement: ${error}`);
           res.status(500).json({ error: "Internal server error" });
@@ -1127,7 +1129,12 @@ initDatabase()
 
           await employeeRepo.save(employee);
 
-          res.status(201).json({ message: "Employee created successfully" });
+          const response: EmployeeCreateResponse = {
+            message: "Employee created successfully",
+            employee: serializeEmployee(employee),
+          };
+
+          res.status(201).json(response);
         } catch (error) {
           log(`Error creating employee: ${error}`);
           res.status(500).json({ error: "Internal server error" });
@@ -1211,16 +1218,8 @@ initDatabase()
 
           res.json({
             message: "Employee updated successfully",
-            employee: {
-              id: employee.id,
-              name: employee.name,
-              identifier: employee.identifier,
-              pto_rate: employee.pto_rate,
-              carryover_hours: employee.carryover_hours,
-              hire_date: employee.hire_date.toISOString().split("T")[0],
-              role: employee.role,
-            },
-          });
+            employee: serializeEmployee(employee),
+          } as EmployeeUpdateResponse);
         } catch (error) {
           log(`Error updating employee: ${error}`);
           res.status(500).json({ error: "Internal server error" });
@@ -1482,27 +1481,12 @@ initDatabase()
           });
 
           const lastResult = results[results.length - 1];
-          const responseEntry = {
-            id: lastResult.id,
-            employee_id: lastResult.employee_id,
-            date: lastResult.date,
-            type: lastResult.type,
-            hours: lastResult.hours,
-            created_at: dateToString(lastResult.created_at),
+          const response: PTOCreateResponse = {
+            message: "PTO entries created successfully",
+            ptoEntry: serializePTOEntry(lastResult),
           };
 
-          res.status(201).json({
-            message: "PTO entries created successfully",
-            ptoEntry: responseEntry,
-            ptoEntries: results.map((r) => ({
-              id: r.id,
-              employee_id: r.employee_id,
-              date: r.date,
-              type: r.type,
-              hours: r.hours,
-              created_at: dateToString(r.created_at),
-            })),
-          });
+          res.status(201).json(response);
         } catch (error) {
           log(`Error creating PTO entries: ${error}`);
           res.status(500).json({ error: "Internal server error" });
@@ -1563,8 +1547,8 @@ initDatabase()
 
           res.json({
             message: "PTO entry updated successfully",
-            ptoEntry: result.ptoEntry,
-          });
+            ptoEntry: serializePTOEntry(result.ptoEntry),
+          } as PTOUpdateResponse);
         } catch (error) {
           log(`Error updating PTO entry: ${error}`);
           res.status(500).json({ error: "Internal server error" });

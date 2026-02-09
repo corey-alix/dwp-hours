@@ -2,6 +2,32 @@
  * Date Management Utilities
  * Lightweight bespoke date management using YYYY-MM-DD strings exclusively
  * Avoids timezone issues and provides consistent date handling
+ *
+ * ## Date Handling Guidelines
+ *
+ * ### Core Principles
+ * - Use YYYY-MM-DD strings exclusively for all date operations
+ * - Never use `new Date()` with date strings in client code
+ * - Always use `dateUtils.ts` functions for date manipulation
+ * - Store dates as TEXT columns in SQLite (YYYY-MM-DD format)
+ *
+ * ### Common Pitfalls to Avoid
+ * ❌ `new Date(dateString)` - Creates timezone-dependent Date objects
+ * ❌ `new Date().toISOString().split('T')[0]` - Causes timezone shifts
+ * ❌ `Date.UTC()` mixed with local time operations
+ * ❌ Storing Date objects in database (use strings)
+ *
+ * ### Correct Usage Patterns
+ * ✅ `today()` - Get current date as YYYY-MM-DD string
+ * ✅ `addDays(dateStr, days)` - Add/subtract days safely
+ * ✅ `isWeekend(dateStr)` - Check if date is weekend
+ * ✅ `calculateEndDateFromHours(startDate, hours)` - Business day calculations
+ *
+ * ### Timezone Safety
+ * - All functions work consistently regardless of server timezone
+ * - Client and server use identical date logic
+ * - No timezone conversions or assumptions
+ * - Dates represent calendar dates, not moments in time
  */
 
 /**
@@ -462,4 +488,42 @@ export function startOfYear(): string {
 export function endOfYear(): string {
   const { year } = parseDate(today());
   return formatDate(year, 12, 31);
+}
+
+/**
+ * Gets the name of the day of the week for a given date
+ * @param dateStr - Date string in YYYY-MM-DD format
+ * @returns Name of the day (e.g., "Monday", "Tuesday", etc.)
+ */
+export function getDayName(dateStr: string): string {
+  const dayOfWeek = getDayOfWeek(dateStr);
+  const dayNames = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+  return dayNames[dayOfWeek];
+}
+
+/**
+ * Gets the next business day (skips weekends)
+ * If the input date is a weekday (Mon-Fri), returns the same date
+ * If the input date is Saturday or Sunday, returns the following Monday
+ * @param dateStr - Date string in YYYY-MM-DD format
+ * @returns Next business day in YYYY-MM-DD format
+ */
+export function getNextBusinessDay(dateStr: string): string {
+  if (!isValidDateString(dateStr)) {
+    throw new Error(`Invalid date string: ${dateStr}`);
+  }
+
+  let currentDate = dateStr;
+  while (isWeekend(currentDate)) {
+    currentDate = addDays(currentDate, 1);
+  }
+  return currentDate;
 }

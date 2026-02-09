@@ -1,5 +1,5 @@
 // Import API types
-import type * as ApiTypes from "./api-types.js";
+import type * as ApiTypes from "../shared/api-models.js";
 import { APIClient } from "./APIClient.js";
 
 // Import date utilities
@@ -469,7 +469,7 @@ class UIManager {
       console.error("Failed to submit admin acknowledgment:", error);
       notifications.error(
         "Failed to submit acknowledgment: " +
-          (error.message || "Unknown error"),
+        (error.message || "Unknown error"),
       );
     }
   }

@@ -111,7 +111,7 @@ test.describe("Employee Authentication & Workflow", () => {
 
     const ptoRequest = responseBody.ptoEntry;
     expect(ptoRequest).toBeDefined();
-    expect(ptoRequest.employee_id).toBeDefined();
+    expect(ptoRequest.employeeId).toBeDefined();
     expect(ptoRequest.date).toBe(testDateStr); // Date stored as YYYY-MM-DD string
     expect(ptoRequest.type).toBe("PTO");
     expect(ptoRequest.hours).toBe(4);

@@ -404,7 +404,16 @@ This approach minimizes duplication, eases updates (change one var, propagates e
 
 The following features are planned for upcoming development:
 
-1. **Detailed Date/Hour Listings for PTO Cards**: Enhance the Sick, Bereavement, and Jury Duty summary cards to display specific dates taken and hours for each entry, providing detailed breakdowns beyond just totals.
+1. ✅ **COMPLETED**: Fix date handling regression - timezone issues causing PTO entries to shift dates. See ./TASKS/issue-date-handling-regression.md for details
+2. ✅ **COMPLETED**: Complete PTO form enhancements - dynamic field behavior, validation, and calendar integration. See ./TASKS/pto-form-enhancements.md for details
+3. LATER: Implement email delivery for magic link authentication. See ./TASKS/Email Magic Link.md for details
+4. ✅ **COMPLETED**: Implement API type safety with shared models between client and server. See ./TASKS/api-type-safety.md for details
+5. ✅ **COMPLETED**: Complete database reset/reload service for deterministic E2E testing. See ./TASKS/database-reset-reload-service.md for remaining items
+6. 🟡 **MEDIUM PRIORITY**: Complete PTO entry form calendar integration E2E tests. See ./TASKS/pto-entry-form-calendar-integration.md for Phase 4 items
+7. 🟡 **MEDIUM PRIORITY**: Complete CSS theming implementation - integration testing and documentation. See ./TASKS/css-theming-implementation.md for Phase 16-17 items
+8. 🟢 **LOW PRIORITY**: Complete user data migration validation and documentation. See ./TASKS/user-data-migration-corey-alix.md for Phase 4 items
+9. 🟢 **LOW PRIORITY**: Complete theming tips best practices implementation. See ./TASKS/theming-tips-consistency.md for Phase 5 items
+10. LATER: See ./TASKS/deployment-automation.md for details on implementing automated deployment with Netlify
 
 ## Development Best Practices and Learnings
 
@@ -433,6 +442,16 @@ Based on recent implementation experiences, the following generalized findings f
 - **Business Rules Import Strategy**: Client components can import compiled shared business rules (e.g., `shared/businessRules.js`) for consistent validation logic between client and server.
 - **Component Query Patterns**: Use type-safe DOM queries (e.g., `querySingle<T>()` from `test-utils.ts`) for error-throwing behavior and type safety in web components.
 - **CSS Class-Based Styling**: Implement conditional styling using CSS classes (e.g., `.negative-balance`) for clean separation of concerns and consistent theming.
+
+### Design System Patterns
+- **CSS Custom Properties Hierarchy**: The design system uses a layered approach with base tokens (colors, spacing, typography) and semantic tokens (surface colors, text colors, border styles) that provide consistent theming across all components
+- **Component Communication**: Custom events enable loose coupling between components while maintaining clear data flow patterns (e.g., `navigate-to-month` event for calendar navigation)
+- **Shadow DOM Encapsulation**: Strict encapsulation prevents style leakage but requires careful event bubbling strategies and shared design token imports
+- **Responsive Breakpoints**: Mobile-first approach with `480px` breakpoint for vertical stacking, ensuring touch-friendly interfaces on small screens
+- **Focus Management**: Consistent focus outlines using `var(--color-primary)` with `2px solid` style, providing clear visual feedback for keyboard navigation
+- **Form Validation States**: Three-tier validation system (real-time warnings, blur-triggered validation, submit-time confirmation) with distinct visual styling for each state
+- **Interactive Element Patterns**: Clickable elements use `cursor: pointer`, `text-decoration: underline`, and hover states to clearly indicate interactivity
+- **Loading States**: Skeleton screens and "Loading..." text provide immediate feedback during async operations, improving perceived performance
 
 ### Performance and Validation
 
@@ -474,7 +493,7 @@ Based on recent implementation experiences, the following generalized findings f
 ### Prerequisites
 
 - Node.js (v16 or higher)
-- npm or yarn
+- pnpm (recommended) or npm
 
 ### Quick Start
 
@@ -483,13 +502,13 @@ Based on recent implementation experiences, the following generalized findings f
    ```bash
    git clone <repository-url>
    cd dwp-hours-tracker
-   npm install
+   pnpm install
    ```
 
 2. **Set up the Database**
 
    ```bash
-   npm run db:init
+   pnpm run db:init
    ```
 
 3. **Configure Email (Magic Link)**
@@ -508,7 +527,7 @@ Based on recent implementation experiences, the following generalized findings f
 4. **Start Development Server**
 
    ```bash
-   npm run dev
+   pnpm run dev:external
    ```
 
 5. **Open in Browser**
@@ -517,11 +536,40 @@ Based on recent implementation experiences, the following generalized findings f
 
 ### Development Workflow
 
-- **Build**: `npm run build` - Compile TypeScript to JavaScript
-- **Lint**: `npm run lint` - Check TypeScript for errors
-- **Format**: `npm run format` - Format code with Prettier
-- **Test**: `npm test` - Run unit tests with Vitest
-- **E2E Test**: `npm run test:e2e` - Run end-to-end tests with Playwright (9 tests passing covering admin panel components and employee workflow)
+#### Core Development Commands
+- **Start Development Server**: `pnpm run start` - Start development server with auto-restart on server file changes
+- **Start Frontend Dev Server**: `pnpm run dev:external` - Start frontend development server (static file server) on PORT
+- **Build**: `pnpm run build` - Compile TypeScript to JavaScript for both client and server
+- **Lint**: `pnpm run lint` - Check TypeScript, CSS, and markdown for errors across all code
+- **Format**: `pnpm run format` - Format code with Prettier
+
+#### Testing Commands
+- **Full Test Suite**: `pnpm test` - Run lint, build, seed database, unit tests, then E2E tests
+- **Unit Tests**: `pnpm run test:unit` - Run unit tests with Vitest
+- **E2E Tests**: `pnpm run test:e2e` - Run end-to-end tests with Playwright (includes lint, build, and database setup)
+- **Date/Timezone Tests**: `pnpm run test:unit:date-fns:tz` - Run shared date-fns facade tests under multiple timezone values
+
+#### Database Commands
+- **Initialize Database**: `pnpm run db:init` - Initialize database (handled automatically by server startup)
+- **Seed Database**: `pnpm run seed` - Run database seeding script with test data
+- **Run Migrations**: `pnpm run migrate` - Run database migration script
+- **Reload Database**: `pnpm run server:reload` - Reload the server's database from disk (useful during development)
+- **Seed for E2E Tests**: `pnpm run playwright:seed` - Seed database and reload server for Playwright tests
+
+#### API and Server Utilities
+- **Get API Version**: `pnpm run api:version` - Get the current API version
+- **Stop Server**: `pnpm run stop` - Kill development server process on port 3000
+
+#### Production Deployment
+- **Start Production**: `pnpm run start:prod` - Start production server from built dist/server.mjs
+- **PM2 Start**: `pnpm run pm2:start` - Start app with PM2 process manager
+- **PM2 Stop**: `pnpm run pm2:stop` - Stop app with PM2
+- **PM2 Restart**: `pnpm run pm2:restart` - Restart app with PM2
+- **PM2 Logs**: `pnpm run pm2:logs` - Show PM2 logs for the app
+
+#### Worktree Development (Advanced)
+- **Worktree Port**: `pnpm run worktree:port` - Show the port assigned to current worktree
+- **Worktree Dev Server**: `pnpm run dev:worktree` - Start dev server with worktree-specific port
 
 ## CI/CD Pipeline
 
@@ -627,8 +675,6 @@ dwp-hours-tracker/
 ├── tsconfig.json       # TypeScript configuration
 └── README.md           # This file
 ```
-
-## Installation
 
 ## Usage
 
@@ -944,7 +990,7 @@ All PTO dashboard cards share a common base class for consistent layout and styl
 
 **✅ IMPLEMENTED**: `e2e/employee-workflow.spec.ts` - Complete E2E test for employee authentication and basic workflow validation.
 
-**Note**: E2E tests require the development server running on `http://localhost:3000`. Run `npm run dev` in a separate terminal before executing E2E tests.
+**Note**: E2E tests require the development server running on `http://localhost:3000`. Run `pnpm run dev:external` in a separate terminal before executing E2E tests.
 
 The primary E2E test simulates a complete employee experience, starting from login through dashboard access. This test validates the magic link authentication flow and ensures the core employee journey works end-to-end.
 
@@ -1135,7 +1181,7 @@ This application replaces the manual Excel spreadsheet tracking (see `legacy.spr
 Use dry-run to validate parsing and migration logic without modifying the database or writing backups:
 
 ```bash
-npm run migrate -- --dry-run
+pnpm run migrate -- --dry-run
 ```
 
 ### Running the Migration
@@ -1143,13 +1189,13 @@ npm run migrate -- --dry-run
 To migrate from the default legacy Excel file:
 
 ```bash
-npm run migrate
+pnpm run migrate
 ```
 
 To migrate from a specific file:
 
 ```bash
-npm run migrate -- /absolute/path/to/legacy.xlsx
+pnpm run migrate -- /absolute/path/to/legacy.xlsx
 ```
 
 ### Backups and Rollback
@@ -1159,11 +1205,11 @@ By default, the migration creates a timestamped backup in db/backups before writ
 Rollback to a specific backup:
 
 ```bash
-npm run migrate -- --rollback /absolute/path/to/backup
+pnpm run migrate -- --rollback /absolute/path/to/backup
 ```
 
 Rollback to the most recent backup:
 
 ```bash
-npm run migrate -- --rollback-latest
+pnpm run migrate -- --rollback-latest
 ```

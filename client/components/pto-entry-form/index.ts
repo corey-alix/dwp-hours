@@ -99,6 +99,21 @@ export class PtoEntryForm extends HTMLElement {
     this.updateCalculationDetails();
   }
 
+  private updateLabelText(label: HTMLLabelElement, text: string): void {
+    // Preserve the required asterisk span when updating label text
+    const asteriskSpan = label.querySelector('.required');
+    label.textContent = text;
+    if (asteriskSpan) {
+      label.appendChild(asteriskSpan);
+    } else {
+      // If no asterisk span exists, add one
+      const span = document.createElement('span');
+      span.className = 'required';
+      span.textContent = '*';
+      label.appendChild(span);
+    }
+  }
+
   private updateFieldBehavior(ptoType: string): void {
     const hoursInput = querySingle<HTMLInputElement>("#hours", this.shadow);
     const endDateInput = querySingle<HTMLInputElement>(
@@ -113,7 +128,7 @@ export class PtoEntryForm extends HTMLElement {
 
     if (ptoType === "Full PTO") {
       // For "Full PTO": End Date editable, Hours readonly (calculated from date range)
-      hoursLabel.textContent = "Days";
+      this.updateLabelText(hoursLabel, "Days");
       hoursInput.readOnly = true;
       hoursInput.step = "1";
       hoursInput.min = "1";
@@ -121,7 +136,7 @@ export class PtoEntryForm extends HTMLElement {
       endDateInput.readOnly = false;
     } else {
       // For other types: Hours editable, End Date readonly (calculated based on spillover logic)
-      hoursLabel.textContent = "Hours";
+      this.updateLabelText(hoursLabel, "Hours");
       hoursInput.readOnly = false;
       hoursInput.step = "4";
       hoursInput.min = "4";

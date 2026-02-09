@@ -49,6 +49,8 @@
         "seed//": "run database seeding script",
         "migrate": "tsx scripts/migrate.ts",
         "migrate//": "run database migration script",
+        "merge:mars": "bash scripts/merge-squash-push.sh mars \"merge mars\"",
+        "merge:mars//": "merge squash from mars branch with 'merge mars' message and push",
         "test:unit": "vitest --run",
         "test:unit//": "run unit tests with vitest",
         "test:unit:date-fns:tz": "tsx scripts/test-date-fns-timezones.mts",
