@@ -38,8 +38,22 @@ import {
 import { performBulkMigration, performFileMigration } from "./bulkMigration.js";
 import { authenticate, authenticateAdmin } from "./utils/auth.js";
 import { seedEmployees, seedPTOEntries } from "../scripts/seedData.js";
-import type { PTOCreateResponse, PTOUpdateResponse, EmployeeCreateResponse, EmployeeUpdateResponse, HoursSubmitResponse, AcknowledgementSubmitResponse, AdminAcknowledgementSubmitResponse } from "../shared/api-models.js";
-import { serializePTOEntry, serializeEmployee, serializeMonthlyHours, serializeAcknowledgement, serializeAdminAcknowledgement } from "../shared/entity-transforms.js";
+import type {
+  PTOCreateResponse,
+  PTOUpdateResponse,
+  EmployeeCreateResponse,
+  EmployeeUpdateResponse,
+  HoursSubmitResponse,
+  AcknowledgementSubmitResponse,
+  AdminAcknowledgementSubmitResponse,
+} from "../shared/api-models.js";
+import {
+  serializePTOEntry,
+  serializeEmployee,
+  serializeMonthlyHours,
+  serializeAcknowledgement,
+  serializeAdminAcknowledgement,
+} from "../shared/entity-transforms.js";
 
 const VERSION = `1.0.0`; // INCREMENT BEFORE EACH CHANGE
 const START_TIME = new Date().toISOString();
@@ -239,12 +253,10 @@ initDatabase()
 
             res.json({ message: "Database reloaded successfully" });
           } else {
-            res
-              .status(403)
-              .json({
-                error:
-                  "Forbidden: Database reload only allowed in test environment",
-              });
+            res.status(403).json({
+              error:
+                "Forbidden: Database reload only allowed in test environment",
+            });
           }
         } catch (error) {
           log(`Database reload error: ${error} `);
@@ -308,12 +320,10 @@ initDatabase()
           log("Database seeded successfully.");
           res.json({ message: "Database seeded successfully" });
         } else {
-          res
-            .status(403)
-            .json({
-              error:
-                "Forbidden: Database seeding only allowed in test environment",
-            });
+          res.status(403).json({
+            error:
+              "Forbidden: Database seeding only allowed in test environment",
+          });
         }
       } catch (error) {
         log(`Database seed error: ${error} `);
@@ -934,11 +944,9 @@ initDatabase()
             log(
               `Admin acknowledgement submission failed: Admin acknowledgement already exists for employee ${employeeIdNum}, month ${monthStr}`,
             );
-            return res
-              .status(409)
-              .json({
-                error: "Admin acknowledgement already exists for this month",
-              });
+            return res.status(409).json({
+              error: "Admin acknowledgement already exists for this month",
+            });
           }
 
           // Create new admin acknowledgement
@@ -1087,11 +1095,9 @@ initDatabase()
 
           // Validation
           if (!name || typeof name !== "string" || name.trim().length === 0) {
-            return res
-              .status(400)
-              .json({
-                error: "Name is required and must be a non-empty string",
-              });
+            return res.status(400).json({
+              error: "Name is required and must be a non-empty string",
+            });
           }
           if (
             !identifier ||
@@ -1428,12 +1434,10 @@ initDatabase()
               reqHours === undefined ||
               !reqType
             ) {
-              return res
-                .status(400)
-                .json({
-                  error:
-                    "All fields are required for each request: employeeId, date, hours, type",
-                });
+              return res.status(400).json({
+                error:
+                  "All fields are required for each request: employeeId, date, hours, type",
+              });
             }
 
             const empIdNum = parseInt(targetEmployeeId);

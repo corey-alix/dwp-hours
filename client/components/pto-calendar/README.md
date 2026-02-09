@@ -22,16 +22,18 @@ The PTO Calendar component provides a monthly calendar view for displaying and s
   month="0"
   year="2024"
   pto-entries='[{"id": 1, "date": "2024-01-15", "type": "PTO", "hours": 8}]'
-  readonly="true">
+  readonly="true"
+>
 </pto-calendar>
 
 <!-- Interactive calendar for requests -->
 <pto-calendar
   month="0"
   year="2024"
-  pto-entries='[]'
+  pto-entries="[]"
   readonly="false"
-  selected-month="0">
+  selected-month="0"
+>
 </pto-calendar>
 ```
 
@@ -49,7 +51,7 @@ The PTO Calendar component provides a monthly calendar view for displaying and s
 type PTOEntry = {
   id: number;
   employeeId: number;
-  date: string;  // YYYY-MM-DD format
+  date: string; // YYYY-MM-DD format
   type: "PTO" | "Sick" | "Bereavement" | "Jury Duty";
   hours: number;
   createdAt: string;
@@ -104,4 +106,4 @@ type CalendarEntry = {
 - **Selection State**: Tracks selected dates and PTO types
 - **Event Handling**: Click events for date selection
 - **Business Rules**: Integrates with shared PTO validation logic</content>
-<parameter name="filePath">/home/ca0v/code/ca0v/earth/client/components/pto-calendar/README.md
+  <parameter name="filePath">/home/ca0v/code/ca0v/earth/client/components/pto-calendar/README.md

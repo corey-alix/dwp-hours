@@ -295,6 +295,7 @@ The following features are planned for upcoming development:
 10. LATER: See ./TASKS/deployment-automation.md for details on implementing automated deployment with Netlify
 
 **📋 Development Best Practices and Learnings**: For detailed information about development best practices, testing strategies, and implementation learnings, see [`.github/skills/development-best-practices-assistant/SKILL.md`](.github/skills/development-best-practices-assistant/SKILL.md).
+
 - **Real-time Updates**: Ensure UI updates immediately after successful operations to prevent user confusion.
 - **Concurrent Submissions**: Consider race conditions in multi-user scenarios.
 - **E2E Test Maintenance**: As test suites grow, focus on critical workflows and use database resets for state management.
@@ -309,6 +310,7 @@ This project includes comprehensive documentation and specialized assistants to 
 The project uses AI-assisted development with specialized skill documents that provide focused guidance for specific development activities:
 
 #### Core Development Skills
+
 - **Architecture Guidance**: System architecture, tech stack, and design patterns - [`.github/skills/architecture-guidance/SKILL.md`](.github/skills/architecture-guidance/SKILL.md)
 - **Code Review QA**: Code quality standards and review processes - [`.github/skills/code-review-qa/SKILL.md`](.github/skills/code-review-qa/SKILL.md)
 - **Task Implementation**: Guidelines for implementing tasks from the TASKS folder - [`.github/skills/task-implementation-assistant/SKILL.md`](.github/skills/task-implementation-assistant/SKILL.md)
@@ -316,6 +318,7 @@ The project uses AI-assisted development with specialized skill documents that p
 - **Dependency Management**: Managing task priorities and dependencies - [`.github/skills/dependency-management/SKILL.md`](.github/skills/dependency-management/SKILL.md)
 
 #### Technical Implementation Skills
+
 - **Date Management**: Date handling patterns and YYYY-MM-DD usage - [`.github/skills/date-management-assistant/SKILL.md`](.github/skills/date-management-assistant/SKILL.md)
 - **DOM Utilities**: Type-safe DOM manipulation and element queries - [`.github/skills/dom-utilities-assistant/SKILL.md`](.github/skills/dom-utilities-assistant/SKILL.md)
 - **Web Components**: Web component development and patterns - [`.github/skills/web-components-assistant/SKILL.md`](.github/skills/web-components-assistant/SKILL.md)
@@ -323,21 +326,25 @@ The project uses AI-assisted development with specialized skill documents that p
 - **Notification System**: Toast notifications and user feedback patterns - [`.github/skills/notification-system-assistant/SKILL.md`](.github/skills/notification-system-assistant/SKILL.md)
 
 #### Business Logic Skills
+
 - **PTO Calculation Rules**: PTO business logic, calculations, and rules - [`.github/skills/pto-calculation-rules-assistant/SKILL.md`](.github/skills/pto-calculation-rules-assistant/SKILL.md)
 - **PTO Spreadsheet Layout**: Legacy Excel spreadsheet structure and data patterns - [`.github/skills/pto-spreadsheet-layout/SKILL.md`](.github/skills/pto-spreadsheet-layout/SKILL.md)
 
 #### Database & Build Skills
+
 - **SQL.js Database**: Database operations and SQLite best practices - [`.github/skills/sql-js-database-assistant/SKILL.md`](.github/skills/sql-js-database-assistant/SKILL.md)
 - **TypeORM Assistant**: ORM patterns and entity relationships - [`.github/skills/typeorm-assistant/SKILL.md`](.github/skills/typeorm-assistant/SKILL.md)
 - **Build Configuration**: TypeScript, esbuild, and configuration management - [`.github/skills/esbuild-configuration-assistant/SKILL.md`](.github/skills/esbuild-configuration-assistant/SKILL.md)
 - **TSConfig Configuration**: TypeScript configuration patterns - [`.github/skills/tsconfig-configuration-assistant/SKILL.md`](.github/skills/tsconfig-configuration-assistant/SKILL.md)
 
 #### Testing & Quality Skills
+
 - **Vitest Testing**: Unit testing patterns and utilities - [`.github/skills/vitest-testing-assistant/SKILL.md`](.github/skills/vitest-testing-assistant/SKILL.md)
 - **Playwright Testing**: End-to-end testing strategies - [`.github/skills/playwright-testing-assistant/SKILL.md`](.github/skills/playwright-testing-assistant/SKILL.md)
 - **Development Best Practices**: Code quality, testing, and implementation learnings - [`.github/skills/development-best-practices-assistant/SKILL.md`](.github/skills/development-best-practices-assistant/SKILL.md)
 
 #### Specialized Tools Skills
+
 - **Calendar Day Assistant**: Calendar-specific functionality - [`.github/skills/calendar-day-assistant/SKILL.md`](.github/skills/calendar-day-assistant/SKILL.md)
 - **CSS Subgrid Assistant**: Advanced CSS layout techniques - [`.github/skills/css-subgrid-assistant/SKILL.md`](.github/skills/css-subgrid-assistant/SKILL.md)
 - **ExcelJS Integration**: Excel file processing and generation - [`.github/skills/exceljs/SKILL.md`](.github/skills/exceljs/SKILL.md)
@@ -363,6 +370,53 @@ Structured prompts for common development activities:
 
 - Node.js (v16 or higher)
 - pnpm (recommended) or npm
+
+#### Windows + WSL setup
+
+If you're on Windows, install WSL and set up Node.js and pnpm inside your WSL distro (recommended: Ubuntu).
+
+1. **Install WSL** (PowerShell as Administrator)
+
+```powershell
+wsl --install -d Ubuntu
+```
+
+Reboot if prompted, then launch **Ubuntu** from the Start menu to finish setup.
+
+2. **Update packages** (inside WSL)
+
+```bash
+sudo apt update && sudo apt upgrade -y
+```
+
+3. **Install/Update Git to the latest version (WSL)**
+
+   ```bash
+   sudo apt install -y software-properties-common
+   sudo add-apt-repository ppa:git-core/ppa -y
+   sudo apt update
+   sudo apt install -y git
+   git --version
+   ```
+
+4. **Install Node.js (LTS) inside WSL**
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+sudo apt install -y nodejs
+node --version
+npm --version
+```
+
+5. **Install pnpm inside WSL**
+
+```bash
+corepack enable
+corepack prepare pnpm@latest --activate
+pnpm --version
+```
+
+> Note: Install dependencies and run all project commands from within WSL (not Windows CMD/PowerShell) to avoid path and toolchain issues.
 
 ### Quick Start
 
@@ -406,6 +460,7 @@ Structured prompts for common development activities:
 ### Development Workflow
 
 #### Core Development Commands
+
 - **Start Development Server**: `pnpm run start` - Start development server with auto-restart on server file changes
 - **Start Frontend Dev Server**: `pnpm run dev:external` - Start frontend development server (static file server) on PORT
 - **Build**: `pnpm run build` - Compile TypeScript to JavaScript for both client and server
@@ -413,12 +468,14 @@ Structured prompts for common development activities:
 - **Format**: `pnpm run format` - Format code with Prettier
 
 #### Testing Commands
+
 - **Full Test Suite**: `pnpm test` - Run lint, build, seed database, unit tests, then E2E tests
 - **Unit Tests**: `pnpm run test:unit` - Run unit tests with Vitest
 - **E2E Tests**: `pnpm run test:e2e` - Run end-to-end tests with Playwright (includes lint, build, and database setup)
 - **Date/Timezone Tests**: `pnpm run test:unit:date-fns:tz` - Run shared date-fns facade tests under multiple timezone values
 
 #### Database Commands
+
 - **Initialize Database**: `pnpm run db:init` - Initialize database (handled automatically by server startup)
 - **Seed Database**: `pnpm run seed` - Run database seeding script with test data
 - **Run Migrations**: `pnpm run migrate` - Run database migration script
@@ -426,10 +483,12 @@ Structured prompts for common development activities:
 - **Seed for E2E Tests**: `pnpm run playwright:seed` - Seed database and reload server for Playwright tests
 
 #### API and Server Utilities
+
 - **Get API Version**: `pnpm run api:version` - Get the current API version
 - **Stop Server**: `pnpm run stop` - Kill development server process on port 3000
 
 #### Production Deployment
+
 - **Start Production**: `pnpm run start:prod` - Start production server from built dist/server.mjs
 - **PM2 Start**: `pnpm run pm2:start` - Start app with PM2 process manager
 - **PM2 Stop**: `pnpm run pm2:stop` - Stop app with PM2
@@ -437,6 +496,7 @@ Structured prompts for common development activities:
 - **PM2 Logs**: `pnpm run pm2:logs` - Show PM2 logs for the app
 
 #### Worktree Development (Advanced)
+
 - **Worktree Port**: `pnpm run worktree:port` - Show the port assigned to current worktree
 - **Worktree Dev Server**: `pnpm run dev:worktree` - Start dev server with worktree-specific port
 
@@ -446,7 +506,8 @@ The project uses GitHub Actions for continuous integration and deployment with a
 
 ### Pipeline Status
 
-[![CI/CD Pipeline](https://github.com/your-org/dwp-hours-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/dwp-hours-tracker/actions/workflows/ci.yml)
+<!-- CI/CD Pipeline badge will be added once repository is set up -->
+<!-- [![CI/CD Pipeline](https://github.com/your-org/dwp-hours-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/dwp-hours-tracker/actions/workflows/ci.yml) -->
 
 ### Workflow Overview
 
@@ -470,6 +531,7 @@ Branch protection rules require CI to pass before merging to main. Developers ca
 ### Test Results
 
 Test results are automatically published to:
+
 - GitHub Actions UI with detailed pass/fail status
 - Pull request comments with test summaries
 - JUnit XML files for external tool integration
@@ -477,6 +539,7 @@ Test results are automatically published to:
 ### Performance Monitoring
 
 The pipeline includes performance monitoring through:
+
 - Test execution timing validation (< 100ms for balance calculations)
 - Build time tracking
 - Test failure rate monitoring
@@ -1000,7 +1063,6 @@ Here are some similar open-source projects and commercial solutions that can ser
 
 1. **Time Off Management Systems**:
    - [OrangeHRM](https://www.orangehrm.com/): Open-source HR management with time off tracking
-   - [Sentrifugo](https://www.sentrifugo.com/): HRMS with leave management
 
 2. **Time Tracking Applications**:
    - [Kimai](https://www.kimai.org/): Open-source time tracking software

@@ -10,7 +10,7 @@ Implement data migration functionality to import employee hours and PTO data fro
 
 ## Checklist
 
-- [x] **Phase 1: Analyze and Fix migrate.ts** ([scripts/migrate.ts](scripts/migrate.ts))
+- [x] **Phase 1: Analyze and Fix migrate.ts** ([../scripts/migrate.ts](../scripts/migrate.ts))
   - [x] Review current migrate.ts code and identify failure points
   - [x] Implement Excel file parsing using appropriate library (e.g., xlsx) - implemented with ExcelJS
   - [x] Add --debug argument to scan document for provided cells and return values as JSON - implemented as debugCells function
@@ -20,7 +20,7 @@ Implement data migration functionality to import employee hours and PTO data fro
   - [x] Add error handling and logging for migration process - implemented with try/catch and log function
   - [x] Run build and lint checks - passes
   - [x] Manual test: Execute migrate.ts without errors - runs successfully in dry-run mode
-- [x] **Phase 2: Implement Data Import Logic** ([server/server.mts](server/server.mts), [shared/businessRules.ts](shared/businessRules.ts))
+- [x] **Phase 2: Implement Data Import Logic** ([../server/server.mts](../server/server.mts), [../shared/businessRules.ts](../shared/businessRules.ts))
   - [x] Parse "Corey Alix 2025.xlsx" file structure and validate data format
   - [x] Implement bulk data collection and validation using businessRules.ts
   - [x] Extend server.mts with new API endpoint for bulk data import (/api/migrate/bulk)

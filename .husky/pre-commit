@@ -1,15 +1,16 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 # Get current branch name
 branch=$(git rev-parse --abbrev-ref HEAD)
 
 echo "🔍 Pre-commit hook running on branch: $branch"
 
+echo "📝 Running format and lint checks..."
+pnpm prettier
+pnpm lint
+pnpm build
+
 if [ "$branch" = "main" ]; then
     echo "🏗️  On main branch - running full test suite..."
     pnpm test
 else
-    echo "⚡ On feature branch ($branch) - running lightweight checks..."
-    pnpm lint
+    echo "✅ Lightweight checks completed for feature branch ($branch)"
 fi

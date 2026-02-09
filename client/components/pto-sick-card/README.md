@@ -18,7 +18,8 @@ The PTO Sick Card component displays sick leave information in a simple bucket f
 <pto-sick-card
   data='{"available": 48, "used": 16, "remaining": 32}'
   entries='[{"date": "2024-01-10", "hours": 8}, {"date": "2024-02-15", "hours": 8}]'
-  expanded="false">
+  expanded="false"
+>
 </pto-sick-card>
 ```
 
@@ -32,14 +33,14 @@ The PTO Sick Card component displays sick leave information in a simple bucket f
 
 ```typescript
 type SickTimeData = {
-  available: number;  // Total available sick hours
-  used: number;       // Hours already used
-  remaining: number;  // Hours remaining
+  available: number; // Total available sick hours
+  used: number; // Hours already used
+  remaining: number; // Hours remaining
 };
 
 type SickTimeEntry = {
-  date: string;       // YYYY-MM-DD format
-  hours: number;      // Hours used
+  date: string; // YYYY-MM-DD format
+  hours: number; // Hours used
 };
 ```
 
@@ -75,4 +76,4 @@ Inherits from base PTO card component:
 - **Reactive Updates**: Updates when data attributes change
 - **Expandable Interface**: Toggle between summary and detailed views
 - **Type Safety**: Full TypeScript interfaces for sick time data</content>
-<parameter name="filePath">/home/ca0v/code/ca0v/earth/client/components/pto-sick-card/README.md
+  <parameter name="filePath">/home/ca0v/code/ca0v/earth/client/components/pto-sick-card/README.md

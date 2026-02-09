@@ -19,16 +19,17 @@ The Confirmation Dialog component provides a modal dialog for user confirmations
 <confirmation-dialog
   message="Are you sure you want to delete this item?"
   confirm-text="Delete"
-  cancel-text="Cancel">
+  cancel-text="Cancel"
+>
 </confirmation-dialog>
 ```
 
 ```javascript
-const dialog = document.querySelector('confirmation-dialog');
-dialog.addEventListener('confirm', () => {
+const dialog = document.querySelector("confirmation-dialog");
+dialog.addEventListener("confirm", () => {
   // Handle confirmation
 });
-dialog.addEventListener('cancel', () => {
+dialog.addEventListener("cancel", () => {
   // Handle cancellation
 });
 ```
@@ -83,4 +84,4 @@ The dialog automatically adapts to light and dark themes through CSS custom prop
 - **Event Delegation**: Efficient event handling within shadow root
 - **Attribute Observation**: Reactive updates when attributes change
 - **Memory Management**: Proper cleanup of event listeners</content>
-<parameter name="filePath">/home/ca0v/code/ca0v/earth/client/components/confirmation-dialog/README.md
+  <parameter name="filePath">/home/ca0v/code/ca0v/earth/client/components/confirmation-dialog/README.md

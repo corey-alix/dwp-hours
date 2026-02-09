@@ -5,6 +5,7 @@ This guide covers common CI/CD pipeline issues and their solutions for the DWP H
 ## Pipeline Overview
 
 The CI/CD pipeline consists of:
+
 - **Quality Checks**: Linting, TypeScript compilation, build verification
 - **Unit Tests**: Vitest unit tests with JUnit reporting
 - **E2E Tests**: Playwright end-to-end tests
@@ -15,10 +16,12 @@ The CI/CD pipeline consists of:
 ### 1. Pipeline Fails on Quality Checks
 
 **Symptoms:**
+
 - Build fails during linting or TypeScript compilation
 - Error messages about code style or type errors
 
 **Solutions:**
+
 ```bash
 # Run linting locally
 pnpm lint
@@ -31,16 +34,19 @@ pnpm build
 ```
 
 **Prevention:**
+
 - Run `pnpm lint` and `pnpm build` before committing
 - Use pre-commit hooks to catch issues early
 
 ### 2. Unit Tests Failing
 
 **Symptoms:**
+
 - Unit test job fails with test failures
 - JUnit XML shows failed test cases
 
 **Solutions:**
+
 ```bash
 # Run unit tests locally
 pnpm test:unit
@@ -53,6 +59,7 @@ pnpm test:unit --run specific-test-file
 ```
 
 **Common Causes:**
+
 - Database state issues in test isolation
 - Mock setup problems
 - Assertion failures due to changed business logic
@@ -60,11 +67,13 @@ pnpm test:unit --run specific-test-file
 ### 3. E2E Tests Failing
 
 **Symptoms:**
+
 - E2E test job fails
 - Browser screenshots show unexpected UI state
 - Database seeding issues
 
 **Solutions:**
+
 ```bash
 # Run E2E tests locally
 pnpm test:e2e
@@ -78,6 +87,7 @@ pnpm run start:prod
 ```
 
 **Common Causes:**
+
 - Database not properly seeded
 - Server not starting correctly
 - Browser compatibility issues
@@ -86,11 +96,13 @@ pnpm run start:prod
 ### 4. Dependency Installation Issues
 
 **Symptoms:**
+
 - Pipeline fails during `pnpm install`
 - Lockfile conflicts
 - Node.js version mismatches
 
 **Solutions:**
+
 ```bash
 # Clear cache and reinstall
 rm -rf node_modules pnpm-lock.yaml
@@ -107,10 +119,12 @@ pnpm install --frozen-lockfile
 ### 5. Playwright Browser Issues
 
 **Symptoms:**
+
 - E2E tests fail with browser launch errors
 - Missing browser binaries
 
 **Solutions:**
+
 ```bash
 # Install Playwright browsers
 npx playwright install --with-deps
@@ -122,10 +136,12 @@ npx playwright install-deps
 ### 6. Database Connection Issues
 
 **Symptoms:**
+
 - Tests fail with database connection errors
 - SQLite file not found or corrupted
 
 **Solutions:**
+
 ```bash
 # Initialize database
 pnpm run db:init
@@ -140,10 +156,12 @@ ls -la db/dwp-hours.db
 ### 7. Git Hook Issues
 
 **Symptoms:**
+
 - Pre-commit or pre-push hooks fail unexpectedly
 - Hooks run when they shouldn't
 
 **Solutions:**
+
 ```bash
 # Bypass hooks for urgent commits
 git commit --no-verify
@@ -160,17 +178,20 @@ pnpm run prepare
 ### 8. Performance Issues
 
 **Symptoms:**
+
 - Pipeline takes too long to complete
 - Tests timeout
 - Build performance degrades
 
 **Expected Performance:**
+
 - Full pipeline: ~3-4 minutes
 - Quality checks only: ~1-2 minutes
 - E2E tests only: ~2-3 minutes
 - Individual test execution: < 100ms for balance calculations
 
 **Solutions:**
+
 - Check test execution times in CI logs
 - Optimize slow tests by reducing unnecessary operations
 - Review dependency installation caching
@@ -180,10 +201,12 @@ pnpm run prepare
 ### 9. Deployment Issues
 
 **Symptoms:**
+
 - Netlify deployment fails
 - Build succeeds but deployment doesn't work
 
 **Solutions:**
+
 - Check Netlify build logs
 - Verify build output in `dist/` and `public/`
 - Test production build locally: `pnpm run start:prod`
@@ -192,10 +215,12 @@ pnpm run prepare
 ### 10. Flaky Tests
 
 **Symptoms:**
+
 - Tests pass locally but fail in CI intermittently
 - Race conditions or timing issues
 
 **Solutions:**
+
 - Add retry logic for flaky tests
 - Increase timeouts for slow operations
 - Use `waitFor` functions instead of fixed delays
@@ -208,6 +233,7 @@ pnpm run prepare
 For critical fixes that need immediate deployment:
 
 1. **Use bypass flags**:
+
    ```bash
    git commit --no-verify -m "Emergency fix"
    git push --no-verify
@@ -222,6 +248,7 @@ For critical fixes that need immediate deployment:
 If CI deployment fails:
 
 1. **Build locally**:
+
    ```bash
    pnpm build
    pnpm run start:prod
@@ -234,6 +261,7 @@ If CI deployment fails:
 ### Rollback Procedures
 
 1. **Git rollback**:
+
    ```bash
    git revert <problematic-commit>
    git push

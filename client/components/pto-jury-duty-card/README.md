@@ -18,7 +18,8 @@ The PTO Jury Duty Card component displays jury duty leave information in a simpl
 <pto-jury-duty-card
   data='{"available": 16, "used": 8, "remaining": 8}'
   entries='[{"date": "2024-02-15", "hours": 8, "description": "Jury duty service"}]'
-  expanded="false">
+  expanded="false"
+>
 </pto-jury-duty-card>
 ```
 
@@ -32,14 +33,14 @@ The PTO Jury Duty Card component displays jury duty leave information in a simpl
 
 ```typescript
 type JuryDutyData = {
-  available: number;  // Total available jury duty hours
-  used: number;       // Hours already used
-  remaining: number;  // Hours remaining
+  available: number; // Total available jury duty hours
+  used: number; // Hours already used
+  remaining: number; // Hours remaining
 };
 
 type JuryDutyEntry = {
-  date: string;       // YYYY-MM-DD format
-  hours: number;      // Hours used
+  date: string; // YYYY-MM-DD format
+  hours: number; // Hours used
   description?: string; // Optional description
 };
 ```
@@ -76,4 +77,4 @@ Inherits from base PTO card component:
 - **Reactive Updates**: Updates when data attributes change
 - **Expandable Interface**: Toggle between summary and detailed views
 - **Type Safety**: Full TypeScript interfaces for jury duty data</content>
-<parameter name="filePath">/home/ca0v/code/ca0v/earth/client/components/pto-jury-duty-card/README.md
+  <parameter name="filePath">/home/ca0v/code/ca0v/earth/client/components/pto-jury-duty-card/README.md

@@ -469,7 +469,7 @@ class UIManager {
       console.error("Failed to submit admin acknowledgment:", error);
       notifications.error(
         "Failed to submit acknowledgment: " +
-        (error.message || "Unknown error"),
+          (error.message || "Unknown error"),
       );
     }
   }

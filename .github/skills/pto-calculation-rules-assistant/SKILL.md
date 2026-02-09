@@ -9,16 +9,19 @@ Specialized assistant for understanding and implementing PTO (Paid Time Off) cal
 The DWP Hours Tracker implements specific business rules for PTO management:
 
 ### Annual Allocation and Reset
+
 - At the start of each year, the system automatically debits PTO entries with **96 hours of "PTO"** and **24 hours of "Sick"** dated January 1st
 - PTO carryover from the prior year is added as an additional PTO entry on January 1st
 - "Sick" time is **reset to 24 hours at the start of each year** (no carryover for sick time)
 
 ### Monthly Accrual
+
 - Employees **accrue pto_rate hours per work day** to their PTO balance throughout the year
 - **Work days** are the total non-weekend (Monday-Friday) days in each month
 - **Monthly accrual** = pto_rate × work_days_in_month
 
 ### Balance Calculation
+
 - **Available PTO** = Sum of allocation entries + Accrued - Used PTO Hours
 - **Time Off Types**: "Sick", "PTO", "Bereavement", "Jury Duty" are all tracked as separate PTO types
 - Each type has its own balance and usage tracking

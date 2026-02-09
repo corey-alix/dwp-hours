@@ -18,7 +18,8 @@ The PTO Bereavement Card component displays bereavement leave information in a s
 <pto-bereavement-card
   data='{"available": 24, "used": 8, "remaining": 16}'
   entries='[{"date": "2024-01-15", "hours": 8, "description": "Family bereavement"}]'
-  expanded="false">
+  expanded="false"
+>
 </pto-bereavement-card>
 ```
 
@@ -32,14 +33,14 @@ The PTO Bereavement Card component displays bereavement leave information in a s
 
 ```typescript
 type BereavementData = {
-  available: number;  // Total available bereavement hours
-  used: number;       // Hours already used
-  remaining: number;  // Hours remaining
+  available: number; // Total available bereavement hours
+  used: number; // Hours already used
+  remaining: number; // Hours remaining
 };
 
 type BereavementEntry = {
-  date: string;       // YYYY-MM-DD format
-  hours: number;      // Hours used
+  date: string; // YYYY-MM-DD format
+  hours: number; // Hours used
   description?: string; // Optional description
 };
 ```
@@ -76,4 +77,4 @@ Inherits from base PTO card component:
 - **Reactive Updates**: Updates when data attributes change
 - **Expandable Interface**: Toggle between summary and detailed views
 - **Type Safety**: Full TypeScript interfaces for bereavement data</content>
-<parameter name="filePath">/home/ca0v/code/ca0v/earth/client/components/pto-bereavement-card/README.md
+  <parameter name="filePath">/home/ca0v/code/ca0v/earth/client/components/pto-bereavement-card/README.md
