@@ -1,58 +1,60 @@
-import { formatDateForDisplay } from '../../../shared/dateUtils.js';
+import { formatDateForDisplay } from "../../../shared/dateUtils.js";
 
 interface PTORequest {
-    id: number;
-    employeeId: number;
-    employeeName: string;
-    startDate: string;
-    endDate: string;
-    type: 'Sick' | 'PTO' | 'Bereavement' | 'Jury Duty';
-    hours: number;
-    status: 'pending' | 'approved' | 'rejected';
-    createdAt: string;
+  id: number;
+  employeeId: number;
+  employeeName: string;
+  startDate: string;
+  endDate: string;
+  type: "Sick" | "PTO" | "Bereavement" | "Jury Duty";
+  hours: number;
+  status: "pending" | "approved" | "rejected";
+  createdAt: string;
 }
 
 export class PtoRequestQueue extends HTMLElement {
-    private shadow: ShadowRoot;
-    private _requests: PTORequest[] = [];
+  private shadow: ShadowRoot;
+  private _requests: PTORequest[] = [];
 
-    constructor() {
-        super();
-        this.shadow = this.attachShadow({ mode: 'open' });
-    }
+  constructor() {
+    super();
+    this.shadow = this.attachShadow({ mode: "open" });
+  }
 
-    static get observedAttributes() {
-        return ['requests'];
-    }
+  static get observedAttributes() {
+    return ["requests"];
+  }
 
-    connectedCallback() {
+  connectedCallback() {
+    this.render();
+    this.setupEventListeners();
+  }
+
+  attributeChangedCallback(name: string, oldValue: string, newValue: string) {
+    if (oldValue !== newValue && name === "requests") {
+      try {
+        this._requests = JSON.parse(newValue);
         this.render();
-        this.setupEventListeners();
+      } catch (e) {
+        console.error("Invalid requests JSON:", e);
+      }
     }
+  }
 
-    attributeChangedCallback(name: string, oldValue: string, newValue: string) {
-        if (oldValue !== newValue && name === 'requests') {
-            try {
-                this._requests = JSON.parse(newValue);
-                this.render();
-            } catch (e) {
-                console.error('Invalid requests JSON:', e);
-            }
-        }
-    }
+  set requests(value: PTORequest[]) {
+    this.setAttribute("requests", JSON.stringify(value));
+  }
 
-    set requests(value: PTORequest[]) {
-        this.setAttribute('requests', JSON.stringify(value));
-    }
+  get requests(): PTORequest[] {
+    return this._requests;
+  }
 
-    get requests(): PTORequest[] {
-        return this._requests;
-    }
+  private render() {
+    const pendingRequests = this._requests.filter(
+      (r) => r.status === "pending",
+    );
 
-    private render() {
-        const pendingRequests = this._requests.filter(r => r.status === 'pending');
-
-        this.shadow.innerHTML = `
+    this.shadow.innerHTML = `
             <style>
                 :host {
                     display: block;
@@ -281,26 +283,29 @@ export class PtoRequestQueue extends HTMLElement {
                 </div>
 
                 <div class="queue-content">
-                    ${pendingRequests.length === 0 ?
-                '<div class="empty-state"><h3>No pending requests</h3><p>All PTO requests have been reviewed.</p></div>' :
-                pendingRequests.map(request => this.renderRequestCard(request)).join('')
-            }
+                    ${
+                      pendingRequests.length === 0
+                        ? '<div class="empty-state"><h3>No pending requests</h3><p>All PTO requests have been reviewed.</p></div>'
+                        : pendingRequests
+                            .map((request) => this.renderRequestCard(request))
+                            .join("")
+                    }
                 </div>
             </div>
         `;
-    }
+  }
 
-    private renderRequestCard(request: PTORequest): string {
-        const startDate = formatDateForDisplay(request.startDate);
-        const endDate = formatDateForDisplay(request.endDate);
-        const createdDate = formatDateForDisplay(request.createdAt);
+  private renderRequestCard(request: PTORequest): string {
+    const startDate = formatDateForDisplay(request.startDate);
+    const endDate = formatDateForDisplay(request.endDate);
+    const createdDate = formatDateForDisplay(request.createdAt);
 
-        return `
+    return `
             <div class="request-card" data-request-id="${request.id}">
                 <div class="request-header">
                     <div class="employee-info">
                         <h3 class="employee-name">${request.employeeName}</h3>
-                        <span class="request-type ${request.type.replace(' ', '-')}">${request.type}</span>
+                        <span class="request-type ${request.type.replace(" ", "-")}">${request.type}</span>
                     </div>
                     <span class="status-badge pending">Pending</span>
                 </div>
@@ -332,24 +337,26 @@ export class PtoRequestQueue extends HTMLElement {
                 </div>
             </div>
         `;
-    }
+  }
 
-    private setupEventListeners() {
-        // Event delegation for action buttons
-        this.shadow.addEventListener('click', (e) => {
-            const target = e.target as HTMLElement;
-            if (target.classList.contains('action-btn')) {
-                const action = target.getAttribute('data-action');
-                const requestId = target.getAttribute('data-request-id');
+  private setupEventListeners() {
+    // Event delegation for action buttons
+    this.shadow.addEventListener("click", (e) => {
+      const target = e.target as HTMLElement;
+      if (target.classList.contains("action-btn")) {
+        const action = target.getAttribute("data-action");
+        const requestId = target.getAttribute("data-request-id");
 
-                if (action && requestId) {
-                    this.dispatchEvent(new CustomEvent(`request-${action}`, {
-                        detail: { requestId: parseInt(requestId) }
-                    }));
-                }
-            }
-        });
-    }
+        if (action && requestId) {
+          this.dispatchEvent(
+            new CustomEvent(`request-${action}`, {
+              detail: { requestId: parseInt(requestId) },
+            }),
+          );
+        }
+      }
+    });
+  }
 }
 
-customElements.define('pto-request-queue', PtoRequestQueue);
+customElements.define("pto-request-queue", PtoRequestQueue);

@@ -11,3 +11,5 @@ private
 *.private
 *.json
 db/backups/
+*.xml
+test-results

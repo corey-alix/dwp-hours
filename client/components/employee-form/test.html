@@ -1,20 +1,28 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Employee Form Test</title>
     <link rel="stylesheet" href="../../styles.css" />
-</head>
-<body>
+  </head>
+  <body>
     <h1>Employee Form Component Test</h1>
-    <div id="test-output" style="display: block; padding: 10px; border: 1px solid #ccc; margin: 10px 0;"></div>
+    <div
+      id="test-output"
+      style="
+        display: block;
+        padding: 10px;
+        border: 1px solid #ccc;
+        margin: 10px 0;
+      "
+    ></div>
 
     <employee-form id="employee-form"></employee-form>
 
     <script type="module">
-        import {employeeForm} from "/app.js";
-        employeeForm();
+      import { employeeForm } from "/app.js";
+      employeeForm();
     </script>
-</body>
+  </body>
 </html>

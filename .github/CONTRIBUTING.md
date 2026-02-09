@@ -5,11 +5,13 @@ Thank you for your interest in contributing to the DWP Hours Tracker! This docum
 ## Development Setup
 
 ### Prerequisites
+
 - Node.js 18+ (see `.github/copilot-instructions.md` for WSL setup)
 - npm or yarn
 - Git
 
 ### Getting Started
+
 1. Fork the repository
 2. Clone your fork: `git clone https://github.com/your-username/dwp-hours-tracker.git`
 3. Install dependencies: `npm install`
@@ -17,6 +19,7 @@ Thank you for your interest in contributing to the DWP Hours Tracker! This docum
 5. Build the project: `npm run build`
 
 ### Development Workflow
+
 1. Choose a task from `TASKS/README.md`
 2. Create a feature branch: `git checkout -b feature/task-name`
 3. Implement the changes following our [code quality standards](#code-quality-standards)
@@ -28,6 +31,7 @@ Thank you for your interest in contributing to the DWP Hours Tracker! This docum
 ## Task Management
 
 ### Task Priority Order
+
 Follow the priority order defined in `TASKS/README.md`:
 
 1. 🔥 **High Priority**: database-schema.md, authentication.md, pto-calculations.md, api-endpoints.md
@@ -35,6 +39,7 @@ Follow the priority order defined in `TASKS/README.md`:
 3. 🟢 **Low Priority**: data-migration.md, security-production.md
 
 ### Task Implementation
+
 - Always reference the relevant `TASKS/[task-file].md`
 - Complete all checklist items before marking a task as done
 - Update checklists as you work
@@ -43,27 +48,31 @@ Follow the priority order defined in `TASKS/README.md`:
 ## Code Quality Standards
 
 ### TypeScript
+
 - Use strict mode (enabled by default)
 - Proper type annotations for all variables and functions
 - Avoid `any` type except when necessary
 - Use interfaces for complex objects
 
 ### Error Handling
+
 ```typescript
 try {
   // Implementation
 } catch (error) {
   log(`Error description: ${error}`);
-  res.status(500).json({ error: 'User-friendly message' });
+  res.status(500).json({ error: "User-friendly message" });
 }
 ```
 
 ### Database Operations
+
 - Use prepared statements: `stmt.bind([values])`
 - Always call `saveDatabase()` after writes
 - Handle SQL constraints gracefully
 
 ### API Design
+
 - RESTful endpoints under `/api/`
 - Proper HTTP status codes
 - Input validation on all endpoints
@@ -72,19 +81,23 @@ try {
 ## Testing Requirements
 
 ### Manual Testing
+
 - Test all new features manually
 - Verify error cases are handled
 - Test with different user roles
 - Check responsive design
 
 ### Automated Testing
+
 - Unit tests for business logic
 - Integration tests for API endpoints
 - E2E tests for critical user flows
 - Maintain test coverage standards
 
 ### Quality Gates
+
 Before submitting a PR, ensure:
+
 - ✅ `npm run build` passes
 - ✅ `npm run lint` passes
 - ✅ Manual testing completed
@@ -102,16 +115,19 @@ Before submitting a PR, ensure:
 ## Architecture Guidelines
 
 ### Backend (Express + SQLite)
+
 - Routes in `src/server.ts`
 - Database operations use sql.js
 - File-based logging to `logs/app.log`
 
 ### Frontend (Vanilla TypeScript)
+
 - Components in `public/app.ts`
 - API client handles HTTP requests
 - UIManager handles UI state
 
 ### Build System
+
 - TypeScript compilation to `dist/` and `public/`
 - http-serve for development
 - npm scripts for all operations

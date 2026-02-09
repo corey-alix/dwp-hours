@@ -1,13 +1,14 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-    test: {
-        exclude: ['e2e/**', 'node_modules/**'],
-        environment: 'node',
-        globals: false,
-        bail: 1
-    },
-    esbuild: {
-        target: 'node18',
-    },
+  test: {
+    include: ["tests/**/*.test.ts"],
+    exclude: ["e2e/**", "node_modules/**"],
+    environment: "node",
+    globals: false,
+    bail: 1,
+  },
+  esbuild: {
+    target: "node18",
+  },
 });

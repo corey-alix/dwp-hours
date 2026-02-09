@@ -8,10 +8,13 @@ version: 1.0
 # Web Components Assistant
 
 ## Description
+
 Specialized assistant for implementing and maintaining web components in the DWP Hours Tracker frontend. Provides guidance on creating reusable, encapsulated UI components using modern web standards, following MDN Web Components best practices.
 
 ## Trigger
+
 Activate when users need to:
+
 - Create new custom elements or web components
 - Implement Shadow DOM encapsulation
 - Handle component lifecycle methods
@@ -21,6 +24,7 @@ Activate when users need to:
 - Implement component communication patterns
 
 ## Response Pattern
+
 Follow this structured approach when implementing web components:
 
 1. **Component Analysis**: Assess the component's purpose, props, state, and integration needs
@@ -38,6 +42,7 @@ Follow this structured approach when implementing web components:
 When creating web components, follow this testing structure:
 
 ### Test Files Structure
+
 ```
 client/components/[component-name]/
 ├── index.ts          # Component implementation
@@ -46,50 +51,57 @@ client/components/[component-name]/
 ```
 
 ### test.html Pattern
+
 ```html
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Component Name Test</title>
     <link rel="stylesheet" href="../../styles.css" />
-</head>
-<body>
+  </head>
+  <body>
     <h1>Component Name Test</h1>
-    <div id="test-output" style="display: block; padding: 10px; border: 1px solid var(--color-border); margin: 10px 0; background: var(--color-surface); color: var(--color-text);"></div>
+    <div
+      id="test-output"
+      style="display: block; padding: 10px; border: 1px solid var(--color-border); margin: 10px 0; background: var(--color-surface); color: var(--color-text);"
+    ></div>
 
     <component-name id="component-id"></component-name>
 
     <script type="module">
-        import {componentName} from "/app.js";
-        componentName();
+      import { componentName } from "/app.js";
+      componentName();
     </script>
-</body>
+  </body>
 </html>
 ```
 
 ### test.ts Pattern
+
 ```typescript
-import { querySingle } from '../test-utils.js';
+import { querySingle } from "../test-utils.js";
 
 export function playground() {
-    console.log('Starting component playground test...');
-    
-    const component = querySingle<ComponentType>('component-name');
-    
-    // Test component functionality
-    component.addEventListener('custom-event', (e: CustomEvent) => {
-        console.log('Event received:', e.detail);
-        querySingle('#test-output').textContent = `Event: ${JSON.stringify(e.detail)}`;
-    });
-    
-    // Additional test scenarios...
-    console.log('Component playground test initialized');
+  console.log("Starting component playground test...");
+
+  const component = querySingle<ComponentType>("component-name");
+
+  // Test component functionality
+  component.addEventListener("custom-event", (e: CustomEvent) => {
+    console.log("Event received:", e.detail);
+    querySingle("#test-output").textContent =
+      `Event: ${JSON.stringify(e.detail)}`;
+  });
+
+  // Additional test scenarios...
+  console.log("Component playground test initialized");
 }
 ```
 
 ### Integration Steps
+
 1. Add component export to `client/components/index.ts`
 2. Add playground import/export to `client/components/test.ts`
 3. Create test.html following the pattern above
@@ -98,7 +110,9 @@ export function playground() {
 6. Update component exports in main test.ts file
 
 ## Examples
+
 Common queries that should trigger this skill:
+
 - "Create a web component for the PTO calendar"
 - "How do I implement Shadow DOM for the employee list?"
 - "Convert this HTML template to a web component"
@@ -107,6 +121,7 @@ Common queries that should trigger this skill:
 - "Style encapsulation for the PTO status component"
 
 ## Additional Context
+
 - **Project Integration**: Components should integrate with the existing TypeScript build system and follow project naming conventions
 - **Browser Support**: Ensure compatibility with the project's target browsers
 - **Performance**: Follow MDN performance guidelines for web components
@@ -114,4 +129,4 @@ Common queries that should trigger this skill:
 - **Testing**: Components should be testable with the existing Playwright E2E setup
 - **Dependencies**: Avoid external component libraries; use native web components for better performance and smaller bundle size
 - **Related Skills**: Works with `task-implementation-assistant` for admin panel tasks, `code-review-qa` for component quality checks</content>
-<parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/.github/skills/web-components-assistant/SKILL.md
+  <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/.github/skills/web-components-assistant/SKILL.md

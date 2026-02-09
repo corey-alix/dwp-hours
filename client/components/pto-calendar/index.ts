@@ -1,261 +1,327 @@
-import { validateHours, validateWeekday, validatePTOType, VALIDATION_MESSAGES, MessageKey } from '../../../shared/businessRules.js';
-import { getCalendarDates, isInMonth, getDayOfWeek, parseDate, isWeekend } from '../../../shared/dateUtils.js';
+import {
+  validateHours,
+  validateWeekday,
+  validatePTOType,
+  VALIDATION_MESSAGES,
+  MessageKey,
+} from "../../../shared/businessRules.js";
+import {
+  getCalendarDates,
+  isInMonth,
+  getDayOfWeek,
+  parseDate,
+  isWeekend,
+} from "../../../shared/dateUtils.js";
 
 const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December"
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 const PTO_TYPE_COLORS: Record<string, string> = {
-    PTO: "var(--color-pto-vacation)",
-    Sick: "var(--color-pto-sick)",
-    Bereavement: "var(--color-pto-bereavement)",
-    "Jury Duty": "var(--color-pto-jury-duty)",
-    "Work Day": "var(--color-surface)"
+  PTO: "var(--color-pto-vacation)",
+  Sick: "var(--color-pto-sick)",
+  Bereavement: "var(--color-pto-bereavement)",
+  "Jury Duty": "var(--color-pto-jury-duty)",
+  "Work Day": "var(--color-surface)",
 };
 
 export interface CalendarEntry {
-    date: string;
-    hours: number;
-    type: string;
+  date: string;
+  hours: number;
+  type: string;
 }
 
 export interface PTOEntry {
-    id: number;
-    employeeId: number;
-    date: string;
-    type: "PTO" | "Sick" | "Bereavement" | "Jury Duty";
-    hours: number;
-    createdAt: string;
+  id: number;
+  employeeId: number;
+  date: string;
+  type: "PTO" | "Sick" | "Bereavement" | "Jury Duty";
+  hours: number;
+  createdAt: string;
 }
 
 export class PtoCalendar extends HTMLElement {
-    private shadow: ShadowRoot;
-    private month: number;
-    private year: number;
-    private ptoEntries: PTOEntry[];
-    private selectedMonth: number | null;
-    private readonly: boolean;
-    private selectedPtoType: string | null;
-    private selectedCells: Map<string, number>;
+  private shadow: ShadowRoot;
+  private month: number;
+  private year: number;
+  private ptoEntries: PTOEntry[];
+  private selectedMonth: number | null;
+  private readonly: boolean;
+  private selectedPtoType: string | null;
+  private selectedCells: Map<string, number>;
 
-    constructor() {
-        super();
-        this.shadow = this.attachShadow({ mode: "open" });
-        this.month = 0;
-        this.year = 0;
-        this.ptoEntries = [];
-        this.selectedMonth = null;
-        this.readonly = true;
-        this.selectedPtoType = null;
-        this.selectedCells = new Map();
-    }
+  constructor() {
+    super();
+    this.shadow = this.attachShadow({ mode: "open" });
+    this.month = 0;
+    this.year = 0;
+    this.ptoEntries = [];
+    this.selectedMonth = null;
+    this.readonly = true;
+    this.selectedPtoType = null;
+    this.selectedCells = new Map();
+  }
 
-    static get observedAttributes() {
-        return ['month', 'year', 'pto-entries', 'selected-month', 'readonly'];
-    }
+  static get observedAttributes() {
+    return ["month", "year", "pto-entries", "selected-month", "readonly"];
+  }
 
-    connectedCallback() {
-        this.render();
-    }
+  connectedCallback() {
+    this.render();
+  }
 
-    attributeChangedCallback(name: string, oldValue: string, newValue: string) {
-        if (oldValue === newValue) return;
+  attributeChangedCallback(name: string, oldValue: string, newValue: string) {
+    if (oldValue === newValue) return;
 
-        switch (name) {
-            case 'month':
-                this.month = parseInt(newValue, 10);
-                break;
-            case 'year':
-                this.year = parseInt(newValue, 10);
-                break;
-            case 'pto-entries':
-                try {
-                    this.ptoEntries = JSON.parse(newValue);
-                    console.log('PtoCalendar: Setting ptoEntries:', this.ptoEntries);
-                } catch (e) {
-                    this.ptoEntries = [];
-                    console.log('PtoCalendar: Failed to parse pto-entries:', newValue);
-                }
-                break;
-            case 'selected-month':
-                this.selectedMonth = newValue === 'null' ? null : parseInt(newValue, 10);
-                break;
-            case 'readonly':
-                this.readonly = newValue === 'true';
-                // Set default PTO type to "PTO" when entering editable mode
-                if (!this.readonly && this.selectedPtoType === null) {
-                    this.selectedPtoType = 'PTO';
-                }
-                break;
+    switch (name) {
+      case "month":
+        this.month = parseInt(newValue, 10);
+        break;
+      case "year":
+        this.year = parseInt(newValue, 10);
+        break;
+      case "pto-entries":
+        try {
+          this.ptoEntries = JSON.parse(newValue);
+          console.log("PtoCalendar: Setting ptoEntries:", this.ptoEntries);
+        } catch (e) {
+          this.ptoEntries = [];
+          console.log("PtoCalendar: Failed to parse pto-entries:", newValue);
         }
-        this.render();
-    }
-
-    setMonth(month: number) {
-        this.month = month;
-        this.setAttribute('month', month.toString());
-    }
-
-    setYear(year: number) {
-        this.year = year;
-        this.setAttribute('year', year.toString());
-    }
-
-    setPtoEntries(ptoEntries: PTOEntry[]) {
-        this.ptoEntries = ptoEntries;
-        this.setAttribute('pto-entries', JSON.stringify(ptoEntries));
-    }
-
-    setSelectedMonth(selectedMonth: number | null) {
-        this.selectedMonth = selectedMonth;
-        this.setAttribute('selected-month', selectedMonth === null ? 'null' : selectedMonth.toString());
-    }
-
-    setReadonly(readonly: boolean) {
-        this.readonly = readonly;
+        break;
+      case "selected-month":
+        this.selectedMonth =
+          newValue === "null" ? null : parseInt(newValue, 10);
+        break;
+      case "readonly":
+        this.readonly = newValue === "true";
         // Set default PTO type to "PTO" when entering editable mode
-        if (!readonly && this.selectedPtoType === null) {
-            this.selectedPtoType = 'PTO';
+        if (!this.readonly && this.selectedPtoType === null) {
+          this.selectedPtoType = "PTO";
         }
-        this.setAttribute('readonly', readonly.toString());
+        break;
+    }
+    this.render();
+  }
+
+  setMonth(month: number) {
+    this.month = month;
+    this.setAttribute("month", month.toString());
+  }
+
+  setYear(year: number) {
+    this.year = year;
+    this.setAttribute("year", year.toString());
+  }
+
+  setPtoEntries(ptoEntries: PTOEntry[]) {
+    this.ptoEntries = ptoEntries;
+    this.setAttribute("pto-entries", JSON.stringify(ptoEntries));
+  }
+
+  setSelectedMonth(selectedMonth: number | null) {
+    this.selectedMonth = selectedMonth;
+    this.setAttribute(
+      "selected-month",
+      selectedMonth === null ? "null" : selectedMonth.toString(),
+    );
+  }
+
+  setReadonly(readonly: boolean) {
+    this.readonly = readonly;
+    // Set default PTO type to "PTO" when entering editable mode
+    if (!readonly && this.selectedPtoType === null) {
+      this.selectedPtoType = "PTO";
+    }
+    this.setAttribute("readonly", readonly.toString());
+  }
+
+  getSelectedRequests(): CalendarEntry[] {
+    return Array.from(this.selectedCells.entries()).map(([date, hours]) => ({
+      date,
+      hours,
+      type: this.selectedPtoType || "PTO",
+    }));
+  }
+
+  clearSelection() {
+    this.selectedPtoType = null;
+    this.selectedCells.clear();
+    this.render();
+  }
+
+  submitRequest() {
+    const requests = this.getSelectedRequests();
+    console.log("PtoCalendar.submitRequest called, requests:", requests);
+    if (requests.length === 0) {
+      console.log("No requests to submit");
+      return;
     }
 
-    getSelectedRequests(): CalendarEntry[] {
-        return Array.from(this.selectedCells.entries()).map(([date, hours]) => ({
-            date,
-            hours,
-            type: this.selectedPtoType || 'PTO'
-        }));
+    // Client-side validation
+    const validationErrors: string[] = [];
+    for (const request of requests) {
+      const hoursError = validateHours(request.hours);
+      if (hoursError) {
+        validationErrors.push(
+          `${request.date}: ${VALIDATION_MESSAGES[hoursError.messageKey as MessageKey]}`,
+        );
+      }
+      const weekdayError = validateWeekday(request.date);
+      if (weekdayError) {
+        validationErrors.push(
+          `${request.date}: ${VALIDATION_MESSAGES[weekdayError.messageKey as MessageKey]}`,
+        );
+      }
+      const typeError = validatePTOType(request.type);
+      if (typeError) {
+        validationErrors.push(
+          `${request.date}: ${VALIDATION_MESSAGES[typeError.messageKey as MessageKey]}`,
+        );
+      }
     }
 
-    clearSelection() {
-        this.selectedPtoType = null;
-        this.selectedCells.clear();
-        this.render();
+    if (validationErrors.length > 0) {
+      // Dispatch validation error event
+      const errorEvent = new CustomEvent("pto-validation-error", {
+        detail: { errors: validationErrors },
+        bubbles: true,
+        composed: true,
+      });
+      this.dispatchEvent(errorEvent);
+      return;
     }
 
-    submitRequest() {
-        const requests = this.getSelectedRequests();
-        console.log('PtoCalendar.submitRequest called, requests:', requests);
-        if (requests.length === 0) {
-            console.log('No requests to submit');
-            return;
-        }
+    const event = new CustomEvent("pto-request-submit", {
+      detail: { requests },
+      bubbles: true,
+      composed: true,
+    });
+    console.log(
+      "Dispatching pto-request-submit event from pto-calendar:",
+      event,
+    );
+    this.dispatchEvent(event);
+  }
 
-        // Client-side validation
-        const validationErrors: string[] = [];
-        for (const request of requests) {
-            const hoursError = validateHours(request.hours);
-            if (hoursError) {
-                validationErrors.push(`${request.date}: ${VALIDATION_MESSAGES[hoursError.messageKey as MessageKey]}`);
-            }
-            const weekdayError = validateWeekday(request.date);
-            if (weekdayError) {
-                validationErrors.push(`${request.date}: ${VALIDATION_MESSAGES[weekdayError.messageKey as MessageKey]}`);
-            }
-            const typeError = validatePTOType(request.type);
-            if (typeError) {
-                validationErrors.push(`${request.date}: ${VALIDATION_MESSAGES[typeError.messageKey as MessageKey]}`);
-            }
-        }
+  private renderCalendar(): string {
+    console.log(
+      "PtoCalendar.renderCalendar called for month:",
+      this.month,
+      "year:",
+      this.year,
+      "ptoEntries:",
+      this.ptoEntries,
+    );
 
-        if (validationErrors.length > 0) {
-            // Dispatch validation error event
-            const errorEvent = new CustomEvent('pto-validation-error', {
-                detail: { errors: validationErrors },
-                bubbles: true,
-                composed: true
-            });
-            this.dispatchEvent(errorEvent);
-            return;
-        }
+    const calendarDates = getCalendarDates(this.year, this.month + 1);
+    const calendarDays: {
+      dateStr: string;
+      isCurrentMonth: boolean;
+      entry?: PTOEntry;
+      totalHours: number;
+    }[] = [];
 
-        const event = new CustomEvent('pto-request-submit', {
-            detail: { requests },
-            bubbles: true,
-            composed: true
-        });
-        console.log('Dispatching pto-request-submit event from pto-calendar:', event);
-        this.dispatchEvent(event);
+    for (const dateStr of calendarDates) {
+      const entriesForDate = this.ptoEntries.filter((e) => e.date === dateStr);
+      const totalHours = entriesForDate.reduce((sum, e) => sum + e.hours, 0);
+      const entry = entriesForDate.length > 0 ? entriesForDate[0] : null;
+      if (dateStr === "2026-03-01") {
+        console.log(
+          "PtoCalendar: March 1 dateStr:",
+          dateStr,
+          "entriesForDate:",
+          entriesForDate,
+          "totalHours:",
+          totalHours,
+          "entry:",
+          entry,
+        );
+      }
+      calendarDays.push({
+        dateStr,
+        isCurrentMonth: isInMonth(dateStr, this.year, this.month + 1),
+        entry: entry ?? undefined,
+        totalHours,
+      });
     }
 
-    private renderCalendar(): string {
-        console.log('PtoCalendar.renderCalendar called for month:', this.month, 'year:', this.year, 'ptoEntries:', this.ptoEntries);
+    const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-        const calendarDates = getCalendarDates(this.year, this.month + 1);
-        const calendarDays: { dateStr: string; isCurrentMonth: boolean; entry?: PTOEntry; totalHours: number }[] = [];
-
-        for (const dateStr of calendarDates) {
-            const entriesForDate = this.ptoEntries.filter(e => e.date === dateStr);
-            const totalHours = entriesForDate.reduce((sum, e) => sum + e.hours, 0);
-            const entry = entriesForDate.length > 0 ? entriesForDate[0] : null;
-            if (dateStr === '2026-03-01') {
-                console.log('PtoCalendar: March 1 dateStr:', dateStr, 'entriesForDate:', entriesForDate, 'totalHours:', totalHours, 'entry:', entry);
-            }
-            calendarDays.push({
-                dateStr,
-                isCurrentMonth: isInMonth(dateStr, this.year, this.month + 1),
-                entry: entry ?? undefined,
-                totalHours
-            });
-        }
-
-        const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-        return `
+    return `
             <div class="calendar">
                 <div class="calendar-header">
                     ${monthNames[this.month]} ${this.year}
                 </div>
                 <div class="calendar-grid">
-                    ${weekdays.map(day => `<div class="weekday">${day}</div>`).join('')}
-                    ${calendarDays.map(({ dateStr, isCurrentMonth, entry, totalHours }) => {
-            const isSelected = this.selectedCells.has(dateStr);
-            const selectedHours = this.selectedCells.get(dateStr) || 8;
-            const isWeekendDate = isWeekend(dateStr);
-            const dayClass = entry ? `day type-${entry.type.replace(/\s+/g, '-')}` : (isSelected && this.selectedPtoType ? `day type-${this.selectedPtoType.replace(/\s+/g, '-')}` : 'day');
-            const emptyClass = isCurrentMonth ? '' : 'empty';
-            const selectedClass = isSelected ? 'selected' : '';
-            const clickableClass = (!this.readonly && isCurrentMonth && !isWeekendDate) ? 'clickable' : '';
-            const hoursDisplay = totalHours > 0 ? totalHours.toFixed(0) : (isSelected ? selectedHours.toFixed(0) : '');
-            const hoursElement = (!this.readonly && isSelected) ?
-                `<input type="number" class="hours-input" value="${selectedHours}" min="0" max="8" step="4" data-date="${dateStr}">` :
-                `<div class="hours">${hoursDisplay}</div>`;
-            const { day } = parseDate(dateStr);
-            return `
+                    ${weekdays.map((day) => `<div class="weekday">${day}</div>`).join("")}
+                    ${calendarDays
+                      .map(({ dateStr, isCurrentMonth, entry, totalHours }) => {
+                        const isSelected = this.selectedCells.has(dateStr);
+                        const selectedHours =
+                          this.selectedCells.get(dateStr) || 8;
+                        const isWeekendDate = isWeekend(dateStr);
+                        const dayClass = entry
+                          ? `day type-${entry.type.replace(/\s+/g, "-")}`
+                          : isSelected && this.selectedPtoType
+                            ? `day type-${this.selectedPtoType.replace(/\s+/g, "-")}`
+                            : "day";
+                        const emptyClass = isCurrentMonth ? "" : "empty";
+                        const selectedClass = isSelected ? "selected" : "";
+                        const clickableClass =
+                          !this.readonly && isCurrentMonth && !isWeekendDate
+                            ? "clickable"
+                            : "";
+                        const hoursDisplay =
+                          totalHours > 0
+                            ? totalHours.toFixed(0)
+                            : isSelected
+                              ? selectedHours.toFixed(0)
+                              : "";
+                        const hoursElement =
+                          !this.readonly && isSelected
+                            ? `<input type="number" class="hours-input" value="${selectedHours}" min="0" max="8" step="4" data-date="${dateStr}">`
+                            : `<div class="hours">${hoursDisplay}</div>`;
+                        const { day } = parseDate(dateStr);
+                        return `
                             <div class="${dayClass} ${emptyClass} ${selectedClass} ${clickableClass}" data-date="${dateStr}">
                                 <div class="date">${day}</div>
                                 ${hoursElement}
                             </div>
                         `;
-        }).join('')}
+                      })
+                      .join("")}
                 </div>
                 <div class="legend">
-                    ${Object.entries(PTO_TYPE_COLORS).map(([type, color]) => `
-                        <div class="legend-item ${this.selectedPtoType === type ? 'selected' : ''} ${this.readonly ? '' : 'clickable'}" data-type="${type}">
+                    ${Object.entries(PTO_TYPE_COLORS)
+                      .map(
+                        ([type, color]) => `
+                        <div class="legend-item ${this.selectedPtoType === type ? "selected" : ""} ${this.readonly ? "" : "clickable"}" data-type="${type}">
                             <div class="legend-swatch" style="background: ${color}"></div>
                             <span>${type}</span>
                         </div>
-                    `).join('')}
+                    `,
+                      )
+                      .join("")}
                 </div>
-                ${this.readonly ? '' : '<div class="submit-slot"><slot name="submit"></slot></div>'}
+                ${this.readonly ? "" : '<div class="submit-slot"><slot name="submit"></slot></div>'}
             </div>
         `;
-    }
+  }
 
-    private render() {
-        this.shadow.innerHTML = `
+  private render() {
+    this.shadow.innerHTML = `
             <style>
                 :host {
                     display: block;
@@ -425,175 +491,203 @@ export class PtoCalendar extends HTMLElement {
             </style>
             ${this.renderCalendar()}
         `;
-        this.attachEventListeners();
-    }
+    this.attachEventListeners();
+  }
 
-    private attachEventListeners() {
-        if (this.readonly) return;
+  private attachEventListeners() {
+    if (this.readonly) return;
 
-        // Submit button clicks (handle slotted submit button)
-        const submitSlot = this.shadow.querySelector('.submit-slot');
-        if (submitSlot) {
-            submitSlot.addEventListener('click', (e) => {
-                const target = e.target as HTMLElement;
-                if (target.tagName === 'BUTTON' && target.textContent === 'Submit PTO Request') {
-                    e.preventDefault();
-                    this.submitRequest();
-                }
-            });
+    // Submit button clicks (handle slotted submit button)
+    const submitSlot = this.shadow.querySelector(".submit-slot");
+    if (submitSlot) {
+      submitSlot.addEventListener("click", (e) => {
+        const target = e.target as HTMLElement;
+        if (
+          target.tagName === "BUTTON" &&
+          target.textContent === "Submit PTO Request"
+        ) {
+          e.preventDefault();
+          this.submitRequest();
         }
-
-        // Legend item clicks and keyboard navigation
-        const legendItems = this.shadow.querySelectorAll('.legend-item.clickable');
-        legendItems.forEach(item => {
-            item.addEventListener('click', (e) => {
-                e.preventDefault();
-                const type = (e.currentTarget as HTMLElement).dataset.type;
-                if (type) {
-                    this.selectedPtoType = this.selectedPtoType === type ? null : type;
-                    this.render();
-                }
-            });
-            item.addEventListener('keydown', (e) => {
-                const keyboardEvent = e as KeyboardEvent;
-                if (keyboardEvent.key === 'Enter' || keyboardEvent.key === ' ') {
-                    e.preventDefault();
-                    const type = (e.currentTarget as HTMLElement).dataset.type;
-                    if (type) {
-                        this.selectedPtoType = this.selectedPtoType === type ? null : type;
-                        this.render();
-                    }
-                }
-            });
-        });
-
-        // Calendar cell clicks and keyboard navigation
-        const calendarCells = this.shadow.querySelectorAll('.day.clickable');
-        calendarCells.forEach(cell => {
-            cell.addEventListener('click', (e) => {
-                // Ignore clicks on input fields to prevent toggling when editing hours
-                if ((e.target as HTMLElement).tagName === 'INPUT') {
-                    return;
-                }
-                e.preventDefault();
-                const date = (e.currentTarget as HTMLElement).dataset.date;
-                if (date && this.selectedPtoType) {
-                    // PTO request creation mode
-                    if (this.selectedPtoType === 'Work Day') {
-                        // Clear operation - remove any existing entry for this date
-                        const existingEntryIndex = this.ptoEntries.findIndex(entry => entry.date === date);
-                        if (existingEntryIndex >= 0) {
-                            this.ptoEntries.splice(existingEntryIndex, 1);
-                            this.setAttribute('pto-entries', JSON.stringify(this.ptoEntries));
-                        }
-                        // Also clear from selected cells if it was selected
-                        this.selectedCells.delete(date);
-                        this.render();
-                    } else {
-                        // Normal PTO type selection
-                        if (this.selectedCells.has(date)) {
-                            this.selectedCells.delete(date);
-                        } else {
-                            // Check if there's an existing entry for this date and use its hours
-                            const existingEntry = this.ptoEntries.find(entry => entry.date === date);
-                            const defaultHours = existingEntry ? existingEntry.hours : 8;
-                            this.selectedCells.set(date, defaultHours);
-                        }
-                        this.render();
-                    }
-                } else if (date && !this.readonly) {
-                    // Hours editing mode - only allow editing existing entries
-                    const existingEntry = this.ptoEntries.find(entry => entry.date === date);
-                    if (existingEntry) {
-                        // Allow editing existing entries
-                        if (this.selectedCells.has(date)) {
-                            this.selectedCells.delete(date);
-                        } else {
-                            this.selectedCells.set(date, existingEntry.hours);
-                        }
-                        this.render();
-                    }
-                    // Empty cells without PTO type selected do nothing (no notification needed)
-                }
-            });
-            cell.addEventListener('keydown', (e) => {
-                const keyboardEvent = e as KeyboardEvent;
-                if (keyboardEvent.key === 'Enter' || keyboardEvent.key === ' ') {
-                    e.preventDefault();
-                    const date = (e.currentTarget as HTMLElement).dataset.date;
-                    if (date && this.selectedPtoType) {
-                        // Same logic as click
-                        if (this.selectedPtoType === 'Work Day') {
-                            const existingEntryIndex = this.ptoEntries.findIndex(entry => entry.date === date);
-                            if (existingEntryIndex >= 0) {
-                                this.ptoEntries.splice(existingEntryIndex, 1);
-                                this.setAttribute('pto-entries', JSON.stringify(this.ptoEntries));
-                            }
-                            this.selectedCells.delete(date);
-                            this.render();
-                        } else {
-                            if (this.selectedCells.has(date)) {
-                                this.selectedCells.delete(date);
-                            } else {
-                                const existingEntry = this.ptoEntries.find(entry => entry.date === date);
-                                const defaultHours = existingEntry ? existingEntry.hours : 8;
-                                this.selectedCells.set(date, defaultHours);
-                            }
-                            this.render();
-                        }
-                    }
-                }
-            });
-        });
-
-        // Hours input changes
-        const hoursInputs = this.shadow.querySelectorAll('.hours-input');
-        hoursInputs.forEach(input => {
-            input.addEventListener('change', (e) => {
-                const target = e.target as HTMLInputElement;
-                const date = target.dataset.date;
-                const value = parseFloat(target.value);
-                if (date && !isNaN(value) && (value === 0 || value === 4 || value === 8)) {
-                    if (value === 0) {
-                        // Clear operation - remove the entry
-                        const existingEntryIndex = this.ptoEntries.findIndex(entry => entry.date === date);
-                        if (existingEntryIndex >= 0) {
-                            this.ptoEntries.splice(existingEntryIndex, 1);
-                            this.setAttribute('pto-entries', JSON.stringify(this.ptoEntries));
-                        }
-                        // Also clear from selected cells
-                        this.selectedCells.delete(date);
-                        this.render();
-                    } else {
-                        // Check if this is an existing entry
-                        const existingEntryIndex = this.ptoEntries.findIndex(entry => entry.date === date);
-                        if (existingEntryIndex >= 0) {
-                            // Update existing entry
-                            this.ptoEntries[existingEntryIndex].hours = value;
-                            this.setAttribute('pto-entries', JSON.stringify(this.ptoEntries));
-                        } else {
-                            // Update selected cell
-                            this.selectedCells.set(date, value);
-                        }
-                    }
-                } else {
-                    // Reset to previous value if invalid
-                    const existingEntry = this.ptoEntries.find(entry => entry.date === date!);
-                    const currentValue = existingEntry ? existingEntry.hours : this.selectedCells.get(date!);
-                    target.value = currentValue?.toString() || '8';
-                }
-            });
-            input.addEventListener('input', (e) => {
-                const target = e.target as HTMLInputElement;
-                const value = parseFloat(target.value);
-                if (isNaN(value) || (value !== 0 && value !== 4 && value !== 8)) {
-                    target.classList.add('invalid');
-                } else {
-                    target.classList.remove('invalid');
-                }
-            });
-        });
+      });
     }
+
+    // Legend item clicks and keyboard navigation
+    const legendItems = this.shadow.querySelectorAll(".legend-item.clickable");
+    legendItems.forEach((item) => {
+      item.addEventListener("click", (e) => {
+        e.preventDefault();
+        const type = (e.currentTarget as HTMLElement).dataset.type;
+        if (type) {
+          this.selectedPtoType = this.selectedPtoType === type ? null : type;
+          this.render();
+        }
+      });
+      item.addEventListener("keydown", (e) => {
+        const keyboardEvent = e as KeyboardEvent;
+        if (keyboardEvent.key === "Enter" || keyboardEvent.key === " ") {
+          e.preventDefault();
+          const type = (e.currentTarget as HTMLElement).dataset.type;
+          if (type) {
+            this.selectedPtoType = this.selectedPtoType === type ? null : type;
+            this.render();
+          }
+        }
+      });
+    });
+
+    // Calendar cell clicks and keyboard navigation
+    const calendarCells = this.shadow.querySelectorAll(".day.clickable");
+    calendarCells.forEach((cell) => {
+      cell.addEventListener("click", (e) => {
+        // Ignore clicks on input fields to prevent toggling when editing hours
+        if ((e.target as HTMLElement).tagName === "INPUT") {
+          return;
+        }
+        e.preventDefault();
+        const date = (e.currentTarget as HTMLElement).dataset.date;
+        if (date && this.selectedPtoType) {
+          // PTO request creation mode
+          if (this.selectedPtoType === "Work Day") {
+            // Clear operation - remove any existing entry for this date
+            const existingEntryIndex = this.ptoEntries.findIndex(
+              (entry) => entry.date === date,
+            );
+            if (existingEntryIndex >= 0) {
+              this.ptoEntries.splice(existingEntryIndex, 1);
+              this.setAttribute("pto-entries", JSON.stringify(this.ptoEntries));
+            }
+            // Also clear from selected cells if it was selected
+            this.selectedCells.delete(date);
+            this.render();
+          } else {
+            // Normal PTO type selection
+            if (this.selectedCells.has(date)) {
+              this.selectedCells.delete(date);
+            } else {
+              // Check if there's an existing entry for this date and use its hours
+              const existingEntry = this.ptoEntries.find(
+                (entry) => entry.date === date,
+              );
+              const defaultHours = existingEntry ? existingEntry.hours : 8;
+              this.selectedCells.set(date, defaultHours);
+            }
+            this.render();
+          }
+        } else if (date && !this.readonly) {
+          // Hours editing mode - only allow editing existing entries
+          const existingEntry = this.ptoEntries.find(
+            (entry) => entry.date === date,
+          );
+          if (existingEntry) {
+            // Allow editing existing entries
+            if (this.selectedCells.has(date)) {
+              this.selectedCells.delete(date);
+            } else {
+              this.selectedCells.set(date, existingEntry.hours);
+            }
+            this.render();
+          }
+          // Empty cells without PTO type selected do nothing (no notification needed)
+        }
+      });
+      cell.addEventListener("keydown", (e) => {
+        const keyboardEvent = e as KeyboardEvent;
+        if (keyboardEvent.key === "Enter" || keyboardEvent.key === " ") {
+          e.preventDefault();
+          const date = (e.currentTarget as HTMLElement).dataset.date;
+          if (date && this.selectedPtoType) {
+            // Same logic as click
+            if (this.selectedPtoType === "Work Day") {
+              const existingEntryIndex = this.ptoEntries.findIndex(
+                (entry) => entry.date === date,
+              );
+              if (existingEntryIndex >= 0) {
+                this.ptoEntries.splice(existingEntryIndex, 1);
+                this.setAttribute(
+                  "pto-entries",
+                  JSON.stringify(this.ptoEntries),
+                );
+              }
+              this.selectedCells.delete(date);
+              this.render();
+            } else {
+              if (this.selectedCells.has(date)) {
+                this.selectedCells.delete(date);
+              } else {
+                const existingEntry = this.ptoEntries.find(
+                  (entry) => entry.date === date,
+                );
+                const defaultHours = existingEntry ? existingEntry.hours : 8;
+                this.selectedCells.set(date, defaultHours);
+              }
+              this.render();
+            }
+          }
+        }
+      });
+    });
+
+    // Hours input changes
+    const hoursInputs = this.shadow.querySelectorAll(".hours-input");
+    hoursInputs.forEach((input) => {
+      input.addEventListener("change", (e) => {
+        const target = e.target as HTMLInputElement;
+        const date = target.dataset.date;
+        const value = parseFloat(target.value);
+        if (
+          date &&
+          !isNaN(value) &&
+          (value === 0 || value === 4 || value === 8)
+        ) {
+          if (value === 0) {
+            // Clear operation - remove the entry
+            const existingEntryIndex = this.ptoEntries.findIndex(
+              (entry) => entry.date === date,
+            );
+            if (existingEntryIndex >= 0) {
+              this.ptoEntries.splice(existingEntryIndex, 1);
+              this.setAttribute("pto-entries", JSON.stringify(this.ptoEntries));
+            }
+            // Also clear from selected cells
+            this.selectedCells.delete(date);
+            this.render();
+          } else {
+            // Check if this is an existing entry
+            const existingEntryIndex = this.ptoEntries.findIndex(
+              (entry) => entry.date === date,
+            );
+            if (existingEntryIndex >= 0) {
+              // Update existing entry
+              this.ptoEntries[existingEntryIndex].hours = value;
+              this.setAttribute("pto-entries", JSON.stringify(this.ptoEntries));
+            } else {
+              // Update selected cell
+              this.selectedCells.set(date, value);
+            }
+          }
+        } else {
+          // Reset to previous value if invalid
+          const existingEntry = this.ptoEntries.find(
+            (entry) => entry.date === date!,
+          );
+          const currentValue = existingEntry
+            ? existingEntry.hours
+            : this.selectedCells.get(date!);
+          target.value = currentValue?.toString() || "8";
+        }
+      });
+      input.addEventListener("input", (e) => {
+        const target = e.target as HTMLInputElement;
+        const value = parseFloat(target.value);
+        if (isNaN(value) || (value !== 0 && value !== 4 && value !== 8)) {
+          target.classList.add("invalid");
+        } else {
+          target.classList.remove("invalid");
+        }
+      });
+    });
+  }
 }
 
-customElements.define('pto-calendar', PtoCalendar);
+customElements.define("pto-calendar", PtoCalendar);

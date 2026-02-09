@@ -1,16 +1,19 @@
 # PTO Balance Validation
 
 ## Description
+
 Implement PTO balance validation constraints in businessRules.ts to prevent PTO submissions that exceed available PTO balance. Add both server-side validation in PTO entry creation and client-side validation in PTO entry forms, ensuring consistent business rules across the application.
 
 **Status: Complete** - All phases implemented including comprehensive E2E testing and documentation updates.
 
 ## Priority
+
 🔥 High Priority
 
 ## Checklist
 
 ### Phase 1: Core Business Rules Implementation
+
 - [x] Add PTO balance validation function to businessRules.ts
   - [x] Create `validatePTOBalance` function that checks if requested hours exceed available PTO balance
   - [x] Add validation message key 'hours.exceed_pto_balance' to VALIDATION_MESSAGES
@@ -27,6 +30,7 @@ Implement PTO balance validation constraints in businessRules.ts to prevent PTO 
 - [x] Ensure npm run test passes all tests
 
 ### Phase 2: Server-Side Validation Integration
+
 - [x] Update PtoEntryDAL.ts to use PTO balance validation
   - [x] Modify validatePtoEntryData to calculate available PTO balance
   - [x] Integrate PTO balance check into validation pipeline
@@ -43,6 +47,7 @@ Implement PTO balance validation constraints in businessRules.ts to prevent PTO 
 - [x] Ensure npm run test passes all tests
 
 ### Phase 3: Client-Side Validation Integration
+
 - [x] Update PTO entry form components to use business rules validation
   - [x] Import validatePTOBalance from shared/businessRules.js in client components
   - [x] Add client-side PTO balance validation to pto-entry-form component
@@ -62,6 +67,7 @@ Implement PTO balance validation constraints in businessRules.ts to prevent PTO 
 - [x] Ensure npm run test passes all tests
 
 ### Phase 4: End-to-End Testing and Integration
+
 - [x] Update E2E tests to cover PTO balance validation
   - [x] Add test scenarios for attempting PTO submission with insufficient balance
     - [x] Create test case using John Doe (seed employee) who has ~12 hours available PTO
@@ -104,6 +110,7 @@ Implement PTO balance validation constraints in businessRules.ts to prevent PTO 
   - [x] No regressions in existing functionality
 
 ### Phase 5: Documentation and Quality Gates
+
 - [x] Update API documentation for PTO validation changes
   - [x] Document new validation error responses
   - [x] Update endpoint specifications

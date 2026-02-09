@@ -1,93 +1,93 @@
 interface ReportData {
-    employeeId: number;
-    employeeName: string;
-    totalPTOHours: number;
-    usedPTOHours: number;
-    remainingPTOHours: number;
-    carryoverHours: number;
+  employeeId: number;
+  employeeName: string;
+  totalPTOHours: number;
+  usedPTOHours: number;
+  remainingPTOHours: number;
+  carryoverHours: number;
 }
 
-import { querySingle } from '../test-utils';
-import { startOfYear, endOfYear, today } from '../../../shared/dateUtils.js';
+import { querySingle } from "../test-utils";
+import { startOfYear, endOfYear, today } from "../../../shared/dateUtils.js";
 
 export class ReportGenerator extends HTMLElement {
-    private shadow: ShadowRoot;
-    private _reportData: ReportData[] = [];
-    private _reportType: 'summary' | 'detailed' = 'summary';
-    private _dateRange: { start: string; end: string } = {
-        start: startOfYear(),
-        end: endOfYear()
-    };
+  private shadow: ShadowRoot;
+  private _reportData: ReportData[] = [];
+  private _reportType: "summary" | "detailed" = "summary";
+  private _dateRange: { start: string; end: string } = {
+    start: startOfYear(),
+    end: endOfYear(),
+  };
 
-    constructor() {
-        super();
-        this.shadow = this.attachShadow({ mode: 'open' });
-    }
+  constructor() {
+    super();
+    this.shadow = this.attachShadow({ mode: "open" });
+  }
 
-    static get observedAttributes() {
-        return ['report-data', 'report-type', 'date-range'];
-    }
+  static get observedAttributes() {
+    return ["report-data", "report-type", "date-range"];
+  }
 
-    connectedCallback() {
-        console.log('ReportGenerator connectedCallback called');
+  connectedCallback() {
+    console.log("ReportGenerator connectedCallback called");
+    this.render();
+    this.setupEventListeners();
+  }
+
+  attributeChangedCallback(name: string, oldValue: string, newValue: string) {
+    if (oldValue !== newValue) {
+      switch (name) {
+        case "report-data":
+          try {
+            this._reportData = JSON.parse(newValue);
+          } catch (e) {
+            console.error("Invalid report data JSON:", e);
+            this._reportData = [];
+          }
+          break;
+        case "report-type":
+          this._reportType = newValue as "summary" | "detailed";
+          break;
+        case "date-range":
+          try {
+            this._dateRange = JSON.parse(newValue);
+          } catch (e) {
+            console.error("Invalid date range JSON:", e);
+          }
+          break;
+      }
+      if (this.shadow) {
         this.render();
-        this.setupEventListeners();
+      }
     }
+  }
 
-    attributeChangedCallback(name: string, oldValue: string, newValue: string) {
-        if (oldValue !== newValue) {
-            switch (name) {
-                case 'report-data':
-                    try {
-                        this._reportData = JSON.parse(newValue);
-                    } catch (e) {
-                        console.error('Invalid report data JSON:', e);
-                        this._reportData = [];
-                    }
-                    break;
-                case 'report-type':
-                    this._reportType = newValue as 'summary' | 'detailed';
-                    break;
-                case 'date-range':
-                    try {
-                        this._dateRange = JSON.parse(newValue);
-                    } catch (e) {
-                        console.error('Invalid date range JSON:', e);
-                    }
-                    break;
-            }
-            if (this.shadow) {
-                this.render();
-            }
-        }
-    }
+  set reportData(value: ReportData[]) {
+    this.setAttribute("report-data", JSON.stringify(value));
+  }
 
-    set reportData(value: ReportData[]) {
-        this.setAttribute('report-data', JSON.stringify(value));
-    }
+  get reportData(): ReportData[] {
+    return this._reportData;
+  }
 
-    get reportData(): ReportData[] {
-        return this._reportData;
-    }
+  set reportType(value: "summary" | "detailed") {
+    this.setAttribute("report-type", value);
+  }
 
-    set reportType(value: 'summary' | 'detailed') {
-        this.setAttribute('report-type', value);
-    }
+  get reportType(): "summary" | "detailed" {
+    return this._reportType;
+  }
 
-    get reportType(): 'summary' | 'detailed' {
-        return this._reportType;
-    }
+  set dateRange(value: { start: string; end: string }) {
+    this.setAttribute("date-range", JSON.stringify(value));
+  }
 
-    set dateRange(value: { start: string; end: string }) {
-        this.setAttribute('date-range', JSON.stringify(value));
-    }
+  get dateRange(): { start: string; end: string } {
+    return this._dateRange;
+  }
 
-    get dateRange(): { start: string; end: string } {
-        return this._dateRange;
-    }
-
-    private render() {
-        this.shadow.innerHTML = `
+  private render() {
+    this.shadow.innerHTML = `
             <style>
                 :host {
                     display: block;
@@ -282,8 +282,8 @@ export class ReportGenerator extends HTMLElement {
                         <div class="control-group">
                             <label class="control-label">Report Type</label>
                             <select class="control-select" id="report-type">
-                                <option value="summary" ${this._reportType === 'summary' ? 'selected' : ''}>Summary</option>
-                                <option value="detailed" ${this._reportType === 'detailed' ? 'selected' : ''}>Detailed</option>
+                                <option value="summary" ${this._reportType === "summary" ? "selected" : ""}>Summary</option>
+                                <option value="detailed" ${this._reportType === "detailed" ? "selected" : ""}>Detailed</option>
                             </select>
                         </div>
                         <div class="control-group">
@@ -302,19 +302,20 @@ export class ReportGenerator extends HTMLElement {
                 </div>
 
                 <div class="report-content">
-                    ${this._reportData.length === 0 ?
-                '<div class="empty-state"><h3>No report data available</h3><p>Generate a report to view PTO usage statistics.</p></div>' :
-                this.renderReportContent()
-            }
+                    ${
+                      this._reportData.length === 0
+                        ? '<div class="empty-state"><h3>No report data available</h3><p>Generate a report to view PTO usage statistics.</p></div>'
+                        : this.renderReportContent()
+                    }
                 </div>
             </div>
         `;
-    }
+  }
 
-    private renderReportContent(): string {
-        const summaryStats = this.calculateSummaryStats();
+  private renderReportContent(): string {
+    const summaryStats = this.calculateSummaryStats();
 
-        return `
+    return `
             <div class="summary-cards">
                 <div class="summary-card">
                     <div class="card-value">${summaryStats.totalEmployees}</div>
@@ -346,133 +347,188 @@ export class ReportGenerator extends HTMLElement {
                     </tr>
                 </thead>
                 <tbody>
-                    ${this._reportData.map(employee => this.renderEmployeeRow(employee)).join('')}
+                    ${this._reportData.map((employee) => this.renderEmployeeRow(employee)).join("")}
                 </tbody>
             </table>
         `;
-    }
+  }
 
-    private renderEmployeeRow(employee: ReportData): string {
-        const utilization = employee.totalPTOHours > 0 ?
-            ((employee.usedPTOHours / employee.totalPTOHours) * 100).toFixed(1) : '0.0';
+  private renderEmployeeRow(employee: ReportData): string {
+    const utilization =
+      employee.totalPTOHours > 0
+        ? ((employee.usedPTOHours / employee.totalPTOHours) * 100).toFixed(1)
+        : "0.0";
 
-        return `
+    return `
             <tr>
                 <td>${employee.employeeName}</td>
                 <td class="hours-cell">${employee.totalPTOHours.toFixed(1)}</td>
                 <td class="hours-cell">${employee.usedPTOHours.toFixed(1)}</td>
-                <td class="hours-cell hours-${employee.remainingPTOHours >= 0 ? 'positive' : 'negative'}">
+                <td class="hours-cell hours-${employee.remainingPTOHours >= 0 ? "positive" : "negative"}">
                     ${employee.remainingPTOHours.toFixed(1)}
                 </td>
                 <td class="hours-cell">${employee.carryoverHours.toFixed(1)}</td>
                 <td class="hours-cell">${utilization}%</td>
             </tr>
         `;
-    }
+  }
 
-    private calculateSummaryStats() {
-        const totalEmployees = this._reportData.length;
-        const totalPTOHours = this._reportData.reduce((sum, emp) => sum + emp.totalPTOHours, 0);
-        const totalUsedHours = this._reportData.reduce((sum, emp) => sum + emp.usedPTOHours, 0);
-        const averageUtilization = totalPTOHours > 0 ? (totalUsedHours / totalPTOHours) * 100 : 0;
+  private calculateSummaryStats() {
+    const totalEmployees = this._reportData.length;
+    const totalPTOHours = this._reportData.reduce(
+      (sum, emp) => sum + emp.totalPTOHours,
+      0,
+    );
+    const totalUsedHours = this._reportData.reduce(
+      (sum, emp) => sum + emp.usedPTOHours,
+      0,
+    );
+    const averageUtilization =
+      totalPTOHours > 0 ? (totalUsedHours / totalPTOHours) * 100 : 0;
 
-        return {
-            totalEmployees,
-            totalPTOHours,
-            totalUsedHours,
-            averageUtilization
-        };
-    }
+    return {
+      totalEmployees,
+      totalPTOHours,
+      totalUsedHours,
+      averageUtilization,
+    };
+  }
 
-    private setupEventListeners() {
-        console.log('ReportGenerator setupEventListeners called');
-        const reportTypeSelect = querySingle<HTMLSelectElement>('#report-type', this.shadow);
-        const startDateInput = querySingle<HTMLInputElement>('#start-date', this.shadow);
-        const endDateInput = querySingle<HTMLInputElement>('#end-date', this.shadow);
-        const generateBtn = querySingle<HTMLButtonElement>('#generate-report', this.shadow);
-        const exportBtn = querySingle<HTMLButtonElement>('#export-csv', this.shadow);
+  private setupEventListeners() {
+    console.log("ReportGenerator setupEventListeners called");
+    const reportTypeSelect = querySingle<HTMLSelectElement>(
+      "#report-type",
+      this.shadow,
+    );
+    const startDateInput = querySingle<HTMLInputElement>(
+      "#start-date",
+      this.shadow,
+    );
+    const endDateInput = querySingle<HTMLInputElement>(
+      "#end-date",
+      this.shadow,
+    );
+    const generateBtn = querySingle<HTMLButtonElement>(
+      "#generate-report",
+      this.shadow,
+    );
+    const exportBtn = querySingle<HTMLButtonElement>(
+      "#export-csv",
+      this.shadow,
+    );
 
-        reportTypeSelect?.addEventListener('change', (e) => {
-            console.log('Report type select changed:', (e.target as HTMLSelectElement).value);
-            this.reportType = (e.target as HTMLSelectElement).value as 'summary' | 'detailed';
-            console.log('Dispatching report-type-change event with:', this._reportType);
-            this.dispatchEvent(new CustomEvent('report-type-change', {
-                detail: { reportType: this._reportType }
-            }));
-        });
+    reportTypeSelect?.addEventListener("change", (e) => {
+      console.log(
+        "Report type select changed:",
+        (e.target as HTMLSelectElement).value,
+      );
+      this.reportType = (e.target as HTMLSelectElement).value as
+        | "summary"
+        | "detailed";
+      console.log(
+        "Dispatching report-type-change event with:",
+        this._reportType,
+      );
+      this.dispatchEvent(
+        new CustomEvent("report-type-change", {
+          detail: { reportType: this._reportType },
+        }),
+      );
+    });
 
-        startDateInput?.addEventListener('change', () => {
-            this.updateDateRange();
-        });
+    startDateInput?.addEventListener("change", () => {
+      this.updateDateRange();
+    });
 
-        endDateInput?.addEventListener('change', () => {
-            this.updateDateRange();
-        });
+    endDateInput?.addEventListener("change", () => {
+      this.updateDateRange();
+    });
 
-        generateBtn?.addEventListener('click', () => {
-            this.dispatchEvent(new CustomEvent('generate-report', {
-                detail: {
-                    reportType: this._reportType,
-                    dateRange: this._dateRange
-                }
-            }));
-        });
+    generateBtn?.addEventListener("click", () => {
+      this.dispatchEvent(
+        new CustomEvent("generate-report", {
+          detail: {
+            reportType: this._reportType,
+            dateRange: this._dateRange,
+          },
+        }),
+      );
+    });
 
-        exportBtn?.addEventListener('click', () => {
-            this.exportToCSV();
-        });
-    }
+    exportBtn?.addEventListener("click", () => {
+      this.exportToCSV();
+    });
+  }
 
-    private updateDateRange() {
-        const startDateInput = querySingle<HTMLInputElement>('#start-date', this.shadow);
-        const endDateInput = querySingle<HTMLInputElement>('#end-date', this.shadow);
+  private updateDateRange() {
+    const startDateInput = querySingle<HTMLInputElement>(
+      "#start-date",
+      this.shadow,
+    );
+    const endDateInput = querySingle<HTMLInputElement>(
+      "#end-date",
+      this.shadow,
+    );
 
-        this._dateRange = {
-            start: startDateInput.value,
-            end: endDateInput.value
-        };
+    this._dateRange = {
+      start: startDateInput.value,
+      end: endDateInput.value,
+    };
 
-        this.dispatchEvent(new CustomEvent('date-range-change', {
-            detail: { dateRange: this._dateRange }
-        }));
-    }
+    this.dispatchEvent(
+      new CustomEvent("date-range-change", {
+        detail: { dateRange: this._dateRange },
+      }),
+    );
+  }
 
-    private exportToCSV() {
-        if (this._reportData.length === 0) return;
+  private exportToCSV() {
+    if (this._reportData.length === 0) return;
 
-        const headers = ['Employee', 'Total PTO', 'Used Hours', 'Remaining', 'Carryover', 'Utilization'];
-        const rows = this._reportData.map(employee => {
-            const utilization = employee.totalPTOHours > 0 ?
-                ((employee.usedPTOHours / employee.totalPTOHours) * 100).toFixed(1) : '0.0';
+    const headers = [
+      "Employee",
+      "Total PTO",
+      "Used Hours",
+      "Remaining",
+      "Carryover",
+      "Utilization",
+    ];
+    const rows = this._reportData.map((employee) => {
+      const utilization =
+        employee.totalPTOHours > 0
+          ? ((employee.usedPTOHours / employee.totalPTOHours) * 100).toFixed(1)
+          : "0.0";
 
-            return [
-                employee.employeeName,
-                employee.totalPTOHours.toFixed(1),
-                employee.usedPTOHours.toFixed(1),
-                employee.remainingPTOHours.toFixed(1),
-                employee.carryoverHours.toFixed(1),
-                `${utilization}%`
-            ];
-        });
+      return [
+        employee.employeeName,
+        employee.totalPTOHours.toFixed(1),
+        employee.usedPTOHours.toFixed(1),
+        employee.remainingPTOHours.toFixed(1),
+        employee.carryoverHours.toFixed(1),
+        `${utilization}%`,
+      ];
+    });
 
-        const csvContent = [headers, ...rows]
-            .map(row => row.map(cell => `"${cell}"`).join(','))
-            .join('\n');
+    const csvContent = [headers, ...rows]
+      .map((row) => row.map((cell) => `"${cell}"`).join(","))
+      .join("\n");
 
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', `pto-report-${today()}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `pto-report-${today()}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 
-        this.dispatchEvent(new CustomEvent('report-exported', {
-            detail: { format: 'csv', filename: `pto-report-${today()}.csv` }
-        }));
-    }
+    this.dispatchEvent(
+      new CustomEvent("report-exported", {
+        detail: { format: "csv", filename: `pto-report-${today()}.csv` },
+      }),
+    );
+  }
 }
 
-customElements.define('report-generator', ReportGenerator);
+customElements.define("report-generator", ReportGenerator);

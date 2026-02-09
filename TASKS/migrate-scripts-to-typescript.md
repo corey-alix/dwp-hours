@@ -1,12 +1,15 @@
 # Migrate Scripts to TypeScript
 
 ## Description
+
 Create a checklist-driven plan to migrate the JavaScript files in scripts/ to TypeScript while preserving behavior and aligning with existing build, lint, and runtime patterns.
 
 ## Priority
+
 🟢 Low Priority
 
 ## Checklist
+
 - [x] Inventory all JavaScript files in scripts/ and map their responsibilities
 - [x] Decide TypeScript target (ESM) and runtime strategy for scripts (tsx, node + ts-node, or build step)
 - [x] Add new tsconfig-scripts.json (or similar) for scripts without impacting existing builds
@@ -22,6 +25,7 @@ Create a checklist-driven plan to migrate the JavaScript files in scripts/ to Ty
 - [x] Run lint, build, and manual script verification
 
 ## Implementation Notes
+
 - Keep runtime behavior identical; focus on type safety and clarity.
 - Prefer the existing project conventions for ESM and TypeScript strictness.
 - If a build step is introduced for scripts, keep it separate from client/server builds to avoid slowing tests.

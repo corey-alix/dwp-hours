@@ -1,9 +1,11 @@
 # Admin Panel Implementation
 
 ## Overview
+
 Implement the admin panel functionality using web components architecture following MDN best practices. Create reusable, encapsulated UI components that are API-agnostic for easy testing with Playwright.
 
 ## Architecture Approach
+
 - **Web Components**: Use native web components with Shadow DOM for encapsulation
 - **API Agnostic**: Components should accept data via properties/events, not direct API calls
 - **Testing**: Playwright-based component tests (Vitest doesn't run in browser)
@@ -12,6 +14,7 @@ Implement the admin panel functionality using web components architecture follow
 ## Checklist
 
 ### Core Web Components
+
 - [x] Create base `admin-panel` component with navigation and layout
 - [x] Implement `employee-list` web component with search/filter
 - [x] Create `employee-form` component for add/edit operations
@@ -20,21 +23,26 @@ Implement the admin panel functionality using web components architecture follow
 - [x] Create `confirmation-dialog` component for destructive actions
 
 ### Employee Management Components
+
 - [x] `employee-list` - Display employees with search/filter capabilities
 - [x] `employee-form` - Reusable form for create/edit operations
 
 ### PTO Review Components
+
 - [x] `pto-request-queue` - List of pending requests with approve/reject
 
 ### Reporting Components
+
 - [x] `report-generator` - Monthly/yearly PTO usage reports
 
 ### Component Communication
+
 - [x] Implement custom events for component communication
 - [x] Create data flow patterns (properties down, events up)
 - [x] Add component state management
 
 ### Playwright Component Testing
+
 - [x] Create test harness for isolated component testing (test.html files)
 - [x] Write playground tests for component interactions (test.ts files)
 - [x] Implement comprehensive E2E tests for all admin panel components
@@ -93,6 +101,7 @@ Implement the admin panel functionality using web components architecture follow
 - **Testing**: Comprehensive playground tests for each component
 
 ### File Structure
+
 ```
 client/components/
 ├── admin-panel/
@@ -110,12 +119,14 @@ client/components/
 ```
 
 ### Component Communication Pattern
+
 - **Properties Down**: Parent components pass data via attributes/properties
 - **Events Up**: Child components dispatch custom events for parent handling
 - **Event Bubbling**: Complex interactions bubble up through the component tree
 - **State Management**: Local component state with reactive updates
 
 All components follow MDN web component best practices and are ready for integration with the API layer.
+
 - [x] Test `employee-form` validation and submission
 - [x] Verify `pto-request-queue` approve/reject functionality
 - [x] Test `data-table` sorting and pagination
@@ -123,12 +134,14 @@ All components follow MDN web component best practices and are ready for integra
 - [x] Test component composition and event handling
 
 ### Admin Security Components
+
 - [ ] `role-guard` - Component wrapper for role-based access
 - [ ] `audit-log` - Display admin action history
 - [ ] `permission-manager` - Role and permission assignment
 - [ ] `admin-auth` - Admin-specific authentication flow
 
 ### UI/UX Enhancements
+
 - [ ] Implement responsive design patterns
 - [ ] Add loading states and error handling components
 - [ ] Create consistent theming system
@@ -136,6 +149,7 @@ All components follow MDN web component best practices and are ready for integra
 - [ ] Add ARIA labels and screen reader support
 
 ### Integration & Testing
+
 - [ ] Connect components to API layer via event handlers
 - [ ] Implement error boundaries and fallback UI
 - [ ] Add component performance monitoring
@@ -145,6 +159,7 @@ All components follow MDN web component best practices and are ready for integra
 ## Implementation Guidelines
 
 ### Component File Structure
+
 - Components go under `./client/components`
 - There is a folder for each component
 - In the component folder:
@@ -155,14 +170,14 @@ All components follow MDN web component best practices and are ready for integra
 
 ```typescript
 export function querySingle<T extends HTMLElement>(selector: string) {
-    const item = document.querySelector<T>(selector);
-    if (item) {
-        console.log(`Found ${selector} element:`, item);
-    } else {
-        console.error(`${selector} element not found`);
-        throw new Error(`${selector} element not found`);
-    }
-    return item;
+  const item = document.querySelector<T>(selector);
+  if (item) {
+    console.log(`Found ${selector} element:`, item);
+  } else {
+    console.error(`${selector} element not found`);
+    throw new Error(`${selector} element not found`);
+  }
+  return item;
 }
 ```
 
@@ -170,7 +185,9 @@ export function querySingle<T extends HTMLElement>(selector: string) {
 - A separate `test.ts` under `./client/components` exports the `playground()` functions for each component and is also imported by `app.ts` so the playground methods are in the build artifact, accessible to the various `test.html` pages.
 
 ### Web Component Best Practices
+
 Follow the web-components-assistant skill pattern:
+
 1. **Component Analysis**: Define props, events, and data flow for each component
 2. **Custom Element Definition**: Use kebab-case naming (e.g., `employee-list`)
 3. **Shadow DOM Setup**: Implement encapsulation for styling isolation
@@ -182,7 +199,9 @@ Follow the web-components-assistant skill pattern:
 9. **Documentation**: Document component APIs and usage
 
 ### Playwright Component Testing Setup
+
 Following playwright-testing-assistant guidelines:
+
 - Create component test harness for isolated testing
 - Use descriptive test names and proper assertions
 - Test component interactions, events, and state changes
@@ -191,9 +210,10 @@ Following playwright-testing-assistant guidelines:
 - Integrate with CI/CD pipeline for automated testing
 
 ### Component Architecture Patterns
+
 - **Data Flow**: Properties down (parent to child), events up (child to parent)
 - **State Management**: Local component state with reactive updates
 - **Composition**: Build complex UIs from smaller, focused components
 - **API Integration**: Components emit events, parent handles API calls
 - **Error Handling**: Graceful degradation with error boundaries</content>
-<parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/TASKS/admin-panel.md
+  <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/TASKS/admin-panel.md

@@ -1,12 +1,15 @@
 # PTO Dashboard Component Separation
 
 ## Description
+
 Refactor the monolithic `client/components/pto-dashboard/index.ts` file by moving each of the 7 web components (PtoSummaryCard, PtoAccrualCard, PtoSickCard, PtoBereavementCard, PtoJuryDutyCard, PtoEmployeeInfoCard, plus base classes) into their own dedicated component folders. This improves modularity, maintainability, and alignment with the project's component organization pattern.
 
 ## Priority
+
 🟢 Low Priority
 
 ## Checklist
+
 - [x] Create individual folders for each component (e.g., `pto-summary-card/`, `pto-accrual-card/`, etc.)
 - [x] Extract PtoSummaryCard into `client/components/pto-summary-card/index.ts`
 - [x] Extract PtoAccrualCard into `client/components/pto-accrual-card/index.ts`
@@ -26,6 +29,7 @@ Refactor the monolithic `client/components/pto-dashboard/index.ts` file by movin
 - [x] Code review for consistency with project patterns
 
 ## Implementation Notes
+
 - Ensure shared types (e.g., SummaryData, AccrualData) are accessible (consider moving to a shared types file if needed).
 - Preserve custom element definitions and registrations.
 - Test component isolation to confirm no shared state issues.

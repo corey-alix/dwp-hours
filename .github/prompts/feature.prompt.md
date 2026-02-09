@@ -16,7 +16,7 @@ Generate a new specification document for implementing a feature in the DWP Hour
    - 🔥 **High Priority** (Foundation - Complete First): database-schema, authentication, pto-calculations, api-endpoints
    - 🟡 **Medium Priority** (Core Features): admin-panel, testing-suite
    - 🟢 **Low Priority** (Polish & Production): data-migration, security-production
-   Assign priority based on impact, dependencies, and similarity to existing tasks.
+     Assign priority based on impact, dependencies, and similarity to existing tasks.
 3. **Checklist**: Create a comprehensive checklist covering:
    - Database schema changes (if needed)
    - API endpoints (if needed)
@@ -24,7 +24,7 @@ Generate a new specification document for implementing a feature in the DWP Hour
    - Testing (unit, E2E)
    - Documentation updates
    - Code quality gates (build, lint, manual testing)
-   Use the Staged Action Plan skill ([.github/skills/staged-action-plan/SKILL.md](../skills/staged-action-plan/SKILL.md)) to break down the checklist into testable, incremental phases.
+     Use the Staged Action Plan skill ([.github/skills/staged-action-plan/SKILL.md](../skills/staged-action-plan/SKILL.md)) to break down the checklist into testable, incremental phases.
 4. **Structure**: Follow the standard task file format with sections for Description, Priority, Checklist, Implementation Notes, and Questions and Concerns, as seen in existing files like [TASKS/database-schema.md](../../TASKS/database-schema.md). Add a "Questions and Concerns" section where I can provide additional feedback.
 
 ## Output Format
@@ -37,12 +37,15 @@ Generate the complete Markdown content for a new specification document. Then, u
 # User Authentication
 
 ## Description
+
 Implement user authentication system for the DWP Hours Tracker, allowing employees to log in securely.
 
 ## Priority
+
 🔥 High Priority
 
 ## Checklist
+
 - [ ] Design authentication database schema
 - [ ] Implement login API endpoint
 - [ ] Create login frontend form
@@ -55,13 +58,15 @@ Implement user authentication system for the DWP Hours Tracker, allowing employe
 - [ ] Code review and linting
 
 ## Implementation Notes
+
 - Use secure password hashing
 - Implement JWT tokens for session management
 - Ensure compatibility with existing employee data
 - Follow project's error handling patterns
 
 ## Questions and Concerns
-1. 
-2. 
-3. 
+
+1.
+2.
+3.
 ```

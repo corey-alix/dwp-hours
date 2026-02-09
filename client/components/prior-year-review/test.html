@@ -1,21 +1,31 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Prior Year Review Component Test</title>
     <link rel="stylesheet" href="../../styles.css" />
-</head>
-<body>
+  </head>
+  <body>
     <h1>Prior Year Review Component Test</h1>
-    <div id="test-output" style="display: block; padding: 10px; border: 1px solid var(--color-border); margin: 10px 0; background: var(--color-surface); color: var(--color-text);"></div>
+    <div
+      id="test-output"
+      style="
+        display: block;
+        padding: 10px;
+        border: 1px solid var(--color-border);
+        margin: 10px 0;
+        background: var(--color-surface);
+        color: var(--color-text);
+      "
+    ></div>
 
     <prior-year-review id="prior-year-review"></prior-year-review>
 
     <script type="module">
-        import { PriorYearReview } from "./index.js";
-        import { playground } from "./test.js";
-        playground();
+      import { PriorYearReview } from "./index.js";
+      import { playground } from "./test.js";
+      playground();
     </script>
-</body>
+  </body>
 </html>

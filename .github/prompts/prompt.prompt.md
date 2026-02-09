@@ -26,6 +26,7 @@ Include YAML frontmatter at the top of the file with the following fields as app
 - **tools**: List of tools available for the prompt.
 
 Example header:
+
 ```yaml
 ---
 description: Generate a React component with TypeScript
@@ -61,7 +62,7 @@ When creating a new prompt file, generate the complete Markdown content includin
 
 Here's an example of what a generated prompt file might look like:
 
-```markdown
+````markdown
 ---
 description: Generate unit tests for TypeScript functions
 name: unit-test
@@ -88,20 +89,23 @@ Generate comprehensive unit tests for the selected TypeScript function using Vit
 For a function `add(a: number, b: number): number`, generate:
 
 ```typescript
-describe('add', () => {
-  it('should return sum of two positive numbers', () => {
+describe("add", () => {
+  it("should return sum of two positive numbers", () => {
     expect(add(2, 3)).toBe(5);
   });
-  
-  it('should handle zero values', () => {
+
+  it("should handle zero values", () => {
     expect(add(0, 5)).toBe(5);
   });
-  
-  it('should handle negative numbers', () => {
+
+  it("should handle negative numbers", () => {
     expect(add(-1, 1)).toBe(0);
   });
 });
 ```
+````
+
 ```
 
 This prompt file serves as a template and guide for creating new prompt files that adhere to VS Code Copilot best practices.
+```

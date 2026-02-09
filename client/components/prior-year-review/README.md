@@ -38,7 +38,7 @@ The grid layout prioritizes information density and comparative analysis capabil
 ## Usage
 
 ```typescript
-import { PriorYearReview } from './index.js';
+import { PriorYearReview } from "./index.js";
 
 // Create component
 const review = new PriorYearReview();
@@ -51,12 +51,18 @@ review.data = {
       month: 1,
       ptoEntries: [
         { date: "2025-01-15", type: "PTO", hours: 8 },
-        { date: "2025-01-17", type: "PTO", hours: 8 }
+        { date: "2025-01-17", type: "PTO", hours: 8 },
       ],
-      summary: { totalDays: 31, ptoHours: 16, sickHours: 0, bereavementHours: 0, juryDutyHours: 0 }
+      summary: {
+        totalDays: 31,
+        ptoHours: 16,
+        sickHours: 0,
+        bereavementHours: 0,
+        juryDutyHours: 0,
+      },
     },
     // ... other months
-  ]
+  ],
 };
 ```
 
@@ -65,22 +71,22 @@ review.data = {
 The component expects data in the following format:
 
 interface PTOYearReviewResponse {
-  year: number;
-  months: Array<{
-    month: number; // 1-12
-    ptoEntries: Array<{
-      date: string; // YYYY-MM-DD format
-      type: "PTO" | "Sick" | "Bereavement" | "Jury Duty";
-      hours: number;
-    }>;
-    summary: {
-      totalDays: number;
-      ptoHours: number;
-      sickHours: number;
-      bereavementHours: number;
-      juryDutyHours: number;
-    };
-  }>;
+year: number;
+months: Array<{
+month: number; // 1-12
+ptoEntries: Array<{
+date: string; // YYYY-MM-DD format
+type: "PTO" | "Sick" | "Bereavement" | "Jury Duty";
+hours: number;
+}>;
+summary: {
+totalDays: number;
+ptoHours: number;
+sickHours: number;
+bereavementHours: number;
+juryDutyHours: number;
+};
+}>;
 }
 
 ## Component Properties
@@ -90,6 +96,7 @@ interface PTOYearReviewResponse {
 ## Styling
 
 The component uses CSS custom properties (CSS variables) for theming:
+
 - `--color-pto-vacation`
 - `--color-pto-sick`
 - `--color-pto-bereavement`
@@ -111,6 +118,7 @@ When no data is provided or when the data contains no PTO entries, the component
 ## Testing
 
 The component includes a test playground that demonstrates:
+
 - External year selection management
 - Data feeding based on selected year
 - Handling of years with no available data

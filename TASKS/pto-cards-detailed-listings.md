@@ -1,12 +1,15 @@
 # PTO Cards Detailed Listings
 
 ## Description
+
 Enhance the Sick, Bereavement, and Jury Duty PTO cards to show detailed date and hour listings when expanded or clicked. Currently these cards only show summary information (used/remaining hours). This feature will add the ability to view individual PTO entries with dates and hours for better transparency and tracking.
 
 ## Priority
+
 🟢 Low Priority
 
 ## Checklist
+
 - [ ] **Phase 1: Design Component Enhancement**
   - [ ] Analyze current PTO card components (pto-sick-card, pto-bereavement-card, pto-jury-duty-card)
   - [ ] Design expandable/collapsible interface for showing detailed listings
@@ -55,6 +58,7 @@ Enhance the Sick, Bereavement, and Jury Duty PTO cards to show detailed date and
   - [x] Run 'npm run test' to ensure no regressions
 
 ## Implementation Notes
+
 - Follow existing patterns from pto-accrual-card for expandable functionality
 - Use the same data structure as current usageEntries (array of { date: string; hours: number })
 - Ensure detailed listings are sorted by date (newest first or oldest first)
@@ -63,7 +67,46 @@ Enhance the Sick, Bereavement, and Jury Duty PTO cards to show detailed date and
 - Use existing theming system for consistent styling
 - **NEW**: Make "Dates Used" entries clickable to open the calendar for the month containing that date
 
+## Key Learnings from Implementation
+
+### Component Architecture
+
+- **Base Class Pattern**: `SimplePtoBucketCard` provides expandable functionality, toggle buttons, and detailed listings rendering
+- **Data Properties**: Cards receive data through `bucket` (summary data) and `usageEntries` (detailed entries) properties
+- **Attribute Observation**: Subclasses must observe "expanded" attribute for toggle functionality to work
+- **Event Handling**: Toggle button clicks are handled internally by the base class
+
+### Dashboard Integration
+
+- **Dynamic Creation**: Cards are created programmatically in `loadPTOStatus()` and `renderPTOStatus()` methods
+- **Loading States**: Cards show "Loading..." when `bucket` data is null, providing good UX during data fetch
+- **Data Flow**: `buildUsageEntries()` filters entries by year and type, returning `{date, hours}[]` format
+- **DOM Updates**: Cards are appended to `.pto-summary` container and updated when data arrives
+
+### Styling & Responsiveness
+
+- **CSS Custom Properties**: Uses design tokens like `var(--color-primary)`, `var(--space-md)`, etc.
+- **Mobile-First**: Added `@media (max-width: 480px)` for vertical stacking of date/hours on small screens
+- **Consistent Theming**: Detailed listings match existing card styling patterns
+
+### Testing Strategy
+
+- **Component Tests**: Individual `.test.ts` files for each card component
+- **E2E Tests**: Playwright tests in `e2e/` directory cover full user workflows
+- **Data Setup**: Test files include realistic PTO data scenarios for validation
+- **Loading Verification**: Browser logs confirm loading states and data updates
+
+### Performance Considerations
+
+- **Large Entry Lists**: Current implementation renders all entries at once. For users with many PTO entries, consider:
+  - Virtual scrolling for lists > 20 entries
+  - Pagination (show 10 entries at a time with "Show More" button)
+  - Lazy loading of detailed data only when expanded
+- **Memory Usage**: Each card stores full entry arrays - monitor for memory issues with large datasets
+- **DOM Performance**: Many list items may impact rendering performance on low-end devices
+
 ## Questions and Concerns
+
 1. ~~Should the detailed listings show all historical entries or only current year?~~ **RESOLVED**: Current year only (implemented via `buildUsageEntries()` filtering)
 2. ~~How should the expandable toggle be visually indicated (chevron, "Show Details" text, etc.)?~~ **RESOLVED**: "Show Details"/"Hide Details" text with chevron (▼) - implemented in base class
 3. ~~Should there be a limit on the number of entries shown before requiring scrolling?~~ **RESOLVED**: No limit - show all entries (performance monitoring recommended for large datasets)
@@ -82,4 +125,4 @@ Enhance the Sick, Bereavement, and Jury Duty PTO cards to show detailed date and
      - Hover: `background: var(--color-surface-hover)` for subtle feedback
      - Add `--color-focus: var(--color-primary)` to `tokens.css` for consistency
    - **Validation**: All tests pass after adding missing focus token, confirming no regressions introduced</content>
-<parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/TASKS/pto-cards-detailed-listings.md
+     <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/TASKS/pto-cards-detailed-listings.md

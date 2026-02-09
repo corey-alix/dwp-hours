@@ -1,125 +1,130 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Component Test Pages</title>
     <link rel="stylesheet" href="../styles.css" />
     <style>
-        body {
-            padding: 24px;
-        }
+      body {
+        padding: 24px;
+      }
 
-        h1 {
-            margin-bottom: 12px;
-        }
+      h1 {
+        margin-bottom: 12px;
+      }
 
-        .intro {
-            color: var(--color-text-secondary);
-            margin-bottom: 24px;
-        }
+      .intro {
+        color: var(--color-text-secondary);
+        margin-bottom: 24px;
+      }
 
-        .test-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            display: grid;
-            gap: 12px;
-        }
+      .test-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        gap: 12px;
+      }
 
-        .test-item {
-            border: var(--border-width) var(--border-style-solid) var(--color-border);
-            border-radius: var(--border-radius-md);
-            padding: 12px 16px;
-            background: var(--color-surface);
-        }
+      .test-item {
+        border: var(--border-width) var(--border-style-solid)
+          var(--color-border);
+        border-radius: var(--border-radius-md);
+        padding: 12px 16px;
+        background: var(--color-surface);
+      }
 
-        .test-item a {
-            font-weight: var(--font-weight-semibold);
-            text-decoration: none;
-            color: var(--color-primary);
-        }
+      .test-item a {
+        font-weight: var(--font-weight-semibold);
+        text-decoration: none;
+        color: var(--color-primary);
+      }
 
-        .test-item a:hover {
-            text-decoration: underline;
-        }
+      .test-item a:hover {
+        text-decoration: underline;
+      }
 
-        .test-desc {
-            margin: 6px 0 0 0;
-            color: var(--color-text-secondary);
-            font-size: var(--font-size-sm);
-        }
+      .test-desc {
+        margin: 6px 0 0 0;
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-sm);
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <h1>Component Test Pages</h1>
-    <p class="intro">Quick links to each component test page and its purpose.</p>
+    <p class="intro">
+      Quick links to each component test page and its purpose.
+    </p>
 
     <ul class="test-list">
-        <li class="test-item">
-            <a href="./admin-panel/test.html">Admin Panel</a>
-            <p class="test-desc">Multi-view admin navigation and layout shell.</p>
-        </li>
-        <li class="test-item">
-            <a href="./confirmation-dialog/test.html">Confirmation Dialog</a>
-            <p class="test-desc">Modal confirm/cancel dialog behaviors.</p>
-        </li>
-        <li class="test-item">
-            <a href="./data-table/test.html">Data Table</a>
-            <p class="test-desc">Sortable data table with header and row states.</p>
-        </li>
-        <li class="test-item">
-            <a href="./employee-form/test.html">Employee Form</a>
-            <p class="test-desc">Employee create/edit form validation and layout.</p>
-        </li>
-        <li class="test-item">
-            <a href="./employee-list/test.html">Employee List</a>
-            <p class="test-desc">Searchable list of employees with actions.</p>
-        </li>
-        <li class="test-item">
-            <a href="./pto-accrual-card/test.html">PTO Accrual Card</a>
-            <p class="test-desc">Accrual summary and calendar integration.</p>
-        </li>
-        <li class="test-item">
-            <a href="./pto-bereavement-card/test.html">PTO Bereavement Card</a>
-            <p class="test-desc">Bereavement balances and status display.</p>
-        </li>
-        <li class="test-item">
-            <a href="./pto-calendar/test.html">PTO Calendar</a>
-            <p class="test-desc">Calendar selection UI for PTO requests.</p>
-        </li>
-        <li class="test-item">
-            <a href="./pto-dashboard/test.html">PTO Dashboard</a>
-            <p class="test-desc">Dashboard layout and PTO summary widgets.</p>
-        </li>
-        <li class="test-item">
-            <a href="./pto-employee-info-card/test.html">PTO Employee Info Card</a>
-            <p class="test-desc">Employee PTO status and metadata card.</p>
-        </li>
-        <li class="test-item">
-            <a href="./pto-entry-form/test.html">PTO Entry Form</a>
-            <p class="test-desc">PTO entry workflow with spillover handling.</p>
-        </li>
-        <li class="test-item">
-            <a href="./pto-jury-duty-card/test.html">PTO Jury Duty Card</a>
-            <p class="test-desc">Jury duty balances and status display.</p>
-        </li>
-        <li class="test-item">
-            <a href="./pto-request-queue/test.html">PTO Request Queue</a>
-            <p class="test-desc">Queue of pending PTO requests and actions.</p>
-        </li>
-        <li class="test-item">
-            <a href="./pto-sick-card/test.html">PTO Sick Card</a>
-            <p class="test-desc">Sick time balances and status display.</p>
-        </li>
-        <li class="test-item">
-            <a href="./pto-summary-card/test.html">PTO Summary Card</a>
-            <p class="test-desc">Summary of PTO totals and usage.</p>
-        </li>
-        <li class="test-item">
-            <a href="./report-generator/test.html">Report Generator</a>
-            <p class="test-desc">Report creation workflow and export controls.</p>
-        </li>
+      <li class="test-item">
+        <a href="./admin-panel/test.html">Admin Panel</a>
+        <p class="test-desc">Multi-view admin navigation and layout shell.</p>
+      </li>
+      <li class="test-item">
+        <a href="./confirmation-dialog/test.html">Confirmation Dialog</a>
+        <p class="test-desc">Modal confirm/cancel dialog behaviors.</p>
+      </li>
+      <li class="test-item">
+        <a href="./data-table/test.html">Data Table</a>
+        <p class="test-desc">Sortable data table with header and row states.</p>
+      </li>
+      <li class="test-item">
+        <a href="./employee-form/test.html">Employee Form</a>
+        <p class="test-desc">
+          Employee create/edit form validation and layout.
+        </p>
+      </li>
+      <li class="test-item">
+        <a href="./employee-list/test.html">Employee List</a>
+        <p class="test-desc">Searchable list of employees with actions.</p>
+      </li>
+      <li class="test-item">
+        <a href="./pto-accrual-card/test.html">PTO Accrual Card</a>
+        <p class="test-desc">Accrual summary and calendar integration.</p>
+      </li>
+      <li class="test-item">
+        <a href="./pto-bereavement-card/test.html">PTO Bereavement Card</a>
+        <p class="test-desc">Bereavement balances and status display.</p>
+      </li>
+      <li class="test-item">
+        <a href="./pto-calendar/test.html">PTO Calendar</a>
+        <p class="test-desc">Calendar selection UI for PTO requests.</p>
+      </li>
+      <li class="test-item">
+        <a href="./pto-dashboard/test.html">PTO Dashboard</a>
+        <p class="test-desc">Dashboard layout and PTO summary widgets.</p>
+      </li>
+      <li class="test-item">
+        <a href="./pto-employee-info-card/test.html">PTO Employee Info Card</a>
+        <p class="test-desc">Employee PTO status and metadata card.</p>
+      </li>
+      <li class="test-item">
+        <a href="./pto-entry-form/test.html">PTO Entry Form</a>
+        <p class="test-desc">PTO entry workflow with spillover handling.</p>
+      </li>
+      <li class="test-item">
+        <a href="./pto-jury-duty-card/test.html">PTO Jury Duty Card</a>
+        <p class="test-desc">Jury duty balances and status display.</p>
+      </li>
+      <li class="test-item">
+        <a href="./pto-request-queue/test.html">PTO Request Queue</a>
+        <p class="test-desc">Queue of pending PTO requests and actions.</p>
+      </li>
+      <li class="test-item">
+        <a href="./pto-sick-card/test.html">PTO Sick Card</a>
+        <p class="test-desc">Sick time balances and status display.</p>
+      </li>
+      <li class="test-item">
+        <a href="./pto-summary-card/test.html">PTO Summary Card</a>
+        <p class="test-desc">Summary of PTO totals and usage.</p>
+      </li>
+      <li class="test-item">
+        <a href="./report-generator/test.html">Report Generator</a>
+        <p class="test-desc">Report creation workflow and export controls.</p>
+      </li>
     </ul>
-</body>
+  </body>
 </html>
