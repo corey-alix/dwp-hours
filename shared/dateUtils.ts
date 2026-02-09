@@ -2,6 +2,32 @@
  * Date Management Utilities
  * Lightweight bespoke date management using YYYY-MM-DD strings exclusively
  * Avoids timezone issues and provides consistent date handling
+ *
+ * ## Date Handling Guidelines
+ *
+ * ### Core Principles
+ * - Use YYYY-MM-DD strings exclusively for all date operations
+ * - Never use `new Date()` with date strings in client code
+ * - Always use `dateUtils.ts` functions for date manipulation
+ * - Store dates as TEXT columns in SQLite (YYYY-MM-DD format)
+ *
+ * ### Common Pitfalls to Avoid
+ * ❌ `new Date(dateString)` - Creates timezone-dependent Date objects
+ * ❌ `new Date().toISOString().split('T')[0]` - Causes timezone shifts
+ * ❌ `Date.UTC()` mixed with local time operations
+ * ❌ Storing Date objects in database (use strings)
+ *
+ * ### Correct Usage Patterns
+ * ✅ `today()` - Get current date as YYYY-MM-DD string
+ * ✅ `addDays(dateStr, days)` - Add/subtract days safely
+ * ✅ `isWeekend(dateStr)` - Check if date is weekend
+ * ✅ `calculateEndDateFromHours(startDate, hours)` - Business day calculations
+ *
+ * ### Timezone Safety
+ * - All functions work consistently regardless of server timezone
+ * - Client and server use identical date logic
+ * - No timezone conversions or assumptions
+ * - Dates represent calendar dates, not moments in time
  */
 
 /**
