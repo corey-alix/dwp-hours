@@ -11,6 +11,7 @@ Fix critical timezone regression in date handling that causes PTO entries to shi
 ## Checklist
 
 ### Phase 1: Investigation and Audit
+
 - [x] Audit all date creation and serialization code for timezone issues
 - [x] Test date operations in different timezone environments (UTC, UTC+10, UTC-5)
 - [x] Check if database Date storage is timezone-aware and document behavior
@@ -20,12 +21,14 @@ Fix critical timezone regression in date handling that causes PTO entries to shi
 - [x] Create test cases that reproduce the timezone shift issue
 
 ### Phase 2: Enhancement Study
+
 - [x] Analyze `dateUtils.ts` functions and identify candidates for enhancement
 - [x] Determine which operations should be added to `dateUtils.ts` for PTO calculations
 - [x] Establish enhancement patterns and usage guidelines
 - [x] Document enhancement recommendations with pros/cons analysis
 
 ### Phase 3: Implementation
+
 - [x] Enhance `dateUtils.ts` with additional functions for PTO calculations
 - [x] Update all import paths throughout codebase to use `dateUtils.ts`
 - [x] Ensure backward compatibility with existing date strings and APIs
@@ -34,6 +37,7 @@ Fix critical timezone regression in date handling that causes PTO entries to shi
 - [x] Replace problematic `new Date().toISOString().split('T')[0]` with `dateUtils.ts` functions
 
 ### Phase 4: Testing and Validation
+
 - [x] Add comprehensive timezone testing to test suite (multiple TZ environments)
 - [x] Create tests for enhanced `dateUtils.ts` functions
 - [x] Validate all existing date operations continue to work correctly
@@ -43,6 +47,7 @@ Fix critical timezone regression in date handling that causes PTO entries to shi
 - [x] Ensure E2E tests pass with updated client code
 
 ### Phase 5: Deployment and Monitoring
+
 - [x] Deploy changes to staging environment and test thoroughly
 - [x] Monitor for timezone-related issues in production deployment
 - [x] Update documentation with new date handling guidelines

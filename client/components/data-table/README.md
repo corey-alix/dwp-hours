@@ -20,20 +20,21 @@ The Data Table component provides a sortable, paginated table for displaying tab
 <data-table
   data='[{"name": "John", "age": 30}, {"name": "Jane", "age": 25}]'
   columns='[{"key": "name", "label": "Name", "sortable": true}, {"key": "age", "label": "Age", "sortable": true}]'
-  page-size="10">
+  page-size="10"
+>
 </data-table>
 ```
 
 ```javascript
-const table = document.querySelector('data-table');
+const table = document.querySelector("data-table");
 table.data = [
-  { name: 'John', age: 30, department: 'Engineering' },
-  { name: 'Jane', age: 25, department: 'Design' }
+  { name: "John", age: 30, department: "Engineering" },
+  { name: "Jane", age: 25, department: "Design" },
 ];
 table.columns = [
-  { key: 'name', label: 'Name', sortable: true },
-  { key: 'age', label: 'Age', sortable: true },
-  { key: 'department', label: 'Department', sortable: false }
+  { key: "name", label: "Name", sortable: true },
+  { key: "age", label: "Age", sortable: true },
+  { key: "department", label: "Department", sortable: false },
 ];
 ```
 
@@ -53,10 +54,10 @@ table.columns = [
 
 ```typescript
 interface TableColumn {
-  key: string;        // Object property key
-  label: string;      // Display label
+  key: string; // Object property key
+  label: string; // Display label
   sortable?: boolean; // Whether column is sortable (default: false)
-  width?: string;     // CSS width value (optional)
+  width?: string; // CSS width value (optional)
 }
 ```
 
@@ -99,4 +100,4 @@ The component uses the following semantic color variables:
 - **Reactive Updates**: Attribute changes trigger re-rendering
 - **Memory Efficient**: Pagination reduces DOM nodes for large datasets
 - **Type Safe**: TypeScript interfaces for data structures</content>
-<parameter name="filePath">/home/ca0v/code/ca0v/earth/client/components/data-table/README.md
+  <parameter name="filePath">/home/ca0v/code/ca0v/earth/client/components/data-table/README.md

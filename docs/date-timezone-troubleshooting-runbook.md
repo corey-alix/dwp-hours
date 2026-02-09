@@ -9,6 +9,7 @@ This runbook provides procedures for diagnosing and resolving date-related timez
 ### Symptom: PTO entries appear on wrong dates
 
 **Check:**
+
 1. Server timezone: `date +"%Z %z"`
 2. Database entries: Query PTO entries directly
 3. Client logs: Check for timezone warnings
@@ -17,6 +18,7 @@ This runbook provides procedures for diagnosing and resolving date-related timez
 ### Symptom: Date calculations are off by days
 
 **Check:**
+
 1. Code using `new Date(dateString)` instead of `dateUtils.ts`
 2. Mixed UTC/local time operations
 3. Database date storage format
@@ -26,24 +28,28 @@ This runbook provides procedures for diagnosing and resolving date-related timez
 ### Issue 1: Client-side date processing causes timezone shifts
 
 **Symptoms:**
+
 - PTO entries created on date X appear as date X-1 or X+1
 - Issue occurs in non-UTC server environments
 
 **Root Cause:**
+
 ```typescript
 // PROBLEMATIC CODE
 const startDate = new Date(startDateInput.value); // Local timezone
-const dateString = startDate.toISOString().split('T')[0]; // UTC conversion
+const dateString = startDate.toISOString().split("T")[0]; // UTC conversion
 ```
 
 **Solution:**
+
 ```typescript
 // CORRECT CODE
-import { today, addDays, isWeekend } from '../shared/dateUtils.js';
+import { today, addDays, isWeekend } from "../shared/dateUtils.js";
 const startDate = today(); // Always returns YYYY-MM-DD string
 ```
 
 **Prevention:**
+
 - Never use `new Date()` with date strings
 - Always import from `shared/dateUtils.ts`
 - Use E2E tests in multiple timezones
@@ -51,10 +57,12 @@ const startDate = today(); // Always returns YYYY-MM-DD string
 ### Issue 2: Database date storage inconsistencies
 
 **Symptoms:**
+
 - Dates stored incorrectly in database
 - Date queries return wrong results
 
 **Check:**
+
 ```sql
 -- Check date format in database
 SELECT date, typeof(date) FROM pto_entries LIMIT 5;
@@ -62,6 +70,7 @@ SELECT date, typeof(date) FROM pto_entries LIMIT 5;
 ```
 
 **Solution:**
+
 - Ensure all date fields are TEXT columns
 - Use parameterized queries with string dates
 - Validate dates before database insertion
@@ -69,10 +78,12 @@ SELECT date, typeof(date) FROM pto_entries LIMIT 5;
 ### Issue 3: Mixed date utility usage
 
 **Symptoms:**
+
 - Inconsistent date behavior across features
 - Some dates work, others don't
 
 **Check:**
+
 ```bash
 # Find problematic date usage
 grep -r "new Date(" --include="*.ts" --include="*.js" client/ server/
@@ -80,6 +91,7 @@ grep -r "toISOString().split" --include="*.ts" --include="*.js" client/ server/
 ```
 
 **Solution:**
+
 - Audit all date operations
 - Replace with `dateUtils.ts` equivalents
 - Add ESLint rule to prevent problematic patterns
@@ -130,6 +142,7 @@ WHERE date IS NOT NULL;
 ### Production Monitoring
 
 **Log Patterns to Monitor:**
+
 ```
 ERROR.*date.*timezone
 WARN.*date.*shift
@@ -137,6 +150,7 @@ ERROR.*Invalid date string
 ```
 
 **Metrics to Track:**
+
 - Date validation failures
 - Timezone-related errors
 - PTO entry date discrepancies
@@ -144,11 +158,13 @@ ERROR.*Invalid date string
 ### Alert Conditions
 
 **High Priority:**
+
 - Date validation failures > 1%
 - Timezone shift errors in production
 - Database date format violations
 
 **Medium Priority:**
+
 - Client-side date warnings
 - Test failures in non-UTC environments
 
@@ -181,21 +197,23 @@ ERROR.*Invalid date string
 ### Development Best Practices
 
 1. **Always use `dateUtils.ts`:**
+
    ```typescript
-   import { today, addDays, isWeekend } from '../shared/dateUtils.js';
+   import { today, addDays, isWeekend } from "../shared/dateUtils.js";
    ```
 
 2. **Never use these patterns:**
+
    ```typescript
    // ❌ WRONG
-   new Date(dateString)
-   new Date().toISOString().split('T')[0]
-   Date.UTC(year, month, day)
+   new Date(dateString);
+   new Date().toISOString().split("T")[0];
+   Date.UTC(year, month, day);
 
    // ✅ CORRECT
-   parseDate(dateString)
-   today()
-   createDateString(year, month, day)
+   parseDate(dateString);
+   today();
+   createDateString(year, month, day);
    ```
 
 3. **Database operations:**
@@ -227,6 +245,7 @@ ERROR.*Invalid date string
 ## Contact Information
 
 For date-related issues:
+
 - Development Team: Check Slack #dev channel
 - On-call Engineer: Check PagerDuty rotation
 - Documentation: This runbook and related TASK files

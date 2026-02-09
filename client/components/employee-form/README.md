@@ -23,21 +23,22 @@ The Employee Form component provides a comprehensive form for creating and editi
 <!-- Edit existing employee -->
 <employee-form
   employee='{"id": 1, "name": "John Doe", "identifier": "jdoe", "ptoRate": 0.71, "carryoverHours": 0, "role": "Employee"}'
-  is-edit="true">
+  is-edit="true"
+>
 </employee-form>
 ```
 
 ```javascript
-const form = document.querySelector('employee-form');
+const form = document.querySelector("employee-form");
 
 // Listen for form submission
-form.addEventListener('employee-saved', (event) => {
-  console.log('Employee saved:', event.detail);
+form.addEventListener("employee-saved", (event) => {
+  console.log("Employee saved:", event.detail);
 });
 
 // Listen for errors
-form.addEventListener('employee-error', (event) => {
-  console.log('Error:', event.detail);
+form.addEventListener("employee-error", (event) => {
+  console.log("Error:", event.detail);
 });
 ```
 
@@ -55,13 +56,13 @@ form.addEventListener('employee-error', (event) => {
 
 ```typescript
 interface Employee {
-  id?: number;           // Present in edit mode
-  name: string;          // Employee full name
-  identifier: string;    // Unique employee identifier
-  ptoRate: number;       // PTO accrual rate
+  id?: number; // Present in edit mode
+  name: string; // Employee full name
+  identifier: string; // Unique employee identifier
+  ptoRate: number; // PTO accrual rate
   carryoverHours: number; // Carried over PTO hours
-  role: string;          // Employee role
-  hash?: string;         // Password hash (edit mode only)
+  role: string; // Employee role
+  hash?: string; // Password hash (edit mode only)
 }
 ```
 
@@ -119,4 +120,4 @@ interface Employee {
 - **Reactive Rendering**: Updates when attributes change
 - **Form State Management**: Tracks validation and submission states
 - **Event-Driven**: Uses custom events for parent communication</content>
-<parameter name="filePath">/home/ca0v/code/ca0v/earth/client/components/employee-form/README.md
+  <parameter name="filePath">/home/ca0v/code/ca0v/earth/client/components/employee-form/README.md

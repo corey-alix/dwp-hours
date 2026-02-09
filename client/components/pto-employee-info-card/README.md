@@ -16,15 +16,16 @@ The PTO Employee Info Card component displays key employee information related t
 
 ```html
 <pto-employee-info-card
-  data='{"hireDate": "2020-01-15", "nextRolloverDate": "2025-01-01"}'>
+  data='{"hireDate": "2020-01-15", "nextRolloverDate": "2025-01-01"}'
+>
 </pto-employee-info-card>
 ```
 
 ```javascript
-const card = document.querySelector('pto-employee-info-card');
+const card = document.querySelector("pto-employee-info-card");
 card.info = {
   hireDate: "2020-01-15",
-  nextRolloverDate: "2025-01-01"
+  nextRolloverDate: "2025-01-01",
 };
 ```
 
@@ -40,7 +41,7 @@ card.info = {
 
 ```typescript
 type EmployeeInfoData = {
-  hireDate: string;        // Employee hire date (YYYY-MM-DD)
+  hireDate: string; // Employee hire date (YYYY-MM-DD)
   nextRolloverDate: string; // Next PTO rollover date (YYYY-MM-DD)
 };
 ```
@@ -77,4 +78,4 @@ Inherits from base PTO card component:
 - **Reactive Updates**: Updates when data attributes change
 - **Type Safety**: Full TypeScript interfaces for employee data
 - **Loading States**: Graceful handling of missing data</content>
-<parameter name="filePath">/home/ca0v/code/ca0v/earth/client/components/pto-employee-info-card/README.md
+  <parameter name="filePath">/home/ca0v/code/ca0v/earth/client/components/pto-employee-info-card/README.md

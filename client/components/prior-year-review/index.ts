@@ -1,96 +1,96 @@
 import type { PTOYearReviewResponse } from "../../../shared/api-models.js";
 import {
-    parseDate,
-    addDays,
-    getCalendarStartDate,
-    isInMonth,
-    compareDates,
+  parseDate,
+  addDays,
+  getCalendarStartDate,
+  isInMonth,
+  compareDates,
 } from "../../../shared/dateUtils.js";
 
 const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 const PTO_TYPE_COLORS: Record<string, string> = {
-    PTO: "var(--color-pto-vacation)",
-    Sick: "var(--color-pto-sick)",
-    Bereavement: "var(--color-pto-bereavement)",
-    "Jury Duty": "var(--color-pto-jury-duty)",
-    "Work Day": "var(--color-surface)",
+  PTO: "var(--color-pto-vacation)",
+  Sick: "var(--color-pto-sick)",
+  Bereavement: "var(--color-pto-bereavement)",
+  "Jury Duty": "var(--color-pto-jury-duty)",
+  "Work Day": "var(--color-surface)",
 };
 
 export class PriorYearReview extends HTMLElement {
-    private shadow: ShadowRoot;
-    private _data: PTOYearReviewResponse | null = null;
+  private shadow: ShadowRoot;
+  private _data: PTOYearReviewResponse | null = null;
 
-    constructor() {
-        super();
-        this.shadow = this.attachShadow({ mode: "open" });
+  constructor() {
+    super();
+    this.shadow = this.attachShadow({ mode: "open" });
+  }
+
+  get data(): PTOYearReviewResponse | null {
+    return this._data;
+  }
+
+  set data(value: PTOYearReviewResponse | null) {
+    this._data = value;
+    this.render();
+  }
+
+  connectedCallback() {
+    this.render();
+  }
+
+  private renderMonth(monthData: PTOYearReviewResponse["months"][0]): string {
+    const monthName = monthNames[monthData.month - 1];
+    const year = this.data!.year;
+
+    // Create a calendar grid that always shows 6 weeks (42 days) for consistent height
+    const startDateStr = getCalendarStartDate(year, monthData.month);
+    const endDateStr = addDays(startDateStr, 41); // 6 weeks * 7 days - 1 = 41 days to add for 42 total days
+
+    const calendarDays: {
+      dateStr: string;
+      isCurrentMonth: boolean;
+      entry?: { type: string; hours: number };
+    }[] = [];
+
+    let currentDateStr = startDateStr;
+    while (compareDates(currentDateStr, endDateStr) <= 0) {
+      const entriesForDate = monthData.ptoEntries.filter(
+        (e) => e.date === currentDateStr,
+      );
+      const isCurrentMonth = isInMonth(currentDateStr, year, monthData.month);
+
+      let entry: { type: string; hours: number } | undefined;
+      if (entriesForDate.length > 0) {
+        // For simplicity, show the first entry or combine if multiple
+        const totalHours = entriesForDate.reduce((sum, e) => sum + e.hours, 0);
+        entry = { type: entriesForDate[0].type, hours: totalHours };
+      }
+
+      calendarDays.push({
+        dateStr: currentDateStr,
+        isCurrentMonth,
+        entry,
+      });
+      currentDateStr = addDays(currentDateStr, 1);
     }
 
-    get data(): PTOYearReviewResponse | null {
-        return this._data;
-    }
+    const weekdays = ["S", "M", "T", "W", "T", "F", "S"]; // Short weekday names
 
-    set data(value: PTOYearReviewResponse | null) {
-        this._data = value;
-        this.render();
-    }
-
-    connectedCallback() {
-        this.render();
-    }
-
-    private renderMonth(monthData: PTOYearReviewResponse["months"][0]): string {
-        const monthName = monthNames[monthData.month - 1];
-        const year = this.data!.year;
-
-        // Create a calendar grid that always shows 6 weeks (42 days) for consistent height
-        const startDateStr = getCalendarStartDate(year, monthData.month);
-        const endDateStr = addDays(startDateStr, 41); // 6 weeks * 7 days - 1 = 41 days to add for 42 total days
-
-        const calendarDays: {
-            dateStr: string;
-            isCurrentMonth: boolean;
-            entry?: { type: string; hours: number };
-        }[] = [];
-
-        let currentDateStr = startDateStr;
-        while (compareDates(currentDateStr, endDateStr) <= 0) {
-            const entriesForDate = monthData.ptoEntries.filter(
-                (e) => e.date === currentDateStr,
-            );
-            const isCurrentMonth = isInMonth(currentDateStr, year, monthData.month);
-
-            let entry: { type: string; hours: number } | undefined;
-            if (entriesForDate.length > 0) {
-                // For simplicity, show the first entry or combine if multiple
-                const totalHours = entriesForDate.reduce((sum, e) => sum + e.hours, 0);
-                entry = { type: entriesForDate[0].type, hours: totalHours };
-            }
-
-            calendarDays.push({
-                dateStr: currentDateStr,
-                isCurrentMonth,
-                entry,
-            });
-            currentDateStr = addDays(currentDateStr, 1);
-        }
-
-        const weekdays = ["S", "M", "T", "W", "T", "F", "S"]; // Short weekday names
-
-        return `
+    return `
             <div class="month-card">
                 <div class="month-header">${monthName} ${year}</div>
                 <div class="month-calendar">
@@ -99,23 +99,23 @@ export class PriorYearReview extends HTMLElement {
                     </div>
                     <div class="calendar-grid">
                         ${calendarDays
-                .map(({ dateStr, isCurrentMonth, entry }) => {
-                    const dayClass = entry
-                        ? `day type-${entry.type.replace(/\s+/g, "-")}`
-                        : "day";
-                    const emptyClass = isCurrentMonth ? "" : "empty";
-                    const hoursDisplay = entry
-                        ? entry.hours.toFixed(0)
-                        : "";
-                    const dayNumber = parseDate(dateStr).day;
-                    return `
+                          .map(({ dateStr, isCurrentMonth, entry }) => {
+                            const dayClass = entry
+                              ? `day type-${entry.type.replace(/\s+/g, "-")}`
+                              : "day";
+                            const emptyClass = isCurrentMonth ? "" : "empty";
+                            const hoursDisplay = entry
+                              ? entry.hours.toFixed(0)
+                              : "";
+                            const dayNumber = parseDate(dateStr).day;
+                            return `
                                 <div class="${dayClass} ${emptyClass}">
                                     <div class="date">${dayNumber}</div>
                                     ${hoursDisplay ? `<div class="hours">${hoursDisplay}</div>` : ""}
                                 </div>
                             `;
-                })
-                .join("")}
+                          })
+                          .join("")}
                     </div>
                 </div>
                 <div class="month-summary">
@@ -138,10 +138,10 @@ export class PriorYearReview extends HTMLElement {
                 </div>
             </div>
         `;
-    }
+  }
 
-    private render(): void {
-        this.shadow.innerHTML = `
+  private render(): void {
+    this.shadow.innerHTML = `
             <style>
                 .container {
                     padding: 16px;
@@ -298,29 +298,30 @@ export class PriorYearReview extends HTMLElement {
             </style>
 
             <div class="container">
-                ${this.data
-                ? this.data.months.some((m) => m.ptoEntries.length > 0)
-                    ? `
+                ${
+                  this.data
+                    ? this.data.months.some((m) => m.ptoEntries.length > 0)
+                      ? `
                         <div class="months-grid">
                             ${this.data.months.map((month) => this.renderMonth(month)).join("")}
                         </div>
                     `
-                    : `
+                      : `
                         <div class="no-data">No data available</div>
                     `
-                : `
+                    : `
                 <div class="no-data">No data available</div>
             `
-            }
+                }
             </div>
         `;
 
-        this.attachEventListeners();
-    }
+    this.attachEventListeners();
+  }
 
-    private attachEventListeners(): void {
-        // No event listeners needed for this component
-    }
+  private attachEventListeners(): void {
+    // No event listeners needed for this component
+  }
 }
 
 customElements.define("prior-year-review", PriorYearReview);

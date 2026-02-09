@@ -17,17 +17,18 @@ The PTO Summary Card component displays a comprehensive overview of an employee'
 
 ```html
 <pto-summary-card
-  data='{"annualAllocation": 96, "availablePTO": 56, "usedPTO": 40, "carryoverFromPreviousYear": 0}'>
+  data='{"annualAllocation": 96, "availablePTO": 56, "usedPTO": 40, "carryoverFromPreviousYear": 0}'
+>
 </pto-summary-card>
 ```
 
 ```javascript
-const card = document.querySelector('pto-summary-card');
+const card = document.querySelector("pto-summary-card");
 card.summary = {
   annualAllocation: 96,
   availablePTO: 56,
   usedPTO: 40,
-  carryoverFromPreviousYear: 0
+  carryoverFromPreviousYear: 0,
 };
 ```
 
@@ -43,9 +44,9 @@ card.summary = {
 
 ```typescript
 type SummaryData = {
-  annualAllocation: number;        // Total PTO hours allocated annually
-  availablePTO: number;            // Currently available PTO hours
-  usedPTO: number;                 // PTO hours already used
+  annualAllocation: number; // Total PTO hours allocated annually
+  availablePTO: number; // Currently available PTO hours
+  usedPTO: number; // PTO hours already used
   carryoverFromPreviousYear: number; // Carried over hours from previous year
 };
 ```
@@ -83,4 +84,4 @@ Inherits from base PTO card component:
 - **Reactive Updates**: Updates when data attributes change
 - **Negative Balance Handling**: Special formatting and coloring for deficits
 - **Type Safety**: Full TypeScript interfaces for summary data</content>
-<parameter name="filePath">/home/ca0v/code/ca0v/earth/client/components/pto-summary-card/README.md
+  <parameter name="filePath">/home/ca0v/code/ca0v/earth/client/components/pto-summary-card/README.md

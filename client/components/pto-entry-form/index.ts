@@ -101,15 +101,15 @@ export class PtoEntryForm extends HTMLElement {
 
   private updateLabelText(label: HTMLLabelElement, text: string): void {
     // Preserve the required asterisk span when updating label text
-    const asteriskSpan = label.querySelector('.required');
+    const asteriskSpan = label.querySelector(".required");
     label.textContent = text;
     if (asteriskSpan) {
       label.appendChild(asteriskSpan);
     } else {
       // If no asterisk span exists, add one
-      const span = document.createElement('span');
-      span.className = 'required';
-      span.textContent = '*';
+      const span = document.createElement("span");
+      span.className = "required";
+      span.textContent = "*";
       label.appendChild(span);
     }
   }
