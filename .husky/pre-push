@@ -1,6 +1,3 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 # Pre-push hook that checks if pushing to main branch
 # Arguments: <local ref> <local sha> <remote ref> <remote sha>
 
