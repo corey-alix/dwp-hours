@@ -108,7 +108,6 @@
     },
     "devDependencies": {
         "@playwright/test": "^1.58.1",
-        "@types/body-parser": "^1.19.6",
         "@types/cors": "^2.8.19",
         "@types/express": "^5.0.6",
         "@types/jsdom": "^27.0.0",
