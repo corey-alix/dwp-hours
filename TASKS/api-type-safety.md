@@ -13,10 +13,10 @@ Implement strong typings for the API client to enable type-safe consumption of s
 ## Checklist
 
 - [X] Move existing client types from `client/api-types.d.ts` to `shared/api-models.ts`
-- [ ] Create entity transformation utilities in `shared/entity-transforms.ts`
-- [ ] Update server routes to use shared types and transformation utilities
-- [ ] Update client to import types from `shared/api-models.ts`
-- [ ] Verify TypeScript compilation and existing tests pass
+- [X] Create entity transformation utilities in `shared/entity-transforms.ts`
+- [X] Update server routes to use shared types and transformation utilities
+- [X] Update client to import types from `shared/api-models.ts`
+- [X] Verify TypeScript compilation and existing tests pass
 
 ## Implementation Notes
 
