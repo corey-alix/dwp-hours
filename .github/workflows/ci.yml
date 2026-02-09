@@ -114,7 +114,6 @@ jobs:
           name: Test Results Summary
           path: "test-results/junit-*.xml"
           reporter: java-junit
-          comment: true
           fail-on-error: false
 
       - name: Notify on Failure
