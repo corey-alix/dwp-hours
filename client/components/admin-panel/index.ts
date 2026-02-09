@@ -1,63 +1,63 @@
-import { APIClient } from '../../APIClient.js';
-import type * as ApiTypes from '../../api-types.js';
-import { today } from '../../../shared/dateUtils.js';
+import { APIClient } from "../../APIClient.js";
+import type * as ApiTypes from "../../api-types.js";
+import { today } from "../../../shared/dateUtils.js";
 
 interface Employee {
-    id: number;
-    name: string;
-    identifier: string;
-    ptoRate: number;
-    carryoverHours: number;
-    hireDate: string;
-    role: string;
-    hash?: string;
+  id: number;
+  name: string;
+  identifier: string;
+  ptoRate: number;
+  carryoverHours: number;
+  hireDate: string;
+  role: string;
+  hash?: string;
 }
 
 export class AdminPanel extends HTMLElement {
-    private shadow: ShadowRoot;
-    private _currentView = 'pto-requests';
-    private _employees: Employee[] = [];
-    private _showEmployeeForm = false;
-    private _editingEmployee: Employee | null = null;
-    private api = new APIClient();
+  private shadow: ShadowRoot;
+  private _currentView = "pto-requests";
+  private _employees: Employee[] = [];
+  private _showEmployeeForm = false;
+  private _editingEmployee: Employee | null = null;
+  private api = new APIClient();
 
-    constructor() {
-        super();
-        this.shadow = this.attachShadow({ mode: 'open' });
+  constructor() {
+    super();
+    this.shadow = this.attachShadow({ mode: "open" });
+  }
+
+  static get observedAttributes() {
+    return ["current-view"];
+  }
+
+  connectedCallback() {
+    this.render();
+    this.setupEventListeners();
+    this.setupChildEventListeners();
+  }
+
+  attributeChangedCallback(name: string, oldValue: string, newValue: string) {
+    if (oldValue !== newValue && name === "current-view") {
+      this._currentView = newValue;
+      if (newValue === "employees") {
+        this.loadEmployees();
+      }
+      this.render();
+      this.setupEventListeners();
+      this.setupChildEventListeners();
     }
+  }
 
-    static get observedAttributes() {
-        return ['current-view'];
-    }
+  set currentView(value: string) {
+    this.setAttribute("current-view", value);
+  }
 
-    connectedCallback() {
-        this.render();
-        this.setupEventListeners();
-        this.setupChildEventListeners();
-    }
+  get currentView(): string {
+    return this.getAttribute("current-view") || "pto-requests";
+  }
 
-    attributeChangedCallback(name: string, oldValue: string, newValue: string) {
-        if (oldValue !== newValue && name === 'current-view') {
-            this._currentView = newValue;
-            if (newValue === 'employees') {
-                this.loadEmployees();
-            }
-            this.render();
-            this.setupEventListeners();
-            this.setupChildEventListeners();
-        }
-    }
-
-    set currentView(value: string) {
-        this.setAttribute('current-view', value);
-    }
-
-    get currentView(): string {
-        return this.getAttribute('current-view') || 'pto-requests';
-    }
-
-    private render() {
-        this.shadow.innerHTML = `
+  private render() {
+    this.shadow.innerHTML = `
             <style>
                 :host {
                     display: block;
@@ -176,22 +176,22 @@ export class AdminPanel extends HTMLElement {
                     <nav>
                         <ul class="nav-menu">
                             <li class="nav-item">
-                                <a href="#" class="nav-link ${this._currentView === 'pto-requests' ? 'active' : ''}" data-view="pto-requests">
+                                <a href="#" class="nav-link ${this._currentView === "pto-requests" ? "active" : ""}" data-view="pto-requests">
                                     📋 PTO Requests
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="#" class="nav-link ${this._currentView === 'employees' ? 'active' : ''}" data-view="employees">
+                                <a href="#" class="nav-link ${this._currentView === "employees" ? "active" : ""}" data-view="employees">
                                     👥 Employees
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="#" class="nav-link ${this._currentView === 'reports' ? 'active' : ''}" data-view="reports">
+                                <a href="#" class="nav-link ${this._currentView === "reports" ? "active" : ""}" data-view="reports">
                                     📊 Reports
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="#" class="nav-link ${this._currentView === 'settings' ? 'active' : ''}" data-view="settings">
+                                <a href="#" class="nav-link ${this._currentView === "settings" ? "active" : ""}" data-view="settings">
                                     ⚙️ Settings
                                 </a>
                             </li>
@@ -211,31 +211,31 @@ export class AdminPanel extends HTMLElement {
                 </main>
             </div>
         `;
-    }
+  }
 
-    private getViewTitle(view: string): string {
-        const titles: Record<string, string> = {
-            employees: 'Employee Management',
-            'pto-requests': 'PTO Request Queue',
-            reports: 'Reports & Analytics',
-            settings: 'System Settings'
-        };
-        return titles[view] || 'Admin Panel';
-    }
+  private getViewTitle(view: string): string {
+    const titles: Record<string, string> = {
+      employees: "Employee Management",
+      "pto-requests": "PTO Request Queue",
+      reports: "Reports & Analytics",
+      settings: "System Settings",
+    };
+    return titles[view] || "Admin Panel";
+  }
 
-    private renderCurrentView(): string {
-        switch (this._currentView) {
-            case 'employees':
-                const employeeForm = this._showEmployeeForm ?
-                    `<employee-form employee='${JSON.stringify(this._editingEmployee)}' is-edit='${!!this._editingEmployee}'></employee-form>` :
-                    '';
-                return `<employee-list employees='${JSON.stringify(this._employees)}'></employee-list>${employeeForm}`;
-            case 'pto-requests':
-                return '<pto-request-queue></pto-request-queue>';
-            case 'reports':
-                return '<report-generator></report-generator>';
-            case 'settings':
-                return `
+  private renderCurrentView(): string {
+    switch (this._currentView) {
+      case "employees":
+        const employeeForm = this._showEmployeeForm
+          ? `<employee-form employee='${JSON.stringify(this._editingEmployee)}' is-edit='${!!this._editingEmployee}'></employee-form>`
+          : "";
+        return `<employee-list employees='${JSON.stringify(this._employees)}'></employee-list>${employeeForm}`;
+      case "pto-requests":
+        return "<pto-request-queue></pto-request-queue>";
+      case "reports":
+        return "<report-generator></report-generator>";
+      case "settings":
+        return `
                     <div style="padding: 20px;">
                         <h3 style="margin: 0 0 12px;">Settings</h3>
                         <ul style="margin: 0; padding-left: 18px;">
@@ -245,131 +245,140 @@ export class AdminPanel extends HTMLElement {
                         </ul>
                     </div>
                 `;
-            default:
-                return '<div style="padding: 20px;">Select a view from the sidebar</div>';
-        }
+      default:
+        return '<div style="padding: 20px;">Select a view from the sidebar</div>';
     }
+  }
 
-    private setupChildEventListeners() {
-        // Handle events from child components
-        this.shadow.addEventListener('add-employee', () => {
-            this.showEmployeeForm();
+  private setupChildEventListeners() {
+    // Handle events from child components
+    this.shadow.addEventListener("add-employee", () => {
+      this.showEmployeeForm();
+    });
+
+    this.shadow.addEventListener("employee-edit", ((e: Event) => {
+      const employeeId = (e as CustomEvent).detail.employeeId;
+      this.showEmployeeForm(employeeId);
+    }) as EventListener);
+
+    this.shadow.addEventListener("employee-submit", ((e: Event) => {
+      const { employee, isEdit } = (e as CustomEvent).detail;
+      this.handleEmployeeSubmit(employee, isEdit);
+    }) as EventListener);
+
+    this.shadow.addEventListener("form-cancel", () => {
+      this.hideEmployeeForm();
+    });
+
+    this.shadow.addEventListener("employee-delete", ((e: Event) => {
+      this.dispatchEvent(
+        new CustomEvent("employee-delete", {
+          detail: (e as CustomEvent).detail,
+          bubbles: true,
+          composed: true,
+        }),
+      );
+    }) as EventListener);
+
+    this.shadow.addEventListener("employee-acknowledge", ((e: Event) => {
+      this.dispatchEvent(
+        new CustomEvent("employee-acknowledge", {
+          detail: (e as CustomEvent).detail,
+          bubbles: true,
+          composed: true,
+        }),
+      );
+    }) as EventListener);
+  }
+
+  private setupEventListeners() {
+    const navLinks = this.shadow.querySelectorAll(".nav-link");
+    navLinks.forEach((link) => {
+      link.addEventListener("click", (e) => {
+        e.preventDefault();
+        const target = (e.target as HTMLElement).closest(
+          ".nav-link",
+        ) as HTMLElement | null;
+        const view = target?.getAttribute("data-view");
+        if (view) {
+          this.currentView = view;
+          this.dispatchEvent(
+            new CustomEvent("view-change", {
+              detail: { view },
+            }),
+          );
+        }
+      });
+    });
+  }
+
+  private async loadEmployees() {
+    try {
+      const response = await this.api.getEmployees();
+      this._employees = response.map((emp: any) => ({
+        id: emp.id,
+        name: emp.name,
+        identifier: emp.identifier,
+        ptoRate: 0.71, // Default, could be fetched from server
+        carryoverHours: 0, // Default, could be fetched from server
+        hireDate: emp.hire_date,
+        role: emp.role,
+        hash: "", // Not needed for display
+      }));
+      this.render();
+      this.setupChildEventListeners();
+    } catch (error) {
+      console.error("Failed to load employees:", error);
+      // Could show error message to user
+    }
+  }
+
+  private showEmployeeForm(employeeId?: number) {
+    if (employeeId) {
+      this._editingEmployee =
+        this._employees.find((emp) => emp.id === employeeId) || null;
+    } else {
+      this._editingEmployee = null;
+    }
+    this._showEmployeeForm = true;
+    this.render();
+    this.setupChildEventListeners();
+  }
+
+  private hideEmployeeForm() {
+    this._showEmployeeForm = false;
+    this._editingEmployee = null;
+    this.render();
+    this.setupChildEventListeners();
+  }
+
+  private async handleEmployeeSubmit(employee: Employee, isEdit: boolean) {
+    try {
+      if (isEdit) {
+        await this.api.updateEmployee(employee.id!, {
+          name: employee.name,
+          identifier: employee.identifier,
+          ptoRate: employee.ptoRate,
+          carryoverHours: employee.carryoverHours,
+          role: employee.role,
         });
-
-        this.shadow.addEventListener('employee-edit', ((e: Event) => {
-            const employeeId = (e as CustomEvent).detail.employeeId;
-            this.showEmployeeForm(employeeId);
-        }) as EventListener);
-
-        this.shadow.addEventListener('employee-submit', ((e: Event) => {
-            const { employee, isEdit } = (e as CustomEvent).detail;
-            this.handleEmployeeSubmit(employee, isEdit);
-        }) as EventListener);
-
-        this.shadow.addEventListener('form-cancel', () => {
-            this.hideEmployeeForm();
+      } else {
+        await this.api.createEmployee({
+          name: employee.name,
+          identifier: employee.identifier,
+          ptoRate: employee.ptoRate,
+          carryoverHours: employee.carryoverHours,
+          hireDate: today(), // Today's date as default
+          role: employee.role,
         });
-
-        this.shadow.addEventListener('employee-delete', ((e: Event) => {
-            this.dispatchEvent(new CustomEvent('employee-delete', {
-                detail: (e as CustomEvent).detail,
-                bubbles: true,
-                composed: true
-            }));
-        }) as EventListener);
-
-        this.shadow.addEventListener('employee-acknowledge', ((e: Event) => {
-            this.dispatchEvent(new CustomEvent('employee-acknowledge', {
-                detail: (e as CustomEvent).detail,
-                bubbles: true,
-                composed: true
-            }));
-        }) as EventListener);
+      }
+      this.hideEmployeeForm();
+      await this.loadEmployees(); // Refresh the list
+    } catch (error) {
+      console.error("Failed to save employee:", error);
+      // Could show error message to user
     }
-
-    private setupEventListeners() {
-        const navLinks = this.shadow.querySelectorAll('.nav-link');
-        navLinks.forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const target = (e.target as HTMLElement).closest('.nav-link') as HTMLElement | null;
-                const view = target?.getAttribute('data-view');
-                if (view) {
-                    this.currentView = view;
-                    this.dispatchEvent(new CustomEvent('view-change', {
-                        detail: { view }
-                    }));
-                }
-            });
-        });
-    }
-
-    private async loadEmployees() {
-        try {
-            const response = await this.api.getEmployees();
-            this._employees = response.map((emp: any) => ({
-                id: emp.id,
-                name: emp.name,
-                identifier: emp.identifier,
-                ptoRate: 0.71, // Default, could be fetched from server
-                carryoverHours: 0, // Default, could be fetched from server
-                hireDate: emp.hire_date,
-                role: emp.role,
-                hash: '' // Not needed for display
-            }));
-            this.render();
-            this.setupChildEventListeners();
-        } catch (error) {
-            console.error('Failed to load employees:', error);
-            // Could show error message to user
-        }
-    }
-
-    private showEmployeeForm(employeeId?: number) {
-        if (employeeId) {
-            this._editingEmployee = this._employees.find(emp => emp.id === employeeId) || null;
-        } else {
-            this._editingEmployee = null;
-        }
-        this._showEmployeeForm = true;
-        this.render();
-        this.setupChildEventListeners();
-    }
-
-    private hideEmployeeForm() {
-        this._showEmployeeForm = false;
-        this._editingEmployee = null;
-        this.render();
-        this.setupChildEventListeners();
-    }
-
-    private async handleEmployeeSubmit(employee: Employee, isEdit: boolean) {
-        try {
-            if (isEdit) {
-                await this.api.updateEmployee(employee.id!, {
-                    name: employee.name,
-                    identifier: employee.identifier,
-                    ptoRate: employee.ptoRate,
-                    carryoverHours: employee.carryoverHours,
-                    role: employee.role
-                });
-            } else {
-                await this.api.createEmployee({
-                    name: employee.name,
-                    identifier: employee.identifier,
-                    ptoRate: employee.ptoRate,
-                    carryoverHours: employee.carryoverHours,
-                    hireDate: today(), // Today's date as default
-                    role: employee.role
-                });
-            }
-            this.hideEmployeeForm();
-            await this.loadEmployees(); // Refresh the list
-        } catch (error) {
-            console.error('Failed to save employee:', error);
-            // Could show error message to user
-        }
-    }
+  }
 }
 
-customElements.define('admin-panel', AdminPanel);
+customElements.define("admin-panel", AdminPanel);

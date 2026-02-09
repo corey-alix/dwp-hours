@@ -2,7 +2,7 @@
 description: Generate detailed regression reports with clarifying questions and additional context
 name: issue
 agent: agent
-tools: [agent,edit,execute,read,search,todo,vscode,web]
+tools: [agent, edit, execute, read, search, todo, vscode, web]
 ---
 
 # Regression Issue Reporter
@@ -34,7 +34,7 @@ Generate a comprehensive regression report by capturing the defect details and a
    - Steps to verify the regression
    - Areas to check for related issues
    - Test cases to run
-   Use the Staged Action Plan skill ([.github/skills/staged-action-plan/SKILL.md](../skills/staged-action-plan/SKILL.md)) to organize the investigation into testable phases.
+     Use the Staged Action Plan skill ([.github/skills/staged-action-plan/SKILL.md](../skills/staged-action-plan/SKILL.md)) to organize the investigation into testable phases.
 
 5. **Create Task File**:
    - Generate a new file in the `TASKS/` folder named `issue-[brief-description].md`
@@ -62,24 +62,29 @@ Impact: [Severity and affected users]
 The login button on the main page is no longer responding to clicks, preventing user authentication.
 
 **Previously Working:**
+
 - Login button was clickable and initiated authentication flow
 - Users could successfully log in using email/password
 
 **Current Behavior:**
+
 - Button appears visually normal but clicking has no effect
 - No console errors or network requests triggered
 - Form submission not working
 
 **Expected Behavior:**
+
 - Clicking login button should validate form and submit authentication request
 - Successful login should redirect to dashboard
 
 **Potential Root Causes:**
+
 - Recent JavaScript changes in `client/app.ts` may have broken event listeners
 - CSS changes could be overlaying the button, preventing clicks
 - Authentication API endpoint changes might be causing silent failures
 
 **Clarifying Questions:**
+
 1. When did this regression first appear? After which deployment/commit?
 2. Does this affect all browsers or specific ones (Chrome, Firefox, Safari)?
 3. Are there any console errors when clicking the button?
@@ -87,6 +92,7 @@ The login button on the main page is no longer responding to clicks, preventing 
 5. Are there any recent changes to form validation or event handling?
 
 **Investigation Checklist:**
+
 - [ ] Check browser console for JavaScript errors
 - [ ] Verify event listeners are attached to login button
 - [ ] Test authentication API endpoint directly
@@ -95,6 +101,7 @@ The login button on the main page is no longer responding to clicks, preventing 
 - [ ] Run existing E2E tests for login flow
 
 **Suggested Debugging Steps:**
+
 1. Add console.log to button click handler to verify execution
 2. Check if form validation is preventing submission
 3. Inspect element to verify button is not obscured

@@ -9,6 +9,7 @@ A Node.js application for tracking monthly hours worked and managing Paid Time O
 This application allows employees to log various types of time off (Sick, PTO, Bereavement, Jury Duty) for specific date ranges, including total hours. Users can view their PTO status for the entire year, broken down by month. An admin panel provides oversight for managing users and reviewing PTO usage.
 
 **PTO Calculation Rules:**
+
 - At the start of each year, the system automatically debits PTO entries with **96 hours of "PTO"** and **24 hours of "Sick"** dated January 1st
 - PTO carryover from the prior year is added as an additional PTO entry on January 1st
 - "Sick" time is **reset to 24 hours at the start of each year** (no carryover for sick time)
@@ -25,62 +26,75 @@ The system ensures accurate tracking per employee with individual rates and carr
 ## Screenshots
 
 ### PTO Submission Form
+
 ![PTO Submission Form](assets/pto-submission-form.png)
 
-*Submit time off requests by selecting a start date and total hours. The system automatically calculates the end date based on workdays.*
+_Submit time off requests by selecting a start date and total hours. The system automatically calculates the end date based on workdays._
 
 ### Admin Panel Components
 
 #### Admin Panel Overview
+
 ![Admin Panel](assets/admin-panel-component.png)
 
 #### Employee Management
+
 ![Employee Form](assets/employee-form-component.png)
 ![Employee List](assets/employee-list-component.png)
 
 #### PTO Request Queue
+
 ![PTO Request Queue](assets/pto-request-queue-component.png)
 
 #### Data Tables
+
 ![Data Table](assets/data-table-component.png)
 
 #### Report Generation
+
 ![Report Generator](assets/report-generator-component.png)
 
 #### Confirmation Dialogs
+
 ![Confirmation Dialog](assets/confirmation-dialog-component.png)
 
 ### PTO Dashboard Components
 
 #### PTO Summary Card
+
 ![PTO Summary Card](assets/pto-summary-card-component.png)
 
-*Displays overall PTO allocation and usage summary.*
+_Displays overall PTO allocation and usage summary._
 
 #### PTO Accrual Card
+
 ![PTO Accrual Card](assets/pto-accrual-card-component.png)
 
-*Shows monthly PTO accruals with interactive calendar views for detailed usage.*
+_Shows monthly PTO accruals with interactive calendar views for detailed usage._
 
 #### PTO Sick Card
+
 ![PTO Sick Card](assets/pto-sick-card-component.png)
 
-*Tracks sick time allocation, usage, and remaining balance.*
+_Tracks sick time allocation, usage, and remaining balance._
 
 #### PTO Bereavement Card
+
 ![PTO Bereavement Card](assets/pto-bereavement-card-component.png)
 
-*Manages bereavement time with date-specific entries.*
+_Manages bereavement time with date-specific entries._
 
 #### PTO Jury Duty Card
+
 ![PTO Jury Duty Card](assets/pto-jury-duty-card-component.png)
 
-*Handles jury duty time tracking and reporting.*
+_Handles jury duty time tracking and reporting._
 
 #### PTO Employee Info Card
+
 ![PTO Employee Info Card](assets/pto-employee-info-card-component.png)
 
-*Displays employee information and PTO rate details.*
+_Displays employee information and PTO rate details._
 
 ## Features
 
@@ -91,9 +105,9 @@ The system ensures accurate tracking per employee with individual rates and carr
   - Types: Sick, PTO, Bereavement, Jury Duty
   - Select start date and total hours, with automatic calculation of the date range covering the specified number of workdays
 - **PTO Status Dashboard**: View annual PTO status by month
-   - **Monthly Accrual Breakdown UI**: Rendered as a two-column grid (month name on the left, hours on the right). Each row includes a clickable Calendar icon that reveals a month view. The month view uses legacy color coding for PTO types as documented in [`.github/skills/pto-spreadsheet-layout/SKILL.md`](.github/skills/pto-spreadsheet-layout/SKILL.md), and each day cell shows the number of hours in the bottom-right corner.
-   - **Sick/Bereavement/Jury Duty Detail**: Each of these cards must list the specific dates taken and the hours for each date, not just the totals.
-   - **PTO Section Cards**: Each `pto-section` is a dedicated web component derived from a shared base card component (one component per PTO aspect: Regular PTO, Monthly Accruals, Sick Time, Bereavement, Jury Duty, Employee Info). This keeps dashboard rendering consistent and testable.
+  - **Monthly Accrual Breakdown UI**: Rendered as a two-column grid (month name on the left, hours on the right). Each row includes a clickable Calendar icon that reveals a month view. The month view uses legacy color coding for PTO types as documented in [`.github/skills/pto-spreadsheet-layout/SKILL.md`](.github/skills/pto-spreadsheet-layout/SKILL.md), and each day cell shows the number of hours in the bottom-right corner.
+  - **Sick/Bereavement/Jury Duty Detail**: Each of these cards must list the specific dates taken and the hours for each date, not just the totals.
+  - **PTO Section Cards**: Each `pto-section` is a dedicated web component derived from a shared base card component (one component per PTO aspect: Regular PTO, Monthly Accruals, Sick Time, Bereavement, Jury Duty, Employee Info). This keeps dashboard rendering consistent and testable.
 - **Prior Year Review**: Users can review PTO data from previous years
   - Render all twelve months (January → December) in a grid layout for the prior year
   - Dedicated web component integrated into the main dashboard
@@ -170,19 +184,20 @@ This project uses a lightweight bespoke DOM utility library (`client/components/
 - **`createElement<T>(tagName, attributes?)`** - Creates elements with optional attributes
 
 **Usage Examples:**
+
 ```typescript
 // ❌ Avoid direct DOM queries
-const button = document.getElementById('my-button') as HTMLButtonElement;
+const button = document.getElementById("my-button") as HTMLButtonElement;
 if (!button) {
-    console.error('Button not found');
-    throw new Error('Button not found');
+  console.error("Button not found");
+  throw new Error("Button not found");
 }
-button.addEventListener('click', handler);
+button.addEventListener("click", handler);
 
 // ✅ Use DOM utilities
-import { getElementById, addEventListener } from './components/test-utils.js';
-const button = getElementById<HTMLButtonElement>('my-button');
-addEventListener(button, 'click', handler);
+import { getElementById, addEventListener } from "./components/test-utils.js";
+const button = getElementById<HTMLButtonElement>("my-button");
+addEventListener(button, "click", handler);
 ```
 
 This approach ensures reliable DOM interactions, easier debugging during development, and consistent error handling patterns throughout the codebase.
@@ -192,6 +207,7 @@ This approach ensures reliable DOM interactions, easier debugging during develop
 The Prior Year Review feature provides historical PTO data visualization through a dedicated web component that renders all 12 months of a selected year in a responsive grid layout.
 
 **Component Architecture:**
+
 - **Self-contained Web Component**: Uses Shadow DOM for style encapsulation and clean integration
 - **External Year Selection**: Year selection is handled at the dashboard level, not within the component
 - **Responsive Grid Layout**: Displays months in a flexible grid (maximum 3 months per row on larger screens)
@@ -199,6 +215,7 @@ The Prior Year Review feature provides historical PTO data visualization through
 - **Data Structure**: Accepts structured PTO data with monthly summaries and detailed entry lists
 
 **Key Features:**
+
 - **Color-Coded PTO Types**: PTO (yellow), Sick (red), Bereavement (purple), Jury Duty (green)
 - **Hours Display**: PTO hours shown in bottom-right corner of calendar days
 - **Monthly Summaries**: Each month includes summary bars showing total hours by PTO type
@@ -206,6 +223,7 @@ The Prior Year Review feature provides historical PTO data visualization through
 - **Read-Only View**: Historical data is displayed read-only for review purposes
 
 **Integration Points:**
+
 - **API Endpoint**: `/api/pto/year/:year` provides historical PTO data for any valid year
 - **Dashboard Controls**: Year toggle buttons switch between current year and prior year views
 - **Error Handling**: Graceful handling of missing data with user-friendly "No data available" messages
@@ -230,21 +248,26 @@ This project uses a lightweight bespoke notification/toaster system to provide u
 - **Stacking**: Multiple notifications stack vertically in top-right corner
 
 **Usage Examples:**
+
 ```typescript
 // Success notification
-notifications.success('PTO submitted successfully!');
+notifications.success("PTO submitted successfully!");
 
 // Error notification with title
-notifications.error('Failed to submit PTO. Please try again.', 'Submission Error');
+notifications.error(
+  "Failed to submit PTO. Please try again.",
+  "Submission Error",
+);
 
 // Info notification with custom duration
-notifications.info('Feature coming soon!', undefined, 3000);
+notifications.info("Feature coming soon!", undefined, 3000);
 
 // Warning notification
-notifications.warning('Session will expire in 5 minutes.');
+notifications.warning("Session will expire in 5 minutes.");
 ```
 
 **Implementation Details:**
+
 - **CSS Classes**: `.notification-toast`, `.notification-success`, `.notification-error`, etc.
 - **Animation**: CSS transitions with `slideIn` keyframe
 - **Positioning**: Fixed position in top-right corner with z-index 1000
@@ -257,14 +280,16 @@ This system ensures a smooth user experience and reliable automated testing with
 This project implements a comprehensive theming system using vanilla CSS that provides both light and dark theme support, automatically honoring the user's system preferences. The application seamlessly adapts to the operating system's color scheme settings without requiring manual theme selection.
 
 **Theme Behavior:**
+
 - **System Preference Detection**: Uses CSS `prefers-color-scheme` media query to detect the user's system theme setting
-- **Automatic Switching**: 
+- **Automatic Switching**:
   - If system is set to dark mode → Uses dark theme
-  - If system is set to light mode → Uses light theme  
+  - If system is set to light mode → Uses light theme
   - If no system preference is set → Defaults to light theme
 - **Real-time Updates**: Themes switch automatically when the user changes their system theme settings
 
 **Implementation Details:**
+
 - **Semantic Color Naming**: Colors are named by their semantic purpose (e.g., `--color-primary`, `--color-error`) rather than appearance (e.g., `--color-blue`, `--color-red`), following CSS-Tricks best practices for maintainable theming
 - **CSS Custom Properties Structure**: Theme variables are organized hierarchically:
   - **Base Colors**: Raw color values (e.g., `--color-gray-100: #f5f5f5`)
@@ -276,6 +301,7 @@ This project implements a comprehensive theming system using vanilla CSS that pr
 - **Performance**: Zero JavaScript overhead - theming is handled entirely through CSS
 
 **CSS Structure Example:**
+
 ```css
 :root {
   /* Base color palette */
@@ -283,7 +309,7 @@ This project implements a comprehensive theming system using vanilla CSS that pr
   --color-gray-100: #f5f5f5;
   --color-blue-500: #3b82f6;
   --color-red-500: #ef4444;
-  
+
   /* Semantic color mappings */
   --color-primary: var(--color-blue-500);
   --color-error: var(--color-red-500);
@@ -303,6 +329,7 @@ This project implements a comprehensive theming system using vanilla CSS that pr
 ```
 
 **Key Features:**
+
 - **Seamless Integration**: No theme toggle buttons or manual selection required
 - **Consistent Experience**: All components and UI elements adapt automatically
 - **Battery Friendly**: Respects system settings that may optimize for battery life in dark mode
@@ -328,6 +355,7 @@ Each web component must be updated to use semantic CSS custom properties instead
 - **pto-employee-info-card**: Adapt info display and metadata styling to use `--color-surface`, `--color-text`, and `--color-primary`
 
 **Implementation Steps:**
+
 1. **Audit Current Styles**: Review each component's CSS for hardcoded colors and identify semantic replacements
 2. **Define Missing Variables**: Add any component-specific semantic color variables to the theme system (e.g., `--color-pto-sick`, `--color-pto-bereavement`)
 3. **Update Component Styles**: Replace hardcoded colors with CSS custom property references
@@ -341,29 +369,34 @@ This approach ensures all components maintain visual consistency while automatic
 Centralize values in a design system for maintainability. Use CSS variables on `:root` or a theme class.
 
 #### 1. **Design Tokens**
-   - Define reusable tokens: e.g., `--font-size-base: 1rem; --border-width: 1px; --border-radius: 4px;`.
-   - Group by category: fonts, borders, spacing (e.g., `--space-xs: 4px; --space-md: 16px;` for scalable grids).
-   - Extend for themes: `--border-color: light-dark(#000, #fff);`.
+
+- Define reusable tokens: e.g., `--font-size-base: 1rem; --border-width: 1px; --border-radius: 4px;`.
+- Group by category: fonts, borders, spacing (e.g., `--space-xs: 4px; --space-md: 16px;` for scalable grids).
+- Extend for themes: `--border-color: light-dark(#000, #fff);`.
 
 #### 2. **Units and Scaling**
-   - Prefer `rem` for fonts/sizes (root-relative, accessible scaling).
-   - Use `em` for borders/radii within components (parent-relative).
-   - Avoid pixels; ensures responsiveness.
+
+- Prefer `rem` for fonts/sizes (root-relative, accessible scaling).
+- Use `em` for borders/radii within components (parent-relative).
+- Avoid pixels; ensures responsiveness.
 
 #### 3. **Naming and Structure**
-   - Consistent naming: Prefix with category (e.g., `--font-family-heading`, `--border-style-solid`).
-   - Modular files: Separate tokens.css from components.
-   - Use Sass/Less for maps/loops if complex (e.g., generate radius variants).
+
+- Consistent naming: Prefix with category (e.g., `--font-family-heading`, `--border-style-solid`).
+- Modular files: Separate tokens.css from components.
+- Use Sass/Less for maps/loops if complex (e.g., generate radius variants).
 
 #### 4. **Enforcement**
-   - Linters: Stylelint rules to ban hard-coded values, enforce var() usage.
-   - Audits: Tools like Theo or Tokens Studio to validate tokens.
-   - JS integration: Theme provider in frameworks (e.g., React's ThemeContext) for dynamic swaps.
+
+- Linters: Stylelint rules to ban hard-coded values, enforce var() usage.
+- Audits: Tools like Theo or Tokens Studio to validate tokens.
+- JS integration: Theme provider in frameworks (e.g., React's ThemeContext) for dynamic swaps.
 
 #### 5. **Best Practices**
-   - Inherit via `:host` in web components.
-   - Test: Visual regression tools (e.g., Percy) for consistency across modes/devices.
-   - Document: Style guide (e.g., Storybook) with token references.
+
+- Inherit via `:host` in web components.
+- Test: Visual regression tools (e.g., Percy) for consistency across modes/devices.
+- Document: Style guide (e.g., Storybook) with token references.
 
 This approach minimizes duplication, eases updates (change one var, propagates everywhere).
 
@@ -378,6 +411,7 @@ The following features are planned for upcoming development:
 Based on recent implementation experiences, the following generalized findings facilitate the development process:
 
 ### Code Quality and Maintainability
+
 - **Magic Number Extraction**: Always extract magic numbers into named constants at the top of files for maintainability. This makes business rules self-documenting and easy to modify.
 - **Backward Compatibility**: When modifying function signatures, use optional parameters to maintain backward compatibility with existing code.
 - **MVP Context**: In new implementations without existing production dependencies, changes can be made without backward compatibility concerns, allowing for cleaner API design.
@@ -385,6 +419,7 @@ Based on recent implementation experiences, the following generalized findings f
 - **Error Message Consistency**: Use standardized message keys from a centralized `VALIDATION_MESSAGES` object for consistent user experience across client and server.
 
 ### Testing Strategies
+
 - **Comprehensive Unit Testing**: Validation functions require extensive unit tests covering normal operation, edge cases (zero balance, exact matches), error conditions, and integration with existing functions.
 - **E2E Testing Sufficiency**: For web components, E2E tests provide sufficient coverage for component integration and user workflows, often more effectively than isolated unit tests in Node.js environments.
 - **Test State Management**: Implement API-based database seeding endpoints (e.g., `/api/test/seed`) for per-test isolation, ensuring tests can use the same seed data without state conflicts.
@@ -392,6 +427,7 @@ Based on recent implementation experiences, the following generalized findings f
 - **Performance Validation**: E2E test execution times validate that operations complete within acceptable limits (e.g., < 100ms for balance calculations).
 
 ### Architecture and Design
+
 - **Web Component Architecture**: Shadow DOM with attribute-based data passing works well for client-side validation without complex state management.
 - **Validation Function Design**: Create dedicated functions for different validation types (e.g., `validatePTOBalance()`, `validateAnnualLimits()`) to maintain separation of concerns.
 - **Business Rules Import Strategy**: Client components can import compiled shared business rules (e.g., `shared/businessRules.js`) for consistent validation logic between client and server.
@@ -399,6 +435,7 @@ Based on recent implementation experiences, the following generalized findings f
 - **CSS Class-Based Styling**: Implement conditional styling using CSS classes (e.g., `.negative-balance`) for clean separation of concerns and consistent theming.
 
 ### Performance and Validation
+
 - **Client-Side Validation Effectiveness**: Provides immediate user feedback and prevents unnecessary API calls, with server-side validation as the authoritative layer.
 - **Validation Timing**: Client validation on field blur and form submission events, with server validation ensuring security.
 - **Balance Data Synchronization**: Use component attributes (e.g., `available-pto-balance`) updated after successful operations to maintain current data for validation.
@@ -406,6 +443,7 @@ Based on recent implementation experiences, the following generalized findings f
 - **Build System Integration**: Multi-stage build processes (lint → build → test) catch issues early, ensuring TypeScript compilation, ESLint, and Stylelint pass before testing.
 
 ### Documentation and Process
+
 - **Task Checklist Maintenance**: Update task checklists immediately upon completion to maintain accurate progress tracking.
 - **Dependency Management**: When all project dependencies are included in linting, confident refactoring is possible without external concerns.
 - **Error Response Structure**: API validation errors should return structured responses with field-specific error messages for precise client-side display.
@@ -413,6 +451,7 @@ Based on recent implementation experiences, the following generalized findings f
 - **Documentation Updates**: Maintain API documentation, component READMEs, and centralized error message references for comprehensive coverage.
 
 ### Potential Challenges and Resolutions
+
 - **Historical Data**: In MVP implementations, no migration logic is needed for historical entries since it's a new system.
 - **Real-time Updates**: Ensure UI updates immediately after successful operations to prevent user confusion.
 - **Concurrent Submissions**: Consider race conditions in multi-user scenarios.
@@ -461,7 +500,7 @@ Based on recent implementation experiences, the following generalized findings f
    npm run dev
    ```
 
-4. **Open in Browser**
+5. **Open in Browser**
 
    Navigate to `http://localhost:3000` to access the application.
 
@@ -592,17 +631,20 @@ The application uses a secure magic link authentication system that eliminates t
 Most API endpoints require authentication. Authentication is handled via cookie-based sessions.
 
 #### Authentication Flow
+
 1. **Request Magic Link**: `POST /api/auth/request-link` with email identifier
 2. **Validate Token**: Click magic link to validate token via `GET /api/auth/validate?token=...&ts=...`
 3. **Session Created**: Server sets `auth_hash` cookie with session token
 4. **Authenticated Requests**: Include `auth_hash` cookie in subsequent API calls
 
 #### Authentication Requirements
+
 - **Public Endpoints**: `/api/auth/*`, `/api/health`, `/api/test/reload-database`
 - **Employee Endpoints**: Require authentication, operate on authenticated user's data
 - **Admin Endpoints**: Require authentication + admin role, can access all employee data
 
 #### Session Management
+
 - Sessions expire after 24 hours
 - Logout via `POST /api/auth/logout` clears the session cookie
 - All authenticated requests must include `credentials: 'include'` in client code
@@ -612,32 +654,37 @@ Most API endpoints require authentication. Authentication is handled via cookie-
 **Note: The following endpoints are actually implemented in the current codebase. Previous documentation listed some endpoints that do not exist or have different paths.**
 
 ### PTO Management
-- `GET /api/pto/status` *(authenticated)*: Get comprehensive PTO status summary for authenticated user including balances, accruals, and usage by type
-- `GET /api/pto` *(authenticated)*: Retrieve PTO entries for authenticated user (admin can see all)
-- `GET /api/pto/year/:year` *(authenticated)*: Get PTO data aggregated by month for a specific historical year (prior year review)
-- `POST /api/pto` *(authenticated)*: Submit a new PTO entry (admin can submit for others)
-- `PUT /api/pto/:id` *(authenticated)*: Update an existing PTO entry (admin only or own entries)
-- `DELETE /api/pto/:id` *(authenticated)*: Delete/cancel a PTO entry (admin only or own entries)
+
+- `GET /api/pto/status` _(authenticated)_: Get comprehensive PTO status summary for authenticated user including balances, accruals, and usage by type
+- `GET /api/pto` _(authenticated)_: Retrieve PTO entries for authenticated user (admin can see all)
+- `GET /api/pto/year/:year` _(authenticated)_: Get PTO data aggregated by month for a specific historical year (prior year review)
+- `POST /api/pto` _(authenticated)_: Submit a new PTO entry (admin can submit for others)
+- `PUT /api/pto/:id` _(authenticated)_: Update an existing PTO entry (admin only or own entries)
+- `DELETE /api/pto/:id` _(authenticated)_: Delete/cancel a PTO entry (admin only or own entries)
 
 ### Monthly Hours Tracking
-- `POST /api/hours` *(authenticated)*: Submit monthly hours worked for authenticated user
-- `GET /api/hours` *(authenticated)*: Retrieve monthly hours submissions for authenticated user
+
+- `POST /api/hours` _(authenticated)_: Submit monthly hours worked for authenticated user
+- `GET /api/hours` _(authenticated)_: Retrieve monthly hours submissions for authenticated user
 
 ### Monthly Summary
-- `GET /api/monthly-summary/:month` *(authenticated)*: Get monthly hours worked and PTO usage breakdown by category for authenticated user
+
+- `GET /api/monthly-summary/:month` _(authenticated)_: Get monthly hours worked and PTO usage breakdown by category for authenticated user
 
 ### Acknowledgement System
-- `POST /api/acknowledgements` *(authenticated)*: Submit monthly review acknowledgement for authenticated user
-- `GET /api/acknowledgements` *(authenticated)*: Check acknowledgement status for authenticated user
-- `POST /api/admin-acknowledgements` *(admin)*: Submit admin review acknowledgement for any employee
-- `GET /api/admin-acknowledgements/:employeeId` *(admin)*: Retrieve admin acknowledgements for an employee
 
-### Employee Management *(Admin Only)*
-- `GET /api/employees` *(admin)*: List all employees with optional search/filtering
-- `GET /api/employees/:id` *(admin)*: Get detailed information for a specific employee
-- `POST /api/employees` *(admin)*: Add a new employee
-- `PUT /api/employees/:id` *(admin)*: Update employee information (name, PTO rate, carryover, etc.)
-- `DELETE /api/employees/:id` *(admin)*: Remove an employee from the system
+- `POST /api/acknowledgements` _(authenticated)_: Submit monthly review acknowledgement for authenticated user
+- `GET /api/acknowledgements` _(authenticated)_: Check acknowledgement status for authenticated user
+- `POST /api/admin-acknowledgements` _(admin)_: Submit admin review acknowledgement for any employee
+- `GET /api/admin-acknowledgements/:employeeId` _(admin)_: Retrieve admin acknowledgements for an employee
+
+### Employee Management _(Admin Only)_
+
+- `GET /api/employees` _(admin)_: List all employees with optional search/filtering
+- `GET /api/employees/:id` _(admin)_: Get detailed information for a specific employee
+- `POST /api/employees` _(admin)_: Add a new employee
+- `PUT /api/employees/:id` _(admin)_: Update employee information (name, PTO rate, carryover, etc.)
+- `DELETE /api/employees/:id` _(admin)_: Remove an employee from the system
 
 ## TypeORM Entities
 
@@ -658,7 +705,7 @@ export class Employee {
   identifier!: string;
 
   @Column({ type: "real", default: 0.71 })
-  pto_rate!: number;  // Hours per work day for accrual calculations
+  pto_rate!: number; // Hours per work day for accrual calculations
 
   @Column({ type: "real", default: 0 })
   carryover_hours!: number;
@@ -672,13 +719,16 @@ export class Employee {
   @Column({ type: "text", nullable: true })
   hash!: string;
 
-  @OneToMany(() => PtoEntry, ptoEntry => ptoEntry.employee)
+  @OneToMany(() => PtoEntry, (ptoEntry) => ptoEntry.employee)
   ptoEntries!: PtoEntry[];
 
-  @OneToMany(() => MonthlyHours, monthlyHours => monthlyHours.employee)
+  @OneToMany(() => MonthlyHours, (monthlyHours) => monthlyHours.employee)
   monthlyHours!: MonthlyHours[];
 
-  @OneToMany(() => Acknowledgement, acknowledgement => acknowledgement.employee)
+  @OneToMany(
+    () => Acknowledgement,
+    (acknowledgement) => acknowledgement.employee,
+  )
   acknowledgements!: Acknowledgement[];
 }
 ```
@@ -709,7 +759,7 @@ export class PtoEntry {
   @Column({ type: "datetime", default: () => "CURRENT_TIMESTAMP" })
   created_at!: Date;
 
-  @ManyToOne(() => Employee, employee => employee.ptoEntries)
+  @ManyToOne(() => Employee, (employee) => employee.ptoEntries)
   @JoinColumn({ name: "employee_id" })
   employee!: Employee;
 }
@@ -735,7 +785,7 @@ export class MonthlyHours {
   @Column({ type: "datetime", default: () => "CURRENT_TIMESTAMP" })
   submitted_at!: Date;
 
-  @ManyToOne(() => Employee, employee => employee.monthlyHours)
+  @ManyToOne(() => Employee, (employee) => employee.monthlyHours)
   @JoinColumn({ name: "employee_id" })
   employee!: Employee;
 }
@@ -758,7 +808,7 @@ export class Acknowledgement {
   @Column({ type: "datetime", default: () => "CURRENT_TIMESTAMP" })
   acknowledged_at!: Date;
 
-  @ManyToOne(() => Employee, employee => employee.acknowledgements)
+  @ManyToOne(() => Employee, (employee) => employee.acknowledgements)
   @JoinColumn({ name: "employee_id" })
   employee!: Employee;
 }
@@ -784,11 +834,11 @@ export class AdminAcknowledgement {
   @Column({ type: "datetime", default: () => "CURRENT_TIMESTAMP" })
   acknowledged_at!: Date;
 
-  @ManyToOne(() => Employee, employee => employee.acknowledgedByAdmins)
+  @ManyToOne(() => Employee, (employee) => employee.acknowledgedByAdmins)
   @JoinColumn({ name: "employee_id" })
   employee!: Employee;
 
-  @ManyToOne(() => Employee, employee => employee.adminAcknowledgements)
+  @ManyToOne(() => Employee, (employee) => employee.adminAcknowledgements)
   @JoinColumn({ name: "admin_id" })
   admin!: Employee;
 }
@@ -799,6 +849,7 @@ export class AdminAcknowledgement {
 **Status: Fully Implemented** - Complete web components implementation with comprehensive E2E testing.
 
 Currently provides:
+
 - **Employee Management**: Add, edit, and manage employee records
 - **PTO Request Queue**: Review and approve/reject PTO requests with confirmation dialogs
 - **Data Tables**: Sortable, paginated tables for displaying employee and PTO data
@@ -903,11 +954,13 @@ sequenceDiagram
 #### Key Testing Features
 
 **Authentication Testing:**
+
 - Magic link generation and validation
 - Cookie-based session management
 - Secure token handling
 
 **Workflow Validation:**
+
 - PTO status dashboard access
 - Time off request submission
 - Monthly hours reporting
@@ -915,6 +968,7 @@ sequenceDiagram
 - Data persistence and retrieval
 
 **Testing Infrastructure:**
+
 - **Magic Link Bypass**: For E2E testing, the `/api/auth/request-link` endpoint returns the magic link URL directly instead of sending an email. This allows automated tests to access the link programmatically.
 - **Cookie Verification**: Tests confirm that authentication cookies are properly set and maintained.
 - **State Management**: Each test run uses isolated database state to prevent interference.
@@ -944,12 +998,14 @@ The employee authentication test serves as a foundation for comprehensive workfl
 **Status: Partially Implemented** - Basic acknowledgement functionality exists for both employees and admins, but automated reminders are not yet implemented.
 
 Currently provides:
+
 - Manual submission of monthly acknowledgements via API (employee and admin), including review of hours worked and PTO usage breakdown by category (PTO, Sick, Bereavement, Jury Duty)
 - Tracking of acknowledgement timestamps for both types
 - Basic acknowledgement status checking
 - Admin panel integration for admin acknowledgments
 
 **Planned automated features (not yet implemented):**
+
 - Automatic reminders at month-end
 - Daily follow-up reminders for unacknowledged reviews
 - Automated reminder scheduler system

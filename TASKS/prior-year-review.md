@@ -1,12 +1,15 @@
 # Prior Year Review
 
 ## Description
+
 Implement a prior year review feature that allows users to view PTO data from previous years. This should render all twelve months (January → December) in a grid layout for the prior year, showing PTO usage, accruals, and balances for historical review. The feature should be implemented as a dedicated web component integrated into the main dashboard. The web component itself only renders the data for a given year; year selection is handled externally at the dashboard level.
 
 ## Priority
+
 🟡 Medium Priority
 
 ## Checklist
+
 - [x] **Phase 1: Design API Endpoint**
   - [x] Add API endpoint to fetch PTO data for a specific year (/api/pto/year/:year)
   - [x] Implement server-side logic to aggregate PTO data by month for historical years
@@ -43,6 +46,7 @@ Implement a prior year review feature that allows users to view PTO data from pr
   - [x] Run 'npm run test' to ensure no regressions
 
 ## Implementation Notes
+
 - Use existing PTO calculation functions from shared/businessRules.ts
 - Follow the same data patterns as current year dashboard
 - Consider caching historical data to improve performance
@@ -52,6 +56,7 @@ Implement a prior year review feature that allows users to view PTO data from pr
 - Integrate with existing error handling and notification systems
 
 ## Phase 4 Implementation Insights
+
 - **Component Architecture**: Successfully implemented as a self-contained web component using Shadow DOM, following established patterns with CSS custom properties for theming and TypeScript interfaces for type safety
 - **Testing Strategy**: Comprehensive testing with 14 unit tests using JSDOM for DOM simulation and 1 E2E test using Playwright for browser validation, ensuring component reliability across environments
 - **Data Integration**: Seamless integration with existing PTO calculation logic from shared/businessRules.ts, maintaining consistency with current year dashboard patterns
@@ -62,6 +67,7 @@ Implement a prior year review feature that allows users to view PTO data from pr
 - **External Integration**: Clean separation of concerns with year selection handled externally, allowing flexible dashboard integration
 
 ## Phase 5 Success Factors
+
 - **Documentation Focus**: README.md updates should highlight the new historical review capability and emphasize the component's self-contained nature with external year selection
 - **Component Documentation**: Document the component's props interface, data structure expectations, and theming integration points
 - **Code Review Priorities**: Focus on consistency with existing web component patterns, proper TypeScript usage, and adherence to established CSS variable theming system
@@ -70,6 +76,7 @@ Implement a prior year review feature that allows users to view PTO data from pr
 - **Testing Validation**: All existing tests pass (169 unit + 52 E2E), confirming no regressions were introduced during implementation
 
 ## Phase 4 Testing and Validation Learnings
+
 - **Critical Dependency**: The `/api/pto/year/:year` endpoint must be implemented in server.mts before Phase 4 testing can begin (currently missing despite Phase 1 being marked complete)
 - **Component Testing Patterns**: Use the existing `client/components/prior-year-review/test.html` and `test.ts` files which provide:
   - Mock data generation from seed data for different years
@@ -99,6 +106,7 @@ Implement a prior year review feature that allows users to view PTO data from pr
 - **Performance Testing**: Monitor component render time for years with many PTO entries
 
 ## Questions and Concerns
+
 1. Should the prior year review show the same detailed breakdown as the current year (calendar views, specific dates for sick/bereavement/jury duty)?
    **Decision**: Yes, it will look similar to the Corey Alix 2025.xlsx as described by SKILL.md and as can be discovered using migrate.ts with the --debug flag; color coding the dates and placing hours in the corners is enough. All 12 months go into a flex/grid so they flow responsively with a maximum of 3 months in a single row.
 
@@ -119,24 +127,24 @@ Implement a prior year review feature that allows users to view PTO data from pr
 
 7. Should we cache historical calculations to improve performance?
    **Decision**: no
-1. Should the prior year review show the same detailed breakdown as the current year (calendar views, specific dates for sick/bereavement/jury duty)?
+8. Should the prior year review show the same detailed breakdown as the current year (calendar views, specific dates for sick/bereavement/jury duty)?
    **Decision**: Yes, it will look similar to the Corey Alix 2025.xlsx as described by SKILL.md and as can be discovered using migrate.ts with the --debug flag; color coding the dates and placing hours in the corners is enough. All 12 months go into a flex/grid so they flow responsively with a maximum of 3 months in a single row.
 
-2. How should we handle year selection - dropdown, buttons, or calendar picker?
+9. How should we handle year selection - dropdown, buttons, or calendar picker?
    **Decision**: Year selection is handled externally at the dashboard level, not within the component itself.
 
-3. Should there be a limit on how far back users can view (e.g., last 5 years, 10 years)?
-   **Decision**: 1 year
+10. Should there be a limit on how far back users can view (e.g., last 5 years, 10 years)?
+    **Decision**: 1 year
 
-4. How should the component handle users with no historical data?
-   **Decision**: Do not allow that year to be selected; do not even add it to the selection list.
+11. How should the component handle users with no historical data?
+    **Decision**: Do not allow that year to be selected; do not even add it to the selection list.
 
-5. Should the prior year view be read-only, or allow any interactions (like viewing details)?
-   **Decision**: Yes, prior year is readonly
+12. Should the prior year view be read-only, or allow any interactions (like viewing details)?
+    **Decision**: Yes, prior year is readonly
 
-6. How should we handle timezone considerations for historical data display?
-   **Decision**: there will be no time component, just dates
+13. How should we handle timezone considerations for historical data display?
+    **Decision**: there will be no time component, just dates
 
-7. Should we cache historical calculations to improve performance?
-   **Decision**: no</content>
-<parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/TASKS/prior-year-review.md
+14. Should we cache historical calculations to improve performance?
+    **Decision**: no</content>
+    <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/TASKS/prior-year-review.md

@@ -1,68 +1,68 @@
 export class ConfirmationDialog extends HTMLElement {
-    private shadow: ShadowRoot;
-    private _message = '';
-    private _confirmText = 'Confirm';
-    private _cancelText = 'Cancel';
+  private shadow: ShadowRoot;
+  private _message = "";
+  private _confirmText = "Confirm";
+  private _cancelText = "Cancel";
 
-    constructor() {
-        super();
-        this.shadow = this.attachShadow({ mode: 'open' });
-    }
+  constructor() {
+    super();
+    this.shadow = this.attachShadow({ mode: "open" });
+  }
 
-    static get observedAttributes() {
-        return ['message', 'confirm-text', 'cancel-text'];
-    }
+  static get observedAttributes() {
+    return ["message", "confirm-text", "cancel-text"];
+  }
 
-    connectedCallback() {
+  connectedCallback() {
+    this.render();
+    this.setupEventListeners();
+  }
+
+  attributeChangedCallback(name: string, oldValue: string, newValue: string) {
+    if (oldValue !== newValue) {
+      switch (name) {
+        case "message":
+          this._message = newValue;
+          break;
+        case "confirm-text":
+          this._confirmText = newValue;
+          break;
+        case "cancel-text":
+          this._cancelText = newValue;
+          break;
+      }
+      if (this.shadow) {
         this.render();
-        this.setupEventListeners();
+      }
     }
+  }
 
-    attributeChangedCallback(name: string, oldValue: string, newValue: string) {
-        if (oldValue !== newValue) {
-            switch (name) {
-                case 'message':
-                    this._message = newValue;
-                    break;
-                case 'confirm-text':
-                    this._confirmText = newValue;
-                    break;
-                case 'cancel-text':
-                    this._cancelText = newValue;
-                    break;
-            }
-            if (this.shadow) {
-                this.render();
-            }
-        }
-    }
+  set message(value: string) {
+    this.setAttribute("message", value);
+  }
 
-    set message(value: string) {
-        this.setAttribute('message', value);
-    }
+  get message(): string {
+    return this.getAttribute("message") || "";
+  }
 
-    get message(): string {
-        return this.getAttribute('message') || '';
-    }
+  set confirmText(value: string) {
+    this.setAttribute("confirm-text", value);
+  }
 
-    set confirmText(value: string) {
-        this.setAttribute('confirm-text', value);
-    }
+  get confirmText(): string {
+    return this.getAttribute("confirm-text") || "Confirm";
+  }
 
-    get confirmText(): string {
-        return this.getAttribute('confirm-text') || 'Confirm';
-    }
+  set cancelText(value: string) {
+    this.setAttribute("cancel-text", value);
+  }
 
-    set cancelText(value: string) {
-        this.setAttribute('cancel-text', value);
-    }
+  get cancelText(): string {
+    return this.getAttribute("cancel-text") || "Cancel";
+  }
 
-    get cancelText(): string {
-        return this.getAttribute('cancel-text') || 'Cancel';
-    }
-
-    private render() {
-        this.shadow.innerHTML = `
+  private render() {
+    this.shadow.innerHTML = `
             <style>
                 :host {
                     display: block;
@@ -131,20 +131,22 @@ export class ConfirmationDialog extends HTMLElement {
                 </div>
             </div>
         `;
-    }
+  }
 
-    private setupEventListeners() {
-        const confirmBtn = this.shadow.querySelector('.confirm') as HTMLButtonElement;
-        const cancelBtn = this.shadow.querySelector('.cancel') as HTMLButtonElement;
+  private setupEventListeners() {
+    const confirmBtn = this.shadow.querySelector(
+      ".confirm",
+    ) as HTMLButtonElement;
+    const cancelBtn = this.shadow.querySelector(".cancel") as HTMLButtonElement;
 
-        confirmBtn?.addEventListener('click', () => {
-            this.dispatchEvent(new CustomEvent('confirm'));
-        });
+    confirmBtn?.addEventListener("click", () => {
+      this.dispatchEvent(new CustomEvent("confirm"));
+    });
 
-        cancelBtn?.addEventListener('click', () => {
-            this.dispatchEvent(new CustomEvent('cancel'));
-        });
-    }
+    cancelBtn?.addEventListener("click", () => {
+      this.dispatchEvent(new CustomEvent("cancel"));
+    });
+  }
 }
 
-customElements.define('confirmation-dialog', ConfirmationDialog);
+customElements.define("confirmation-dialog", ConfirmationDialog);

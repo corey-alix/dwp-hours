@@ -1,4 +1,8 @@
-import { isValidDateString, formatDateForDisplay, parseDate } from '../../../shared/dateUtils.js';
+import {
+  isValidDateString,
+  formatDateForDisplay,
+  parseDate,
+} from "../../../shared/dateUtils.js";
 
 const PTO_CARD_CSS = `
     <style>
@@ -155,30 +159,30 @@ const PTO_CARD_CSS = `
 `;
 
 export const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December"
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 export class PtoSectionCard extends HTMLElement {
-    protected shadow: ShadowRoot;
+  protected shadow: ShadowRoot;
 
-    constructor() {
-        super();
-        this.shadow = this.attachShadow({ mode: "open" });
-    }
+  constructor() {
+    super();
+    this.shadow = this.attachShadow({ mode: "open" });
+  }
 
-    protected renderCard(title: string, body: string): void {
-        this.shadow.innerHTML = `
+  protected renderCard(title: string, body: string): void {
+    this.shadow.innerHTML = `
             <style>
                 :host {
                     display: block;
@@ -223,93 +227,105 @@ export class PtoSectionCard extends HTMLElement {
                 ${body}
             </div>
         `;
-    }
+  }
 }
 
 export class SimplePtoBucketCard extends PtoSectionCard {
-    private cardTitle: string;
-    private data: any = null;
-    private entries: any[] = [];
-    private expanded: boolean = false;
+  private cardTitle: string;
+  private data: any = null;
+  private entries: any[] = [];
+  private expanded: boolean = false;
 
-    constructor(title: string) {
-        super();
-        this.cardTitle = title;
+  constructor(title: string) {
+    super();
+    this.cardTitle = title;
+  }
+
+  static get observedAttributes() {
+    return ["data", "entries", "expanded"];
+  }
+
+  connectedCallback() {
+    this.render();
+  }
+
+  attributeChangedCallback(name: string, oldValue: string, newValue: string) {
+    if (name === "data") {
+      this.data = JSON.parse(newValue);
+      this.render();
+    }
+    if (name === "entries") {
+      this.entries = JSON.parse(newValue);
+      this.render();
+    }
+    if (name === "expanded") {
+      this.expanded = newValue === "true";
+      this.render();
+    }
+  }
+
+  set bucket(value: any) {
+    this.data = value;
+    this.render();
+  }
+
+  set usageEntries(value: any[]) {
+    this.entries = value;
+    this.render();
+  }
+
+  get usageEntries(): any[] {
+    return this.entries;
+  }
+
+  set isExpanded(value: boolean) {
+    this.expanded = value;
+    this.setAttribute("expanded", value.toString());
+  }
+
+  protected render() {
+    if (!this.data) {
+      this.renderCard(this.cardTitle, "<div>Loading...</div>");
+      return;
     }
 
-    static get observedAttributes() {
-        return ["data", "entries", "expanded"];
-    }
-
-    connectedCallback() {
-        this.render();
-    }
-
-    attributeChangedCallback(name: string, oldValue: string, newValue: string) {
-        if (name === "data") {
-            this.data = JSON.parse(newValue);
-            this.render();
-        }
-        if (name === "entries") {
-            this.entries = JSON.parse(newValue);
-            this.render();
-        }
-        if (name === "expanded") {
-            this.expanded = newValue === "true";
-            this.render();
-        }
-    }
-
-    set bucket(value: any) {
-        this.data = value;
-        this.render();
-    }
-
-    set usageEntries(value: any[]) {
-        this.entries = value;
-        this.render();
-    }
-
-    get usageEntries(): any[] {
-        return this.entries;
-    }
-
-    set isExpanded(value: boolean) {
-        this.expanded = value;
-        this.setAttribute("expanded", value.toString());
-    }
-
-    protected render() {
-        if (!this.data) {
-            this.renderCard(this.cardTitle, "<div>Loading...</div>");
-            return;
-        }
-
-        const hasEntries = this.entries && this.entries.length > 0;
-        const toggleButtonHtml = hasEntries ? `
-            <button class="toggle-button" aria-expanded="${this.expanded}" aria-label="${this.expanded ? 'Hide' : 'Show'} detailed usage">
-                ${this.expanded ? 'Hide Details' : 'Show Details'}
-                <span class="chevron ${this.expanded ? 'expanded' : ''}">▼</span>
+    const hasEntries = this.entries && this.entries.length > 0;
+    const toggleButtonHtml = hasEntries
+      ? `
+            <button class="toggle-button" aria-expanded="${this.expanded}" aria-label="${this.expanded ? "Hide" : "Show"} detailed usage">
+                ${this.expanded ? "Hide Details" : "Show Details"}
+                <span class="chevron ${this.expanded ? "expanded" : ""}">▼</span>
             </button>
-        ` : '';
+        `
+      : "";
 
-        const usageSection = this.expanded && hasEntries ? (() => {
+    const usageSection =
+      this.expanded && hasEntries
+        ? (() => {
             const rows = this.entries
-                .map((entry: any, index: number) => {
-                    const label = isValidDateString(entry.date)
-                        ? formatDateForDisplay(entry.date)
-                        : entry.date;
-                    const dateAttr = isValidDateString(entry.date) ? `data-date="${entry.date}"` : '';
-                    const clickableClass = isValidDateString(entry.date) ? 'usage-date' : '';
-                    const tabIndex = isValidDateString(entry.date) ? 'tabindex="0"' : '';
-                    const ariaLabel = isValidDateString(entry.date) ? `aria-label="Navigate to ${label} in calendar"` : '';
-                    return `<li><span class="${clickableClass}" ${dateAttr} ${tabIndex} ${ariaLabel}>${label}</span> <span>${entry.hours.toFixed(1)} hours</span></li>`;
-                })
-                .join("");
+              .map((entry: any, index: number) => {
+                const label = isValidDateString(entry.date)
+                  ? formatDateForDisplay(entry.date)
+                  : entry.date;
+                const dateAttr = isValidDateString(entry.date)
+                  ? `data-date="${entry.date}"`
+                  : "";
+                const clickableClass = isValidDateString(entry.date)
+                  ? "usage-date"
+                  : "";
+                const tabIndex = isValidDateString(entry.date)
+                  ? 'tabindex="0"'
+                  : "";
+                const ariaLabel = isValidDateString(entry.date)
+                  ? `aria-label="Navigate to ${label} in calendar"`
+                  : "";
+                return `<li><span class="${clickableClass}" ${dateAttr} ${tabIndex} ${ariaLabel}>${label}</span> <span>${entry.hours.toFixed(1)} hours</span></li>`;
+              })
+              .join("");
 
             const list = rows
-                ? `<ul class="usage-list">${rows}</ul>`
-                : `<div class="empty">No entries recorded.</div>`;
+              ? `<ul class="usage-list">${rows}</ul>`
+              : `<div class="empty">No entries recorded.</div>`;
 
             return `
                 <div class="usage-section">
@@ -317,9 +333,10 @@ export class SimplePtoBucketCard extends PtoSectionCard {
                     ${list}
                 </div>
             `;
-        })() : '';
+          })()
+        : "";
 
-        const body = `
+    const body = `
             <div class="row"><span class="label">Allowed</span><span>${this.data.allowed} hours</span></div>
             <div class="row"><span class="label">Used</span><span>${this.data.used.toFixed(2)} hours</span></div>
             <div class="row"><span class="label">Remaining</span><span>${this.data.remaining.toFixed(2)} hours</span></div>
@@ -327,38 +344,50 @@ export class SimplePtoBucketCard extends PtoSectionCard {
             ${usageSection}
         `;
 
-        this.shadow.innerHTML = PTO_CARD_CSS + '<div class="card"><h4>' + this.cardTitle + '</h4>' + body + '</div>';
+    this.shadow.innerHTML =
+      PTO_CARD_CSS +
+      '<div class="card"><h4>' +
+      this.cardTitle +
+      "</h4>" +
+      body +
+      "</div>";
 
-        // Add event listener for toggle button
-        const toggleButton = this.shadow.querySelector('.toggle-button') as HTMLButtonElement;
-        if (toggleButton) {
-            toggleButton.addEventListener('click', () => {
-                this.expanded = !this.expanded;
-                this.render();
-            });
-        }
-
-        // Add event listeners for clickable dates
-        this.shadow.querySelectorAll<HTMLSpanElement>('.usage-date').forEach((dateElement) => {
-            const handleClick = () => {
-                const dateStr = dateElement.dataset.date;
-                if (dateStr && isValidDateString(dateStr)) {
-                    const { year, month } = parseDate(dateStr);
-                    // Dispatch custom event to navigate to the month containing this date
-                    this.dispatchEvent(new CustomEvent('navigate-to-month', {
-                        detail: { month, year },
-                        bubbles: true
-                    }));
-                }
-            };
-
-            dateElement.addEventListener('click', handleClick);
-            dateElement.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    handleClick();
-                }
-            });
-        });
+    // Add event listener for toggle button
+    const toggleButton = this.shadow.querySelector(
+      ".toggle-button",
+    ) as HTMLButtonElement;
+    if (toggleButton) {
+      toggleButton.addEventListener("click", () => {
+        this.expanded = !this.expanded;
+        this.render();
+      });
     }
+
+    // Add event listeners for clickable dates
+    this.shadow
+      .querySelectorAll<HTMLSpanElement>(".usage-date")
+      .forEach((dateElement) => {
+        const handleClick = () => {
+          const dateStr = dateElement.dataset.date;
+          if (dateStr && isValidDateString(dateStr)) {
+            const { year, month } = parseDate(dateStr);
+            // Dispatch custom event to navigate to the month containing this date
+            this.dispatchEvent(
+              new CustomEvent("navigate-to-month", {
+                detail: { month, year },
+                bubbles: true,
+              }),
+            );
+          }
+        };
+
+        dateElement.addEventListener("click", handleClick);
+        dateElement.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleClick();
+          }
+        });
+      });
+  }
 }

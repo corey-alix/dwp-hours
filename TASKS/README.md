@@ -1,11 +1,13 @@
 # DWP Hours Tracker - Task Overview
 
 ## Overview
+
 This document outlines all remaining tasks to complete the DWP Hours Tracker application. Tasks are organized by priority and dependency.
 
 ## Task Priority Order
 
 ### 🔥 High Priority (Foundation - Complete First)
+
 1. **[database-schema.md](database-schema.md)** - Complete database schema
 2. **[authentication.md](authentication.md)** - Implement real authentication
 3. **[pto-calculations.md](pto-calculations.md)** - PTO status calculations
@@ -13,6 +15,7 @@ This document outlines all remaining tasks to complete the DWP Hours Tracker app
 5. **[issue-date-handling-regression.md](issue-date-handling-regression.md)** - Fix timezone-related date shifting bugs
 
 ### 🟡 Medium Priority (Backend/API Core Features)
+
 5. **[testing-suite.md](testing-suite.md)** - Testing implementation
 6. **[data-migration.md](data-migration.md)** - Legacy data migration (see [`.github/skills/pto-spreadsheet-layout/SKILL.md`](../.github/skills/pto-spreadsheet-layout/SKILL.md) for spreadsheet structure reference)
 7. **[security-production.md](security-production.md)** - Security & production features
@@ -20,6 +23,7 @@ This document outlines all remaining tasks to complete the DWP Hours Tracker app
 9. **[database-reset-reload-service.md](database-reset-reload-service.md)** ✅ - Deterministic DB reload for consistent E2E
 
 ### 🟢 Low Priority (Frontend/UI Features)
+
 8. **[admin-review-acknowledgment.md](admin-review-acknowledgment.md)** - Admin review acknowledgment
 
 ## Task Dependencies
@@ -40,6 +44,7 @@ database-schema.md
 ## Current Status Summary
 
 ### ✅ Completed
+
 - Project scaffolding and build system
 - Basic Express server with CORS
 - Frontend UI structure (HTML/CSS/TypeScript)
@@ -56,6 +61,7 @@ database-schema.md
 - Admin panel UI (complete web components implementation with E2E testing)
 
 ### 🚧 In Progress
+
 - Admin review acknowledgment UI
 - Production deployment
 - Design constraints compliance (code quality improvements)
@@ -65,6 +71,7 @@ database-schema.md
 **Priority Focus: Backend/API First** - Complete all backend and API functionality before implementing frontend features. This ensures a solid foundation and API contract before building user interfaces.
 
 ### Task Completion Criteria
+
 - [ ] All checklist items completed
 - [ ] Code builds without errors (`npm run build`)
 - [ ] Linting passes (`npm run lint`)
@@ -72,6 +79,7 @@ database-schema.md
 - [ ] Documentation updated
 
 ### Code Quality Standards
+
 - TypeScript strict mode compliance
 - Proper error handling
 - Input validation
@@ -79,11 +87,13 @@ database-schema.md
 - Clean, readable code
 
 ### Design Constraints
+
 - Use `querySingle` instead of `getElementById` for DOM element queries to ensure errors are thrown if elements are not found
 - Do not use type casting (e.g., `as any`). Web components have specific types (e.g., `PtoEntryForm` for `pto-entry-form` elements) - use them for strong typing
 - `<any>` should be a last resort; leverage TypeScript's strict mode and proper type definitions for DOM elements
 
 ### Testing Requirements
+
 - Manual testing of new features
 - API endpoint testing
 - Frontend integration testing

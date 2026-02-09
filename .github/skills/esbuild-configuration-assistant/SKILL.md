@@ -1,10 +1,13 @@
 # ESBuild Configuration Assistant
 
 ## Description
+
 Specialized skill for configuring and optimizing ESBuild bundler setup in the DWP Hours Tracker project. Provides guidance on fast compilation, bundling, and build optimization using ESBuild's features and API.
 
 ## Trigger
+
 Activate when users ask about:
+
 - ESBuild installation and initial setup
 - Build configuration and optimization options
 - Plugin integration and custom loaders
@@ -13,6 +16,7 @@ Activate when users ask about:
 - Integration with existing TypeScript/Node.js workflows
 
 ## Response Pattern
+
 1. **Assess Current Build System**: Review existing build tools (TypeScript compiler, npm scripts) and project structure
 2. **Reference ESBuild Documentation**: Consult https://esbuild.github.io/ for configuration options and best practices
 3. **Evaluate Project Needs**: Consider DWP Hours Tracker's Node.js backend, vanilla frontend, and testing requirements
@@ -22,6 +26,7 @@ Activate when users ask about:
 7. **Test and Validate**: Recommend running builds and tests to verify configuration works correctly
 
 ## Examples
+
 - "How do I set up ESBuild for fast TypeScript compilation?"
 - "What's the best way to configure ESBuild for both development and production builds?"
 - "How can I use ESBuild plugins to handle CSS and assets?"
@@ -29,6 +34,7 @@ Activate when users ask about:
 - "How do I integrate ESBuild with my existing npm build scripts?"
 
 ## Additional Context
+
 - Focuses on ESBuild's speed advantages for large TypeScript projects
 - Considers compatibility with sql.js database operations and Express server
 - Integrates with project's testing suite (Vitest) and E2E testing (Playwright)

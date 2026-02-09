@@ -3,7 +3,11 @@
  * Calculates the number of work days (Monday-Friday) in a month
  */
 
-import { getDaysInMonth, getDayOfWeek, formatDate } from '../shared/dateUtils.js';
+import {
+  getDaysInMonth,
+  getDayOfWeek,
+  formatDate,
+} from "../shared/dateUtils.js";
 
 /**
  * Calculate the number of work days (Monday-Friday) in a given month and year
@@ -12,21 +16,21 @@ import { getDaysInMonth, getDayOfWeek, formatDate } from '../shared/dateUtils.js
  * @returns Number of work days in the month
  */
 function calculateWorkDaysInMonth(year: number, month: number): number {
-    const totalDays = getDaysInMonth(year, month);
+  const totalDays = getDaysInMonth(year, month);
 
-    let workDays = 0;
+  let workDays = 0;
 
-    for (let day = 1; day <= totalDays; day++) {
-        const dateStr = formatDate(year, month, day);
-        const dayOfWeek = getDayOfWeek(dateStr); // 0 = Sunday, 6 = Saturday
+  for (let day = 1; day <= totalDays; day++) {
+    const dateStr = formatDate(year, month, day);
+    const dayOfWeek = getDayOfWeek(dateStr); // 0 = Sunday, 6 = Saturday
 
-        // Count Monday (1) through Friday (5)
-        if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-            workDays++;
-        }
+    // Count Monday (1) through Friday (5)
+    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+      workDays++;
     }
+  }
 
-    return workDays;
+  return workDays;
 }
 
 /**
@@ -37,12 +41,12 @@ function calculateWorkDaysInMonth(year: number, month: number): number {
  * @returns Number of work days in the month
  */
 export function getWorkDays(year: number, month: number): number {
-    if (month < 1 || month > 12) {
-        throw new Error(`Invalid month: ${month}. Must be 1-12.`);
-    }
+  if (month < 1 || month > 12) {
+    throw new Error(`Invalid month: ${month}. Must be 1-12.`);
+  }
 
-    // Calculate dynamically for any year (raw weekdays, no holiday adjustment)
-    return calculateWorkDaysInMonth(year, month);
+  // Calculate dynamically for any year (raw weekdays, no holiday adjustment)
+  return calculateWorkDaysInMonth(year, month);
 }
 
 /**
@@ -51,11 +55,11 @@ export function getWorkDays(year: number, month: number): number {
  * @returns Total work days in the year
  */
 export function getTotalWorkDaysInYear(year: number): number {
-    let total = 0;
-    for (let month = 1; month <= 12; month++) {
-        total += getWorkDays(year, month);
-    }
-    return total;
+  let total = 0;
+  for (let month = 1; month <= 12; month++) {
+    total += getWorkDays(year, month);
+  }
+  return total;
 }
 
 /**
@@ -64,9 +68,12 @@ export function getTotalWorkDaysInYear(year: number): number {
  * @param year - The year
  * @returns Hours allocated per work day
  */
-export function getAllocationRate(annualAllocation: number, year: number): number {
-    const totalWorkDays = getTotalWorkDaysInYear(year);
-    return annualAllocation / totalWorkDays;
+export function getAllocationRate(
+  annualAllocation: number,
+  year: number,
+): number {
+  const totalWorkDays = getTotalWorkDaysInYear(year);
+  return annualAllocation / totalWorkDays;
 }
 
 /**
@@ -76,17 +83,21 @@ export function getAllocationRate(annualAllocation: number, year: number): numbe
  * @param month - The month (1-12)
  * @returns Hours accrued in the month
  */
-export function calculateMonthlyAccrual(ptoRate: number, year: number, month: number): number {
-    const workDays = getWorkDays(year, month);
-    return ptoRate * workDays;
+export function calculateMonthlyAccrual(
+  ptoRate: number,
+  year: number,
+  month: number,
+): number {
+  const workDays = getWorkDays(year, month);
+  return ptoRate * workDays;
 }
 
 // Legacy interface for backward compatibility
 export interface WorkDaysResult {
-    workDays: number;
-    totalDays: number;
-    weekends: number;
-    holidays: string[];
+  workDays: number;
+  totalDays: number;
+  weekends: number;
+  holidays: string[];
 }
 
 /**
@@ -96,26 +107,30 @@ export interface WorkDaysResult {
  * @param holidays - Ignored (no holiday adjustment in current implementation)
  * @returns WorkDaysResult with work days calculation
  */
-export function calculateWorkDays(year: number, month: number, holidays: string[] = []): WorkDaysResult {
-    const workDays = getWorkDays(year, month);
-    // Calculate actual total days and weekends
-    const totalDays = new Date(year, month, 0).getDate();
-    let weekends = 0;
+export function calculateWorkDays(
+  year: number,
+  month: number,
+  holidays: string[] = [],
+): WorkDaysResult {
+  const workDays = getWorkDays(year, month);
+  // Calculate actual total days and weekends
+  const totalDays = new Date(year, month, 0).getDate();
+  let weekends = 0;
 
-    for (let day = 1; day <= totalDays; day++) {
-        const date = new Date(year, month - 1, day);
-        const dayOfWeek = date.getDay();
-        if (dayOfWeek === 0 || dayOfWeek === 6) {
-            weekends++;
-        }
+  for (let day = 1; day <= totalDays; day++) {
+    const date = new Date(year, month - 1, day);
+    const dayOfWeek = date.getDay();
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      weekends++;
     }
+  }
 
-    return {
-        workDays,
-        totalDays,
-        weekends,
-        holidays: [] // No holiday adjustment in current implementation
-    };
+  return {
+    workDays,
+    totalDays,
+    weekends,
+    holidays: [], // No holiday adjustment in current implementation
+  };
 }
 
 /**
@@ -125,17 +140,17 @@ export function calculateWorkDays(year: number, month: number, holidays: string[
  * @returns The end date
  */
 export function calculateEndDate(startDate: Date, workDays: number): Date {
-    let currentDate = new Date(startDate);
-    let daysAdded = 0;
+  let currentDate = new Date(startDate);
+  let daysAdded = 0;
 
-    while (daysAdded < workDays) {
-        currentDate.setDate(currentDate.getDate() + 1);
-        const dayOfWeek = currentDate.getDay();
-        // Monday (1) through Friday (5)
-        if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-            daysAdded++;
-        }
+  while (daysAdded < workDays) {
+    currentDate.setDate(currentDate.getDate() + 1);
+    const dayOfWeek = currentDate.getDay();
+    // Monday (1) through Friday (5)
+    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+      daysAdded++;
     }
+  }
 
-    return currentDate;
+  return currentDate;
 }

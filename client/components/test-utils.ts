@@ -10,13 +10,16 @@
  * @returns The found element
  * @throws Error if element is not found
  */
-export function querySingle<T extends HTMLElement>(selector: string, scope?: Element | ShadowRoot): T {
-    const item = (scope || document).querySelector<T>(selector);
-    if (item) {
-        return item;
-    } else {
-        throw new Error(`${selector} element not found`);
-    }
+export function querySingle<T extends HTMLElement>(
+  selector: string,
+  scope?: Element | ShadowRoot,
+): T {
+  const item = (scope || document).querySelector<T>(selector);
+  if (item) {
+    return item;
+  } else {
+    throw new Error(`${selector} element not found`);
+  }
 }
 
 /**
@@ -26,15 +29,22 @@ export function querySingle<T extends HTMLElement>(selector: string, scope?: Ele
  * @returns Array of found elements
  * @throws Error if no elements are found
  */
-export function queryMultiple<T extends HTMLElement>(selector: string, scope?: Element): T[] {
-    const items = Array.from((scope || document).querySelectorAll<T>(selector));
-    if (items.length > 0) {
-        console.log(`✅ Found ${items.length} ${selector} elements${scope ? ' in scope' : ''}`);
-        return items;
-    } else {
-        console.error(`❌ No ${selector} elements found${scope ? ' in scope' : ' in DOM'}`);
-        throw new Error(`No ${selector} elements found`);
-    }
+export function queryMultiple<T extends HTMLElement>(
+  selector: string,
+  scope?: Element,
+): T[] {
+  const items = Array.from((scope || document).querySelectorAll<T>(selector));
+  if (items.length > 0) {
+    console.log(
+      `✅ Found ${items.length} ${selector} elements${scope ? " in scope" : ""}`,
+    );
+    return items;
+  } else {
+    console.error(
+      `❌ No ${selector} elements found${scope ? " in scope" : " in DOM"}`,
+    );
+    throw new Error(`No ${selector} elements found`);
+  }
 }
 
 /**
@@ -44,14 +54,14 @@ export function queryMultiple<T extends HTMLElement>(selector: string, scope?: E
  * @throws Error if element is not found
  */
 export function getElementById<T extends HTMLElement>(id: string): T {
-    const element = document.getElementById(id) as T;
-    if (element) {
-        console.log(`✅ Found element with ID '${id}':`, element);
-        return element;
-    } else {
-        console.error(`❌ Element with ID '${id}' not found in DOM`);
-        throw new Error(`Element with ID '${id}' not found`);
-    }
+  const element = document.getElementById(id) as T;
+  if (element) {
+    console.log(`✅ Found element with ID '${id}':`, element);
+    return element;
+  } else {
+    console.error(`❌ Element with ID '${id}' not found in DOM`);
+    throw new Error(`Element with ID '${id}' not found`);
+  }
 }
 
 /**
@@ -62,18 +72,18 @@ export function getElementById<T extends HTMLElement>(id: string): T {
  * @param options - Event listener options
  */
 export function addEventListener<T extends Event = Event>(
-    element: EventTarget,
-    event: string,
-    handler: (event: T) => void,
-    options?: boolean | AddEventListenerOptions
+  element: EventTarget,
+  event: string,
+  handler: (event: T) => void,
+  options?: boolean | AddEventListenerOptions,
 ): void {
-    try {
-        element.addEventListener(event, handler as EventListener, options);
-        console.log(`✅ Added ${event} event listener to element:`, element);
-    } catch (error) {
-        console.error(`❌ Failed to add ${event} event listener:`, error);
-        throw error;
-    }
+  try {
+    element.addEventListener(event, handler as EventListener, options);
+    console.log(`✅ Added ${event} event listener to element:`, element);
+  } catch (error) {
+    console.error(`❌ Failed to add ${event} event listener:`, error);
+    throw error;
+  }
 }
 
 /**
@@ -83,20 +93,20 @@ export function addEventListener<T extends Event = Event>(
  * @returns The created element
  */
 export function createElement<T extends HTMLElement>(
-    tagName: string,
-    attributes?: Record<string, string>
+  tagName: string,
+  attributes?: Record<string, string>,
 ): T {
-    try {
-        const element = document.createElement(tagName) as T;
-        if (attributes) {
-            Object.entries(attributes).forEach(([key, value]) => {
-                element.setAttribute(key, value);
-            });
-        }
-        console.log(`✅ Created ${tagName} element with attributes:`, attributes);
-        return element;
-    } catch (error) {
-        console.error(`❌ Failed to create ${tagName} element:`, error);
-        throw error;
+  try {
+    const element = document.createElement(tagName) as T;
+    if (attributes) {
+      Object.entries(attributes).forEach(([key, value]) => {
+        element.setAttribute(key, value);
+      });
     }
+    console.log(`✅ Created ${tagName} element with attributes:`, attributes);
+    return element;
+  } catch (error) {
+    console.error(`❌ Failed to create ${tagName} element:`, error);
+    throw error;
+  }
 }

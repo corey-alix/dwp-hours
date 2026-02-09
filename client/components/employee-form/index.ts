@@ -1,74 +1,74 @@
 interface Employee {
-    id?: number;
-    name: string;
-    identifier: string;
-    ptoRate: number;
-    carryoverHours: number;
-    role: string;
-    hash?: string;
+  id?: number;
+  name: string;
+  identifier: string;
+  ptoRate: number;
+  carryoverHours: number;
+  role: string;
+  hash?: string;
 }
 
-import { querySingle } from '../test-utils';
+import { querySingle } from "../test-utils";
 
 export class EmployeeForm extends HTMLElement {
-    private shadow: ShadowRoot;
-    private _employee: Employee | null = null;
-    private _isEdit = false;
+  private shadow: ShadowRoot;
+  private _employee: Employee | null = null;
+  private _isEdit = false;
 
-    constructor() {
-        super();
-        this.shadow = this.attachShadow({ mode: 'open' });
-    }
+  constructor() {
+    super();
+    this.shadow = this.attachShadow({ mode: "open" });
+  }
 
-    static get observedAttributes() {
-        return ['employee', 'is-edit'];
-    }
+  static get observedAttributes() {
+    return ["employee", "is-edit"];
+  }
 
-    connectedCallback() {
-        this.render();
-        this.setupEventListeners();
-    }
+  connectedCallback() {
+    this.render();
+    this.setupEventListeners();
+  }
 
-    attributeChangedCallback(name: string, oldValue: string, newValue: string) {
-        if (oldValue !== newValue) {
-            if (name === 'employee') {
-                try {
-                    this._employee = JSON.parse(newValue);
-                    this._isEdit = !!this._employee?.id;
-                } catch (e) {
-                    console.error('Invalid employee JSON:', e);
-                    this._employee = null;
-                    this._isEdit = false;
-                }
-            } else if (name === 'is-edit') {
-                this._isEdit = newValue === 'true';
-            }
-            if (this.shadow) {
-                this.render();
-            }
+  attributeChangedCallback(name: string, oldValue: string, newValue: string) {
+    if (oldValue !== newValue) {
+      if (name === "employee") {
+        try {
+          this._employee = JSON.parse(newValue);
+          this._isEdit = !!this._employee?.id;
+        } catch (e) {
+          console.error("Invalid employee JSON:", e);
+          this._employee = null;
+          this._isEdit = false;
         }
+      } else if (name === "is-edit") {
+        this._isEdit = newValue === "true";
+      }
+      if (this.shadow) {
+        this.render();
+      }
     }
+  }
 
-    set employee(value: Employee | null) {
-        this.setAttribute('employee', value ? JSON.stringify(value) : '');
-    }
+  set employee(value: Employee | null) {
+    this.setAttribute("employee", value ? JSON.stringify(value) : "");
+  }
 
-    get employee(): Employee | null {
-        return this._employee;
-    }
+  get employee(): Employee | null {
+    return this._employee;
+  }
 
-    set isEdit(value: boolean) {
-        this.setAttribute('is-edit', value.toString());
-    }
+  set isEdit(value: boolean) {
+    this.setAttribute("is-edit", value.toString());
+  }
 
-    get isEdit(): boolean {
-        return this._isEdit;
-    }
+  get isEdit(): boolean {
+    return this._isEdit;
+  }
 
-    private render() {
-        const title = this._isEdit ? 'Edit Employee' : 'Add New Employee';
+  private render() {
+    const title = this._isEdit ? "Edit Employee" : "Add New Employee";
 
-        this.shadow.innerHTML = `
+    this.shadow.innerHTML = `
             <style>
                 :host {
                     display: block;
@@ -217,7 +217,7 @@ export class EmployeeForm extends HTMLElement {
                             id="name"
                             name="name"
                             class="form-input"
-                            value="${this._employee?.name || ''}"
+                            value="${this._employee?.name || ""}"
                             required
                         >
                         <span class="error-message" id="name-error"></span>
@@ -232,7 +232,7 @@ export class EmployeeForm extends HTMLElement {
                             id="identifier"
                             name="identifier"
                             class="form-input"
-                            value="${this._employee?.identifier || ''}"
+                            value="${this._employee?.identifier || ""}"
                             required
                         >
                         <span class="error-message" id="identifier-error"></span>
@@ -275,92 +275,108 @@ export class EmployeeForm extends HTMLElement {
                             Role
                         </label>
                         <select id="role" name="role" class="form-select">
-                            <option value="Employee" ${this._employee?.role === 'Employee' ? 'selected' : ''}>Employee</option>
-                            <option value="Admin" ${this._employee?.role === 'Admin' ? 'selected' : ''}>Admin</option>
+                            <option value="Employee" ${this._employee?.role === "Employee" ? "selected" : ""}>Employee</option>
+                            <option value="Admin" ${this._employee?.role === "Admin" ? "selected" : ""}>Admin</option>
                         </select>
                     </div>
 
                     <div class="form-actions">
                         <button type="button" class="btn btn-secondary" id="cancel-btn">Cancel</button>
                         <button type="submit" class="btn btn-primary" id="submit-btn">
-                            ${this._isEdit ? 'Update Employee' : 'Add Employee'}
+                            ${this._isEdit ? "Update Employee" : "Add Employee"}
                         </button>
                     </div>
                 </form>
             </div>
         `;
+  }
+
+  private setupEventListeners() {
+    const form = querySingle<HTMLFormElement>("#employee-form", this.shadow);
+    const cancelBtn = querySingle<HTMLButtonElement>(
+      "#cancel-btn",
+      this.shadow,
+    );
+
+    form?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      if (this.validateForm()) {
+        const formData = new FormData(form);
+        const employeeData: Employee = {
+          id: this._employee?.id,
+          name: formData.get("name") as string,
+          identifier: formData.get("identifier") as string,
+          ptoRate: parseFloat(formData.get("ptoRate") as string) || 0.71,
+          carryoverHours:
+            parseFloat(formData.get("carryoverHours") as string) || 0,
+          role: formData.get("role") as string,
+          hash: this._employee?.hash,
+        };
+
+        this.dispatchEvent(
+          new CustomEvent("employee-submit", {
+            detail: { employee: employeeData, isEdit: this._isEdit },
+          }),
+        );
+      }
+    });
+
+    cancelBtn?.addEventListener("click", () => {
+      this.dispatchEvent(new CustomEvent("form-cancel"));
+    });
+
+    // Real-time validation
+    const inputs = this.shadow.querySelectorAll(".form-input");
+    inputs.forEach((input) => {
+      input.addEventListener("blur", () => {
+        this.validateField(input as HTMLInputElement);
+      });
+    });
+  }
+
+  private validateForm(): boolean {
+    let isValid = true;
+
+    const nameInput = querySingle<HTMLInputElement>("#name", this.shadow);
+    const identifierInput = querySingle<HTMLInputElement>(
+      "#identifier",
+      this.shadow,
+    );
+
+    if (!this.validateField(nameInput)) isValid = false;
+    if (!this.validateField(identifierInput)) isValid = false;
+
+    return isValid;
+  }
+
+  private validateField(input: HTMLInputElement): boolean {
+    const value = input.value.trim();
+    const errorElement = querySingle<HTMLElement>(
+      `#${input.id}-error`,
+      this.shadow,
+    );
+
+    input.classList.remove("error");
+    errorElement.textContent = "";
+
+    if (input.hasAttribute("required") && !value) {
+      input.classList.add("error");
+      errorElement.textContent = "This field is required";
+      return false;
     }
 
-    private setupEventListeners() {
-        const form = querySingle<HTMLFormElement>('#employee-form', this.shadow);
-        const cancelBtn = querySingle<HTMLButtonElement>('#cancel-btn', this.shadow);
-
-        form?.addEventListener('submit', (e) => {
-            e.preventDefault();
-            if (this.validateForm()) {
-                const formData = new FormData(form);
-                const employeeData: Employee = {
-                    id: this._employee?.id,
-                    name: formData.get('name') as string,
-                    identifier: formData.get('identifier') as string,
-                    ptoRate: parseFloat(formData.get('ptoRate') as string) || 0.71,
-                    carryoverHours: parseFloat(formData.get('carryoverHours') as string) || 0,
-                    role: formData.get('role') as string,
-                    hash: this._employee?.hash
-                };
-
-                this.dispatchEvent(new CustomEvent('employee-submit', {
-                    detail: { employee: employeeData, isEdit: this._isEdit }
-                }));
-            }
-        });
-
-        cancelBtn?.addEventListener('click', () => {
-            this.dispatchEvent(new CustomEvent('form-cancel'));
-        });
-
-        // Real-time validation
-        const inputs = this.shadow.querySelectorAll('.form-input');
-        inputs.forEach(input => {
-            input.addEventListener('blur', () => {
-                this.validateField(input as HTMLInputElement);
-            });
-        });
+    if (
+      input.id === "identifier" &&
+      value &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+    ) {
+      input.classList.add("error");
+      errorElement.textContent = "Employee email must be a valid email address";
+      return false;
     }
 
-    private validateForm(): boolean {
-        let isValid = true;
-
-        const nameInput = querySingle<HTMLInputElement>('#name', this.shadow);
-        const identifierInput = querySingle<HTMLInputElement>('#identifier', this.shadow);
-
-        if (!this.validateField(nameInput)) isValid = false;
-        if (!this.validateField(identifierInput)) isValid = false;
-
-        return isValid;
-    }
-
-    private validateField(input: HTMLInputElement): boolean {
-        const value = input.value.trim();
-        const errorElement = querySingle<HTMLElement>(`#${input.id}-error`, this.shadow);
-
-        input.classList.remove('error');
-        errorElement.textContent = '';
-
-        if (input.hasAttribute('required') && !value) {
-            input.classList.add('error');
-            errorElement.textContent = 'This field is required';
-            return false;
-        }
-
-        if (input.id === 'identifier' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-            input.classList.add('error');
-            errorElement.textContent = 'Employee email must be a valid email address';
-            return false;
-        }
-
-        return true;
-    }
+    return true;
+  }
 }
 
-customElements.define('employee-form', EmployeeForm);
+customElements.define("employee-form", EmployeeForm);

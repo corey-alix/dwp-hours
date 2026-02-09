@@ -1,0 +1,30 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Pre-push hook that checks if pushing to main branch
+# Arguments: <local ref> <local sha> <remote ref> <remote sha>
+
+local_ref=$1
+local_sha=$2
+remote_ref=$3
+remote_sha=$4
+
+echo "🔍 Pre-push hook checking: $local_ref → $remote_ref"
+
+# Check if pushing to main branch
+if [ "$remote_ref" = "refs/heads/main" ]; then
+    echo "🏗️  Pushing to main branch - running full validation..."
+    echo "This may take a few minutes..."
+
+    # Run full test suite before allowing push to main
+    if pnpm test; then
+        echo "✅ All tests passed - allowing push to main"
+    else
+        echo "❌ Tests failed - blocking push to main"
+        echo "Please fix the issues and try again, or use --no-verify to bypass"
+        exit 1
+    fi
+else
+    echo "⚡ Pushing to feature branch - allowing push without full validation"
+    echo "CI will run full tests on the remote branch"
+fi

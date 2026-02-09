@@ -1,12 +1,15 @@
 # User Data Migration - Corey Alix
 
 ## Description
+
 Implement data migration functionality to import employee hours and PTO data from "Corey Alix 2025.xlsx" into the database for a new user with email address "test-coreyalix@gmail.com". Fix existing issues in migrate.ts to enable successful data import and validation.
 
 ## Priority
+
 🟢 Low Priority
 
 ## Checklist
+
 - [x] **Phase 1: Analyze and Fix migrate.ts** ([scripts/migrate.ts](scripts/migrate.ts))
   - [x] Review current migrate.ts code and identify failure points
   - [x] Implement Excel file parsing using appropriate library (e.g., xlsx) - implemented with ExcelJS
@@ -41,6 +44,7 @@ Implement data migration functionality to import employee hours and PTO data fro
   - [x] `npm run test` until it passes
 
 ## Implementation Notes
+
 - Use xlsx library for Excel parsing (add to dependencies if needed)
 - Ensure user is created with proper employee ID linking
 - Follow existing database operation patterns (prepared statements, saveDatabase)
@@ -55,6 +59,7 @@ Implement data migration functionality to import employee hours and PTO data fro
 - Script should be reusable for multiple files (folder import capability)
 
 ## Questions and Concerns
+
 1. What is the exact structure of "Corey Alix 2025.xlsx" (sheet names, column headers)?  
    **Answer**: See [SKILL.md](../.github/skills/pto-spreadsheet-layout/SKILL.md) although it has some issues that I will resolve.
 2. Should the migration script be reusable for other users/files, or specific to this one?  

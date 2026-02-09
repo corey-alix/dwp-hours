@@ -3,7 +3,9 @@
 > **⚠️ CRITICAL: Do NOT attempt to start the development server within this environment.** The `npm run dev` script is now blocked and will exit with an error if run in VS Code. Use `npm run dev:external` in a separate terminal outside of this environment to avoid conflicts with test execution. See "Server Management" section below for details.
 
 ## Project Context
+
 You are assisting with the DWP Hours Tracker, a Node.js/TypeScript application for managing employee PTO and hours tracking. The project uses:
+
 - **Backend**: Node.js, Express.js, SQLite (sql.js for WSL compatibility)
 - **Frontend**: Vanilla TypeScript, HTML, CSS (no frameworks)
 - **Build**: TypeScript compilation, npm scripts
@@ -13,9 +15,11 @@ You are assisting with the DWP Hours Tracker, a Node.js/TypeScript application f
 ## Development Workflow
 
 ### Server Management
+
 **Important**: Avoid starting the development server within this environment. The current workflow of starting a blocking dev server and then running tests creates conflicts where tests may kill or interfere with the server process.
 
 **Recommended Approach**:
+
 - Run `npm run dev:external` (or `npm run start`) in a separate terminal outside of this environment
 - When server issues occur, restart the external server manually
 - For E2E testing, ensure the server is running on port 3000 before executing tests
@@ -24,19 +28,23 @@ You are assisting with the DWP Hours Tracker, a Node.js/TypeScript application f
 This approach prevents the disruptive pattern where server startup and test execution interfere with each other.
 
 ## Task Management System
+
 The project uses a structured task system in the `TASKS/` folder. Always reference and follow these guidelines:
 
 ### Task Priority Order
+
 1. 🔥 **High Priority**: database-schema.md, authentication.md, pto-calculations.md, api-endpoints.md
 2. 🟡 **Medium Priority**: admin-panel.md, testing-suite.md
 3. 🟢 **Low Priority**: data-migration.md, security-production.md
 
 ### Implementation Guidelines
+
 - **Completion Criteria**: All checklist items ✓, builds without errors, linting passes, manual testing, documentation updated
 - **Code Quality**: TypeScript strict mode, proper error handling, input validation, security best practices
 - **Testing**: Manual testing, API testing, frontend integration, error cases
 
 ## Agent Skills
+
 This project uses specialized agent skills located in `.github/skills/` directories. Each skill provides focused assistance for specific development activities:
 
 - **task-implementation-assistant**: Guides task implementation from the TASKS folder
@@ -46,38 +54,41 @@ This project uses specialized agent skills located in `.github/skills/` director
 - **dependency-management**: Manages task priorities and dependencies
 
 ## Development Best Practices and Learnings
+
 For comprehensive development guidance, patterns, and lessons learned from recent implementations, refer to the [README.md Development Best Practices and Learnings section](../README.md#development-best-practices-and-learnings). This includes code quality practices, testing strategies, architecture insights, performance considerations, and documentation guidelines derived from actual project implementations.
 
 ## Code Patterns and Conventions
 
 ### Backend Patterns
+
 ```typescript
 // API endpoint structure
-app.get('/api/resource/:id', (req, res) => {
+app.get("/api/resource/:id", (req, res) => {
   try {
     // Input validation
     const { id } = req.params;
 
     // Database operation
-    const result = db.exec('SELECT * FROM table WHERE id = ?', [id]);
+    const result = db.exec("SELECT * FROM table WHERE id = ?", [id]);
 
     // Response
     res.json({ data: result });
   } catch (error) {
     log(`Error in endpoint: ${error}`);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 ```
 
 ### Frontend Patterns
+
 ```typescript
 // API client usage
 const api = new APIClient();
 
 async function loadData(): Promise<void> {
   try {
-    const data = await api.get('/api/endpoint');
+    const data = await api.get("/api/endpoint");
     // Handle success
   } catch (error) {
     // Handle error
@@ -85,37 +96,43 @@ async function loadData(): Promise<void> {
 }
 
 // DOM element queries - use strongly typed elements
-const ptoForm = querySingle<PtoEntryForm>('pto-entry-form');  // Specific type, no casting
-const input = querySingle<HTMLInputElement>('#input-id', ptoForm.shadowRoot);  // Scoped queries
+const ptoForm = querySingle<PtoEntryForm>("pto-entry-form"); // Specific type, no casting
+const input = querySingle<HTMLInputElement>("#input-id", ptoForm.shadowRoot); // Scoped queries
 ```
 
 ### DOM Element Handling
+
 - Always use strongly typed DOM elements - avoid `as any` or type casting
 - Use `querySingle` from `test-utils.ts` instead of `getElementById` for error-throwing behavior
 - Web components have specific class types (e.g., `PtoEntryForm` for `<pto-entry-form>`) - leverage them for type safety
 
 ### Error Handling
+
 - Always use try/catch blocks
 - Log errors with the `log()` function
 - Return appropriate HTTP status codes
 - Provide meaningful error messages
 
 ### Database Operations
+
 - Use prepared statements with `stmt.bind()` and `stmt.run()`
 - Get last insert ID with `db.exec('SELECT last_insert_rowid()')`
 - Always call `saveDatabase()` after writes
 - Handle SQL constraints gracefully
 
 ### Script Generation
+
 - Generate scripts in TypeScript with ESM modules (.mts extension), not plain JavaScript or CommonJS modules.
 - Use import/export syntax for ESM.
 
 ### Business Rules
+
 - **Never implement business logic directly in client files** - all validation rules, calculations, and business constraints must be imported from `shared/businessRules.ts`
 - Client-side validation should leverage the shared business rules module for consistency with server-side validation
 - Extend `shared/businessRules.ts` as needed rather than duplicating logic in components
 
 ### Date Handling
+
 - **Date operations must use string-based YYYY-MM-DD format exclusively** - avoid Date objects and timezone issues
 - **Never use `new Date()`, `Date.UTC`, or any Date methods outside `shared/dateUtils.ts`** - all date operations must go through the dateUtils library
 - All date manipulation must go through `shared/dateUtils.ts` - do not use Date.UTC, new Date(), or Date methods outside this library
@@ -125,6 +142,7 @@ const input = querySingle<HTMLInputElement>('#input-id', ptoForm.shadowRoot);  /
 ## Quality Gates
 
 Before marking any implementation complete:
+
 - ✅ `npm run build` passes
 - ✅ `npm run lint` passes
 - ✅ Manual testing of functionality
@@ -142,5 +160,6 @@ Before marking any implementation complete:
 5. **Don't** implement authentication before database schema is complete
 
 ## Documentation Conventions
+
 - Number items under any "Questions and Concerns" section in TASKS documents.</content>
-<parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/.github/copilot-instructions.md
+  <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/.github/copilot-instructions.md

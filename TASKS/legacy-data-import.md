@@ -1,12 +1,15 @@
 # Legacy Data Import
 
 ## Description
+
 Implement utility methods and scripts for converting between Excel, JSON, and database formats to facilitate importing legacy employee data from Excel spreadsheets into the DWP Hours Tracker application. This includes round-trip validation to ensure data integrity during conversion processes.
 
 ## Priority
+
 🟢 Low Priority
 
 ## Checklist
+
 - [x] **Phase 1: JSON to Excel Conversion**
   - [x] Implement `convert-json-to-excel.mts` script using ExcelJS library
   - [x] Support cell values, formulas, colors, and merged ranges
@@ -41,8 +44,8 @@ Implement utility methods and scripts for converting between Excel, JSON, and da
   - [x] Implement unit tests to verify the generated JSON matches the expected structure
   - [x] Run `pnpm test` after completing this phase to ensure no regressions occur
 
-
 ## Implementation Notes
+
 - Use ExcelJS library for Excel file manipulation (add to package.json if not present)
 - Store utility methods in `shared/conversionUtils.ts` for reusability
 - Scripts should be executable TypeScript files (.mts extension) using ESM modules
@@ -54,6 +57,7 @@ Implement utility methods and scripts for converting between Excel, JSON, and da
 - Handle large Excel files efficiently to avoid memory issues
 
 ## Questions and Concerns
+
 1. Figure out the structure by first converting Excel → JSON → Excel; once we have the JSON, we can determine the structure. The formulas should make it obvious.
 2. For the time being, replace any existing data. Use user "1", "john.doe@gmail.com"; it is an in-memory test so the database should be empty anyway. Create a new user if needed.
 3. No business rules yet. We just want to be sure we are importing the correct dates, PTO types, hours, accrual values, signoffs, etc.

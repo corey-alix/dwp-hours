@@ -5,6 +5,7 @@ This project supports multiple worktrees with automatic port assignment to avoid
 ## Quick Start
 
 ### For Worktree Development
+
 ```bash
 # Start dev server with automatically assigned port
 pnpm run dev:worktree
@@ -16,6 +17,7 @@ pnpm run dev:external
 ```
 
 ### For Testing in Worktrees
+
 ```bash
 # Set the port and run tests
 export PORT=<worktree-port>
@@ -43,17 +45,17 @@ pnpm run dev:external
 
 ## Worktree Examples
 
-| Worktree Branch | Assigned Port | Reasoning |
-|----------------|---------------|-----------|
-| main/master   | 3000         | Base port |
-| mercury       | 3001         | 1st planet |
-| venus         | 3002         | 2nd planet |
-| earth         | 3003         | 3rd planet |
-| mars          | 3004         | 4th planet |
-| jupiter       | 3005         | 5th planet |
-| saturn        | 3006         | 6th planet |
-| feature/auth  | 3052         | Hash-based |
-| bugfix/ui     | 3078         | Hash-based |
+| Worktree Branch | Assigned Port | Reasoning  |
+| --------------- | ------------- | ---------- |
+| main/master     | 3000          | Base port  |
+| mercury         | 3001          | 1st planet |
+| venus           | 3002          | 2nd planet |
+| earth           | 3003          | 3rd planet |
+| mars            | 3004          | 4th planet |
+| jupiter         | 3005          | 5th planet |
+| saturn          | 3006          | 6th planet |
+| feature/auth    | 3052          | Hash-based |
+| bugfix/ui       | 3078          | Hash-based |
 
 ## Scripts
 

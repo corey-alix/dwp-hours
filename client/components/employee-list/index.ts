@@ -1,70 +1,71 @@
 interface Employee {
-    id: number;
-    name: string;
-    identifier: string;
-    ptoRate: number;
-    carryoverHours: number;
-    role: string;
-    hash: string;
+  id: number;
+  name: string;
+  identifier: string;
+  ptoRate: number;
+  carryoverHours: number;
+  role: string;
+  hash: string;
 }
 
-import { querySingle } from '../test-utils';
+import { querySingle } from "../test-utils";
 
 export class EmployeeList extends HTMLElement {
-    private shadow: ShadowRoot;
-    private _employees: Employee[] = [];
-    private _filteredEmployees: Employee[] = [];
-    private _searchTerm = '';
+  private shadow: ShadowRoot;
+  private _employees: Employee[] = [];
+  private _filteredEmployees: Employee[] = [];
+  private _searchTerm = "";
 
-    constructor() {
-        super();
-        this.shadow = this.attachShadow({ mode: 'open' });
-    }
+  constructor() {
+    super();
+    this.shadow = this.attachShadow({ mode: "open" });
+  }
 
-    static get observedAttributes() {
-        return ['employees'];
-    }
+  static get observedAttributes() {
+    return ["employees"];
+  }
 
-    connectedCallback() {
+  connectedCallback() {
+    this.render();
+    this.setupEventListeners();
+  }
+
+  attributeChangedCallback(name: string, oldValue: string, newValue: string) {
+    if (oldValue !== newValue && name === "employees") {
+      try {
+        this._employees = JSON.parse(newValue);
+        this.filterEmployees();
         this.render();
-        this.setupEventListeners();
+      } catch (e) {
+        console.error("Invalid employees JSON:", e);
+      }
     }
+  }
 
-    attributeChangedCallback(name: string, oldValue: string, newValue: string) {
-        if (oldValue !== newValue && name === 'employees') {
-            try {
-                this._employees = JSON.parse(newValue);
-                this.filterEmployees();
-                this.render();
-            } catch (e) {
-                console.error('Invalid employees JSON:', e);
-            }
-        }
+  set employees(value: Employee[]) {
+    this.setAttribute("employees", JSON.stringify(value));
+  }
+
+  get employees(): Employee[] {
+    return this._employees;
+  }
+
+  private filterEmployees() {
+    if (!this._searchTerm) {
+      this._filteredEmployees = [...this._employees];
+    } else {
+      const term = this._searchTerm.toLowerCase();
+      this._filteredEmployees = this._employees.filter(
+        (emp) =>
+          emp.name.toLowerCase().includes(term) ||
+          emp.identifier.toLowerCase().includes(term) ||
+          emp.role.toLowerCase().includes(term),
+      );
     }
+  }
 
-    set employees(value: Employee[]) {
-        this.setAttribute('employees', JSON.stringify(value));
-    }
-
-    get employees(): Employee[] {
-        return this._employees;
-    }
-
-    private filterEmployees() {
-        if (!this._searchTerm) {
-            this._filteredEmployees = [...this._employees];
-        } else {
-            const term = this._searchTerm.toLowerCase();
-            this._filteredEmployees = this._employees.filter(emp =>
-                emp.name.toLowerCase().includes(term) ||
-                emp.identifier.toLowerCase().includes(term) ||
-                emp.role.toLowerCase().includes(term)
-            );
-        }
-    }
-
-    private render() {
-        this.shadow.innerHTML = `
+  private render() {
+    this.shadow.innerHTML = `
             <style>
                 :host {
                     display: block;
@@ -278,17 +279,20 @@ export class EmployeeList extends HTMLElement {
                 </div>
 
                 <div class="employee-grid">
-                    ${this._filteredEmployees.length === 0 ?
-                '<div class="empty-state"><h3>No employees found</h3><p>Try adjusting your search or add a new employee.</p></div>' :
-                this._filteredEmployees.map(emp => this.renderEmployeeCard(emp)).join('')
-            }
+                    ${
+                      this._filteredEmployees.length === 0
+                        ? '<div class="empty-state"><h3>No employees found</h3><p>Try adjusting your search or add a new employee.</p></div>'
+                        : this._filteredEmployees
+                            .map((emp) => this.renderEmployeeCard(emp))
+                            .join("")
+                    }
                 </div>
             </div>
         `;
-    }
+  }
 
-    private renderEmployeeCard(employee: Employee): string {
-        return `
+  private renderEmployeeCard(employee: Employee): string {
+    return `
             <div class="employee-card" data-employee-id="${employee.id}">
                 <div class="employee-header">
                     <div>
@@ -316,37 +320,45 @@ export class EmployeeList extends HTMLElement {
                 </div>
             </div>
         `;
-    }
+  }
 
-    private setupEventListeners() {
-        const searchInput = querySingle<HTMLInputElement>('#search-input', this.shadow);
-        const addButton = querySingle<HTMLButtonElement>('#add-employee', this.shadow);
+  private setupEventListeners() {
+    const searchInput = querySingle<HTMLInputElement>(
+      "#search-input",
+      this.shadow,
+    );
+    const addButton = querySingle<HTMLButtonElement>(
+      "#add-employee",
+      this.shadow,
+    );
 
-        searchInput?.addEventListener('input', (e) => {
-            this._searchTerm = (e.target as HTMLInputElement).value;
-            this.filterEmployees();
-            this.render();
-        });
+    searchInput?.addEventListener("input", (e) => {
+      this._searchTerm = (e.target as HTMLInputElement).value;
+      this.filterEmployees();
+      this.render();
+    });
 
-        addButton?.addEventListener('click', () => {
-            this.dispatchEvent(new CustomEvent('add-employee'));
-        });
+    addButton?.addEventListener("click", () => {
+      this.dispatchEvent(new CustomEvent("add-employee"));
+    });
 
-        // Event delegation for action buttons
-        this.shadow.addEventListener('click', (e) => {
-            const target = e.target as HTMLElement;
-            if (target.classList.contains('action-btn')) {
-                const action = target.getAttribute('data-action');
-                const employeeId = target.getAttribute('data-employee-id');
+    // Event delegation for action buttons
+    this.shadow.addEventListener("click", (e) => {
+      const target = e.target as HTMLElement;
+      if (target.classList.contains("action-btn")) {
+        const action = target.getAttribute("data-action");
+        const employeeId = target.getAttribute("data-employee-id");
 
-                if (action && employeeId) {
-                    this.dispatchEvent(new CustomEvent(`employee-${action}`, {
-                        detail: { employeeId: parseInt(employeeId) }
-                    }));
-                }
-            }
-        });
-    }
+        if (action && employeeId) {
+          this.dispatchEvent(
+            new CustomEvent(`employee-${action}`, {
+              detail: { employeeId: parseInt(employeeId) },
+            }),
+          );
+        }
+      }
+    });
+  }
 }
 
-customElements.define('employee-list', EmployeeList);
+customElements.define("employee-list", EmployeeList);

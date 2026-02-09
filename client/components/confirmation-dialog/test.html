@@ -1,19 +1,29 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Confirmation Dialog Test</title>
-    <link rel="stylesheet" href="/styles.css">
-</head>
-<body>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
     <h1>Confirmation Dialog Component Test</h1>
     <button id="show-dialog">Show Dialog</button>
-    <div id="test-output" style="display: block; padding: 10px; border: 1px solid var(--color-border); margin: 10px 0; background: var(--color-surface); color: var(--color-text);"></div>
+    <div
+      id="test-output"
+      style="
+        display: block;
+        padding: 10px;
+        border: 1px solid var(--color-border);
+        margin: 10px 0;
+        background: var(--color-surface);
+        color: var(--color-text);
+      "
+    ></div>
 
     <script type="module">
-        import {confirmationDialog} from "/app.js";
-        confirmationDialog();
+      import { confirmationDialog } from "/app.js";
+      confirmationDialog();
     </script>
-</body>
+  </body>
 </html>

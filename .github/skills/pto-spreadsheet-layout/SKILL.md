@@ -1,12 +1,15 @@
 # PTO Spreadsheet Layout
 
 ## Description
+
 Explains the structure and layout of PTO Excel spreadsheets used in the DWP Hours Tracker data migration process, including calendar areas, legend sections, PTO calculation data, and color coding schemes.
 
 ## Trigger
+
 Activate when users ask about Excel spreadsheet structure, PTO data layout, calendar organization, legend interpretation, or how to navigate the legacy Excel files for data migration.
 
 ## Response Pattern
+
 1. **Identify Key Sections**: Locate and describe the main areas of the spreadsheet (calendar, legend, PTO calculations)
 2. **Explain Calendar Layout**: Detail the calendar area coordinates, date formulas, and cell structure
 3. **Describe Legend Section**: Explain how PTO types are mapped to colors in the legend
@@ -15,6 +18,7 @@ Activate when users ask about Excel spreadsheet structure, PTO data layout, cale
 6. **Provide Navigation Tips**: Give guidance on programmatically accessing different sections
 
 ## Examples
+
 - "How is the PTO Excel spreadsheet organized?"
 - "Where is the calendar in the Excel file?"
 - "How do I find the legend colors?"
@@ -22,11 +26,13 @@ Activate when users ask about Excel spreadsheet structure, PTO data layout, cale
 - "How are the dates structured in the calendar?"
 
 ## Additional Context
+
 This skill integrates with the data-migration task and provides foundational knowledge for the ExcelJS-based migration implementation. It helps developers understand the source data structure before implementing extraction logic.
 
 ## Precise Spreadsheet Layout
 
 ### Legend Location
+
 - **Coordinates**: Row 8, Column 27 (cell AA8)
 - **Structure**: Vertical list starting with "Legend" header, followed by colored cells for each PTO type
 - **PTO Types and Colors** (from sample "Corey Alix 2025.xlsx"):
@@ -38,6 +44,7 @@ This skill integrates with the data-migration task and provides foundational kno
   - Jury Duty: FFFF0000 (red)
 
 ### Calendar Layout
+
 - **Coordinates**: B6:X37 (rows 6-37, columns 2-24)
 - **Month Headers**: Located in row 4, with each month spanning multiple consecutive columns
 - **Precise Month Locations** (from sample "Corey Alix 2025.xlsx"):
@@ -57,12 +64,14 @@ This skill integrates with the data-migration task and provides foundational kno
 - **Cell Content**: Numbers 1-31 representing days, calculated using Excel array formulas with PTOYEAR variable
 
 ### PTO Calculation Section
+
 - **Location**: Starts at row 39 (after "PTO CALCULATION SECTION" header)
 - **Data Structure**: Monthly breakdown with columns for work days, daily rate, accrued hours, carryover, used hours, and remaining balance
 - **Month Range**: January through December (12 months of PTO data)
 - **Data Extraction**: Skip 2 header rows after section title, then parse monthly data rows
 
 ### Detailed PTO Calculation Data Section
+
 - **Location**: D42-W53 (rows 42-53, columns 4-23)
 - **Headers**: Located in rows 40-41 (two-row header structure)
 - **Column Structure** (from sample "Corey Alix 2025.xlsx"):
@@ -78,6 +87,7 @@ This skill integrates with the data-migration task and provides foundational kno
 - **Relationship**: This detailed section corresponds to the summary data in the main PTO calculation section above
 
 ### Acknowledgement Sections
+
 - **Admin Acknowledgements**: Column Y (25), Rows 42-53
   - **Purpose**: Records admin approval/acknowledgement for each month's PTO data
   - **Sample Data**: "Mandi" (appears in all 12 rows)
@@ -89,18 +99,21 @@ This skill integrates with the data-migration task and provides foundational kno
 - **Relationship**: Both acknowledgement columns align with the monthly data in the PTO calculation section
 
 ### Employee Information Section
+
 - **Hire Date**: Cell R2 (Row 2, Column 18)
   - **Format**: "Hire Date: <date>"
   - **Sample Data**: "Hire Date: 2/13/23"
   - **Purpose**: Records the employee's hire date for HR and payroll purposes
 
 ### Color Coding System
+
 - **Direct Cell Fills**: Colors are applied directly to calendar cells (no conditional formatting rules found)
 - **Actual Usage in Sample**: Only yellow (FFFF00/FFFFFF00) is used for PTO days (24 cells total)
 - **Color Extraction**: Use ExcelJS `cell.fill.fgColor.argb` or `cell.fill.fgColor.rgb` properties
 - **Color Matching**: Normalize colors by removing alpha channel (FF prefix) for comparison
 
 ### Month Layout Pattern
+
 - **Column Spanning**: Each month header appears in row 4 and spans exactly 3 consecutive columns
 - **Row Continuation**: Month headers continue in rows 13, 22, and 31 for subsequent weeks of the same month
 - **Date Flow**: Within each month's 3-column block, dates flow vertically (7 rows per week)
@@ -110,4 +123,4 @@ This skill integrates with the data-migration task and provides foundational kno
   - May: 4 PTO days
   - September: 4 PTO days
   - Other months: Varies by employee schedule</content>
-<parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/.github/skills/pto-spreadsheet-layout/SKILL.md
+    <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/.github/skills/pto-spreadsheet-layout/SKILL.md
