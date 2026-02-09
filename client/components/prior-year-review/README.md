@@ -2,6 +2,37 @@
 
 A web component for displaying historical PTO data in a 12-month calendar grid layout.
 
+## Purpose and Goals
+
+The Prior Year Review feature provides historical PTO data visualization through a dedicated web component that renders all 12 months of a selected year in a responsive grid layout. This component enables users to review their PTO usage patterns from previous years for planning and analysis purposes.
+
+## Component Architecture
+
+- **Self-contained Web Component**: Uses Shadow DOM for style encapsulation and clean integration
+- **External Year Selection**: Year selection is handled at the dashboard level, not within the component
+- **Responsive Grid Layout**: Displays months in a flexible grid (maximum 3 months per row on larger screens)
+- **Calendar Visualization**: Each month renders as a full calendar with PTO entries color-coded by type
+- **Data Structure**: Accepts structured PTO data with monthly summaries and detailed entry lists
+
+## Key Features
+
+- **Color-Coded PTO Types**:
+  - PTO (yellow)
+  - Sick (red)
+  - Bereavement (purple)
+  - Jury Duty (green)
+- **Hours Display**: PTO hours shown in bottom-right corner of calendar days
+- **Monthly Summaries**: Each month includes summary bars showing total hours by PTO type
+- **Consistent Height**: All calendars display exactly 6 weeks (42 days) for perfect alignment
+- **Read-Only View**: Historical data is displayed read-only for review purposes
+
+## Integration Points
+
+- **API Endpoint**: `/api/pto/year/:year` provides historical PTO data for any valid year
+- **Dashboard Controls**: Year toggle buttons switch between current year and prior year views
+- **Error Handling**: Graceful handling of missing data with user-friendly "No data available" messages
+- **Theming**: Uses CSS custom properties for consistent styling with the rest of the application
+
 ## Overview
 
 The `PriorYearReview` component renders a comprehensive view of PTO usage for an entire year, displaying all 12 months in a responsive grid. Each month shows a calendar with PTO entries color-coded by type, providing a visual overview of historical PTO patterns.
@@ -21,19 +52,9 @@ The `PriorYearReview` component renders a comprehensive view of PTO usage for an
 
 ## User Experience (UX)
 
-The 12-month grid layout is a critical design choice that enables users to gain immediate insights into PTO usage patterns across an entire year. By presenting all months simultaneously in a compact grid, the component supports several key user workflows:
+The 12-month grid layout enables users to gain immediate insights into PTO usage patterns across an entire year. By presenting all months simultaneously in a compact grid, the component supports comparative analysis, trend identification, and comprehensive overview of PTO activity.
 
-- **Comparative Analysis**: Users can quickly compare PTO usage across different months to identify seasonal patterns, peak vacation periods, or unusual leave-taking behavior.
-- **Trend Identification**: Visual scanning across the grid allows users to spot trends, such as increased sick leave during certain months or consistent vacation scheduling.
-- **Comprehensive Overview**: Unlike paginated or single-month views, the grid provides a holistic view of the entire year's PTO activity at a glance.
-- **Color Consistency**: Calendar day colors for each PTO type should match the corresponding summary area colors, creating visual continuity that helps users quickly associate calendar entries with summary statistics.
-- **Visual Hierarchy**: Non-zero PTO hour counts in monthly summaries should be displayed with larger, emboldened fonts and color-coding to create visual emphasis and draw attention to significant leave usage, acting as a call-to-action for reviewing patterns or addressing high-usage periods. Only the numeric values should be styled this way; the labels (e.g., "PTO:", "Sick:") should remain in default styling.
-
-However, the current implementation has a known UX limitation: when months contain different numbers of calendar weeks (typically 4 or 5), the month summary bars become misaligned across rows. For example, a month starting on a Monday with 31 days (5 weeks) will have its summary positioned lower than an adjacent month with only 4 weeks.
-
-This misalignment disrupts the visual flow and makes it harder to scan summary information horizontally across the grid. **Fixed**: The component now ensures all calendars display exactly 6 weeks (42 days) by padding shorter months with empty cells, guaranteeing consistent height and perfect alignment of summary bars across all months.
-
-The grid layout prioritizes information density and comparative analysis capabilities over perfect visual alignment, but resolving the alignment issue would significantly enhance the component's usability for data-driven PTO management decisions.
+**Fixed**: The component now ensures all calendars display exactly 6 weeks (42 days) by padding shorter months with empty cells, guaranteeing consistent height and perfect alignment of summary bars across all months.
 
 ## Usage
 
@@ -70,24 +91,26 @@ review.data = {
 
 The component expects data in the following format:
 
+```typescript
 interface PTOYearReviewResponse {
-year: number;
-months: Array<{
-month: number; // 1-12
-ptoEntries: Array<{
-date: string; // YYYY-MM-DD format
-type: "PTO" | "Sick" | "Bereavement" | "Jury Duty";
-hours: number;
-}>;
-summary: {
-totalDays: number;
-ptoHours: number;
-sickHours: number;
-bereavementHours: number;
-juryDutyHours: number;
-};
-}>;
+  year: number;
+  months: Array<{
+    month: number; // 1-12
+    ptoEntries: Array<{
+      date: string; // YYYY-MM-DD format
+      type: "PTO" | "Sick" | "Bereavement" | "Jury Duty";
+      hours: number;
+    }>;
+    summary: {
+      totalDays: number;
+      ptoHours: number;
+      sickHours: number;
+      bereavementHours: number;
+      juryDutyHours: number;
+    };
+  }>;
 }
+```
 
 ## Component Properties
 
@@ -124,3 +147,10 @@ The component includes a test playground that demonstrates:
 - Handling of years with no available data
 
 Run the test page to see the component in action with mock data.
+
+## Dependencies
+
+- `shared/dateUtils.ts` for date calculations
+- `shared/businessRules.ts` for PTO type definitions
+- `client/tokens.css` for theming variables
+- `client/components/test-utils.ts` for DOM utilities
