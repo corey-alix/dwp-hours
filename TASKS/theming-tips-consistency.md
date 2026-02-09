@@ -44,27 +44,27 @@ Implement the theming tips for consistency guidelines across the DWP Hours Track
 
 ### Phase 5: Best Practices Implementation
 
-- [ ] Update web components to properly inherit via `:host`
-- [ ] Set up visual regression testing with tools like Percy
-- [ ] Create a comprehensive style guide documentation
-- [ ] Implement Storybook integration for component theming documentation
-- [ ] Add automated checks for theme consistency across components
+- [x] Update web components to properly inherit via `:host`
+- [x] Set up visual regression testing with tools like Percy
+- [x] Create a comprehensive style guide documentation
+- [x] Implement Storybook integration for component theming documentation
+- [x] Add automated checks for theme consistency across components
 
 ### Phase 6: Testing and Validation
 
-- [ ] Write unit tests for design token validation
-- [ ] Add E2E tests for theme switching and consistency
-- [ ] Perform cross-browser testing for theming compatibility
-- [ ] Validate accessibility compliance with new theming approach
-- [ ] Manual testing of theme switching across all components
+- [x] Write unit tests for design token validation
+- [x] Add E2E tests for theme switching and consistency
+- [x] Perform cross-browser testing for theming compatibility
+- [x] Validate accessibility compliance with new theming approach
+- [x] Manual testing of theme switching across all components
 
 ### Phase 7: Documentation and Training
 
-- [ ] Update README.md with detailed theming guidelines
-- [ ] Create developer onboarding documentation for theming
-- [ ] Add code examples and best practices to component documentation
-- [ ] Establish code review guidelines for theming consistency
-- [ ] Create migration guide for existing hardcoded styles
+- [x] Update README.md with detailed theming guidelines
+- [x] Create developer onboarding documentation for theming
+- [x] Add code examples and best practices to component documentation
+- [x] Establish code review guidelines for theming consistency
+- [x] Create migration guide for existing hardcoded styles
 
 ## Implementation Notes
 

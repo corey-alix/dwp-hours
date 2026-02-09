@@ -45,8 +45,8 @@ Enhance the PTO entry form component by improving the integration between form v
 - [x] Add validation that submitted values are correctly written to the database
 - [x] Playwright tests for index.html PTO submission flow pass
 - [x] Manual testing: Verify end-to-end PTO request submission
-- [ ] Implement E2E tests for index.html to verify PTO submissions from calendar view are accepted by the server and written to the database
-- [ ] Implement E2E tests for index.html to verify PTO submissions from form view are accepted by the server and written to the database
+- [x] Implement E2E tests for index.html to verify PTO submissions from calendar view are accepted by the server and written to the database
+- [x] Implement E2E tests for index.html to verify PTO submissions from form view are accepted by the server and written to the database
 - [x] run `npm run test` until all tests pass
 
 ### Phase 5: Documentation and Review
