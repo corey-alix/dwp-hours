@@ -450,6 +450,17 @@ Based on recent implementation experiences, the following generalized findings f
 - **Web Component Testing Patterns**: Use specific locator patterns (e.g., `page.locator('component-name').locator('#element-id')`) for shadow DOM testing.
 - **Documentation Updates**: Maintain API documentation, component READMEs, and centralized error message references for comprehensive coverage.
 
+### CI/CD and Quality Assurance
+
+- **GitHub Actions Integration**: Use GitHub Actions for seamless CI/CD with automatic test execution on pushes and pull requests to main branch.
+- **Quality Gates**: Implement multi-stage pipelines (lint → build → unit tests → E2E tests) to catch issues early and ensure code quality.
+- **Test Reporting**: Use JUnit XML format for machine-readable test results that CI systems transform into structured UI displays with timing and pass/fail indicators.
+- **Branch Protection**: Configure repository branch protection rules requiring CI status checks to pass before merging, ensuring all quality gates succeed.
+- **Git Hooks Strategy**: Use Husky for local development hooks - pre-commit for fast feedback (linting on feature branches, full tests on main), pre-push for gatekeeper validation on main branch pushes.
+- **Performance Monitoring**: Track CI pipeline duration and test execution times to identify performance regressions and optimization opportunities.
+- **Bypass Mechanisms**: Provide `--no-verify` flags for urgent fixes while maintaining CI as the primary quality gate.
+- **Sequential Testing**: Use sequential test execution for simplicity and reliability, achieving parallelism through multiple branch testing.
+
 ### Potential Challenges and Resolutions
 
 - **Historical Data**: In MVP implementations, no migration logic is needed for historical entries since it's a new system.
@@ -552,7 +563,7 @@ The pipeline includes performance monitoring through:
 - Test execution timing validation (< 100ms for balance calculations)
 - Build time tracking
 - Test failure rate monitoring
-- CI pipeline duration metrics
+- CI pipeline duration metrics (typically ~3-4 minutes for full pipeline)
 
 ### Troubleshooting
 

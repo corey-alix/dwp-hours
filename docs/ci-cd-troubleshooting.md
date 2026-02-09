@@ -164,11 +164,18 @@ pnpm run prepare
 - Tests timeout
 - Build performance degrades
 
+**Expected Performance:**
+- Full pipeline: ~3-4 minutes
+- Quality checks only: ~1-2 minutes
+- E2E tests only: ~2-3 minutes
+- Individual test execution: < 100ms for balance calculations
+
 **Solutions:**
 - Check test execution times in CI logs
-- Optimize slow tests
+- Optimize slow tests by reducing unnecessary operations
 - Review dependency installation caching
 - Consider parallel test execution if database conflicts are resolved
+- Monitor for performance regressions in test suites
 
 ### 9. Deployment Issues
 
