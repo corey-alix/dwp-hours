@@ -407,10 +407,10 @@ The following features are planned for upcoming development:
 1. ✅ **COMPLETED**: Fix date handling regression - timezone issues causing PTO entries to shift dates. See ./TASKS/issue-date-handling-regression.md for details
 2. ✅ **COMPLETED**: Complete PTO form enhancements - dynamic field behavior, validation, and calendar integration. See ./TASKS/pto-form-enhancements.md for details
 3. LATER: Implement email delivery for magic link authentication. See ./TASKS/Email Magic Link.md for details
-4. 🟡 **MEDIUM PRIORITY**: Implement API type safety with shared models between client and server. See ./TASKS/api-type-safety.md for details
-5. 🟡 **MEDIUM PRIORITY**: Complete database reset/reload service for deterministic E2E testing. See ./TASKS/database-reset-reload-service.md for remaining items
+4. ✅ **COMPLETED**: Implement API type safety with shared models between client and server. See ./TASKS/api-type-safety.md for details
+5. ✅ **COMPLETED**: Complete database reset/reload service for deterministic E2E testing. See ./TASKS/database-reset-reload-service.md for remaining items
 6. 🟡 **MEDIUM PRIORITY**: Complete PTO entry form calendar integration E2E tests. See ./TASKS/pto-entry-form-calendar-integration.md for Phase 4 items
-7. 🟢 **LOW PRIORITY**: Complete CSS theming implementation - integration testing and documentation. See ./TASKS/css-theming-implementation.md for Phase 16-17 items
+7. 🟡 **MEDIUM PRIORITY**: Complete CSS theming implementation - integration testing and documentation. See ./TASKS/css-theming-implementation.md for Phase 16-17 items
 8. 🟢 **LOW PRIORITY**: Complete user data migration validation and documentation. See ./TASKS/user-data-migration-corey-alix.md for Phase 4 items
 9. 🟢 **LOW PRIORITY**: Complete theming tips best practices implementation. See ./TASKS/theming-tips-consistency.md for Phase 5 items
 10. LATER: See ./TASKS/deployment-automation.md for details on implementing automated deployment with Netlify
