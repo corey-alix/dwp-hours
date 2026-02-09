@@ -127,6 +127,33 @@ _Displays employee information and PTO rate details._
 
 **📋 Notification System**: For detailed information about the toast notification system and user feedback patterns, see [`.github/skills/notification-system-assistant/SKILL.md`](.github/skills/notification-system-assistant/SKILL.md).
 
+## Components Reference
+
+This application is built using web components for modular, reusable UI elements. Each component includes comprehensive documentation with usage examples, theming integration, and implementation details.
+
+### Core Components
+
+- **Admin Panel**: Main administrative interface with navigation between different management views - [`client/components/admin-panel/README.md`](client/components/admin-panel/README.md)
+- **Confirmation Dialog**: Modal dialog for user confirmations with customizable messages and actions - [`client/components/confirmation-dialog/README.md`](client/components/confirmation-dialog/README.md)
+- **Data Table**: Sortable, paginated table component for displaying tabular data - [`client/components/data-table/README.md`](client/components/data-table/README.md)
+- **Employee Form**: Comprehensive form for creating and editing employee records - [`client/components/employee-form/README.md`](client/components/employee-form/README.md)
+- **Employee List**: Employee management interface with search, filtering, and action buttons - [`client/components/employee-list/README.md`](client/components/employee-list/README.md)
+- **PTO Entry Form**: Form for submitting time-off requests with calendar integration - [`client/components/pto-entry-form/README.md`](client/components/pto-entry-form/README.md)
+- **PTO Request Queue**: Administrative interface for reviewing and managing PTO requests - [`client/components/pto-request-queue/README.md`](client/components/pto-request-queue/README.md)
+- **Report Generator**: Comprehensive reporting tool with filtering and export capabilities - [`client/components/report-generator/README.md`](client/components/report-generator/README.md)
+
+### PTO Dashboard Components
+
+- **PTO Accrual Card**: Monthly PTO accrual tracking with calendar integration - [`client/components/pto-accrual-card/README.md`](client/components/pto-accrual-card/README.md)
+- **PTO Bereavement Card**: Bereavement leave bucket management - [`client/components/pto-bereavement-card/README.md`](client/components/pto-bereavement-card/README.md)
+- **PTO Calendar**: Interactive monthly calendar for PTO entry visualization and selection - [`client/components/pto-calendar/README.md`](client/components/pto-calendar/README.md)
+- **PTO Dashboard**: Component aggregation hub for PTO management interface - [`client/components/pto-dashboard/README.md`](client/components/pto-dashboard/README.md)
+- **PTO Employee Info Card**: Employee information display for PTO context - [`client/components/pto-employee-info-card/README.md`](client/components/pto-employee-info-card/README.md)
+- **PTO Jury Duty Card**: Jury duty leave bucket management - [`client/components/pto-jury-duty-card/README.md`](client/components/pto-jury-duty-card/README.md)
+- **PTO Sick Card**: Sick leave bucket management - [`client/components/pto-sick-card/README.md`](client/components/pto-sick-card/README.md)
+- **PTO Summary Card**: Overall PTO balance and allocation summary - [`client/components/pto-summary-card/README.md`](client/components/pto-summary-card/README.md)
+- **Prior Year Review**: Historical PTO data visualization in monthly grid layout - [`client/components/prior-year-review/README.md`](client/components/prior-year-review/README.md)
+
 ## Theming System
 
 This project implements a comprehensive theming system using vanilla CSS that provides both light and dark theme support, automatically honoring the user's system preferences. The application seamlessly adapts to the operating system's color scheme settings without requiring manual theme selection.
@@ -272,6 +299,63 @@ The following features are planned for upcoming development:
 - **Concurrent Submissions**: Consider race conditions in multi-user scenarios.
 - **E2E Test Maintenance**: As test suites grow, focus on critical workflows and use database resets for state management.
 - **Browser Compatibility**: Web component shadow DOM has excellent modern browser support but may need fallbacks for legacy browsers.
+
+## Development Resources
+
+This project includes comprehensive documentation and specialized assistants to support development activities. All resources are accessible through the `.github/` directory.
+
+### Specialized Skills
+
+The project uses AI-assisted development with specialized skill documents that provide focused guidance for specific development activities:
+
+#### Core Development Skills
+- **Architecture Guidance**: System architecture, tech stack, and design patterns - [`.github/skills/architecture-guidance/SKILL.md`](.github/skills/architecture-guidance/SKILL.md)
+- **Code Review QA**: Code quality standards and review processes - [`.github/skills/code-review-qa/SKILL.md`](.github/skills/code-review-qa/SKILL.md)
+- **Task Implementation**: Guidelines for implementing tasks from the TASKS folder - [`.github/skills/task-implementation-assistant/SKILL.md`](.github/skills/task-implementation-assistant/SKILL.md)
+- **Testing Strategy**: Testing approaches and coverage guidelines - [`.github/skills/testing-strategy/SKILL.md`](.github/skills/testing-strategy/SKILL.md)
+- **Dependency Management**: Managing task priorities and dependencies - [`.github/skills/dependency-management/SKILL.md`](.github/skills/dependency-management/SKILL.md)
+
+#### Technical Implementation Skills
+- **Date Management**: Date handling patterns and YYYY-MM-DD usage - [`.github/skills/date-management-assistant/SKILL.md`](.github/skills/date-management-assistant/SKILL.md)
+- **DOM Utilities**: Type-safe DOM manipulation and element queries - [`.github/skills/dom-utilities-assistant/SKILL.md`](.github/skills/dom-utilities-assistant/SKILL.md)
+- **Web Components**: Web component development and patterns - [`.github/skills/web-components-assistant/SKILL.md`](.github/skills/web-components-assistant/SKILL.md)
+- **CSS Theming**: Comprehensive theming system and CSS custom properties - [`.github/skills/css-theming-assistant/SKILL.md`](.github/skills/css-theming-assistant/SKILL.md)
+- **Notification System**: Toast notifications and user feedback patterns - [`.github/skills/notification-system-assistant/SKILL.md`](.github/skills/notification-system-assistant/SKILL.md)
+
+#### Business Logic Skills
+- **PTO Calculation Rules**: PTO business logic, calculations, and rules - [`.github/skills/pto-calculation-rules-assistant/SKILL.md`](.github/skills/pto-calculation-rules-assistant/SKILL.md)
+- **PTO Spreadsheet Layout**: Legacy Excel spreadsheet structure and data patterns - [`.github/skills/pto-spreadsheet-layout/SKILL.md`](.github/skills/pto-spreadsheet-layout/SKILL.md)
+
+#### Database & Build Skills
+- **SQL.js Database**: Database operations and SQLite best practices - [`.github/skills/sql-js-database-assistant/SKILL.md`](.github/skills/sql-js-database-assistant/SKILL.md)
+- **TypeORM Assistant**: ORM patterns and entity relationships - [`.github/skills/typeorm-assistant/SKILL.md`](.github/skills/typeorm-assistant/SKILL.md)
+- **Build Configuration**: TypeScript, esbuild, and configuration management - [`.github/skills/esbuild-configuration-assistant/SKILL.md`](.github/skills/esbuild-configuration-assistant/SKILL.md)
+- **TSConfig Configuration**: TypeScript configuration patterns - [`.github/skills/tsconfig-configuration-assistant/SKILL.md`](.github/skills/tsconfig-configuration-assistant/SKILL.md)
+
+#### Testing & Quality Skills
+- **Vitest Testing**: Unit testing patterns and utilities - [`.github/skills/vitest-testing-assistant/SKILL.md`](.github/skills/vitest-testing-assistant/SKILL.md)
+- **Playwright Testing**: End-to-end testing strategies - [`.github/skills/playwright-testing-assistant/SKILL.md`](.github/skills/playwright-testing-assistant/SKILL.md)
+- **Development Best Practices**: Code quality, testing, and implementation learnings - [`.github/skills/development-best-practices-assistant/SKILL.md`](.github/skills/development-best-practices-assistant/SKILL.md)
+
+#### Specialized Tools Skills
+- **Calendar Day Assistant**: Calendar-specific functionality - [`.github/skills/calendar-day-assistant/SKILL.md`](.github/skills/calendar-day-assistant/SKILL.md)
+- **CSS Subgrid Assistant**: Advanced CSS layout techniques - [`.github/skills/css-subgrid-assistant/SKILL.md`](.github/skills/css-subgrid-assistant/SKILL.md)
+- **ExcelJS Integration**: Excel file processing and generation - [`.github/skills/exceljs/SKILL.md`](.github/skills/exceljs/SKILL.md)
+- **Package.json Commenter**: Package configuration and dependency management - [`.github/skills/package-json-commenter/SKILL.md`](.github/skills/package-json-commenter/SKILL.md)
+- **Staged Action Plan**: Development planning and execution strategies - [`.github/skills/staged-action-plan/SKILL.md`](.github/skills/staged-action-plan/SKILL.md)
+
+### Development Prompts
+
+Structured prompts for common development activities:
+
+- **Feature Development**: Guidelines for implementing new features - [`.github/prompts/feature.prompt.md`](.github/prompts/feature.prompt.md)
+- **Issue Resolution**: Process for debugging and fixing issues - [`.github/prompts/issue.prompt.md`](.github/prompts/issue.prompt.md)
+- **Skill Creation**: Template for creating new skill documents - [`.github/prompts/skill.prompt.md`](.github/prompts/skill.prompt.md)
+- **Prompt Engineering**: Best practices for writing effective prompts - [`.github/prompts/prompt.prompt.md`](.github/prompts/prompt.prompt.md)
+
+### AI Assistant Configuration
+
+- **GitHub Copilot Instructions**: Comprehensive setup and usage guidelines for AI-assisted development - [`.github/copilot-instructions.md`](.github/copilot-instructions.md)
 
 ## Getting Started
 
