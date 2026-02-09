@@ -1,5 +1,5 @@
 // API client
-import type * as ApiTypes from "./api-types.js";
+import type * as ApiTypes from "../shared/api-models.js";
 
 export class APIClient {
   private baseURL = "/api";

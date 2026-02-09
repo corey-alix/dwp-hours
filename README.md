@@ -405,8 +405,8 @@ This approach minimizes duplication, eases updates (change one var, propagates e
 The following features are planned for upcoming development:
 
 1. ✅ **COMPLETED**: Fix date handling regression - timezone issues causing PTO entries to shift dates. See ./TASKS/issue-date-handling-regression.md for details
-2. 🔥 **HIGH PRIORITY**: Implement email delivery for magic link authentication. See ./TASKS/Email Magic Link.md for details
-3. 🟡 **MEDIUM PRIORITY**: Complete PTO form enhancements - dynamic field behavior, validation, and calendar integration. See ./TASKS/pto-form-enhancements.md for remaining Phase 3-5 items
+2. ✅ **COMPLETED**: Complete PTO form enhancements - dynamic field behavior, validation, and calendar integration. See ./TASKS/pto-form-enhancements.md for details
+3. LATER: Implement email delivery for magic link authentication. See ./TASKS/Email Magic Link.md for details
 4. 🟡 **MEDIUM PRIORITY**: Implement API type safety with shared models between client and server. See ./TASKS/api-type-safety.md for details
 5. 🟡 **MEDIUM PRIORITY**: Complete database reset/reload service for deterministic E2E testing. See ./TASKS/database-reset-reload-service.md for remaining items
 6. 🟡 **MEDIUM PRIORITY**: Complete PTO entry form calendar integration E2E tests. See ./TASKS/pto-entry-form-calendar-integration.md for Phase 4 items
