@@ -7,14 +7,14 @@ Implement continuous integration and continuous deployment (CI/CD) for the testi
 🟡 Medium Priority
 
 ## Checklist
-- [ ] **Phase 1: CI Platform Setup**
-  - [ ] Choose CI platform (GitHub Actions recommended for this project)
-  - [ ] Create `.github/workflows/` directory structure
-  - [ ] Set up basic CI workflow file with Node.js environment
-  - [ ] Configure Node.js version and dependency installation
-  - [ ] Run 'npm run test' to ensure no regressions
+- [x] **Phase 1: CI Platform Setup**
+  - [x] Choose CI platform (GitHub Actions recommended for this project)
+  - [x] Create `.github/workflows/` directory structure
+  - [x] Set up basic CI workflow file with Node.js environment
+  - [x] Configure Node.js version and dependency installation
+  - [x] Run 'npm run test' to ensure no regressions
 - [ ] **Phase 2: Automated Test Execution**
-  - [ ] Configure workflow to run unit tests (`npm test`) on every push/PR
+  - [ ] Configure workflow to run unit tests (`npm test`) on pushes to main branch only
   - [ ] Add E2E test execution (`npm run test:e2e`) with proper browser setup
   - [ ] Implement test result caching to speed up subsequent runs
   - [ ] Add database setup and seeding for E2E tests
@@ -71,3 +71,6 @@ Implement continuous integration and continuous deployment (CI/CD) for the testi
 3. ~~Should pre-commit hooks run the full test suite, or just linting and unit tests for faster feedback?~~ **RESOLVED**: Pre-commit hooks should ensure code can lint, build, and pass all tests (`npm run test` must succeed). A plan to organize and clean up the package.json structure is needed to make the scripts more maintainable.
 4. ~~How should we handle flaky E2E tests in CI (retry logic, quarantine, etc.)?~~ **RESOLVED**: Fix any flaky E2E tests that are discovered rather than implementing workarounds.
 5. ~~Should we implement deployment automation as part of this task, or keep it separate?~~ **RESOLVED**: Include deployment automation using Netlify for its simplicity and cost-effectiveness for static site + serverless deployment.
+6. ~~Which specific Node.js version should be pinned in the CI workflow (e.g., latest LTS, or match local development environment)?~~ **RESOLVED**: Use the latest LTS version of Node.js to ensure stability and access to recent features.
+7. ~~Should the CI workflow include dependency caching to speed up subsequent runs?~~ **RESOLVED**: Include pnpm caching for dependencies. While infrequent commits to main may reduce the benefit, caching will still help when multiple CI runs occur (e.g., during active development periods).
+8. ~~How should we configure the CI workflow to handle database initialization and seeding for tests?~~ **RESOLVED**: Use the existing database initialization logic from server.mts (SQL.js with file-based SQLite). Set up database reload and seeding endpoints for test environments, ensuring proper isolation between test runs.
