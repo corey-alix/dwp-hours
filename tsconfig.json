@@ -4,6 +4,11 @@
     "lib": ["ES2020", "DOM"],
     "types": ["@cloudflare/workers-types"]
   },
-  "include": ["cloudflare/**/*", "server/**/*", "client/**/*", "shared/api-models.d.ts"],
+  "include": [
+    "cloudflare/**/*",
+    "server/**/*",
+    "client/**/*",
+    "shared/api-models.d.ts"
+  ],
   "exclude": ["node_modules", "dist", "public"]
 }

@@ -2,54 +2,111 @@
 
 ## Description
 
-Implement automated deployment pipeline for the DWP Hours Tracker using Netlify for static site hosting with serverless functions. This will enable continuous deployment on main branch pushes and preview deployments for pull requests.
+Implement automated deployment pipeline for the DWP Hours Tracker using Cloudflare Workers for serverless functions, Cloudflare Pages for static site hosting, and Cloudflare R2 for periodic database snapshots. This will enable continuous deployment on main branch pushes and preview deployments for pull requests.
 
 ## Priority
 
 🟢 Low Priority
 
+## Order of Operations
+
+This checklist provides the recommended execution order for tasks, which may span multiple phases. Tasks can be done out-of-order as dependencies allow, but this sequence minimizes blockers and enables parallel development.
+
+1. **Install Wrangler CLI** (Phase 1) - `npm install -g wrangler`
+2. **Set up local development environment** (Phase 4) - Configure `wrangler dev` with mocked services for offline development
+3. **Create Cloudflare account** (Phase 1) - Sign up and verify email
+4. **Authenticate Wrangler** (Phase 1) - `wrangler auth login`
+5. **Connect GitHub repository** (Phase 1) - Link repo to Cloudflare for deployments
+6. **Configure Wrangler for local mocking** (Phase 4) - Set up R2, KV, and other bindings locally
+7. **Create R2 bucket** (Phase 3) - For database snapshots (can be done locally first)
+8. **Set up environment variables** (Phase 1/3) - Configure secrets and config locally and in Cloudflare
+9. **Configure Cloudflare Pages** (Phase 2) - Set up static site deployment
+10. **Configure Cloudflare Workers** (Phase 2) - Set up API endpoints
+11. **Test build process** (Phase 2) - Ensure `pnpm run build` works in Cloudflare environment
+12. **Begin server migration** (Phase 4) - Start converting Express routes to Workers handlers
+13. **Implement database snapshot logic** (Phase 4) - Add R2 save/restore for SQLite
+14. **Migrate authentication routes** (Phase 4) - Convert `/api/auth/*` endpoints
+15. **Migrate core API routes** (Phase 4) - Convert PTO, employees, hours, acknowledgements
+16. **Test migrated endpoints locally** (Phase 4) - Use Wrangler dev environment
+17. **Configure production email service** (Phase 3) - Set up SendGrid/Mailgun
+18. **Set up deployment automation** (Phase 2) - Configure CI/CD, preview deployments
+19. **Deploy to production** (Phase 1/2) - Test manual deployment, then automate
+20. **Configure administrative features** (Phase 5) - User management, backups, monitoring
+21. **Document and train** (Phase 5) - Update README, train admins
+
 ## Checklist
 
-- [ ] **Phase 1: Netlify Account Setup**
-  - [ ] Create Netlify account and connect GitHub repository
+- [ ] **Phase 1: Cloudflare Account Setup**
+  - [ ] Create Cloudflare account and verify email
+  - [ ] Connect GitHub repository to Cloudflare
+  - [ ] Install Wrangler CLI globally (`npm install -g wrangler`)
+  - [ ] Authenticate Wrangler with Cloudflare account (`wrangler auth login`)
+  - [ ] Generate API token for CI/CD integration
   - [ ] Configure project settings and build commands
   - [ ] Set up environment variables for production
   - [ ] Test manual deployment process
 - [ ] **Phase 2: Build Configuration**
-  - [ ] Configure Netlify build settings for static site deployment
-  - [ ] Set up serverless function deployment for API endpoints
-  - [ ] Configure build hooks and deployment notifications
-  - [ ] Test build process in Netlify environment
-- [ ] **Phase 3: Environment Management**
-  - [ ] Set up production environment variables
-  - [ ] Configure database connection for production
-  - [ ] Set up email service configuration for production
-  - [ ] Implement environment-specific configuration loading
-- [ ] **Phase 4: Automated Deployment**
-  - [ ] Implement automatic deployment on main branch pushes
+  - [ ] Configure Cloudflare Pages for static site deployment
+  - [ ] Set up Cloudflare Workers for API endpoints
+  - [ ] Configure build settings to use `pnpm run build`
+  - [ ] Set up build hooks and deployment notifications
   - [ ] Configure preview deployments for pull requests
-  - [ ] Set up deployment status checks in CI pipeline
-  - [ ] Add deployment verification tests
-- [ ] **Phase 5: Monitoring and Maintenance**
-  - [ ] Set up deployment monitoring and alerts
-  - [ ] Configure rollback procedures for failed deployments
-  - [ ] Document deployment process and troubleshooting
-  - [ ] Update README with deployment information
+  - [ ] Test build process in Cloudflare environment
+  - [ ] Set up custom domain (optional)
+- [ ] **Phase 3: Environment Management**
+  - [ ] Create Cloudflare R2 bucket for database snapshots
+  - [ ] Configure R2 bucket permissions and CORS
+  - [ ] Set up production environment variables (secrets)
+  - [ ] Configure email service (e.g., SendGrid, Mailgun) for production
+  - [ ] Implement environment-specific configuration loading
+  - [ ] Set up database snapshot encryption (optional)
+- [ ] **Phase 4: Server Migration (server.mts → Workers)**
+  - [ ] Set up local development environment with Wrangler (`wrangler dev`) for mocking Cloudflare services
+  - [ ] Configure Wrangler to mock R2 buckets, KV namespaces, and other bindings locally
+  - [ ] Convert Express.js middleware to Workers middleware (CORS, helmet, etc.)
+  - [ ] Migrate authentication routes (`/api/auth/*`) to Workers handlers
+  - [ ] Migrate PTO routes (`/api/pto/*`) to Workers with database operations
+  - [ ] Migrate employee management routes (`/api/employees/*`) to Workers
+  - [ ] Migrate hours and acknowledgements routes to Workers
+  - [ ] Adapt SQLite operations for in-memory database with R2 snapshots
+  - [ ] Implement periodic database snapshot saving to R2
+  - [ ] Implement database restoration from R2 snapshots on startup
+  - [ ] Convert file-based logging to Cloudflare logging/monitoring
+  - [ ] Update error handling for serverless environment
+  - [ ] Test all migrated endpoints in local Wrangler environment before production deployment
+- [ ] **Phase 5: Administrative Tasks**
+  - [ ] Set up user management and role-based access
+  - [ ] Configure backup schedules for database snapshots
+  - [ ] Implement data retention policies
+  - [ ] Set up monitoring and alerting for Workers/Pages/R2
+  - [ ] Configure rate limiting and security policies
+  - [ ] Set up automated testing in CI/CD pipeline
+  - [ ] Implement deployment rollback procedures
+  - [ ] Document administrative procedures and troubleshooting
+  - [ ] Update README with deployment and admin information
+  - [ ] Train administrators on Cloudflare dashboard usage
 
 ## Implementation Notes
 
-- Use Netlify for its simplicity and cost-effectiveness for static site + serverless deployment
-- Configure build settings to use existing npm scripts (`npm run build`)
-- Set up environment variables through Netlify dashboard for security
+- Use Cloudflare Workers for its simplicity and cost-effectiveness for static site + serverless deployment
+- Configure build settings to use existing pnpm scripts (`pnpm run build`)
+- Set up environment variables through Cloudflare dashboard for security
 - Implement preview deployments to test changes before merging to main
-- Use Netlify's deployment hooks for integration with other systems
-- Ensure database and email services are properly configured for production
+- Use Cloudflare's deployment hooks for integration with other systems
+- Configure Cloudflare R2 for storing periodic database snapshots (up to 100MB)
+- Ensure email services are properly configured for production
 - Follow the project's existing patterns for environment configuration
+- **Migration Strategy**: Convert Express.js routes to Workers fetch event handlers, adapt middleware, and implement snapshot-based persistence
+- **Database Handling**: Use in-memory SQLite with periodic R2 snapshots instead of persistent storage
+- **Authentication**: Maintain magic link system but adapt for serverless environment
+- **Admin Tasks**: Include user onboarding, backup management, and compliance monitoring
+- **Security**: Implement Workers KV for session storage, rate limiting via Workers, and secure R2 access
+- **Local Development**: Use Wrangler's local development server (`wrangler dev`) to mock Cloudflare services (Workers, R2, KV) without connecting to production. This allows full development workflow offline, with automatic service mocking and hot reloading.
 
 ## Questions and Concerns
 
-1. Should we implement blue-green deployments or canary releases for zero-downtime deployments?
-2. How should we handle database migrations during deployment?
-3. What monitoring and alerting should be set up for production deployments?
-4. Should we implement automated rollback procedures for deployment failures?</content>
+1. **Database snapshots and restores**: Load the latest snapshot from R2 on Worker cold starts to restore database state.
+2. **Monitoring and alerting**: None required beyond Cloudflare's default monitoring.
+3. **Rollback procedures**: No automated rollback needed; manual intervention sufficient for failures.
+4. **Administrative training**: None required; standard Cloudflare dashboard usage is adequate.</content>
    <parameter name="filePath">/home/ca0v/code/ca0v/mercury/TASKS/deployment-automation.md
