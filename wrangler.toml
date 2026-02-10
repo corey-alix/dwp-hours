@@ -1,0 +1,30 @@
+name = "dwp-hours-tracker"
+main = "cloudflare/workers/dwp-hours-do.ts"
+compatibility_date = "2024-01-01"
+
+# Durable Objects
+[durable_objects]
+bindings = [
+  { name = "DWP_HOURS_DO", class_name = "DwpHoursDO" }
+]
+
+# R2 Bucket for database storage
+[[r2_buckets]]
+binding = "DB_BUCKET"
+bucket_name = "dwp-hours-db"
+
+# Environment variables
+[vars]
+FROM_EMAIL = "noreply@yourapp.com"
+HASH_SALT = "your-secure-salt-here"
+
+# These should be set as secrets in production
+# SENDGRID_API_KEY should be set via: wrangler secret put SENDGRID_API_KEY
+
+# Development environment
+[env.dev]
+vars = { FROM_EMAIL = "noreply@dev.yourapp.com" }
+
+# Production environment
+[env.production]
+vars = { FROM_EMAIL = "noreply@yourapp.com" }

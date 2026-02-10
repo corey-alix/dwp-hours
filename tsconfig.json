@@ -1,19 +1,9 @@
 {
   "extends": "./tsconfig-base.json",
   "compilerOptions": {
-    "lib": [
-      "ES2020",
-      "DOM"
-    ]
+    "lib": ["ES2020", "DOM"],
+    "types": ["@cloudflare/workers-types"]
   },
-  "include": [
-    "server/**/*",
-    "client/**/*",
-    "shared/api-models.d.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "public"
-  ]
+  "include": ["cloudflare/**/*", "server/**/*", "client/**/*", "shared/api-models.d.ts"],
+  "exclude": ["node_modules", "dist", "public"]
 }
