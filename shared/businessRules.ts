@@ -1,10 +1,61 @@
 import { getDayOfWeek } from "./dateUtils.js";
+import { parseDate, formatDate } from "./dateUtils.js";
 
 export type PTOType = "Sick" | "PTO" | "Bereavement" | "Jury Duty";
 
 export interface ValidationError {
   field: string;
   messageKey: string;
+}
+
+export interface PTOStatus {
+  employeeId: number;
+  hireDate: string;
+  annualAllocation: number; // 96 hours PTO
+  availablePTO: number;
+  usedPTO: number;
+  carryoverFromPreviousYear: number;
+  monthlyAccruals: { month: number; hours: number }[]; // For display
+  nextRolloverDate: string;
+  sickTime: {
+    allowed: number;
+    used: number;
+    remaining: number;
+  };
+  ptoTime: {
+    allowed: number;
+    used: number;
+    remaining: number;
+  };
+  bereavementTime: {
+    allowed: number;
+    used: number;
+    remaining: number;
+  };
+  juryDutyTime: {
+    allowed: number;
+    used: number;
+    remaining: number;
+  };
+}
+
+export interface PTOEntry {
+  id: number;
+  employee_id: number;
+  date: string;
+  type: PTOType;
+  hours: number;
+  created_at: string;
+}
+
+export interface Employee {
+  id: number;
+  name: string;
+  identifier: string;
+  pto_rate: number;
+  carryover_hours: number;
+  hire_date: string;
+  role: string;
 }
 
 // Business rules constants
@@ -169,4 +220,174 @@ export function validateMonthEditable(
     return { field: "month", messageKey: "month.acknowledged" };
   }
   return null;
+}
+
+// Helper functions for PTO calculations
+
+function calculateUsedPTO(ptoEntries: PTOEntry[], type: PTOType): number {
+  return ptoEntries
+    .filter((entry) => entry.type === type)
+    .reduce((total, entry) => total + entry.hours, 0);
+}
+
+function calculateProratedAllocation(employee: Employee, year: number): number {
+  const hireDate = parseDate(employee.hire_date);
+  const hireYear = hireDate.year;
+
+  if (hireYear < year) {
+    // Hired before this year - full allocation
+    return 96;
+  } else if (hireYear === year) {
+    // Hired this year - prorated allocation
+    const totalWorkDays = getTotalWorkDaysInYear(year);
+    const workDaysFromHire = getWorkDaysFromDate(hireDate, year);
+    return (workDaysFromHire / totalWorkDays) * 96;
+  } else {
+    // Hired after this year - no allocation yet
+    return 0;
+  }
+}
+
+function getWorkDaysFromDate(
+  date: { year: number; month: number; day: number },
+  year: number,
+): number {
+  let totalWorkDays = 0;
+  for (let month = date.month; month <= 12; month++) {
+    totalWorkDays += getWorkDays(year, month);
+  }
+  // Subtract days before hire date in hire month
+  const daysInMonth = new Date(year, date.month, 0).getDate();
+  const workDaysBeforeHire = getWorkDaysInMonthRange(
+    year,
+    date.month,
+    1,
+    date.day - 1,
+  );
+  totalWorkDays -= workDaysBeforeHire;
+  return totalWorkDays;
+}
+
+function getWorkDays(year: number, month: number): number {
+  const daysInMonth = new Date(year, month, 0).getDate();
+  let workDays = 0;
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = new Date(year, month - 1, day);
+    const dayOfWeek = date.getDay();
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      // Not Sunday or Saturday
+      workDays++;
+    }
+  }
+  return workDays;
+}
+
+function getTotalWorkDaysInYear(year: number): number {
+  let total = 0;
+  for (let month = 1; month <= 12; month++) {
+    total += getWorkDays(year, month);
+  }
+  return total;
+}
+
+function getWorkDaysInMonthRange(
+  year: number,
+  month: number,
+  startDay: number,
+  endDay: number,
+): number {
+  let workDays = 0;
+  for (let day = startDay; day <= endDay; day++) {
+    const date = new Date(year, month - 1, day);
+    const dayOfWeek = date.getDay();
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      workDays++;
+    }
+  }
+  return workDays;
+}
+
+/**
+ * Calculate PTO status for an employee
+ */
+export function calculatePTOStatus(
+  employee: Employee,
+  ptoEntries: PTOEntry[],
+  currentDate: string = new Date().toISOString().split("T")[0],
+): PTOStatus {
+  const currentDateComponents = parseDate(currentDate);
+  const currentYear = currentDateComponents.year;
+
+  // Calculate used hours by type
+  const usedPTO = calculateUsedPTO(ptoEntries, "PTO");
+  const usedSick = calculateUsedPTO(ptoEntries, "Sick");
+  const usedBereavement = calculateUsedPTO(ptoEntries, "Bereavement");
+  const usedJuryDuty = calculateUsedPTO(ptoEntries, "Jury Duty");
+
+  const effectiveAnnualAllocation = calculateProratedAllocation(
+    employee,
+    currentYear,
+  );
+
+  // Starting PTO balance: prorated allocation + carryover
+  const startingPTOBalance =
+    effectiveAnnualAllocation + employee.carryover_hours;
+
+  // Available PTO = starting balance - used PTO
+  const availablePTO = startingPTOBalance - usedPTO;
+
+  // Calculate monthly accruals for display (current year) - informational only
+  // Use fixed allocation rate: 96 hours / total work days in year
+  const totalWorkDays = getTotalWorkDaysInYear(currentYear);
+  const allocationRate = 96 / totalWorkDays;
+
+  const monthlyAccruals = [];
+  for (let month = 1; month <= 12; month++) {
+    const hours = allocationRate * getWorkDays(currentYear, month);
+    monthlyAccruals.push({ month, hours });
+  }
+
+  // For new hires in current year, only show accruals from hire month onwards
+  let filteredMonthlyAccruals = monthlyAccruals;
+  const hireDate = parseDate(employee.hire_date);
+  if (hireDate.year === currentYear) {
+    const hireMonth = hireDate.month; // Already 1-based
+    filteredMonthlyAccruals = monthlyAccruals.filter(
+      (accrual) => accrual.month >= hireMonth,
+    );
+  }
+
+  // Next rollover is January 1st of next year
+  const nextRolloverDate = formatDate(currentYear + 1, 1, 1);
+
+  return {
+    employeeId: employee.id,
+    hireDate: employee.hire_date,
+    annualAllocation: effectiveAnnualAllocation,
+    availablePTO: Math.max(0, availablePTO), // Don't allow negative PTO
+    usedPTO,
+    carryoverFromPreviousYear: employee.carryover_hours,
+    monthlyAccruals: filteredMonthlyAccruals,
+    nextRolloverDate,
+    sickTime: {
+      allowed: 24,
+      used: usedSick,
+      remaining: Math.max(0, 24 - usedSick),
+    },
+    ptoTime: {
+      allowed: startingPTOBalance,
+      used: usedPTO,
+      remaining: Math.max(0, startingPTOBalance - usedPTO),
+    },
+    bereavementTime: {
+      allowed: 40,
+      used: usedBereavement,
+      remaining: Math.max(0, 40 - usedBereavement),
+    },
+    juryDutyTime: {
+      allowed: 40,
+      used: usedJuryDuty,
+      remaining: Math.max(0, 40 - usedJuryDuty),
+    },
+  };
 }

@@ -1,12 +1,17 @@
 name = "dwp-hours-tracker"
 main = "cloudflare/workers/dwp-hours-do.ts"
-compatibility_date = "2024-01-01"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
 
 # Durable Objects
 [durable_objects]
 bindings = [
   { name = "DWP_HOURS_DO", class_name = "DwpHoursDO" }
 ]
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["DwpHoursDO"]
 
 # R2 Bucket for database storage
 [[r2_buckets]]

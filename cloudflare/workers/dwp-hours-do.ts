@@ -6,10 +6,94 @@ import { PtoEntry } from "../../server/entities/PtoEntry.js";
 import { MonthlyHours } from "../../server/entities/MonthlyHours.js";
 import { Acknowledgement } from "../../server/entities/Acknowledgement.js";
 import { AdminAcknowledgement } from "../../server/entities/AdminAcknowledgement.js";
+import { createHash } from "crypto";
+import {
+  calculatePTOStatus,
+  validateHours,
+  validateWeekday,
+  validatePTOType,
+  validateDateString,
+} from "../../shared/businessRules.js";
 
 // SendGrid integration
 const SENDGRID_API_KEY = "your-sendgrid-api-key"; // Set in environment
 const FROM_EMAIL = "noreply@yourapp.com";
+
+// Embedded database schema
+const DATABASE_SCHEMA =
+  "-- Enable foreign key constraints\n" +
+  "PRAGMA foreign_keys = ON;\n\n" +
+  "-- Create employees table\n" +
+  "CREATE TABLE IF NOT EXISTS employees (\n" +
+  "  id INTEGER PRIMARY KEY AUTOINCREMENT,\n" +
+  "  name TEXT NOT NULL,\n" +
+  "  identifier TEXT UNIQUE NOT NULL,\n" +
+  "  pto_rate REAL DEFAULT 0.71,\n" +
+  "  carryover_hours REAL DEFAULT 0,\n" +
+  "  hire_date DATE NOT NULL,\n" +
+  "  role TEXT DEFAULT 'Employee',\n" +
+  "  hash TEXT\n" +
+  ");\n\n" +
+  "-- Create PTO entries table\n" +
+  "CREATE TABLE IF NOT EXISTS pto_entries (\n" +
+  "  id INTEGER PRIMARY KEY AUTOINCREMENT,\n" +
+  "  employee_id INTEGER NOT NULL,\n" +
+  "  date TEXT NOT NULL,\n" +
+  "  type TEXT NOT NULL CHECK (type IN ('Sick', 'PTO', 'Bereavement', 'Jury Duty')),\n" +
+  "  hours REAL NOT NULL,\n" +
+  "  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,\n" +
+  "  FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE\n" +
+  ");\n\n" +
+  "-- Create indexes for better performance\n" +
+  "CREATE INDEX IF NOT EXISTS idx_pto_entries_employee_id ON pto_entries(employee_id);\n" +
+  "CREATE INDEX IF NOT EXISTS idx_pto_entries_date ON pto_entries(date);\n\n" +
+  "-- Create monthly hours table\n" +
+  "CREATE TABLE IF NOT EXISTS monthly_hours (\n" +
+  "  id INTEGER PRIMARY KEY AUTOINCREMENT,\n" +
+  "  employee_id INTEGER NOT NULL,\n" +
+  "  month TEXT NOT NULL,\n" +
+  "  hours_worked REAL NOT NULL,\n" +
+  "  submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,\n" +
+  "  FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE\n" +
+  ");\n\n" +
+  "-- Create acknowledgements table\n" +
+  "CREATE TABLE IF NOT EXISTS acknowledgements (\n" +
+  "  id INTEGER PRIMARY KEY AUTOINCREMENT,\n" +
+  "  employee_id INTEGER NOT NULL,\n" +
+  "  month TEXT NOT NULL,\n" +
+  "  acknowledged_at DATETIME DEFAULT CURRENT_TIMESTAMP,\n" +
+  "  FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE\n" +
+  ");\n\n" +
+  "-- Create indexes for monthly hours\n" +
+  "CREATE INDEX IF NOT EXISTS idx_monthly_hours_employee_id ON monthly_hours(employee_id);\n" +
+  "CREATE INDEX IF NOT EXISTS idx_monthly_hours_month ON monthly_hours(month);\n\n" +
+  "-- Create indexes for acknowledgements\n" +
+  "CREATE INDEX IF NOT EXISTS idx_acknowledgements_employee_id ON acknowledgements(employee_id);\n" +
+  "CREATE INDEX IF NOT EXISTS idx_acknowledgements_month ON acknowledgements(month);\n\n" +
+  "-- Create admin acknowledgements table\n" +
+  "CREATE TABLE IF NOT EXISTS admin_acknowledgements (\n" +
+  "  id INTEGER PRIMARY KEY AUTOINCREMENT,\n" +
+  "  employee_id INTEGER NOT NULL,\n" +
+  "  month TEXT NOT NULL,\n" +
+  "  admin_id INTEGER NOT NULL,\n" +
+  "  acknowledged_at DATETIME DEFAULT CURRENT_TIMESTAMP,\n" +
+  "  FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,\n" +
+  "  FOREIGN KEY (admin_id) REFERENCES employees(id) ON DELETE CASCADE\n" +
+  ");\n\n" +
+  "-- Create indexes for admin acknowledgements\n" +
+  "CREATE INDEX IF NOT EXISTS idx_admin_acknowledgements_employee_id ON admin_acknowledgements(employee_id);\n" +
+  "CREATE INDEX IF NOT EXISTS idx_admin_acknowledgements_admin_id ON admin_acknowledgements(admin_id);\n" +
+  "CREATE INDEX IF NOT EXISTS idx_admin_acknowledgements_month ON admin_acknowledgements(month);\n\n" +
+  "-- Create sessions table\n" +
+  "CREATE TABLE IF NOT EXISTS sessions (\n" +
+  "  token TEXT PRIMARY KEY,\n" +
+  "  employee_id INTEGER NOT NULL,\n" +
+  "  expires_at DATETIME NOT NULL,\n" +
+  "  FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE\n" +
+  ");\n\n" +
+  "-- Create indexes for sessions\n" +
+  "CREATE INDEX IF NOT EXISTS idx_sessions_employee_id ON sessions(employee_id);\n" +
+  "CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);";
 
 interface Env {
   DB_BUCKET: R2Bucket; // For storing the SQLite file
@@ -50,12 +134,7 @@ export class DwpHoursDO extends DurableObject<Env> {
 
       // Execute schema if new database
       if (!filebuffer) {
-        // Load schema from file (you'd need to include this in the worker)
-        const schemaResponse = await fetch(
-          "https://your-deployment-url/schema.sql",
-        );
-        const schema = await schemaResponse.text();
-        this.db.exec(schema);
+        this.db.exec(DATABASE_SCHEMA);
       }
 
       // Initialize TypeORM
@@ -144,6 +223,9 @@ export class DwpHoursDO extends DurableObject<Env> {
         case "GET /api/health":
           return this.handleHealth(corsHeaders);
 
+        case "GET /api/version":
+          return this.handleVersion(corsHeaders);
+
         case "GET /api/pto/status":
           return this.handleGetPtoStatus(request, corsHeaders);
 
@@ -168,14 +250,6 @@ export class DwpHoursDO extends DurableObject<Env> {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-  }
-
-  async handleLogout(corsHeaders: Record<string, string>): Promise<Response> {
-    // In Workers, cookies are handled by the client
-    // The client should clear the cookie
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
   }
 
   async handleRequestMagicLink(
@@ -350,26 +424,141 @@ export class DwpHoursDO extends DurableObject<Env> {
     );
   }
 
+  async handleLogout(corsHeaders: Record<string, string>): Promise<Response> {
+    // In Workers, cookies are handled by the client
+    // The client should clear the cookie
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  async handleVersion(corsHeaders: Record<string, string>): Promise<Response> {
+    return new Response(
+      JSON.stringify({
+        version: "1.0.0-cloudflare",
+        fileAge: "N/A (serverless)",
+        startTime: new Date().toISOString(),
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
+  }
+
+  /**
+   * Validates a session token and returns the associated employee
+   */
+  async validateSessionToken(token: string): Promise<Employee | null> {
+    try {
+      const parts = token.split(".");
+      if (parts.length !== 3) {
+        return null;
+      }
+
+      const employeeId = Number(parts[0]);
+      const timestamp = Number(parts[1]);
+      const signature = parts[2];
+
+      if (
+        !Number.isFinite(employeeId) ||
+        !Number.isFinite(timestamp) ||
+        !signature
+      ) {
+        return null;
+      }
+
+      const expectedSignature = createHash("sha256")
+        .update(
+          `${employeeId}:${timestamp}:${this.env.HASH_SALT || "default_salt"}`,
+        )
+        .digest("hex");
+
+      if (expectedSignature !== signature) {
+        return null;
+      }
+
+      const now = Date.now();
+      const sessionTtlMs = 1 * 24 * 60 * 60 * 1000;
+      if (timestamp > now || now - timestamp > sessionTtlMs) {
+        return null;
+      }
+
+      const employeeRepo = this.dataSource!.getRepository(Employee);
+      return await employeeRepo.findOne({ where: { id: employeeId } });
+    } catch (error) {
+      console.error(`Error in validateSessionToken: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Authenticates a request and returns the employee
+   */
+  async authenticate(request: Request): Promise<Employee | null> {
+    try {
+      // Get auth token from Authorization header
+      const authHeader = request.headers.get("Authorization");
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return null;
+      }
+
+      const authToken = authHeader.substring(7); // Remove "Bearer " prefix
+
+      // Validate session token
+      const employee = await this.validateSessionToken(authToken);
+      if (!employee) {
+        console.log(`Authentication failed: Invalid session token`);
+        return null;
+      }
+
+      return employee;
+    } catch (error) {
+      console.error(`Authentication error: ${error}`);
+      return null;
+    }
+  }
+
   async handleGetPtoStatus(
     request: Request,
     corsHeaders: Record<string, string>,
   ): Promise<Response> {
-    // Authentication check would go here
-    const authHeader = request.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Authentication required" }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
+    const employee = await this.authenticate(request);
+    if (!employee) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const employeeId = 1; // Parse from auth token
-    const ptoStatus = await this.calculatePtoStatus(employeeId);
+    const ptoEntryRepo = this.dataSource!.getRepository(PtoEntry);
+    const ptoEntries = await ptoEntryRepo.find({
+      where: { employee_id: employee.id },
+    });
 
-    return new Response(JSON.stringify(ptoStatus), {
+    // Convert to PTO calculation format
+    const ptoEntriesData = ptoEntries.map((entry) => ({
+      id: entry.id,
+      employee_id: entry.employee_id,
+      date: entry.date,
+      type: entry.type,
+      hours: entry.hours,
+      created_at: entry.created_at.toISOString(),
+    }));
+
+    // Convert employee to business rules format
+    const employeeData = {
+      id: employee.id,
+      name: employee.name,
+      identifier: employee.identifier,
+      pto_rate: employee.pto_rate,
+      carryover_hours: employee.carryover_hours,
+      hire_date: employee.hire_date.toISOString().split("T")[0], // Convert Date to YYYY-MM-DD string
+      role: employee.role,
+    };
+
+    const status = calculatePTOStatus(employeeData, ptoEntriesData);
+
+    return new Response(JSON.stringify(status), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
@@ -388,44 +577,6 @@ export class DwpHoursDO extends DurableObject<Env> {
     });
 
     return new Response(JSON.stringify({ entries }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
-  async handleCreatePtoEntry(
-    request: Request,
-    corsHeaders: Record<string, string>,
-  ): Promise<Response> {
-    // Authentication and validation logic here
-    const body = (await request.json().catch(() => ({}))) as {
-      start_date?: string;
-      hours?: number;
-      type?: string;
-    };
-
-    if (!body.start_date || typeof body.hours !== "number" || !body.type) {
-      return new Response(JSON.stringify({ error: "Invalid request data" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const { start_date, hours, type } = body;
-
-    const employeeId = 1; // From auth
-
-    const ptoEntryRepo = this.dataSource!.getRepository(PtoEntry);
-    const newEntry = ptoEntryRepo.create({
-      employee_id: employeeId,
-      date: start_date, // Use the date field from entity
-      type: type as "Sick" | "PTO" | "Bereavement" | "Jury Duty",
-      hours,
-    });
-
-    await ptoEntryRepo.save(newEntry);
-
-    return new Response(JSON.stringify({ entry: newEntry }), {
-      status: 201,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
@@ -469,13 +620,106 @@ export class DwpHoursDO extends DurableObject<Env> {
     }
   }
 
-  async calculatePtoStatus(employeeId: number): Promise<any> {
-    // Implement PTO calculation logic here
-    // This would replicate the current server logic
-    return {
-      employeeId,
-      // ... PTO status data
+  async handleCreatePtoEntry(
+    request: Request,
+    corsHeaders: Record<string, string>,
+  ): Promise<Response> {
+    const employee = await this.authenticate(request);
+    if (!employee) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const body = (await request.json().catch(() => ({}))) as {
+      date?: string;
+      type?: string;
+      hours?: number;
     };
+
+    // Validate required fields
+    if (!body.date || !body.type || body.hours === undefined) {
+      return new Response(
+        JSON.stringify({ error: "Missing required fields" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    const { date, type, hours } = body;
+
+    // Validate date
+    const dateError = validateDateString(date);
+    if (dateError) {
+      return new Response(JSON.stringify({ error: dateError.messageKey }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate weekday
+    const weekdayError = validateWeekday(date);
+    if (weekdayError) {
+      return new Response(JSON.stringify({ error: weekdayError.messageKey }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate PTO type
+    const typeError = validatePTOType(type);
+    if (typeError) {
+      return new Response(JSON.stringify({ error: typeError.messageKey }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate hours
+    const hoursError = validateHours(hours);
+    if (hoursError) {
+      return new Response(JSON.stringify({ error: hoursError.messageKey }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Check for duplicate entry
+    const ptoEntryRepo = this.dataSource!.getRepository(PtoEntry);
+    const existingEntry = await ptoEntryRepo.findOne({
+      where: { employee_id: employee.id, date, type: type as any },
+    });
+    if (existingEntry) {
+      return new Response(JSON.stringify({ error: "Duplicate PTO entry" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Create new entry
+    const newEntry = ptoEntryRepo.create({
+      employee_id: employee.id,
+      date,
+      type: type as "Sick" | "PTO" | "Bereavement" | "Jury Duty",
+      hours,
+    });
+    await ptoEntryRepo.save(newEntry);
+
+    // Save to R2
+    await this.saveDatabaseToR2();
+
+    return new Response(JSON.stringify({ success: true, entry: newEntry }), {
+      status: 201,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // Durable Object fetch handler
+  async fetch(request: Request): Promise<Response> {
+    return this.handleSession(request);
   }
 }
 

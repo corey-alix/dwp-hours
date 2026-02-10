@@ -8,9 +8,11 @@ You are assisting with the DWP Hours Tracker, a Node.js/TypeScript application f
 
 - **Backend**: Node.js, Express.js, SQLite (sql.js for WSL compatibility)
 - **Frontend**: Vanilla TypeScript, HTML, CSS (no frameworks)
-- **Build**: TypeScript compilation, npm scripts
+- **Build**: TypeScript compilation, pnpm scripts
 - **Testing**: Vitest (unit), Playwright (E2E)
 - **Development**: http-serve for dev server
+
+**⚠️ CRITICAL: This project uses pnpm exclusively. Do NOT use npm for any package management, scripts, or installations. Always use pnpm commands (e.g., `pnpm install`, `pnpm run build`).**
 
 ## Development Workflow
 
