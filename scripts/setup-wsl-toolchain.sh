@@ -38,6 +38,11 @@ export PATH="$PNPM_HOME:$PATH"
 
 pnpm --version
 
+log "Installing update port script"
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+repo_root=$(cd "$script_dir/.." && pwd)
+install -m 644 "$repo_root/.update_port.sh" "$HOME/.update_port.sh"
+
 log "Installing project dependencies"
 pnpm install
 
