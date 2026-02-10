@@ -21,6 +21,7 @@
     "build:client:assets//": "copy client files to public directory",
     "build:test-assets": "cp -r client/components public/ && cp client/test.html public/",
     "build:test-assets//": "copy client components and test.html to public",
+    "cloudflare:do": "wrangler dev",
     "build:server": "esbuild server/server.mts --bundle --outfile=dist/server.mjs --format=esm --platform=node --packages=external --sourcemap",
     "build:server//": "bundle server to dist/server.mjs with esbuild",
     "start": "nodemon",

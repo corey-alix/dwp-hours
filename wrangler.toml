@@ -13,10 +13,11 @@ bindings = [
 tag = "v1"
 new_sqlite_classes = ["DwpHoursDO"]
 
-# R2 Bucket for database storage
-[[r2_buckets]]
-binding = "DB_BUCKET"
-bucket_name = "dwp-hours-db"
+# D1 Database for persistent storage
+[[d1_databases]]
+binding = "DB"
+database_name = "dwp-hours-db"
+database_id = "local"  # For local development
 
 # Environment variables
 [vars]
@@ -25,6 +26,9 @@ HASH_SALT = "your-secure-salt-here"
 
 # These should be set as secrets in production
 # SENDGRID_API_KEY should be set via: wrangler secret put SENDGRID_API_KEY
+
+# Development configuration
+# open = true  # Not supported in wrangler
 
 # Development environment
 [env.dev]
