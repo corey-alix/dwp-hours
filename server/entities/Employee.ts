@@ -33,6 +33,9 @@ export class Employee {
   @OneToMany(() => PtoEntry, (ptoEntry) => ptoEntry.employee)
   ptoEntries!: PtoEntry[];
 
+  @OneToMany(() => PtoEntry, (ptoEntry) => ptoEntry.approvedBy)
+  approvedPtoEntries!: PtoEntry[];
+
   @OneToMany(() => MonthlyHours, (monthlyHours) => monthlyHours.employee)
   monthlyHours!: MonthlyHours[];
 

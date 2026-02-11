@@ -24,10 +24,17 @@ export class PtoEntry {
   @Column({ type: "real" })
   hours!: number;
 
+  @Column({ type: "integer", nullable: true })
+  approved_by!: number | null;
+
   @Column({ type: "datetime", default: () => "CURRENT_TIMESTAMP" })
   created_at!: Date;
 
   @ManyToOne(() => Employee, (employee) => employee.ptoEntries)
   @JoinColumn({ name: "employee_id" })
   employee!: Employee;
+
+  @ManyToOne(() => Employee, { nullable: true })
+  @JoinColumn({ name: "approved_by" })
+  approvedBy!: Employee | null;
 }

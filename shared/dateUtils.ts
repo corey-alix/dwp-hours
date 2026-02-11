@@ -527,3 +527,20 @@ export function getNextBusinessDay(dateStr: string): string {
   }
   return currentDate;
 }
+
+/**
+ * Formats an ISO timestamp string for display
+ * @param isoTimestamp - ISO timestamp string (e.g., "2026-02-11T14:16:34.352Z")
+ * @param options - Intl.DateTimeFormat options
+ * @returns Formatted date string for display
+ */
+export function formatTimestampForDisplay(
+  isoTimestamp: string,
+  options?: Intl.DateTimeFormatOptions,
+): string {
+  const date = new Date(isoTimestamp);
+  if (isNaN(date.getTime())) {
+    throw new Error(`Invalid ISO timestamp: ${isoTimestamp}`);
+  }
+  return date.toLocaleDateString("en-US", options);
+}

@@ -20,13 +20,16 @@ CREATE TABLE IF NOT EXISTS pto_entries (
   date TEXT NOT NULL,  -- Changed from start_date/end_date
   type TEXT NOT NULL CHECK (type IN ('Sick', 'PTO', 'Bereavement', 'Jury Duty')),
   hours REAL NOT NULL,
+  approved_by INTEGER,  -- NULL = pending approval, ID = approved by admin
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
+  FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+  FOREIGN KEY (approved_by) REFERENCES employees(id) ON DELETE SET NULL
 );
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_pto_entries_employee_id ON pto_entries(employee_id);
 CREATE INDEX IF NOT EXISTS idx_pto_entries_date ON pto_entries(date);
+CREATE INDEX IF NOT EXISTS idx_pto_entries_approved_by ON pto_entries(approved_by);
 
 -- Create monthly hours table
 CREATE TABLE IF NOT EXISTS monthly_hours (

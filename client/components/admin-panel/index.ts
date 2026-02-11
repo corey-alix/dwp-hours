@@ -11,9 +11,22 @@ interface Employee {
   hash?: string;
 }
 
+interface PTORequest {
+  id: number;
+  employeeId: number;
+  employeeName: string;
+  startDate: string;
+  endDate: string;
+  type: "Sick" | "PTO" | "Bereavement" | "Jury Duty";
+  hours: number;
+  status: "pending" | "approved" | "rejected";
+  createdAt: string;
+}
+
 export class AdminPanel extends BaseComponent {
   private _currentView = "pto-requests";
   private _employees: Employee[] = [];
+  private _ptoRequests: PTORequest[] = [];
   private _showEmployeeForm = false;
   private _editingEmployee: Employee | null = null;
 
@@ -43,6 +56,12 @@ export class AdminPanel extends BaseComponent {
   // Method to set seed data for testing
   setEmployees(employees: Employee[]) {
     this._employees = employees;
+    this.requestUpdate();
+  }
+
+  // Method to set PTO requests for testing
+  setPTORequests(requests: PTORequest[]) {
+    this._ptoRequests = requests;
     this.requestUpdate();
   }
 
@@ -259,7 +278,7 @@ export class AdminPanel extends BaseComponent {
           </employee-list>
         `;
       case "pto-requests":
-        return "<pto-request-queue></pto-request-queue>";
+        return `<pto-request-queue requests='${JSON.stringify(this._ptoRequests)}'></pto-request-queue>`;
       case "reports":
         return "<report-generator></report-generator>";
       case "settings":

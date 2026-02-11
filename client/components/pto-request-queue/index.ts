@@ -1,4 +1,7 @@
-import { formatDateForDisplay } from "../../../shared/dateUtils.js";
+import {
+  formatDateForDisplay,
+  formatTimestampForDisplay,
+} from "../../../shared/dateUtils.js";
 
 interface PTORequest {
   id: number;
@@ -298,7 +301,7 @@ export class PtoRequestQueue extends HTMLElement {
   private renderRequestCard(request: PTORequest): string {
     const startDate = formatDateForDisplay(request.startDate);
     const endDate = formatDateForDisplay(request.endDate);
-    const createdDate = formatDateForDisplay(request.createdAt);
+    const createdDate = formatTimestampForDisplay(request.createdAt);
 
     return `
             <div class="request-card" data-request-id="${request.id}">

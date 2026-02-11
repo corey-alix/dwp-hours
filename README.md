@@ -93,6 +93,7 @@ _Displays employee information and PTO rate details._
 - **Time Off Logging**: Submit time off entries via web UI or API
   - Types: Sick, PTO, Bereavement, Jury Duty
   - Select start date and total hours, with automatic calculation of the date range covering the specified number of workdays
+  - **Approval Workflow**: PTO submissions require administrative approval before becoming active in PTO calculations
 - **PTO Status Dashboard**: View annual PTO status by month
   - **Monthly Accrual Breakdown UI**: Rendered as a two-column grid (month name on the left, hours on the right). Each row includes a clickable Calendar icon that reveals a month view. The month view uses legacy color coding for PTO types as documented in [`.github/skills/pto-spreadsheet-layout/SKILL.md`](.github/skills/pto-spreadsheet-layout/SKILL.md), and each day cell shows the number of hours in the bottom-right corner.
   - **Sick/Bereavement/Jury Duty Detail**: Each of these cards must list the specific dates taken and the hours for each date, not just the totals.
@@ -109,6 +110,9 @@ _Displays employee information and PTO rate details._
   - Track acknowledgement status per employee per month
 - **Employee Management**: Admin panel for adding/editing employee data
 - **PTO Review**: Admin tools for reviewing monthly/yearly PTO usage with comprehensive reporting
+  - **PTO Request Approval**: PTO entries require administrative approval before becoming active
+  - **Approval Workflow**: PTO submissions create entries with `approved_by = NULL` (pending), admins can approve by setting `approved_by` to their employee ID
+  - **Request Queue**: Administrative interface for reviewing and approving pending PTO requests
 - **Admin Dashboard**: Complete admin interface with navigation between different management views
 - **Data Tables**: Sortable, paginated tables for displaying employee and PTO data
 - **Form Validation**: Comprehensive validation for all admin forms
@@ -293,6 +297,7 @@ The following features are planned for upcoming development:
 8. ✅ **COMPLETED**: Complete user data migration validation and documentation. See ./TASKS/user-data-migration-corey-alix.md for Phase 4 items
 9. ✅ **COMPLETED**: Complete theming tips best practices implementation. See ./TASKS/theming-tips-consistency.md for Phase 5 items
 10. LATER: See ./TASKS/deployment-automation.md for details on implementing automated deployment with Netlify
+11. **IN PROGRESS**: Complete admin panel test data integration and component memory leak prevention. See ./TASKS/admin-panel-test-data-integration.md for remaining Phase 7 items (16 components need BaseComponent migration)
 
 **📋 Development Best Practices and Learnings**: For detailed information about development best practices, testing strategies, and implementation learnings, see [`.github/skills/development-best-practices-assistant/SKILL.md`](.github/skills/development-best-practices-assistant/SKILL.md).
 

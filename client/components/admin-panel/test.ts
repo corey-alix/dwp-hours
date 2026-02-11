@@ -33,7 +33,30 @@ export function playground() {
       role: emp.role,
       hash: emp.hash || undefined,
     }));
+
+    // Create employee name map for PTO requests
+    const employeeNames: { [key: number]: string } = {};
+    employees.forEach((emp) => {
+      employeeNames[emp.id] = emp.name;
+    });
+
+    // Create PTO requests from pending entries (approved_by = null)
+    const ptoRequests = seedPTOEntries
+      .filter((entry) => entry.approved_by === null)
+      .map((entry, index) => ({
+        id: index + 1, // Simple ID assignment
+        employeeId: entry.employee_id,
+        employeeName: employeeNames[entry.employee_id] || "Unknown",
+        startDate: entry.date,
+        endDate: entry.date, // Single day entries for now
+        type: entry.type,
+        hours: entry.hours,
+        status: "pending" as const,
+        createdAt: new Date().toISOString(), // Current timestamp for testing
+      }));
+
     adminPanel.setEmployees(employees);
+    adminPanel.setPTORequests(ptoRequests);
     seedDataLoaded = true;
     setOutput("Seed data loaded");
     toggleButton.textContent = "Unload Seed Data";
@@ -41,6 +64,7 @@ export function playground() {
 
   const unloadSeedData = () => {
     adminPanel.setEmployees([]);
+    adminPanel.setPTORequests([]);
     seedDataLoaded = false;
     setOutput("Seed data unloaded (empty state)");
     toggleButton.textContent = "Load Seed Data";

@@ -245,4 +245,4 @@ Integrate seed data from seedData.ts into the admin panel test page to provide r
    }
    ```
 
-3.
+3. **PTO Request Data Added**: Updated seedData.ts to define SeedPtoRequest type and added sample PTO requests with both auto-approved and approval-required scenarios. Updated admin panel component and test harness to inject PTO request data.
