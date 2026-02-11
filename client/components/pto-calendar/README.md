@@ -8,6 +8,7 @@ The PTO Calendar component provides a monthly calendar view for displaying and s
 
 - **Monthly View**: Displays a full month calendar grid
 - **PTO Visualization**: Color-coded PTO entries by type
+- **Approval Indicators**: Green checkmark (✓) in top-right corner for approved PTO entries
 - **Interactive Selection**: Click to select/deselect dates for PTO requests
 - **Read-only Mode**: Display-only mode for viewing existing entries
 - **PTO Type Selection**: Choose between PTO, Sick, Bereavement, and Jury Duty
@@ -55,6 +56,7 @@ type PTOEntry = {
   type: "PTO" | "Sick" | "Bereavement" | "Jury Duty";
   hours: number;
   createdAt: string;
+  approved_by?: number | null; // Admin ID who approved, null = pending
 };
 
 type CalendarEntry = {
@@ -70,6 +72,15 @@ type CalendarEntry = {
 - **Sick**: Sick leave (`--color-pto-sick`)
 - **Bereavement**: Bereavement leave (`--color-pto-bereavement`)
 - **Jury Duty**: Jury duty (`--color-pto-jury-duty`)
+
+## Approval Indicators
+
+Approved PTO entries are visually indicated with a green checkmark (✓) positioned in the top-right corner of the day cell. The checkmark uses the `--color-success` design token for consistent theming.
+
+- **Appearance**: Small green checkmark (✓) in top-right corner
+- **Condition**: Appears when at least one PTO entry for the day has `approved_by` set
+- **Styling**: Uses semantic success color from design tokens
+- **Accessibility**: Visual indicator only (no screen reader text added)
 
 ## Features
 

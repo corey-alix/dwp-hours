@@ -19,6 +19,7 @@ export function playground(): HTMLElement {
       hours: 4.0,
       type: "Sick",
       createdAt: "2024-01-01T00:00:00Z",
+      approved_by: 3, // Approved
     },
     {
       id: 2,
@@ -27,6 +28,7 @@ export function playground(): HTMLElement {
       hours: 8.0,
       type: "Sick",
       createdAt: "2024-01-01T00:00:00Z",
+      approved_by: 3, // Approved
     },
     {
       id: 3,
@@ -35,6 +37,7 @@ export function playground(): HTMLElement {
       hours: 8.0,
       type: "Sick",
       createdAt: "2024-01-01T00:00:00Z",
+      // No approved_by - pending
     },
     {
       id: 4,
@@ -43,6 +46,7 @@ export function playground(): HTMLElement {
       hours: 8.0,
       type: "PTO",
       createdAt: "2024-01-01T00:00:00Z",
+      approved_by: 3, // Approved
     },
     {
       id: 5,
@@ -51,6 +55,7 @@ export function playground(): HTMLElement {
       hours: 8.0,
       type: "PTO",
       createdAt: "2024-01-01T00:00:00Z",
+      // No approved_by - pending
     },
     {
       id: 6,
@@ -59,11 +64,12 @@ export function playground(): HTMLElement {
       hours: 4.0,
       type: "PTO",
       createdAt: "2024-01-01T00:00:00Z",
+      approved_by: 3, // Approved
     },
   ];
 
-  calendar.setMonth(1); // February (0-indexed)
   calendar.setYear(2024);
+  calendar.setMonth(1); // February (0-indexed)
   calendar.setPtoEntries(sampleEntries);
   calendar.setReadonly(false); // Start in editable mode for testing
 
@@ -80,6 +86,7 @@ export function playground(): HTMLElement {
         <h3>Test Controls</h3>
         <button id="test-colors">Test Color Coding</button>
         <button id="test-legend">Test Legend</button>
+        <button id="test-checkmarks">Test Checkmarks</button>
         <div id="test-results"></div>
     `;
   container.appendChild(controls);
@@ -90,6 +97,9 @@ export function playground(): HTMLElement {
   ) as HTMLButtonElement;
   const testLegendBtn = container.querySelector(
     "#test-legend",
+  ) as HTMLButtonElement;
+  const testCheckmarksBtn = container.querySelector(
+    "#test-checkmarks",
   ) as HTMLButtonElement;
   const testResults = container.querySelector(
     "#test-results",
@@ -108,6 +118,13 @@ export function playground(): HTMLElement {
     const legendItems = calendar.shadowRoot?.querySelectorAll(".legend-item");
     testResults.innerHTML = `
             <p>Legend items: ${legendItems?.length || 0}</p>
+        `;
+  });
+
+  testCheckmarksBtn.addEventListener("click", () => {
+    const checkmarks = calendar.shadowRoot?.querySelectorAll(".checkmark");
+    testResults.innerHTML = `
+            <p>Checkmarks found: ${checkmarks?.length || 0}</p>
         `;
   });
 

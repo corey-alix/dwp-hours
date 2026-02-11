@@ -23,38 +23,22 @@ const DB_PATH = path.join(__dirname, "..", "db", "dwp-hours.db");
 let db: Database;
 try {
   const SQL = await initSqlJs();
-  let filebuffer: Uint8Array | undefined;
+  // Always start with a fresh database for seeding
   if (fs.existsSync(DB_PATH)) {
-    filebuffer = fs.readFileSync(DB_PATH);
+    fs.unlinkSync(DB_PATH);
   }
-  db = new SQL.Database(filebuffer);
+  db = new SQL.Database();
 
-  // Always execute schema to ensure tables exist
+  // Execute schema to create tables
   const schemaPath = path.join(__dirname, "..", "db", "schema.sql");
   const schema = fs.readFileSync(schemaPath, "utf8");
   db.exec(schema);
 } catch (error) {
-  console.error("Failed to load database:", error);
+  console.error("Failed to create database:", error);
   process.exit(1);
 }
 
 try {
-  // Truncate all tables for clean test data
-  db.exec(`
-        DELETE FROM admin_acknowledgements;
-        DELETE FROM acknowledgements;
-        DELETE FROM monthly_hours;
-        DELETE FROM pto_entries;
-        DELETE FROM sessions;
-        DELETE FROM employees;
-        DELETE FROM sqlite_sequence WHERE name='employees';
-        DELETE FROM sqlite_sequence WHERE name='pto_entries';
-        DELETE FROM sqlite_sequence WHERE name='monthly_hours';
-        DELETE FROM sqlite_sequence WHERE name='acknowledgements';
-        DELETE FROM sqlite_sequence WHERE name='admin_acknowledgements';
-        DELETE FROM sqlite_sequence WHERE name='sessions';
-    `);
-
   // Insert seed employees
   const stmt = db.prepare(`
         INSERT INTO employees (name, identifier, pto_rate, carryover_hours, hire_date, role, hash)
@@ -77,8 +61,8 @@ try {
 
   // Insert seed PTO entries
   const ptoStmt = db.prepare(`
-        INSERT INTO pto_entries (employee_id, date, type, hours)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO pto_entries (employee_id, date, type, hours, approved_by)
+        VALUES (?, ?, ?, ?, ?)
     `);
 
   for (const entry of seedPTOEntries) {
@@ -115,7 +99,13 @@ try {
       continue;
     }
 
-    ptoStmt.run([entry.employee_id, entry.date, entry.type, entry.hours]);
+    ptoStmt.run([
+      entry.employee_id,
+      entry.date,
+      entry.type,
+      entry.hours,
+      entry.approved_by ?? null,
+    ]);
   }
 
   ptoStmt.free();

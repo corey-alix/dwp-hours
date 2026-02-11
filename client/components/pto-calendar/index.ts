@@ -49,6 +49,7 @@ export interface PTOEntry {
   type: "PTO" | "Sick" | "Bereavement" | "Jury Duty";
   hours: number;
   createdAt: string;
+  approved_by?: number | null;
 }
 
 export class PtoCalendar extends HTMLElement {
@@ -64,8 +65,8 @@ export class PtoCalendar extends HTMLElement {
   constructor() {
     super();
     this.shadow = this.attachShadow({ mode: "open" });
-    this.month = 0;
-    this.year = 0;
+    this.month = 0; // January
+    this.year = 2024; // Default year for valid date components
     this.ptoEntries = [];
     this.selectedMonth = null;
     this.readonly = true;
@@ -231,12 +232,16 @@ export class PtoCalendar extends HTMLElement {
       isCurrentMonth: boolean;
       entry?: PTOEntry;
       totalHours: number;
+      hasApprovedEntry: boolean;
     }[] = [];
 
     for (const dateStr of calendarDates) {
       const entriesForDate = this.ptoEntries.filter((e) => e.date === dateStr);
       const totalHours = entriesForDate.reduce((sum, e) => sum + e.hours, 0);
       const entry = entriesForDate.length > 0 ? entriesForDate[0] : null;
+      const hasApprovedEntry = entriesForDate.some(
+        (e) => e.approved_by !== null,
+      );
       if (dateStr === "2026-03-01") {
         console.log(
           "PtoCalendar: March 1 dateStr:",
@@ -247,6 +252,8 @@ export class PtoCalendar extends HTMLElement {
           totalHours,
           "entry:",
           entry,
+          "hasApprovedEntry:",
+          hasApprovedEntry,
         );
       }
       calendarDays.push({
@@ -254,6 +261,7 @@ export class PtoCalendar extends HTMLElement {
         isCurrentMonth: isInMonth(dateStr, this.year, this.month + 1),
         entry: entry ?? undefined,
         totalHours,
+        hasApprovedEntry,
       });
     }
 
@@ -267,40 +275,52 @@ export class PtoCalendar extends HTMLElement {
                 <div class="calendar-grid">
                     ${weekdays.map((day) => `<div class="weekday">${day}</div>`).join("")}
                     ${calendarDays
-                      .map(({ dateStr, isCurrentMonth, entry, totalHours }) => {
-                        const isSelected = this.selectedCells.has(dateStr);
-                        const selectedHours =
-                          this.selectedCells.get(dateStr) || 8;
-                        const isWeekendDate = isWeekend(dateStr);
-                        const dayClass = entry
-                          ? `day type-${entry.type.replace(/\s+/g, "-")}`
-                          : isSelected && this.selectedPtoType
-                            ? `day type-${this.selectedPtoType.replace(/\s+/g, "-")}`
-                            : "day";
-                        const emptyClass = isCurrentMonth ? "" : "empty";
-                        const selectedClass = isSelected ? "selected" : "";
-                        const clickableClass =
-                          !this.readonly && isCurrentMonth && !isWeekendDate
-                            ? "clickable"
-                            : "";
-                        const hoursDisplay =
-                          totalHours > 0
-                            ? totalHours.toFixed(0)
-                            : isSelected
-                              ? selectedHours.toFixed(0)
+                      .map(
+                        ({
+                          dateStr,
+                          isCurrentMonth,
+                          entry,
+                          totalHours,
+                          hasApprovedEntry,
+                        }) => {
+                          const isSelected = this.selectedCells.has(dateStr);
+                          const selectedHours =
+                            this.selectedCells.get(dateStr) || 8;
+                          const isWeekendDate = isWeekend(dateStr);
+                          const dayClass = entry
+                            ? `day type-${entry.type.replace(/\s+/g, "-")}`
+                            : isSelected && this.selectedPtoType
+                              ? `day type-${this.selectedPtoType.replace(/\s+/g, "-")}`
+                              : "day";
+                          const emptyClass = isCurrentMonth ? "" : "empty";
+                          const selectedClass = isSelected ? "selected" : "";
+                          const clickableClass =
+                            !this.readonly && isCurrentMonth && !isWeekendDate
+                              ? "clickable"
                               : "";
-                        const hoursElement =
-                          !this.readonly && isSelected
-                            ? `<input type="number" class="hours-input" value="${selectedHours}" min="0" max="8" step="4" data-date="${dateStr}">`
-                            : `<div class="hours">${hoursDisplay}</div>`;
-                        const { day } = parseDate(dateStr);
-                        return `
+                          const hoursDisplay =
+                            totalHours > 0
+                              ? totalHours.toFixed(0)
+                              : isSelected
+                                ? selectedHours.toFixed(0)
+                                : "";
+                          const hoursElement =
+                            !this.readonly && isSelected
+                              ? `<input type="number" class="hours-input" value="${selectedHours}" min="0" max="8" step="4" data-date="${dateStr}">`
+                              : `<div class="hours">${hoursDisplay}</div>`;
+                          const checkmarkElement = hasApprovedEntry
+                            ? '<div class="checkmark">✓</div>'
+                            : "";
+                          const { day } = parseDate(dateStr);
+                          return `
                             <div class="${dayClass} ${emptyClass} ${selectedClass} ${clickableClass}" data-date="${dateStr}">
+                                ${checkmarkElement}
                                 <div class="date">${day}</div>
                                 ${hoursElement}
                             </div>
                         `;
-                      })
+                        },
+                      )
                       .join("")}
                 </div>
                 <div class="legend">
@@ -383,6 +403,16 @@ export class PtoCalendar extends HTMLElement {
                 .day .date {
                     font-weight: 600;
                     color: var(--color-text);
+                }
+
+                .day .checkmark {
+                    position: absolute;
+                    top: 2px;
+                    right: 2px;
+                    color: var(--color-success);
+                    font-size: 10px;
+                    font-weight: bold;
+                    z-index: 1;
                 }
 
                 .day .hours {
