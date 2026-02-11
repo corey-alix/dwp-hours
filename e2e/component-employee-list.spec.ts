@@ -33,9 +33,6 @@ test("employee-list component test", async ({ page }) => {
   const searchInput = employeeList.locator(".search-input");
   await expect(searchInput).toBeVisible();
 
-  const addButton = employeeList.locator("#add-employee");
-  await expect(addButton).toBeVisible();
-
   // Check initial state (should show sample data from test.ts)
   const employeeCards = employeeList.locator(".employee-card");
   const initialCount = await employeeCards.count();

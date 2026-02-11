@@ -32,12 +32,8 @@ test.describe("Employee Admin Panel - Add Employee", () => {
     const employeeList = page.locator("admin-panel employee-list");
     await expect(employeeList).toBeVisible();
 
-    // Manually trigger the add-employee event to show the form
-    await employeeList.evaluate((el: any) => {
-      el.dispatchEvent(
-        new CustomEvent("add-employee", { bubbles: true, composed: true }),
-      );
-    });
+    // Click the Add Employee button
+    await page.locator("admin-panel .add-employee-btn").click();
 
     // Wait for employee form to appear
     await page.waitForSelector("admin-panel employee-form");
@@ -73,7 +69,7 @@ test.describe("Employee Admin Panel - Add Employee", () => {
       el._editingEmployee = emp;
       el._showEmployeeForm = true;
       el.render();
-      el.setupChildEventListeners();
+      el.setupEventDelegation();
     }, employeeData);
 
     // Wait for employee form to appear
@@ -147,13 +143,8 @@ test.describe("Employee Admin Panel - Add Employee", () => {
     // Wait for employees view to load
     await page.waitForSelector("admin-panel employee-list");
 
-    // Manually trigger the add-employee event to show the form
-    const employeeList = page.locator("admin-panel employee-list");
-    await employeeList.evaluate((el: any) => {
-      el.dispatchEvent(
-        new CustomEvent("add-employee", { bubbles: true, composed: true }),
-      );
-    });
+    // Click the Add Employee button
+    await page.locator("admin-panel .add-employee-btn").click();
 
     // Wait for employee form to appear
     await page.waitForSelector("admin-panel employee-form");

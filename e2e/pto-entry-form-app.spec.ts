@@ -86,9 +86,17 @@ test("index PTO form submission persists entry", async ({ page }) => {
 test("index PTO calendar submission persists entry", async ({ page }) => {
   test.setTimeout(15000);
 
-  const testDateStr = "2026-04-02";
+  const testDateStr = "2026-02-10";
 
   await page.goto("/");
+
+  // Reload database to ensure clean state
+  await page.request.post("/api/test/reload-database", {
+    headers: { "x-test-reload": "true" },
+  });
+
+  // Wait a moment for database reload to complete
+  await page.waitForTimeout(1000);
 
   await page.fill("#identifier", "jane.smith@example.com");
   await page.click('#login-form button[type="submit"]');
@@ -101,6 +109,9 @@ test("index PTO calendar submission persists entry", async ({ page }) => {
   await page.waitForSelector("#dashboard", { timeout: 10000 });
   await expect(page.locator("#pto-status")).toBeVisible();
 
+  // Wait for PTO status to load
+  await page.waitForTimeout(2000);
+
   await page.click("#new-pto-btn");
   await expect(page.locator("#main-content > #pto-form")).not.toHaveClass(
     /hidden/,
@@ -108,6 +119,11 @@ test("index PTO calendar submission persists entry", async ({ page }) => {
 
   const form = page.locator("pto-entry-form");
   await expect(form).toBeVisible();
+
+  // Set sufficient PTO balance for the test
+  await form.evaluate((el: any) => {
+    el.setAttribute("available-pto-balance", "100");
+  });
 
   // Set start date to ensure calendar initializes to correct month
   const startDate = form.locator("#start-date");

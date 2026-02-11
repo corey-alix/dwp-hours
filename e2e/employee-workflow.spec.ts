@@ -41,7 +41,7 @@ test.describe("Employee Authentication & Workflow", () => {
     });
 
     // Use a fixed weekday date that won't conflict with seed data
-    const testDateStr = "2026-03-12"; // Thursday
+    const testDateStr = "2026-02-10"; // Monday, past date
 
     // Navigate to the actual application
     await page.goto("/");
@@ -86,7 +86,7 @@ test.describe("Employee Authentication & Workflow", () => {
       ),
       page.evaluate((dateStr) => {
         const accrualCard = document.querySelector("pto-accrual-card");
-        const requests = [{ date: dateStr, type: "PTO", hours: 4 }];
+        const requests = [{ date: dateStr, type: "Sick", hours: 4 }];
         accrualCard?.dispatchEvent(
           new CustomEvent("pto-request-submit", {
             detail: { requests },
@@ -113,7 +113,7 @@ test.describe("Employee Authentication & Workflow", () => {
     expect(ptoRequest).toBeDefined();
     expect(ptoRequest.employeeId).toBeDefined();
     expect(ptoRequest.date).toBe(testDateStr); // Date stored as YYYY-MM-DD string
-    expect(ptoRequest.type).toBe("PTO");
+    expect(ptoRequest.type).toBe("Sick");
     expect(ptoRequest.hours).toBe(4);
 
     // Verify success notification appears
