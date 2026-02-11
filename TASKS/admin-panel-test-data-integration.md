@@ -53,6 +53,7 @@ Integrate seed data from seedData.ts into the admin panel test page to provide r
 
 ### Phase 6: Implement Employee Form Inline
 
+- [x] Unit tests: Add form-cancel event handling test in tests/components/admin-panel.test.ts
 - [x] Modify Employees view to include an "Add Employee" button in the header
 - [x] Implement inline component functionality for displaying employee-form, inserted before the "view-container" to render between the "Add Employee" button and the list of employees
 - [x] Connect "Add Employee" button to show/hide the inline employee-form
@@ -69,6 +70,8 @@ Integrate seed data from seedData.ts into the admin panel test page to provide r
 - Ensure seed data is only used in test/development environments, not production
 - Follow existing patterns for data handling and component communication as outlined in SKILL.md
 - May need to update TypeScript configuration for client-side module resolution if issues arise
+- **Testing Best Practices**: Tests should always cast to the proper type instead of generic HTMLElement (e.g., `querySelector("employee-form") as EmployeeForm` instead of `querySelector("employee-form") as HTMLElement`)
+- **Testing Best Practices**: Prefer implementing methods on the component over dispatching events from unit tests when possible, but note that in some test environments (like happy-dom), `querySelector` returns generic HTMLElements that don't have access to component methods - in such cases, direct event dispatch with proper typing is the reliable approach
 
 ## Questions and Concerns
 

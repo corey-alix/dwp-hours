@@ -2,6 +2,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { seedEmployees, seedPTOEntries } from "../../shared/seedData.js";
+import type { EmployeeForm } from "../../client/components/employee-form/index.js";
 
 describe("AdminPanel Component", () => {
   let component: any;
@@ -187,11 +188,26 @@ describe("AdminPanel Component", () => {
       expect(html).not.toContain("employee-form");
     });
 
-    it("should include Add Employee button in employees view", () => {
+    it("should hide employee-form when form-cancel event is received", () => {
       component.currentView = "employees";
-      const html = component.shadowRoot?.innerHTML;
-      expect(html).toContain("add-employee-btn");
-      expect(html).toContain("Add Employee");
+      (component as any).showEmployeeForm();
+      let html = component.shadowRoot?.innerHTML;
+      expect(html).toContain("employee-form");
+
+      // Simulate form-cancel event from the employee-form element
+      const employeeForm = component.shadowRoot?.querySelector(
+        "employee-form",
+      ) as EmployeeForm;
+      expect(employeeForm).toBeTruthy();
+      employeeForm?.dispatchEvent(
+        new CustomEvent("form-cancel", {
+          bubbles: true,
+          composed: true,
+        }),
+      );
+
+      html = component.shadowRoot?.innerHTML;
+      expect(html).not.toContain("employee-form");
     });
   });
 });

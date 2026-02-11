@@ -316,13 +316,20 @@ export class EmployeeForm extends HTMLElement {
         this.dispatchEvent(
           new CustomEvent("employee-submit", {
             detail: { employee: employeeData, isEdit: this._isEdit },
+            bubbles: true,
+            composed: true,
           }),
         );
       }
     });
 
     cancelBtn?.addEventListener("click", () => {
-      this.dispatchEvent(new CustomEvent("form-cancel"));
+      this.dispatchEvent(
+        new CustomEvent("form-cancel", {
+          bubbles: true,
+          composed: true,
+        }),
+      );
     });
 
     // Real-time validation
