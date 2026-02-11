@@ -209,5 +209,27 @@ describe("AdminPanel Component", () => {
       html = component.shadowRoot?.innerHTML;
       expect(html).not.toContain("employee-form");
     });
+
+    it("should allow showing and hiding the form multiple times", () => {
+      component.currentView = "employees";
+
+      // First time
+      (component as any).showEmployeeForm();
+      let html = component.shadowRoot?.innerHTML;
+      expect(html).toContain("employee-form");
+
+      (component as any).hideEmployeeForm();
+      html = component.shadowRoot?.innerHTML;
+      expect(html).not.toContain("employee-form");
+
+      // Second time - this was failing before the fix
+      (component as any).showEmployeeForm();
+      html = component.shadowRoot?.innerHTML;
+      expect(html).toContain("employee-form");
+
+      (component as any).hideEmployeeForm();
+      html = component.shadowRoot?.innerHTML;
+      expect(html).not.toContain("employee-form");
+    });
   });
 });

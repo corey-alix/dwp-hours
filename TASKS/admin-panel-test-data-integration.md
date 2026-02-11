@@ -51,18 +51,41 @@ Integrate seed data from seedData.ts into the admin panel test page to provide r
 - [x] Unit tests: Add event dispatching tests in tests/components/admin-panel.test.ts
 - [x] Build and lint pass
 
-### Phase 6: Implement Employee Form Inline
+### Phase 7: Component Memory Leak Prevention
 
-- [x] Unit tests: Add form-cancel event handling test in tests/components/admin-panel.test.ts
-- [x] Modify Employees view to include an "Add Employee" button in the header
-- [x] Implement inline component functionality for displaying employee-form, inserted before the "view-container" to render between the "Add Employee" button and the list of employees
-- [x] Connect "Add Employee" button to show/hide the inline employee-form
-- [x] Handle form submission and cancellation within the inline form
-- [x] Style the inline form appropriately for the admin panel theme
-- [x] Unit tests: Add inline form functionality tests in tests/components/admin-panel.test.ts
-- [x] Build and lint pass
+- [x] **admin-panel**: Implement event delegation pattern to prevent memory leaks from dynamic event listeners
+- [ ] **confirmation-dialog**: Audit and implement proper event listener cleanup in render cycles
+- [ ] **data-table**: Implement event delegation for dynamic table content and sorting interactions
+- [ ] **employee-form**: Add listener cleanup in disconnectedCallback and consider event delegation for form elements
+- [ ] **employee-list**: Implement event delegation for dynamic employee list items and action buttons
+- [ ] **prior-year-review**: Audit render cycles and implement listener cleanup for review interactions
+- [ ] **pto-accrual-card**: Implement event delegation pattern for accrual display updates
+- [ ] **pto-bereavement-card**: Add proper listener cleanup for bereavement tracking interactions
+- [ ] **pto-calendar**: Implement event delegation for calendar date selections and navigation
+- [ ] **pto-dashboard**: Audit dashboard widget interactions and implement listener cleanup
+- [ ] **pto-employee-info-card**: Implement event delegation for employee info display updates
+- [ ] **pto-entry-form**: Add listener cleanup in disconnectedCallback for form validation and submission
+- [ ] **pto-jury-duty-card**: Implement proper cleanup for jury duty tracking interactions
+- [ ] **pto-request-queue**: Implement event delegation for dynamic request queue items
+- [ ] **pto-sick-card**: Add listener cleanup for sick time tracking interactions
+- [ ] **pto-summary-card**: Implement event delegation for summary data updates
+- [ ] **report-generator**: Audit report generation interactions and implement listener cleanup
 
 ## Implementation Notes
+
+- **BaseComponent Created**: A LitElement-inspired base class has been implemented in `client/components/base-component.ts` with proper event delegation, cleanup, and reactive update patterns
+- **AdminPanel Migration**: The admin-panel component now extends BaseComponent, eliminating memory leaks from improper event listener management
+- **Event Delegation**: All user interactions (navigation, buttons, forms) are now handled through event delegation on the shadow root
+- **Automatic Cleanup**: Event listeners are properly cleaned up before re-renders and when components are disconnected
+- **Reactive Updates**: Components use `requestUpdate()` for state changes instead of manual render calls
+- Import seedData.ts directly in test.ts for data access
+- Use component methods or attributes to inject data, avoiding any API calls within the admin-panel component
+- Consider creating a seeding utility function in test.ts for reusability across test scenarios
+- Ensure seed data is only used in test/development environments, not production
+- Follow existing patterns for data handling and component communication as outlined in SKILL.md
+- May need to update TypeScript configuration for client-side module resolution if issues arise
+- **Testing Best Practices**: Tests should always cast to the proper type instead of generic HTMLElement (e.g., `querySelector("employee-form") as EmployeeForm` instead of `querySelector("employee-form") as HTMLElement`)
+- **Testing Best Practices**: Prefer implementing methods on the component over dispatching events from unit tests when possible, but note that in some test environments (like happy-dom), `querySelector` returns generic HTMLElements that don't have access to component methods - in such cases, direct event dispatch with proper typing is the reliable approach
 
 - Import seedData.ts directly in test.ts for data access
 - Use component methods or attributes to inject data, avoiding any API calls within the admin-panel component
@@ -75,6 +98,151 @@ Integrate seed data from seedData.ts into the admin panel test page to provide r
 
 ## Questions and Concerns
 
-1.
-2.
+1. **Issue**: Clicking "Add Employee" works the first time, but after clicking "Cancel" and then "Add Employee" again, the form doesn't appear. **Fixed**: The issue was that `showEmployeeForm()` and `hideEmployeeForm()` were calling `render()` but not re-attaching event listeners with `setupEventListeners()`. The "Add Employee" button lost its click handler after the first form show/hide cycle.
+2. **Memory Leak Concern**: Multiple event listeners are being registered without cleanup. When `render()` replaces `innerHTML`, old DOM elements are destroyed but their event listeners remain in memory. **Plan to Fix**:
+   - **Recommended**: Implement a base component class inspired by LitElement's architecture for consistent lifecycle management
+   - Create `BaseComponent` class with proper event delegation, cleanup, and render cycle management
+   - Implement event delegation on persistent containers instead of attaching/removing listeners on dynamic elements
+   - Add `cleanupEventListeners()` and `cleanupChildEventListeners()` methods to remove existing listeners
+   - Call cleanup methods before each `render()` call
+   - Store listener references to enable proper removal
+   - Implement cleanup in `disconnectedCallback()` for proper component lifecycle management
+   - Avoid multiple `setupEventListeners()` calls by using flags or delegation patterns
+
+   **LitElement-Inspired Base Component Pattern** (Recommended):
+
+   ```typescript
+   export abstract class BaseComponent extends HTMLElement {
+     protected shadowRoot!: ShadowRoot;
+     private eventListeners: {
+       element: EventTarget;
+       event: string;
+       handler: EventListener;
+     }[] = [];
+     private isEventDelegationSetup = false;
+     private _isConnected = false;
+
+     constructor() {
+       super();
+       this.attachShadow({ mode: "open" });
+     }
+
+     connectedCallback() {
+       this._isConnected = true;
+       this.setupEventDelegation();
+       this.update();
+     }
+
+     disconnectedCallback() {
+       this._isConnected = false;
+       this.cleanupEventListeners();
+     }
+
+     // LitElement-inspired update cycle
+     protected update() {
+       if (!this._isConnected) return;
+
+       const templateResult = this.render();
+       if (templateResult !== undefined) {
+         this.renderTemplate(templateResult);
+       }
+     }
+
+     // Event delegation pattern for dynamic content
+     protected setupEventDelegation() {
+       if (this.isEventDelegationSetup) return;
+
+       this.shadowRoot.addEventListener("click", (e) => {
+         this.handleDelegatedClick(e);
+       });
+
+       this.shadowRoot.addEventListener("submit", (e) => {
+         this.handleDelegatedSubmit(e);
+       });
+
+       this.isEventDelegationSetup = true;
+     }
+
+     // Override in subclasses for specific click handling
+     protected handleDelegatedClick(e: Event): void {
+       // Subclasses implement specific logic
+     }
+
+     // Override in subclasses for form submissions
+     protected handleDelegatedSubmit(e: Event): void {
+       // Subclasses implement specific logic
+     }
+
+     // Safe event listener management
+     protected addListener(
+       element: EventTarget,
+       event: string,
+       handler: EventListener,
+     ) {
+       element.addEventListener(event, handler);
+       this.eventListeners.push({ element, event, handler });
+     }
+
+     protected removeAllListeners() {
+       this.eventListeners.forEach(({ element, event, handler }) => {
+         element.removeEventListener(event, handler);
+       });
+       this.eventListeners = [];
+     }
+
+     // Cleanup method for subclasses
+     protected cleanupEventListeners() {
+       this.removeAllListeners();
+     }
+
+     // LitElement-inspired render method (abstract)
+     protected abstract render(): string | undefined;
+
+     // Template rendering with automatic cleanup
+     protected renderTemplate(template: string): void {
+       // Clean up listeners before re-rendering
+       this.cleanupEventListeners();
+       this.shadowRoot.innerHTML = template;
+       // Re-setup delegation after render
+       this.setupEventDelegation();
+     }
+
+     // Force re-render (LitElement-inspired)
+     protected requestUpdate() {
+       if (this._isConnected) {
+         this.update();
+       }
+     }
+   }
+   ```
+
+   **Migration Example**:
+
+   ```typescript
+   export class AdminPanel extends BaseComponent {
+     private employees: Employee[] = [];
+
+     protected render(): string {
+       return `
+         <div class="admin-panel">
+           <button class="add-employee-btn">Add Employee</button>
+           ${this.employees.map((emp) => `<div class="employee">${emp.name}</div>`).join("")}
+         </div>
+       `;
+     }
+
+     protected handleDelegatedClick(e: Event): void {
+       const target = e.target as HTMLElement;
+       if (target.matches(".add-employee-btn")) {
+         this.showEmployeeForm();
+       }
+     }
+
+     setEmployees(employees: Employee[]) {
+       this.employees = employees;
+       this.requestUpdate();
+     }
+   }
+   ```
+
 3.

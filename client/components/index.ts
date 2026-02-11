@@ -1,4 +1,5 @@
 // Master component exports
+export { BaseComponent } from "./base-component.js";
 export { ConfirmationDialog } from "./confirmation-dialog/index.js";
 export { AdminPanel } from "./admin-panel/index.js";
 export { EmployeeList } from "./employee-list/index.js";

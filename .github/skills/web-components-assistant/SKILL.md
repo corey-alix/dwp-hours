@@ -22,21 +22,26 @@ Activate when users need to:
 - Work with custom element APIs
 - Convert existing UI elements to web components
 - Implement component communication patterns
+- **Prevent memory leaks from event listeners**
+- **Create base component classes for consistency**
+- **Migrate components to use BaseComponent**
 
 ## Response Pattern
 
 Follow this structured approach when implementing web components:
 
 1. **Component Analysis**: Assess the component's purpose, props, state, and integration needs
-2. **Custom Element Definition**: Create class extending HTMLElement with proper naming conventions
-3. **Shadow DOM Setup**: Implement Shadow DOM for style encapsulation when appropriate
-4. **Lifecycle Methods**: Implement connectedCallback, disconnectedCallback, and attributeChangedCallback as needed
-5. **Template & Styling**: Define component template and styles following MDN best practices
-6. **Property & Attribute Handling**: Set up observedAttributes and property getters/setters
-7. **Event Handling**: Implement custom events for component communication
-8. **Data Flow Architecture**: Use event-driven data flow - components dispatch events for data requests, parent handles API calls and data injection via methods like setPtoData()
-9. **Integration Testing**: Test component in the DWP Hours Tracker context
-10. **Documentation**: Update component usage documentation
+2. **Base Class Selection**: Extend BaseComponent for memory-safe, consistent components
+3. **Custom Element Definition**: Create class extending BaseComponent with proper naming conventions
+4. **Shadow DOM Setup**: Automatic shadow root creation via BaseComponent
+5. **Lifecycle Methods**: Override connectedCallback, disconnectedCallback as needed (BaseComponent handles cleanup)
+6. **Template & Styling**: Define component template and styles following MDN best practices
+7. **Property & Attribute Handling**: Set up observedAttributes and property getters/setters
+8. **Event Handling**: Use event delegation via handleDelegatedClick/handleDelegatedSubmit methods
+9. **Data Flow Architecture**: Use event-driven data flow - components dispatch events for data requests, parent handles API calls and data injection via methods like setPtoData()
+10. **Memory Management**: BaseComponent automatically handles event listener cleanup
+11. **Integration Testing**: Test component in the DWP Hours Tracker context
+12. **Documentation**: Update component usage documentation
 
 ## Component Testing Pattern
 
@@ -142,6 +147,73 @@ This pattern maintains separation of concerns and makes components more testable
 - **Child-to-Parent**: Use custom events with detail objects for data requests and state changes
 - **Sibling Communication**: Route through parent component using event bubbling
 
+## Base Component Architecture
+
+For consistency and memory leak prevention, all web components should extend the `BaseComponent` class located in `client/components/base-component.ts`. This LitElement-inspired base class provides:
+
+### BaseComponent Features
+
+- **Automatic Shadow DOM**: Creates shadow root in constructor
+- **Event Delegation**: Centralized event handling to prevent memory leaks
+- **Reactive Updates**: `requestUpdate()` method for triggering re-renders
+- **Memory Management**: Automatic cleanup of event listeners in `disconnectedCallback`
+- **Lifecycle Safety**: Proper connection state tracking
+
+### Component Implementation Pattern
+
+```typescript
+import { BaseComponent } from "../base-component.js";
+
+export class MyComponent extends BaseComponent {
+  private _data: MyData[] = [];
+
+  protected render(): string {
+    return `
+      <style>
+        /* Component styles */
+      </style>
+      <div class="my-component">
+        ${this._data.map((item) => `<div>${item.name}</div>`).join("")}
+      </div>
+    `;
+  }
+
+  protected handleDelegatedClick(e: Event): void {
+    const target = e.target as HTMLElement;
+    if (target.matches(".action-btn")) {
+      this.handleAction();
+    }
+  }
+
+  setData(data: MyData[]) {
+    this._data = data;
+    this.requestUpdate();
+  }
+}
+```
+
+### Memory Leak Prevention
+
+**Problem**: Components that replace `innerHTML` without cleaning up event listeners cause memory leaks.
+
+**Solution**: BaseComponent uses event delegation and automatic cleanup:
+
+- Event listeners attached to shadow root (persistent)
+- `cleanupEventListeners()` called before re-renders
+- `disconnectedCallback()` ensures cleanup on removal
+- No orphaned listeners from dynamic DOM replacement
+
+### Migration from HTMLElement
+
+When updating existing components:
+
+1. Change `extends HTMLElement` to `extends BaseComponent`
+2. Remove manual `attachShadow()` calls
+3. Replace `render()` method to return string instead of setting `innerHTML`
+4. Implement `handleDelegatedClick()` and `handleDelegatedSubmit()` for events
+5. Use `requestUpdate()` instead of manual render calls
+6. Remove manual event listener setup/cleanup code
+
 ## Examples
 
 Common queries that should trigger this skill:
@@ -152,14 +224,19 @@ Common queries that should trigger this skill:
 - "Add custom events to the admin panel component"
 - "Implement lifecycle methods for the hours tracker widget"
 - "Style encapsulation for the PTO status component"
+- "**Prevent memory leaks in web components**"
+- "**Migrate component to BaseComponent**"
+- "**Fix event listener memory leaks**"
 
 ## Additional Context
 
 - **Project Integration**: Components should integrate with the existing TypeScript build system and follow project naming conventions
 - **Browser Support**: Ensure compatibility with the project's target browsers
 - **Performance**: Follow MDN performance guidelines for web components
+- **Memory Management**: All components must extend BaseComponent to prevent memory leaks from event listeners
+- **Consistency**: Use BaseComponent's event delegation and reactive update patterns for all components
 - **Accessibility**: Implement ARIA attributes and keyboard navigation as per MDN accessibility guidelines
 - **Testing**: Components should be testable with the existing Playwright E2E setup
-- **Dependencies**: Avoid external component libraries; use native web components for better performance and smaller bundle size
+- **Dependencies**: Avoid external component libraries; use native web components with BaseComponent for better performance and smaller bundle size
 - **Related Skills**: Works with `task-implementation-assistant` for admin panel tasks, `code-review-qa` for component quality checks</content>
   <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/.github/skills/web-components-assistant/SKILL.md

@@ -1,3 +1,5 @@
+import { BaseComponent } from "../base-component.js";
+
 interface Employee {
   id: number;
   name: string;
@@ -9,34 +11,24 @@ interface Employee {
   hash?: string;
 }
 
-export class AdminPanel extends HTMLElement {
-  private shadow: ShadowRoot;
+export class AdminPanel extends BaseComponent {
   private _currentView = "pto-requests";
   private _employees: Employee[] = [];
   private _showEmployeeForm = false;
   private _editingEmployee: Employee | null = null;
-
-  constructor() {
-    super();
-    this.shadow = this.attachShadow({ mode: "open" });
-  }
 
   static get observedAttributes() {
     return ["current-view"];
   }
 
   connectedCallback() {
-    this.render();
-    this.setupEventListeners();
-    this.setupChildEventListeners();
+    super.connectedCallback();
   }
 
   attributeChangedCallback(name: string, oldValue: string, newValue: string) {
     if (oldValue !== newValue && name === "current-view") {
       this._currentView = newValue;
-      this.render();
-      this.setupEventListeners();
-      this.setupChildEventListeners();
+      this.requestUpdate();
     }
   }
 
@@ -51,13 +43,11 @@ export class AdminPanel extends HTMLElement {
   // Method to set seed data for testing
   setEmployees(employees: Employee[]) {
     this._employees = employees;
-    this.render();
-    this.setupEventListeners();
-    this.setupChildEventListeners();
+    this.requestUpdate();
   }
 
-  private render() {
-    this.shadow.innerHTML = `
+  protected render(): string {
+    return `
             <style>
                 :host {
                     display: block;
@@ -288,74 +278,100 @@ export class AdminPanel extends HTMLElement {
     }
   }
 
-  private setupChildEventListeners() {
-    // Handle events from child components
-    this.shadow.addEventListener("add-employee", () => {
+  protected handleDelegatedClick(e: Event): void {
+    const target = e.target as HTMLElement;
+
+    // Handle navigation links
+    const navLink = target.closest(".nav-link") as HTMLElement;
+    if (navLink) {
+      e.preventDefault();
+      const view = navLink.getAttribute("data-view");
+      if (view) {
+        this.currentView = view;
+        this.dispatchEvent(
+          new CustomEvent("view-change", {
+            detail: { view },
+          }),
+        );
+      }
+      return;
+    }
+
+    // Handle add employee button
+    if (target.matches(".add-employee-btn")) {
       this.showEmployeeForm();
-    });
+      return;
+    }
 
-    this.shadow.addEventListener("employee-edit", ((e: Event) => {
-      const employeeId = (e as CustomEvent).detail.employeeId;
-      this.showEmployeeForm(employeeId);
-    }) as EventListener);
-
-    this.shadow.addEventListener("employee-submit", ((e: Event) => {
-      const { employee, isEdit } = (e as CustomEvent).detail;
-      this.handleEmployeeSubmit(employee, isEdit);
-    }) as EventListener);
-
-    this.shadow.addEventListener("form-cancel", () => {
-      this.hideEmployeeForm();
-    });
-
-    this.shadow.addEventListener("employee-delete", ((e: Event) => {
-      this.dispatchEvent(
-        new CustomEvent("employee-delete", {
-          detail: (e as CustomEvent).detail,
-          bubbles: true,
-          composed: true,
-        }),
+    // Handle child component events that bubble up
+    if (target.closest("[data-employee-id]")) {
+      const employeeElement = target.closest(
+        "[data-employee-id]",
+      ) as HTMLElement;
+      const employeeId = parseInt(
+        employeeElement.getAttribute("data-employee-id") || "0",
       );
-    }) as EventListener);
-
-    this.shadow.addEventListener("employee-acknowledge", ((e: Event) => {
-      this.dispatchEvent(
-        new CustomEvent("employee-acknowledge", {
-          detail: (e as CustomEvent).detail,
-          bubbles: true,
-          composed: true,
-        }),
-      );
-    }) as EventListener);
+      if (employeeId) {
+        this.showEmployeeForm(employeeId);
+      }
+    }
   }
 
-  private setupEventListeners() {
-    const navLinks = this.shadow.querySelectorAll(".nav-link");
-    navLinks.forEach((link) => {
-      link.addEventListener("click", (e) => {
-        e.preventDefault();
-        const target = (e.target as HTMLElement).closest(
-          ".nav-link",
-        ) as HTMLElement | null;
-        const view = target?.getAttribute("data-view");
-        if (view) {
-          this.currentView = view;
-          this.dispatchEvent(
-            new CustomEvent("view-change", {
-              detail: { view },
-            }),
-          );
-        }
-      });
-    });
-
-    // Add Employee button
-    const addBtn = this.shadow.querySelector(".add-employee-btn");
-    if (addBtn) {
-      addBtn.addEventListener("click", () => {
-        this.showEmployeeForm();
-      });
+  // Override to handle custom events from child components
+  protected handleCustomEvent(event: CustomEvent): void {
+    switch (event.type) {
+      case "employee-submit":
+        const { employee, isEdit } = event.detail;
+        this.handleEmployeeSubmit(employee, isEdit);
+        break;
+      case "form-cancel":
+        this.hideEmployeeForm();
+        break;
+      case "employee-delete":
+        this.dispatchEvent(
+          new CustomEvent("employee-delete", {
+            detail: event.detail,
+            bubbles: true,
+            composed: true,
+          }),
+        );
+        break;
+      case "employee-acknowledge":
+        this.dispatchEvent(
+          new CustomEvent("employee-acknowledge", {
+            detail: event.detail,
+            bubbles: true,
+            composed: true,
+          }),
+        );
+        break;
+      case "employee-edit":
+        const employeeId = event.detail.employeeId;
+        this.showEmployeeForm(employeeId);
+        break;
     }
+  }
+
+  // Override the base setupEventDelegation to also handle custom events
+  protected setupEventDelegation() {
+    super.setupEventDelegation();
+
+    // Listen for custom events from child components
+    this.shadowRoot.addEventListener("employee-submit", (e) => {
+      this.handleCustomEvent(e as CustomEvent);
+    });
+    this.shadowRoot.addEventListener("form-cancel", (e) => {
+      this.handleCustomEvent(e as CustomEvent);
+    });
+    this.shadowRoot.addEventListener("employee-delete", (e) => {
+      this.handleCustomEvent(e as CustomEvent);
+    });
+    this.shadowRoot.addEventListener("employee-acknowledge", (e) => {
+      this.handleCustomEvent(e as CustomEvent);
+    });
+    this.shadowRoot.addEventListener("employee-edit", (e) => {
+      this.handleCustomEvent(e as CustomEvent);
+    });
   }
 
   private showEmployeeForm(employeeId?: number) {
@@ -366,15 +382,13 @@ export class AdminPanel extends HTMLElement {
       this._editingEmployee = null;
     }
     this._showEmployeeForm = true;
-    this.render();
-    this.setupChildEventListeners();
+    this.requestUpdate();
   }
 
   private hideEmployeeForm() {
     this._showEmployeeForm = false;
     this._editingEmployee = null;
-    this.render();
-    this.setupChildEventListeners();
+    this.requestUpdate();
   }
 
   private async handleEmployeeSubmit(employee: Employee, isEdit: boolean) {
