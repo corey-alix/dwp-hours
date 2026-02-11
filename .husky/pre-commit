@@ -4,7 +4,7 @@ branch=$(git rev-parse --abbrev-ref HEAD)
 echo "🔍 Pre-commit hook running on branch: $branch"
 
 echo "📝 Running format and lint checks..."
-pnpm prettier
+npx lint-staged
 pnpm lint
 pnpm build
 

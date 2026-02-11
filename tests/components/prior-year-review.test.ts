@@ -1,19 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach, beforeAll } from "vitest";
-import { JSDOM } from "jsdom";
-import type { PTOYearReviewResponse } from "../../shared/api-models.js";
+// @vitest-environment happy-dom
 
-// Set up DOM environment for component testing
-beforeAll(async () => {
-  const dom = new JSDOM("<!DOCTYPE html><html><body></body></html>", {
-    url: "http://localhost",
-  });
-  global.window = dom.window as any;
-  global.document = dom.window.document;
-  global.HTMLElement = dom.window.HTMLElement;
-  global.ShadowRoot = dom.window.ShadowRoot;
-  global.customElements = dom.window.customElements;
-  global.CSSStyleSheet = dom.window.CSSStyleSheet;
-});
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import type { PTOYearReviewResponse } from "../../shared/api-models.js";
 
 describe("PriorYearReview Component", () => {
   let component: any;

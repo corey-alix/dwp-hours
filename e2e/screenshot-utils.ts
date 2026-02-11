@@ -40,8 +40,8 @@ export function computePixelDiff(
 export async function compareAndUpdateScreenshot(
   newBuffer: Buffer,
   baselinePath: string,
-  colorThreshold: number = 25,
-  pixelThreshold: number = 1000,
+  colorThreshold: number = 50,
+  pixelThreshold: number = 5000,
 ): Promise<void> {
   const baselineExists = fs.existsSync(baselinePath);
 

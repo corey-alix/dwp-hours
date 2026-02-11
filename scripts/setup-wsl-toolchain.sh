@@ -30,13 +30,40 @@ sudo apt install -y nodejs
 node --version
 npm --version
 
-log "Installing pnpm"
-curl -fsSL https://get.pnpm.io/install.sh | sh -
+if command -v pnpm >/dev/null 2>&1; then
+  pnpm_version=$(pnpm --version)
+  pnpm_major=${pnpm_version%%.*}
+  if [ "$pnpm_major" -ge 10 ]; then
+    log "pnpm already installed (>= 10), skipping"
+    pnpm --version
+  else
+    log "pnpm version < 10, upgrading"
+    curl -fsSL https://get.pnpm.io/install.sh | sh -
 
-export PNPM_HOME="$HOME/.local/share/pnpm"
-export PATH="$PNPM_HOME:$PATH"
+    export PNPM_HOME="$HOME/.local/share/pnpm"
+    export PATH="$PNPM_HOME:$PATH"
 
-pnpm --version
+    pnpm --version
+  fi
+else
+  log "Installing pnpm"
+  curl -fsSL https://get.pnpm.io/install.sh | sh -
+
+  export PNPM_HOME="$HOME/.local/share/pnpm"
+  export PATH="$PNPM_HOME:$PATH"
+
+  pnpm --version
+fi
+
+log "Installing update port script"
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+repo_root=$(cd "$script_dir/.." && pwd)
+install -m 644 "$repo_root/.update_port.sh" "$HOME/.update_port.sh"
+
+log "Installing update port script"
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+repo_root=$(cd "$script_dir/.." && pwd)
+install -m 644 "$repo_root/.update_port.sh" "$HOME/.update_port.sh"
 
 log "Installing project dependencies"
 pnpm install
