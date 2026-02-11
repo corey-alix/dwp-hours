@@ -37,7 +37,7 @@ import {
 } from "../shared/businessRules.js";
 import { performBulkMigration, performFileMigration } from "./bulkMigration.js";
 import { authenticate, authenticateAdmin } from "./utils/auth.js";
-import { seedEmployees, seedPTOEntries } from "../scripts/seedData.js";
+import { seedEmployees, seedPTOEntries } from "../shared/seedData.js";
 import type {
   PTOCreateResponse,
   PTOUpdateResponse,

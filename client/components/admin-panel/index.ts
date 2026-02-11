@@ -1,7 +1,3 @@
-import { APIClient } from "../../APIClient.js";
-import type * as ApiTypes from "../../../shared/api-models.js";
-import { today } from "../../../shared/dateUtils.js";
-
 interface Employee {
   id: number;
   name: string;
@@ -19,7 +15,6 @@ export class AdminPanel extends HTMLElement {
   private _employees: Employee[] = [];
   private _showEmployeeForm = false;
   private _editingEmployee: Employee | null = null;
-  private api = new APIClient();
 
   constructor() {
     super();
@@ -39,9 +34,6 @@ export class AdminPanel extends HTMLElement {
   attributeChangedCallback(name: string, oldValue: string, newValue: string) {
     if (oldValue !== newValue && name === "current-view") {
       this._currentView = newValue;
-      if (newValue === "employees") {
-        this.loadEmployees();
-      }
       this.render();
       this.setupEventListeners();
       this.setupChildEventListeners();
@@ -54,6 +46,14 @@ export class AdminPanel extends HTMLElement {
 
   get currentView(): string {
     return this.getAttribute("current-view") || "pto-requests";
+  }
+
+  // Method to set seed data for testing
+  setEmployees(employees: Employee[]) {
+    this._employees = employees;
+    this.render();
+    this.setupEventListeners();
+    this.setupChildEventListeners();
   }
 
   private render() {
@@ -144,11 +144,38 @@ export class AdminPanel extends HTMLElement {
                     box-shadow: 0 2px 4px var(--color-shadow);
                 }
 
+                .header-content {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+
                 .header h1 {
                     margin: 0;
                     font-size: 24px;
                     font-weight: 600;
                     color: var(--color-text);
+                }
+
+                .add-employee-btn {
+                    background: var(--color-primary);
+                    color: white;
+                    border: none;
+                    padding: 10px 16px;
+                    border-radius: 6px;
+                    font-size: 14px;
+                    font-weight: 500;
+                    cursor: pointer;
+                    transition: background-color 0.3s ease;
+                }
+
+                .add-employee-btn:hover {
+                    background: var(--color-primary-hover);
+                }
+
+                .add-employee-btn:focus-visible {
+                    outline: 2px solid var(--color-primary);
+                    outline-offset: 2px;
                 }
 
                 .content {
@@ -201,7 +228,10 @@ export class AdminPanel extends HTMLElement {
 
                 <main class="main-content">
                     <header class="header">
-                        <h1>${this.getViewTitle(this._currentView)}</h1>
+                        <div class="header-content">
+                            <h1>${this.getViewTitle(this._currentView)}</h1>
+                            ${this.renderHeaderActions(this._currentView)}
+                        </div>
                     </header>
                     <div class="content">
                         <div class="view-container">
@@ -223,13 +253,21 @@ export class AdminPanel extends HTMLElement {
     return titles[view] || "Admin Panel";
   }
 
+  private renderHeaderActions(view: string): string {
+    if (view === "employees") {
+      return `<button class="add-employee-btn" type="button">➕ Add Employee</button>`;
+    }
+    return "";
+  }
+
   private renderCurrentView(): string {
     switch (this._currentView) {
       case "employees":
-        const employeeForm = this._showEmployeeForm
-          ? `<employee-form employee='${JSON.stringify(this._editingEmployee)}' is-edit='${!!this._editingEmployee}'></employee-form>`
-          : "";
-        return `<employee-list employees='${JSON.stringify(this._employees)}'></employee-list>${employeeForm}`;
+        return `
+          <employee-list employees='${JSON.stringify(this._employees)}'>
+            ${this._showEmployeeForm ? `<employee-form slot="top-content" employee='${JSON.stringify(this._editingEmployee)}' is-edit='${!!this._editingEmployee}'></employee-form>` : ""}
+          </employee-list>
+        `;
       case "pto-requests":
         return "<pto-request-queue></pto-request-queue>";
       case "reports":
@@ -310,26 +348,13 @@ export class AdminPanel extends HTMLElement {
         }
       });
     });
-  }
 
-  private async loadEmployees() {
-    try {
-      const response = await this.api.getEmployees();
-      this._employees = response.map((emp: any) => ({
-        id: emp.id,
-        name: emp.name,
-        identifier: emp.identifier,
-        ptoRate: 0.71, // Default, could be fetched from server
-        carryoverHours: 0, // Default, could be fetched from server
-        hireDate: emp.hire_date,
-        role: emp.role,
-        hash: "", // Not needed for display
-      }));
-      this.render();
-      this.setupChildEventListeners();
-    } catch (error) {
-      console.error("Failed to load employees:", error);
-      // Could show error message to user
+    // Add Employee button
+    const addBtn = this.shadow.querySelector(".add-employee-btn");
+    if (addBtn) {
+      addBtn.addEventListener("click", () => {
+        this.showEmployeeForm();
+      });
     }
   }
 
@@ -353,31 +378,16 @@ export class AdminPanel extends HTMLElement {
   }
 
   private async handleEmployeeSubmit(employee: Employee, isEdit: boolean) {
-    try {
-      if (isEdit) {
-        await this.api.updateEmployee(employee.id!, {
-          name: employee.name,
-          identifier: employee.identifier,
-          ptoRate: employee.ptoRate,
-          carryoverHours: employee.carryoverHours,
-          role: employee.role,
-        });
-      } else {
-        await this.api.createEmployee({
-          name: employee.name,
-          identifier: employee.identifier,
-          ptoRate: employee.ptoRate,
-          carryoverHours: employee.carryoverHours,
-          hireDate: today(), // Today's date as default
-          role: employee.role,
-        });
-      }
-      this.hideEmployeeForm();
-      await this.loadEmployees(); // Refresh the list
-    } catch (error) {
-      console.error("Failed to save employee:", error);
-      // Could show error message to user
-    }
+    // Dispatch event for parent component to handle data persistence
+    const eventType = isEdit ? "update-employee" : "create-employee";
+    this.dispatchEvent(
+      new CustomEvent(eventType, {
+        detail: { employee, isEdit },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+    this.hideEmployeeForm();
   }
 }
 

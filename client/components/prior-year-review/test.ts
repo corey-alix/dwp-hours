@@ -1,7 +1,7 @@
 import { querySingle } from "../test-utils.js";
 import { PriorYearReview } from "./index.js";
 import type { PTOYearReviewResponse } from "../../../shared/api-models.js";
-import { seedPTOEntries } from "../../../scripts/seedData.js";
+import { seedPTOEntries } from "../../../shared/seedData.js";
 import { getDaysInMonth } from "../../../shared/dateUtils.js";
 
 // Transform seed data into test format

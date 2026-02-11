@@ -268,13 +268,11 @@ export class EmployeeList extends HTMLElement {
             </style>
 
             <div class="employee-list">
+                <slot name="top-content"></slot>
                 <div class="toolbar">
                     <div class="search-container">
                         <input type="text" class="search-input" placeholder="Search employees..." id="search-input">
                         <span>📊 ${this._filteredEmployees.length} employees</span>
-                    </div>
-                    <div class="action-buttons">
-                        <button class="btn btn-primary" id="add-employee">➕ Add Employee</button>
                     </div>
                 </div>
 
@@ -327,19 +325,11 @@ export class EmployeeList extends HTMLElement {
       "#search-input",
       this.shadow,
     );
-    const addButton = querySingle<HTMLButtonElement>(
-      "#add-employee",
-      this.shadow,
-    );
 
     searchInput?.addEventListener("input", (e) => {
       this._searchTerm = (e.target as HTMLInputElement).value;
       this.filterEmployees();
       this.render();
-    });
-
-    addButton?.addEventListener("click", () => {
-      this.dispatchEvent(new CustomEvent("add-employee"));
     });
 
     // Event delegation for action buttons

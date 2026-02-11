@@ -1,15 +1,75 @@
 import { querySingle } from "../test-utils.js";
 import { addEventListener } from "../test-utils.js";
 import { AdminPanel } from "./index.js";
+import { seedEmployees, seedPTOEntries } from "../../../shared/seedData.js";
+
+// Admin Panel Test Data Integration:
+// This test harness integrates seed data from shared/seedData.ts to provide
+// realistic test data for the admin panel. Supports two modes:
+// 1. Empty state: No seed data loaded
+// 2. Seeded state: Full seed data loaded
+// Data is injected via component methods following event-driven architecture.
 export function playground() {
   console.log("Starting Admin Panel playground test...");
 
   const adminPanel = querySingle<AdminPanel>("admin-panel");
   const testOutput = querySingle<HTMLElement>("#test-output");
+  const toggleButton = querySingle<HTMLButtonElement>("#toggle-seed-data");
+
+  let seedDataLoaded = false;
 
   const setOutput = (message: string) => {
     testOutput.textContent = message;
   };
+
+  const loadSeedData = () => {
+    const employees = seedEmployees.map((emp) => ({
+      id: emp.name === "John Doe" ? 1 : emp.name === "Jane Smith" ? 2 : 3, // Map to IDs
+      name: emp.name,
+      identifier: emp.identifier,
+      ptoRate: emp.pto_rate,
+      carryoverHours: emp.carryover_hours,
+      hireDate: emp.hire_date,
+      role: emp.role,
+      hash: emp.hash || undefined,
+    }));
+    adminPanel.setEmployees(employees);
+    seedDataLoaded = true;
+    setOutput("Seed data loaded");
+    toggleButton.textContent = "Unload Seed Data";
+  };
+
+  const unloadSeedData = () => {
+    adminPanel.setEmployees([]);
+    seedDataLoaded = false;
+    setOutput("Seed data unloaded (empty state)");
+    toggleButton.textContent = "Load Seed Data";
+  };
+
+  // Initially load seed data
+  loadSeedData();
+
+  // Toggle button
+  addEventListener(toggleButton, "click", () => {
+    if (seedDataLoaded) {
+      unloadSeedData();
+    } else {
+      loadSeedData();
+    }
+  });
+
+  // Handle employee creation/update events from admin panel
+  addEventListener(adminPanel, "create-employee", (e: CustomEvent) => {
+    console.log("Create employee:", e.detail);
+    setOutput(`Create Employee: ${e.detail.employee.name}`);
+    // In a real app, this would save to database and refresh the list
+  });
+
+  addEventListener(adminPanel, "update-employee", (e: CustomEvent) => {
+    console.log("Update employee:", e.detail);
+    setOutput(`Update Employee: ${e.detail.employee.name}`);
+    // In a real app, this would update in database and refresh the list
+  });
 
   const attachChildListeners = () => {
     const shadowRoot = adminPanel.shadowRoot;

@@ -6,7 +6,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
-import { seedEmployees, seedPTOEntries } from "./seedData.js";
+import { seedEmployees, seedPTOEntries } from "../shared/seedData.js";
 import {
   validateHours,
   validateWeekday,
