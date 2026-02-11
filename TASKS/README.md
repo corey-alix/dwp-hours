@@ -25,6 +25,7 @@ This document outlines all remaining tasks to complete the DWP Hours Tracker app
 ### 🟢 Low Priority (Frontend/UI Features)
 
 8. **[admin-review-acknowledgment.md](admin-review-acknowledgment.md)** - Admin review acknowledgment
+9. **[issue-submit-time-off-calendar-regressions.md](issue-submit-time-off-calendar-regressions.md)** - Submit Time Off calendar missing features
 
 ## Task Dependencies
 

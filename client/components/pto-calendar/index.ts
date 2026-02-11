@@ -352,6 +352,7 @@ export class PtoCalendar extends HTMLElement {
                 .day {
                     position: relative;
                     min-height: 50px;
+                    border: var(--border-width) var(--border-style-solid) var(--color-border);
                     border-radius: 6px;
                     background: var(--color-surface);
                     padding: 4px;

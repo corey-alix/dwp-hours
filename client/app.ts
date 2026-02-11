@@ -221,6 +221,9 @@ class UIManager {
     addEventListener(ptoForm, "pto-submit", (e: CustomEvent) =>
       this.handlePtoRequestSubmit(e),
     );
+    addEventListener(ptoForm, "pto-data-request", () =>
+      this.handlePtoDataRequest(ptoForm),
+    );
 
     // Logout
     const logoutBtn = querySingle<HTMLButtonElement>("#logout-btn");
@@ -762,6 +765,16 @@ class UIManager {
     } catch (error) {
       console.error("Error submitting PTO request:", error);
       notifications.error("Failed to submit PTO request. Please try again.");
+    }
+  }
+
+  private async handlePtoDataRequest(ptoForm: PtoEntryForm): Promise<void> {
+    try {
+      const entries = await api.getPTOEntries();
+      ptoForm.setPtoData(entries);
+    } catch (error) {
+      console.error("Failed to fetch PTO entries for calendar:", error);
+      ptoForm.setPtoData([]);
     }
   }
 

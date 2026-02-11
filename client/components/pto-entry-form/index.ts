@@ -306,7 +306,9 @@ export class PtoEntryForm extends HTMLElement {
     calendar.setAttribute("month", (month - 1).toString());
     calendar.setAttribute("year", year.toString());
     calendar.setAttribute("selected-month", month.toString());
-    calendar.setAttribute("pto-entries", "[]");
+
+    // Request PTO data from parent
+    this.dispatchEvent(new CustomEvent("pto-data-request"));
   }
 
   private updateWeekendWarning(input: HTMLInputElement): void {
@@ -576,7 +578,7 @@ export class PtoEntryForm extends HTMLElement {
             <div class="form-container">
                 <div class="form-header">
                     <h2>Submit Time Off</h2>
-                    <button type="button" class="calendar-toggle" id="calendar-toggle-btn" aria-label="Toggle calendar view">
+                    <button type="button" class="calendar-toggle" id="calendar-toggle-btn" aria-label="Toggle calendar view" title="Switch to Calendar View">
                         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <path d="M7 2v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zm12 8H5v10h14V10zm0-2V6H5v2h14z" />
                         </svg>
@@ -1167,6 +1169,13 @@ export class PtoEntryForm extends HTMLElement {
       this.shadow,
     );
     firstInput?.focus();
+  }
+
+  setPtoData(ptoEntries: any[]) {
+    const calendar = this.getCalendar();
+    if (calendar) {
+      calendar.setAttribute("pto-entries", JSON.stringify(ptoEntries));
+    }
   }
 }
 

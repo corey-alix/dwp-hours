@@ -22,11 +22,14 @@ Based on recent implementation experiences, the following generalized findings f
 - **E2E Testing Sufficiency**: For web components, E2E tests provide sufficient coverage for component integration and user workflows, often more effectively than isolated unit tests in Node.js environments.
 - **Test State Management**: Implement API-based database seeding endpoints (e.g., `/api/test/seed`) for per-test isolation, ensuring tests can use the same seed data without state conflicts.
 - **Test Isolation Challenges**: E2E tests modifying database state require careful management; use per-test database resets to maintain independence.
+- **Build and Lint Validation**: Always run `npm run build && npm run lint` after changes to catch compilation and code quality issues early.
 - **Performance Validation**: E2E test execution times validate that operations complete within acceptable limits (e.g., < 100ms for balance calculations).
 
 ### Architecture and Design
 
 - **Web Component Architecture**: Shadow DOM with attribute-based data passing works well for client-side validation without complex state management.
+- **Event-Driven Data Flow**: Components dispatch custom events for data requests, parent components handle API calls and inject data via methods (e.g., `setPtoData()`)
+- **Component Separation of Concerns**: Web components should be data-agnostic and not make direct API calls, improving testability and maintainability
 - **Validation Function Design**: Create dedicated functions for different validation types (e.g., `validatePTOBalance()`, `validateAnnualLimits()`) to maintain separation of concerns.
 - **Business Rules Import Strategy**: Client components can import compiled shared business rules (e.g., `shared/businessRules.js`) for consistent validation logic between client and server.
 - **Component Query Patterns**: Use type-safe DOM queries (e.g., `querySingle<T>()` from `test-utils.ts`) for error-throwing behavior and type safety in web components.
@@ -48,6 +51,13 @@ Based on recent implementation experiences, the following generalized findings f
 - **Client-Side Validation Effectiveness**: Provides immediate user feedback and prevents unnecessary API calls, with server-side validation as the authoritative layer.
 - **Validation Timing**: Client validation on field blur and form submission events, with server validation ensuring security.
 - **Balance Data Synchronization**: Use component attributes (e.g., `available-pto-balance`) updated after successful operations to maintain current data for validation.
+
+### Implementation Approaches
+
+- **Staged Action Plans**: Break complex tasks into stages with validation checkpoints (build, lint, tests) to catch issues early
+- **Architectural Refactoring**: Be prepared to refactor architecture during implementation if current approach violates separation of concerns
+- **Event-Driven Patterns**: Use custom events for component communication instead of direct API calls in components
+- **Parent-Child Data Flow**: Parent components handle data fetching and inject data into child components via methods
 - **Edge Case Robustness**: Handle boundary conditions (zero balance, negative balance, exact matches) consistently across all scenarios.
 - **Build System Integration**: Multi-stage build processes (lint → build → test) catch issues early, ensuring TypeScript compilation, ESLint, and Stylelint pass before testing.
 

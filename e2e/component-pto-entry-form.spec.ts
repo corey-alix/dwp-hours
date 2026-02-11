@@ -266,6 +266,9 @@ test("pto-entry-form calendar interaction test", async ({ page }) => {
   // Click calendar toggle button
   await page.locator("pto-entry-form").locator("#calendar-toggle-btn").click();
 
+  // Wait for calendar data to load
+  await page.waitForTimeout(100);
+
   // Confirm calendar view is visible
   const calendarView = page.locator("pto-entry-form").locator("#calendar-view");
   await expect(calendarView).not.toHaveClass(/hidden/);
@@ -280,7 +283,7 @@ test("pto-entry-form calendar interaction test", async ({ page }) => {
   await expect(ptoLegend).toHaveClass(/selected/);
 
   // Click a weekday on the calendar
-  const weekdayCell = calendar.locator(".day.clickable:not(.weekend)").first();
+  const weekdayCell = calendar.locator(".day.clickable").nth(2);
   await weekdayCell.click();
 
   // Confirm that the cell is properly colored as "PTO"

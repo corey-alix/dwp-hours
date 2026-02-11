@@ -34,8 +34,9 @@ Follow this structured approach when implementing web components:
 5. **Template & Styling**: Define component template and styles following MDN best practices
 6. **Property & Attribute Handling**: Set up observedAttributes and property getters/setters
 7. **Event Handling**: Implement custom events for component communication
-8. **Integration Testing**: Test component in the DWP Hours Tracker context
-9. **Documentation**: Update component usage documentation
+8. **Data Flow Architecture**: Use event-driven data flow - components dispatch events for data requests, parent handles API calls and data injection via methods like setPtoData()
+9. **Integration Testing**: Test component in the DWP Hours Tracker context
+10. **Documentation**: Update component usage documentation
 
 ## Component Testing Pattern
 
@@ -108,6 +109,38 @@ export function playground() {
 4. Create test.ts with component-specific test logic
 5. Add E2E test in `e2e/component-[name].spec.ts`
 6. Update component exports in main test.ts file
+
+## Data Flow Patterns
+
+### Event-Driven Data Flow
+
+Components should not make direct API calls. Instead, use event-driven architecture:
+
+```typescript
+// In component: dispatch event for data request
+this.dispatchEvent(
+  new CustomEvent("pto-data-request", {
+    bubbles: true,
+    detail: { employeeId: this.employeeId },
+  }),
+);
+
+// In parent app: listen for event and handle data fetching
+addEventListener("pto-data-request", (e: CustomEvent) => {
+  this.handlePtoDataRequest(e.detail);
+});
+
+// Parent injects data via component method
+component.setPtoData(fetchedData);
+```
+
+This pattern maintains separation of concerns and makes components more testable.
+
+### Component Communication Patterns
+
+- **Parent-to-Child**: Use attributes and properties for configuration, method calls for data injection
+- **Child-to-Parent**: Use custom events with detail objects for data requests and state changes
+- **Sibling Communication**: Route through parent component using event bubbling
 
 ## Examples
 

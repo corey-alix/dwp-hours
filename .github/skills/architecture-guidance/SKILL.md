@@ -153,6 +153,37 @@ const entries = await ptoEntryRepo.find({
 });
 ```
 
+### Component Communication Patterns
+
+#### Event-Driven Data Flow
+
+Web components should not make direct API calls. Instead, use custom events for data requests:
+
+```typescript
+// Component dispatches data request event
+this.dispatchEvent(
+  new CustomEvent("pto-data-request", {
+    bubbles: true,
+    detail: { employeeId: this.employeeId },
+  }),
+);
+
+// Parent app listens and handles data fetching
+addEventListener("pto-data-request", (e: CustomEvent) => {
+  this.handlePtoDataRequest(e.detail);
+});
+
+// Parent injects data via component method
+component.setPtoData(fetchedData);
+```
+
+#### Communication Patterns
+
+- **Parent-to-Child**: Attributes for configuration, method calls for data injection
+- **Child-to-Parent**: Custom events with detail objects for requests and state changes
+- **Sibling Communication**: Route through parent using event bubbling
+- **Benefits**: Maintains component isolation, improves testability, clear data flow
+
 ### Automated Systems
 
 - **Monthly Reminder Scheduler**: Sends reminders for monthly PTO reviews
@@ -163,5 +194,7 @@ const entries = await ptoEntryRepo.find({
 - **Vanilla Approach**: No heavy frameworks, keeping the codebase lightweight and maintainable
 - **WSL Compatibility**: Database and development setup work seamlessly in Windows Subsystem for Linux
 - **Separation of Concerns**: Clear boundaries between frontend components, API endpoints, and business logic
+- **Event-Driven Architecture**: Components dispatch custom events for data requests, parent components handle API calls and data injection
+- **Component Isolation**: Web components should be data-agnostic and testable without direct API dependencies
 - **Type Safety**: Full TypeScript coverage for reliability and developer experience
 - **Testability**: Architecture designed to support comprehensive unit and E2E testing
