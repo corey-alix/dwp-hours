@@ -86,8 +86,16 @@ test.describe("PTO Balance Validation", () => {
 
     await page.goto("/");
 
-    // Login as John Doe
-    await page.fill("#identifier", "john.doe@gmail.com");
+    // Reload database to ensure clean state
+    await page.request.post("/api/test/reload-database", {
+      headers: { "x-test-reload": "true" },
+    });
+
+    // Wait a moment for database reload to complete
+    await page.waitForTimeout(1000);
+
+    // Login as Jane Smith (has sufficient PTO balance)
+    await page.fill("#identifier", "jane.smith@example.com");
     await page.click('#login-form button[type="submit"]');
 
     await page.waitForSelector("#login-message a", { timeout: 10000 });
@@ -107,7 +115,7 @@ test.describe("PTO Balance Validation", () => {
     const form = page.locator("pto-entry-form");
     await expect(form).toBeVisible();
 
-    // Fill form with 8 hours PTO (within John's 12 hour balance)
+    // Fill form with 8 hours PTO (within Jane's available balance)
     const startDate = form.locator("#start-date");
     const endDate = form.locator("#end-date");
     const ptoType = form.locator("#pto-type");
@@ -121,8 +129,8 @@ test.describe("PTO Balance Validation", () => {
     await hours.fill("8");
     await hours.blur();
 
-    // Wait for form to auto-calculate hours
-    await page.waitForTimeout(100);
+    // Wait for form to auto-calculate hours and validation
+    await page.waitForTimeout(1000);
 
     // Verify no validation errors
     const hoursError = form.locator("#hours-error");
