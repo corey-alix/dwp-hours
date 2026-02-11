@@ -198,11 +198,11 @@ describe("PtoCalendar Component - Approval Indicators", () => {
     it("should work with real seed data structure", async () => {
       const { seedPTOEntries } = await import("../../shared/seedData.js");
 
-      // Filter for February 2024 approved entries and convert to PTOEntry format
+      // Filter for February 2025 approved entries and convert to PTOEntry format
       const febApprovedEntries: PTOEntry[] = seedPTOEntries
         .filter(
           (entry) =>
-            entry.date.startsWith("2024-02") && entry.approved_by !== null,
+            entry.date.startsWith("2025-02") && entry.approved_by !== null,
         )
         .map((entry) => ({
           id: entry.employee_id, // Use employee_id as id for test
@@ -214,7 +214,7 @@ describe("PtoCalendar Component - Approval Indicators", () => {
           approved_by: entry.approved_by,
         }));
 
-      component.setYear(2024);
+      component.setYear(2025);
       component.setMonth(1); // February
       component.setPtoEntries(febApprovedEntries);
 

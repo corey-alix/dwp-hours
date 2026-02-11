@@ -13,3 +13,4 @@ private
 db/backups/
 *.xml
 test-results
+*.Identifier
