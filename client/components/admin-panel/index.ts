@@ -29,6 +29,7 @@ export class AdminPanel extends BaseComponent {
   private _ptoRequests: PTORequest[] = [];
   private _showEmployeeForm = false;
   private _editingEmployee: Employee | null = null;
+  private _editingEmployeeId: number | null = null;
 
   static get observedAttributes() {
     return ["current-view"];
@@ -273,7 +274,7 @@ export class AdminPanel extends BaseComponent {
     switch (this._currentView) {
       case "employees":
         return `
-          <employee-list employees='${JSON.stringify(this._employees)}'>
+          <employee-list employees='${JSON.stringify(this._employees)}' editing-employee-id='${this._editingEmployeeId || ""}'>
             ${this._showEmployeeForm ? `<employee-form slot="top-content" employee='${JSON.stringify(this._editingEmployee)}' is-edit='${!!this._editingEmployee}'></employee-form>` : ""}
           </employee-list>
         `;
@@ -376,37 +377,42 @@ export class AdminPanel extends BaseComponent {
     super.setupEventDelegation();
 
     // Listen for custom events from child components
-    this.shadowRoot.addEventListener("employee-submit", (e) => {
+    this.addEventListener("employee-submit", (e) => {
       this.handleCustomEvent(e as CustomEvent);
     });
-    this.shadowRoot.addEventListener("form-cancel", (e) => {
+    this.addEventListener("form-cancel", (e) => {
       this.handleCustomEvent(e as CustomEvent);
     });
-    this.shadowRoot.addEventListener("employee-delete", (e) => {
+    this.addEventListener("employee-delete", (e) => {
       this.handleCustomEvent(e as CustomEvent);
     });
-    this.shadowRoot.addEventListener("employee-acknowledge", (e) => {
+    this.addEventListener("employee-acknowledge", (e) => {
       this.handleCustomEvent(e as CustomEvent);
     });
-    this.shadowRoot.addEventListener("employee-edit", (e) => {
+    this.addEventListener("employee-edit", (e) => {
       this.handleCustomEvent(e as CustomEvent);
     });
   }
 
   private showEmployeeForm(employeeId?: number) {
     if (employeeId) {
-      this._editingEmployee =
-        this._employees.find((emp) => emp.id === employeeId) || null;
+      // Inline editing of existing employee
+      this._editingEmployeeId = employeeId;
+      this._showEmployeeForm = false; // Don't show slot-based form
+      this._editingEmployee = null;
     } else {
+      // Adding new employee - show form in slot
+      this._editingEmployeeId = null; // Clear any inline editing
+      this._showEmployeeForm = true;
       this._editingEmployee = null;
     }
-    this._showEmployeeForm = true;
     this.requestUpdate();
   }
 
   private hideEmployeeForm() {
     this._showEmployeeForm = false;
     this._editingEmployee = null;
+    this._editingEmployeeId = null;
     this.requestUpdate();
   }
 

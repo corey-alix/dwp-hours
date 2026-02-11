@@ -162,74 +162,92 @@ describe("AdminPanel Component", () => {
   });
 
   describe("Phase 6: Implement Employee Form Inline", () => {
-    it("should render employee-form in slot when showEmployeeForm is called", () => {
+    it("should set editing-employee-id on employee-list when showEmployeeForm is called", () => {
       component.currentView = "employees";
-      (component as any).showEmployeeForm();
-      const html = component.shadowRoot?.innerHTML;
-      expect(html).toContain("employee-form");
-      expect(html).toContain('slot="top-content"');
+      (component as any).showEmployeeForm(1);
+      const employeeList = component.shadowRoot?.querySelector(
+        "employee-list",
+      ) as HTMLElement;
+      expect(employeeList?.getAttribute("editing-employee-id")).toBe("1");
     });
 
-    it("should not render employee-form when form is hidden", () => {
+    it("should clear editing-employee-id when hideEmployeeForm is called", () => {
       component.currentView = "employees";
+      (component as any).showEmployeeForm(1);
       (component as any).hideEmployeeForm();
-      const html = component.shadowRoot?.innerHTML;
-      expect(html).not.toContain("employee-form");
+      const employeeList = component.shadowRoot?.querySelector(
+        "employee-list",
+      ) as HTMLElement;
+      expect(employeeList?.getAttribute("editing-employee-id")).toBe("");
     });
 
-    it("should toggle form visibility", () => {
+    it("should toggle editing state", () => {
       component.currentView = "employees";
-      (component as any).showEmployeeForm();
-      let html = component.shadowRoot?.innerHTML;
-      expect(html).toContain("employee-form");
+      (component as any).showEmployeeForm(1);
+      let employeeList = component.shadowRoot?.querySelector(
+        "employee-list",
+      ) as HTMLElement;
+      expect(employeeList?.getAttribute("editing-employee-id")).toBe("1");
 
       (component as any).hideEmployeeForm();
-      html = component.shadowRoot?.innerHTML;
-      expect(html).not.toContain("employee-form");
+      employeeList = component.shadowRoot?.querySelector(
+        "employee-list",
+      ) as HTMLElement;
+      expect(employeeList?.getAttribute("editing-employee-id")).toBe("");
     });
 
-    it("should hide employee-form when form-cancel event is received", () => {
+    it("should clear editing-employee-id when form-cancel event is received", () => {
       component.currentView = "employees";
-      (component as any).showEmployeeForm();
-      let html = component.shadowRoot?.innerHTML;
-      expect(html).toContain("employee-form");
+      (component as any).showEmployeeForm(1);
+      let employeeList = component.shadowRoot?.querySelector(
+        "employee-list",
+      ) as HTMLElement;
+      expect(employeeList?.getAttribute("editing-employee-id")).toBe("1");
 
-      // Simulate form-cancel event from the employee-form element
-      const employeeForm = component.shadowRoot?.querySelector(
-        "employee-form",
-      ) as EmployeeForm;
-      expect(employeeForm).toBeTruthy();
-      employeeForm?.dispatchEvent(
+      // Simulate form-cancel event from the employee-list (which forwards from inline form)
+      const employeeListElement =
+        component.shadowRoot?.querySelector("employee-list");
+      employeeListElement?.dispatchEvent(
         new CustomEvent("form-cancel", {
           bubbles: true,
           composed: true,
         }),
       );
 
-      html = component.shadowRoot?.innerHTML;
-      expect(html).not.toContain("employee-form");
+      employeeList = component.shadowRoot?.querySelector(
+        "employee-list",
+      ) as HTMLElement;
+      expect(employeeList?.getAttribute("editing-employee-id")).toBe("");
     });
 
-    it("should allow showing and hiding the form multiple times", () => {
+    it("should allow showing and hiding editing state multiple times", () => {
       component.currentView = "employees";
 
       // First time
-      (component as any).showEmployeeForm();
-      let html = component.shadowRoot?.innerHTML;
-      expect(html).toContain("employee-form");
+      (component as any).showEmployeeForm(1);
+      let employeeList = component.shadowRoot?.querySelector(
+        "employee-list",
+      ) as HTMLElement;
+      expect(employeeList?.getAttribute("editing-employee-id")).toBe("1");
 
       (component as any).hideEmployeeForm();
-      html = component.shadowRoot?.innerHTML;
-      expect(html).not.toContain("employee-form");
+      employeeList = component.shadowRoot?.querySelector(
+        "employee-list",
+      ) as HTMLElement;
+      expect(employeeList?.getAttribute("editing-employee-id")).toBe("");
 
       // Second time - this was failing before the fix
-      (component as any).showEmployeeForm();
-      html = component.shadowRoot?.innerHTML;
-      expect(html).toContain("employee-form");
+      (component as any).showEmployeeForm(2);
+      employeeList = component.shadowRoot?.querySelector(
+        "employee-list",
+      ) as HTMLElement;
+      expect(employeeList?.getAttribute("editing-employee-id")).toBe("2");
 
       (component as any).hideEmployeeForm();
-      html = component.shadowRoot?.innerHTML;
-      expect(html).not.toContain("employee-form");
+      employeeList = component.shadowRoot?.querySelector(
+        "employee-list",
+      ) as HTMLElement;
+      expect(employeeList?.getAttribute("editing-employee-id")).toBe("");
     });
   });
 });
