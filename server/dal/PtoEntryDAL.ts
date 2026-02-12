@@ -80,8 +80,8 @@ export class PtoEntryDAL {
       errors.push(typeError);
     }
 
-    // For PTO type, validate against available balance
-    if (normalizedType === "PTO" && !typeError && !hoursError) {
+    // For PTO type, validate against available balance (skip for updates)
+    if (normalizedType === "PTO" && !typeError && !hoursError && !excludeId) {
       try {
         // Get all existing PTO entries for the employee
         const existingPtoEntries = await this.ptoEntryRepo.find({
@@ -212,8 +212,21 @@ export class PtoEntryDAL {
 
     // Validate the updated data
     const errors = await this.validatePtoEntryData(updatedData, id);
-    if (errors.length > 0) {
-      return { success: false, errors };
+
+    // Filter out balance errors when reducing hours
+    const filteredErrors = errors.filter((err) => {
+      if (
+        err.messageKey === "hours.exceed_pto_balance" &&
+        data.hours !== undefined &&
+        data.hours < existingEntry.hours
+      ) {
+        return false; // Skip balance check when reducing hours
+      }
+      return true;
+    });
+
+    if (filteredErrors.length > 0) {
+      return { success: false, errors: filteredErrors };
     }
 
     // Apply updates

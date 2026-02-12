@@ -1061,8 +1061,8 @@ export class PtoEntryForm extends HTMLElement {
         );
       }
 
-      // Check PTO balance if type is PTO
-      if (request.type === "PTO") {
+      // Check PTO balance if type is PTO (skip for editing existing entries)
+      if (request.type === "PTO" && !request.id) {
         const balanceError = validatePTOBalance(
           request.hours,
           this.availablePtoBalance,
@@ -1176,6 +1176,10 @@ export class PtoEntryForm extends HTMLElement {
     if (calendar) {
       calendar.setAttribute("pto-entries", JSON.stringify(ptoEntries));
     }
+  }
+
+  setPtoStatus(status: any) {
+    this.availablePtoBalance = status.availablePTO || 0;
   }
 }
 
