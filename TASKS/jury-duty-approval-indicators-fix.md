@@ -22,16 +22,17 @@ Fix the PTO calendar approval indicators to ensure that jury duty entries only d
 
 - [x] Add `approved_by?: number | null` to the `PTOEntry` interface in `shared/api-models.d.ts`
 - [x] Update `serializePTOEntry` function in `shared/entity-transforms.ts` to include `approved_by: entity.approved_by`
+- [x] Update `/api/pto` GET endpoint to return full serialized `PTOEntry` objects instead of simplified entries
 - [x] Verify that the API correctly returns approval status for all PTO entries
 - [x] Confirm database constraints prevent automatic approval of jury duty entries
 - [x] Validation: API responses now include `approved_by` field, defaulting to `null` for new entries
 
 ### Phase 3: Frontend Logic Update
 
-- [ ] Verify that the PTO calendar component correctly handles `approved_by` field from API
-- [ ] Ensure the checkmark logic works correctly with `null` values (no changes needed if API fix is correct)
-- [ ] Test the updated logic with mock data (approved and unapproved jury duty entries)
-- [ ] Validation: Component renders checkmarks correctly based on approval status
+- [x] Verify that the PTO calendar component correctly handles `approved_by` field from API
+- [x] Ensure the checkmark logic works correctly with `null` values (no changes needed if API fix is correct)
+- [x] Test the updated logic with mock data (approved and unapproved jury duty entries)
+- [x] Validation: Component renders checkmarks correctly based on approval status
 
 ### Phase 4: Testing and Validation
 
@@ -54,11 +55,13 @@ Fix the PTO calendar approval indicators to ensure that jury duty entries only d
 
 - **Root Cause Identified**: The `approved_by` field is not included in the API response for PTO entries. The `serializePTOEntry` function in `shared/entity-transforms.ts` omits the `approved_by` field, causing it to be `undefined` in the client. Since `undefined !== null` evaluates to `true`, the calendar component incorrectly shows approval checkmarks for all PTO entries, including unapproved jury duty entries.
 - **Database Schema**: Jury duty entries are correctly created with `approved_by = null` in the database.
-- **API Response Issue**: The `PTOEntry` interface in `shared/api-models.d.ts` and the `serializePTOEntry` function do not include the `approved_by` field.
+- **API Response Issue**: The `PTOEntry` interface in `shared/api-models.d.ts` and the `serializePTOEntry` function do not include the `approved_by` field. Additionally, the `/api/pto` GET endpoint was returning a simplified format without `approved_by`.
 - **Component Logic**: The `PtoCalendar` component correctly checks `e.approved_by !== null` but receives `undefined` instead of `null`, causing false positives.
 - **Approval Mechanism**: No approval endpoint exists in the current implementation. PTO entries are created without admin approval workflow.
 - **Phase 2 Implementation**: Successfully added `approved_by?: number | null` to the `PTOEntry` interface and updated `serializePTOEntry` to include the field. The database schema correctly allows `approved_by` to be NULL for pending approval. No TypeScript compilation errors occurred.
 - **Database Constraints**: The schema correctly defines `approved_by` as nullable INTEGER with foreign key to employees(id), preventing automatic approval.
+- **API Endpoint Fix**: Updated the `/api/pto` GET endpoint to return full serialized `PTOEntry` objects instead of simplified entries, ensuring `approved_by` is included in responses.
+- **Phase 3 Implementation**: Verified that the PTO calendar component correctly handles the `approved_by` field. The component's `PTOEntry` interface already included the field, and the `renderCalendar` method uses `entriesForDate.some((e) => e.approved_by !== null)` to determine checkmark display. With the API now providing `null` values, checkmarks will only appear for approved entries. No code changes were needed in the component.
 - Jury duty entries should follow the same approval workflow as other PTO types requiring admin approval
 - The checkmark should only appear after explicit admin approval, not upon scheduling
 - Ensure the fix doesn't affect other PTO types that may have different approval rules

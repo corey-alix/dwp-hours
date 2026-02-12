@@ -1389,13 +1389,11 @@ initDatabase()
             ptoEntries.map((e) => ({ date: e.date, type: e.type })),
           );
 
-          const simplifiedEntries = ptoEntries.map((entry) => ({
-            date: entry.date,
-            type: entry.type,
-            hours: entry.hours,
-          }));
+          const serializedEntries = ptoEntries.map((entry) =>
+            serializePTOEntry(entry),
+          );
 
-          res.json(simplifiedEntries);
+          res.json(serializedEntries);
         } catch (error) {
           log(`Error getting PTO entries: ${error}`);
           res.status(500).json({ error: "Internal server error" });
