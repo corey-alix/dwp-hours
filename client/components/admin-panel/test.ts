@@ -87,12 +87,23 @@ export function playground() {
     console.log("Create employee:", e.detail);
     setOutput(`Create Employee: ${e.detail.employee.name}`);
     // In a real app, this would save to database and refresh the list
+    // For testing, we don't update the local list since the component handles it
   });
 
   addEventListener(adminPanel, "update-employee", (e: CustomEvent) => {
     console.log("Update employee:", e.detail);
     setOutput(`Update Employee: ${e.detail.employee.name}`);
     // In a real app, this would update in database and refresh the list
+    // For testing, update the local list
+    const updatedEmployee = e.detail.employee;
+    const currentEmployees = adminPanel.employees || [];
+    const index = currentEmployees.findIndex(
+      (emp) => emp.id === updatedEmployee.id,
+    );
+    if (index !== -1) {
+      currentEmployees[index] = updatedEmployee;
+      adminPanel.setEmployees(currentEmployees);
+    }
   });
 
   const attachChildListeners = () => {

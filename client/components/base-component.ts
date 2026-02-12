@@ -46,6 +46,10 @@ export abstract class BaseComponent extends HTMLElement {
       this.handleDelegatedSubmit(e);
     });
 
+    this.shadowRoot.addEventListener("keydown", (e) => {
+      this.handleDelegatedKeydown(e as KeyboardEvent);
+    });
+
     this.isEventDelegationSetup = true;
   }
 
@@ -56,6 +60,11 @@ export abstract class BaseComponent extends HTMLElement {
 
   // Override in subclasses for form submissions
   protected handleDelegatedSubmit(e: Event): void {
+    // Subclasses implement specific logic
+  }
+
+  // Override in subclasses for keyboard events
+  protected handleDelegatedKeydown(e: KeyboardEvent): void {
     // Subclasses implement specific logic
   }
 
