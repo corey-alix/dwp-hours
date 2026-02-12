@@ -2,17 +2,18 @@
 
 ## Overview
 
-The Employee Form component provides a comprehensive form for creating and editing employee records with validation, role selection, and theme integration. It supports both add and edit modes with proper form handling and user feedback.
+The Employee Form component provides a comprehensive form for creating and editing employee records with validation, role selection, and theme integration. It extends the BaseComponent for proper web component lifecycle management and event delegation. It supports both add and edit modes with proper form handling, accessibility features, and user feedback.
 
 ## Features
 
 - **Dual Mode**: Create new employees or edit existing ones
-- **Form Validation**: Client-side validation with error messages
+- **Form Validation**: Client-side validation with error messages and ARIA attributes
 - **Role Selection**: Dropdown for employee roles
 - **Theme Integration**: Full support for light and dark themes
 - **Responsive Design**: Adapts to different screen sizes
-- **Accessibility**: Proper form labels and keyboard navigation
-- **Event Handling**: Dispatches success/error events
+- **Accessibility**: ARIA attributes, focus management, keyboard navigation, screen reader support
+- **Event Handling**: Dispatches success/cancel events using BaseComponent event delegation
+- **Loading States**: Visual feedback during form submission
 
 ## Usage
 
@@ -22,7 +23,7 @@ The Employee Form component provides a comprehensive form for creating and editi
 
 <!-- Edit existing employee -->
 <employee-form
-  employee='{"id": 1, "name": "John Doe", "identifier": "jdoe", "ptoRate": 0.71, "carryoverHours": 0, "role": "Employee"}'
+  employee='{"id": 1, "name": "John Doe", "identifier": "john.doe@company.com", "ptoRate": 0.71, "carryoverHours": 0, "role": "Employee"}'
   is-edit="true"
 >
 </employee-form>
@@ -32,13 +33,14 @@ The Employee Form component provides a comprehensive form for creating and editi
 const form = document.querySelector("employee-form");
 
 // Listen for form submission
-form.addEventListener("employee-saved", (event) => {
-  console.log("Employee saved:", event.detail);
+form.addEventListener("employee-submit", (event) => {
+  console.log("Employee submitted:", event.detail);
+  // event.detail = { employee: Employee, isEdit: boolean }
 });
 
-// Listen for errors
-form.addEventListener("employee-error", (event) => {
-  console.log("Error:", event.detail);
+// Listen for form cancellation
+form.addEventListener("form-cancel", () => {
+  console.log("Form cancelled");
 });
 ```
 
@@ -58,34 +60,35 @@ form.addEventListener("employee-error", (event) => {
 interface Employee {
   id?: number; // Present in edit mode
   name: string; // Employee full name
-  identifier: string; // Unique employee identifier
-  ptoRate: number; // PTO accrual rate
-  carryoverHours: number; // Carried over PTO hours
-  role: string; // Employee role
+  identifier: string; // Employee email address
+  ptoRate: number; // PTO accrual rate (0-2 hours/day)
+  carryoverHours: number; // Carried over PTO hours (0-1000)
+  role: string; // Employee role ("Employee" or "Admin")
   hash?: string; // Password hash (edit mode only)
 }
 ```
 
 ## Events
 
-- `employee-saved`: Fired when form is successfully submitted with employee data
-- `employee-error`: Fired when validation fails or submission errors occur
+- `employee-submit`: Fired when form is successfully validated and submitted
+  - `event.detail`: `{ employee: Employee, isEdit: boolean }`
+- `form-cancel`: Fired when the cancel button is clicked
 
 ## Form Fields
 
-- **Name**: Text input for employee full name
-- **Identifier**: Text input for unique employee identifier
-- **PTO Rate**: Number input for PTO accrual rate (default: 0.71)
-- **Carryover Hours**: Number input for carried over PTO hours
-- **Role**: Select dropdown with role options
-- **Password**: Password input (add mode) or change password (edit mode)
+- **Name**: Text input for employee full name (required)
+- **Employee Email**: Email input for unique employee identifier (required, must be valid email)
+- **PTO Rate**: Number input for PTO accrual rate (optional, default: 0.71, range: 0-2)
+- **Carryover Hours**: Number input for carried over PTO hours (optional, default: 0, min: 0, max: 1000)
+- **Role**: Select dropdown with role options ("Employee" or "Admin")
 
 ## Validation
 
-- Required field validation for name and identifier
-- Unique identifier validation
-- Numeric validation for PTO rate and carryover hours
-- Password requirements in add mode
+- Required field validation for name and employee email
+- Email format validation with comprehensive regex
+- Numeric validation for PTO rate (0-2 range) and carryover hours (0-1000 range)
+- Real-time validation with visual error indicators
+- ARIA attributes for screen reader error announcements
 
 ## Theming Implementation
 
@@ -98,7 +101,8 @@ interface Employee {
 - `--color-primary-light`: Focus ring color
 - `--color-error`: Error states
 - `--color-shadow`: Form shadow
-- `--color-success`: Success states (if implemented)
+- `--color-secondary`: Secondary button colors
+- `--color-secondary-hover`: Secondary button hover
 
 ### Theme Integration
 
@@ -108,16 +112,21 @@ interface Employee {
 
 ## Accessibility
 
-- **Form Labels**: Proper label association with inputs
-- **Keyboard Navigation**: Tab navigation through form fields
-- **Focus Management**: Visible focus indicators
-- **Error Announcements**: Screen reader accessible error messages
-- **Semantic HTML**: Proper form structure
+- **ARIA Attributes**: `role="form"`, `aria-labelledby`, `aria-required`, `aria-describedby`, `aria-invalid`, `aria-live`
+- **Form Labels**: Proper label association with inputs using `for` and `id`
+- **Keyboard Navigation**: Tab navigation, Enter to submit, Escape to cancel
+- **Focus Management**: Auto-focus on first field, focus on first error field
+- **Screen Reader Support**: Error messages with `role="alert"` and `aria-live="polite"`, screen reader only hints
+- **Loading States**: `aria-disabled` and screen reader announcements during submission
+- **Semantic HTML**: Proper form structure with fieldsets and legends
 
 ## Implementation Details
 
+- **BaseComponent Extension**: Inherits from BaseComponent for automatic shadow DOM management, event delegation, and lifecycle safety
 - **Shadow DOM**: Encapsulated styling and markup
-- **Reactive Rendering**: Updates when attributes change
-- **Form State Management**: Tracks validation and submission states
-- **Event-Driven**: Uses custom events for parent communication</content>
+- **Reactive Rendering**: Updates when attributes change via `requestUpdate()`
+- **Form State Management**: Tracks validation, submission states, and loading indicators
+- **Event-Driven**: Uses custom events for parent communication
+- **Type Safety**: Full TypeScript support with proper type guards and validation
+- **Memory Safety**: Automatic event listener cleanup and proper disconnectedCallback handling</content>
   <parameter name="filePath">/home/ca0v/code/ca0v/earth/client/components/employee-form/README.md

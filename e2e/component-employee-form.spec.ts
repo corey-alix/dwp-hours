@@ -1,3 +1,7 @@
+// DEPRECATED: This E2E test has been replaced by comprehensive unit tests in tests/components/employee-form.test.ts
+// The unit tests provide better coverage, faster execution, and more reliable testing of component functionality.
+// This E2E test may be removed in a future update once integration scenarios are fully covered by unit tests.
+
 import { test, expect } from "@playwright/test";
 
 test("employee-form component test", async ({ page }) => {
