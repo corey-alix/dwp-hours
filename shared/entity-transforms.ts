@@ -36,6 +36,7 @@ export function serializePTOEntry(entity: EntityPtoEntry): PTOEntry {
     type: entity.type,
     hours: entity.hours,
     createdAt: entity.created_at.toISOString(),
+    approved_by: entity.approved_by,
     employee: entity.employee ? serializeEmployee(entity.employee) : undefined,
   };
 }
