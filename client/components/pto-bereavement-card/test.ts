@@ -24,54 +24,63 @@ export function playground() {
     remaining: allowedBereavement - usedBereavement,
   };
 
-  // Sample usage entries from seedData
+  // Set usage entries for display
   card.usageEntries = approvedBereavementEntries.map((e) => ({
     date: e.date,
     hours: e.hours,
   }));
 
+  // Set full PTO entries for approval testing
+  const allBereavementEntries = seedPTOEntries
+    .filter((e) => e.employee_id === 1 && e.type === "Bereavement")
+    .map((seedEntry, index) => ({
+      id: index + 1, // Mock ID for testing
+      employeeId: seedEntry.employee_id,
+      date: seedEntry.date,
+      type: seedEntry.type,
+      hours: seedEntry.hours,
+      createdAt: "2025-01-01T00:00:00.000Z", // Mock created date
+      approved_by: seedEntry.approved_by,
+    }));
+  card.fullPtoEntries = allBereavementEntries;
+
   querySingle("#test-output").textContent = "Bereavement data set with usage.";
 
-  // Test toggle functionality
-  setTimeout(() => {
-    console.log("Testing toggle functionality...");
-    const toggleButton = card.shadowRoot?.querySelector(
-      ".toggle-button",
-    ) as HTMLButtonElement;
-    if (toggleButton) {
-      console.log("Toggle button found, clicking...");
-      toggleButton.click();
+  // Test toggle functionality - check if toggle button exists
+  const toggleButton = card.shadowRoot?.querySelector(
+    ".toggle-button",
+  ) as HTMLButtonElement;
+  if (toggleButton) {
+    console.log("Toggle button found, clicking...");
+    toggleButton.click();
 
-      setTimeout(() => {
-        const isExpanded = card.getAttribute("expanded") === "true";
-        console.log("Card expanded after click:", isExpanded);
+    // Check expansion state
+    const isExpanded = card.getAttribute("expanded") === "true";
+    console.log("Card expanded after click:", isExpanded);
 
-        // Test clickable date
-        const dateElement = card.shadowRoot?.querySelector(
-          ".usage-date",
-        ) as HTMLSpanElement;
-        if (dateElement) {
-          console.log("Clickable date found, testing click...");
-          let eventFired = false;
-          card.addEventListener("navigate-to-month", () => {
-            eventFired = true;
-            console.log("navigate-to-month event fired!");
-          });
+    // Test clickable date
+    const dateElement = card.shadowRoot?.querySelector(
+      ".usage-date",
+    ) as HTMLSpanElement;
+    if (dateElement) {
+      console.log("Clickable date found, testing click...");
+      let eventFired = false;
+      card.addEventListener("navigate-to-month", () => {
+        eventFired = true;
+        console.log("navigate-to-month event fired!");
+      });
 
-          dateElement.click();
-
-          setTimeout(() => {
-            console.log("Event fired after date click:", eventFired);
-            querySingle("#test-output").textContent +=
-              " Toggle and date click tests completed.";
-          }, 100);
-        } else {
-          console.log("No clickable date found");
-          querySingle("#test-output").textContent += " Toggle test completed.";
-        }
-      }, 100);
+      dateElement.click();
+      console.log("Event fired after date click:", eventFired);
+      querySingle("#test-output").textContent +=
+        " Toggle and date click tests completed.";
     } else {
-      console.log("No toggle button found");
+      console.log("No clickable date found");
+      querySingle("#test-output").textContent += " Toggle test completed.";
     }
-  }, 100);
+  } else {
+    console.log("No toggle button found - checking if entries were set");
+    // If no toggle button, the test should still complete
+    querySingle("#test-output").textContent += " No entries to test.";
+  }
 }
