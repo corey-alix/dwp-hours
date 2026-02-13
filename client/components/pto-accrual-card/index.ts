@@ -30,6 +30,7 @@ type PTOEntry = {
   type: "PTO" | "Sick" | "Bereavement" | "Jury Duty";
   hours: number;
   createdAt: string;
+  approved_by?: number | null;
 };
 
 export class PtoAccrualCard extends PtoSectionCard {

@@ -12,24 +12,12 @@ test("report-generator component test", async ({ page }) => {
 
   // Check what the page actually contains
   const pageContent = await page.content();
-  console.log("Page title:", await page.title());
-  console.log(
-    "Page contains report-generator:",
-    pageContent.includes("report-generator"),
-  );
-  console.log(
-    "Page contains test-output:",
-    pageContent.includes("test-output"),
-  );
 
   // Check if app.js is accessible
   try {
     const response = await page.request.get("/app.js");
-    console.log("app.js status:", response.status());
-    const text = await response.text();
-    console.log("app.js content length:", text.length);
   } catch (error) {
-    console.log("Error fetching app.js:", (error as Error).message);
+    console.error("Error fetching app.js:", (error as Error).message);
   }
 
   // Wait for the page to load and component to initialize
@@ -53,14 +41,12 @@ test("report-generator component test", async ({ page }) => {
 
   // Check if component is actually created
   const componentExists = await page.locator("report-generator").count();
-  console.log("Component exists:", componentExists > 0);
 
   // Check component type
   const componentType = await page.evaluate(() => {
     const component = document.querySelector("report-generator");
     return component ? component.constructor.name : "null";
   });
-  console.log("Component type:", componentType);
 
   // Check header elements
   const reportTitle = reportGenerator.locator(".report-title");
@@ -74,9 +60,6 @@ test("report-generator component test", async ({ page }) => {
   const exportButton = reportGenerator.locator("#export-csv");
 
   // Check if elements exist
-  const selectCount = await reportTypeSelect.count();
-  console.log("Select element count:", selectCount);
-
   await expect(reportTypeSelect).toBeVisible();
   await expect(startDateInput).toBeVisible();
   await expect(endDateInput).toBeVisible();

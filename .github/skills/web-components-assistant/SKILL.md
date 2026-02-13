@@ -84,6 +84,8 @@ client/components/[component-name]/
 </html>
 ```
 
+**Design Constraint**: HTML test files must NOT contain inline attributes on web components. All data and configuration must be set programmatically in the corresponding test.ts file. This ensures clean separation of concerns and consistent testing patterns.
+
 ### test.ts Pattern
 
 ```typescript

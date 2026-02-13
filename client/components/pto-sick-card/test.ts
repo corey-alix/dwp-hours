@@ -1,24 +1,30 @@
 import { querySingle } from "../test-utils.js";
 import { PtoSickCard } from "./index.js";
+import { seedPTOEntries } from "../../../shared/seedData.js";
 
 export function playground() {
   console.log("Starting PTO Sick Card test...");
 
   const card = querySingle<PtoSickCard>("pto-sick-card");
 
-  // Sample bucket data
+  // Compute bucket data from seedData
+  const approvedSickEntries = seedPTOEntries.filter(
+    (e) => e.employee_id === 1 && e.approved_by !== null && e.type === "Sick",
+  );
+  const usedSick = approvedSickEntries.reduce((sum, e) => sum + e.hours, 0);
+  const allowedSick = 24; // Business rule constant
+
   card.bucket = {
-    allowed: 80,
-    used: 24,
-    remaining: 56,
+    allowed: allowedSick,
+    used: usedSick,
+    remaining: allowedSick - usedSick,
   };
 
-  // Sample usage entries
-  card.usageEntries = [
-    { date: "2024-01-15", hours: 8 },
-    { date: "2024-03-10", hours: 8 },
-    { date: "2024-05-22", hours: 8 },
-  ];
+  // Sample usage entries from seedData
+  card.usageEntries = approvedSickEntries.map((e) => ({
+    date: e.date,
+    hours: e.hours,
+  }));
 
   querySingle("#test-output").textContent = "Sick time data set.";
 

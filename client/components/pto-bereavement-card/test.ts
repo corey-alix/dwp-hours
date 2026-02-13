@@ -1,20 +1,34 @@
 import { querySingle } from "../test-utils.js";
 import { PtoBereavementCard } from "./index.js";
+import { seedPTOEntries } from "../../../shared/seedData.js";
 
 export function playground() {
   console.log("Starting PTO Bereavement Card test...");
 
   const card = querySingle<PtoBereavementCard>("pto-bereavement-card");
 
-  // Sample bucket data
+  // Compute bucket data from seedData
+  const approvedBereavementEntries = seedPTOEntries.filter(
+    (e) =>
+      e.employee_id === 1 && e.approved_by !== null && e.type === "Bereavement",
+  );
+  const usedBereavement = approvedBereavementEntries.reduce(
+    (sum, e) => sum + e.hours,
+    0,
+  );
+  const allowedBereavement = 40; // Business rule constant
+
   card.bucket = {
-    allowed: 24,
-    used: 8,
-    remaining: 16,
+    allowed: allowedBereavement,
+    used: usedBereavement,
+    remaining: allowedBereavement - usedBereavement,
   };
 
-  // Sample usage entries
-  card.usageEntries = [{ date: "2024-04-02", hours: 8 }];
+  // Sample usage entries from seedData
+  card.usageEntries = approvedBereavementEntries.map((e) => ({
+    date: e.date,
+    hours: e.hours,
+  }));
 
   querySingle("#test-output").textContent = "Bereavement data set with usage.";
 

@@ -58,7 +58,7 @@ test("pto-bereavement-card component test", async ({ page }) => {
 
   // Check that dates are displayed
   const dateElements = card.locator(".usage-date");
-  await expect(dateElements).toHaveCount(1); // We have 1 test entry
+  await expect(dateElements).toHaveCount(2); // We have 2 test entries
 
   // Test clickable date functionality
   const firstDate = dateElements.first();

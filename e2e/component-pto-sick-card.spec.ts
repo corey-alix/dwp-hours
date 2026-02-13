@@ -58,7 +58,7 @@ test("pto-sick-card component test", async ({ page }) => {
 
   // Check that dates are displayed
   const dateElements = card.locator(".usage-date");
-  await expect(dateElements).toHaveCount(3); // We have 3 test entries
+  await expect(dateElements).toHaveCount(6); // We have 6 test entries (2025 + 2026)
 
   // Test clickable date functionality
   const firstDate = dateElements.first();

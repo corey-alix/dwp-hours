@@ -1,47 +1,35 @@
 import { querySingle } from "../test-utils.js";
 import { addEventListener } from "../test-utils.js";
 import { ReportGenerator } from "./index.js";
+import { seedEmployees, seedPTOEntries } from "../../../shared/seedData.js";
 
 export function playground() {
   console.log("Starting Report Generator playground test...");
 
   const reportGenerator = querySingle<ReportGenerator>("report-generator");
 
-  // Sample report data
-  const sampleReportData = [
-    {
-      employeeId: 1,
-      employeeName: "John Doe",
-      totalPTOHours: 80,
-      usedPTOHours: 32,
-      remainingPTOHours: 48,
-      carryoverHours: 16,
-    },
-    {
-      employeeId: 2,
-      employeeName: "Jane Smith",
-      totalPTOHours: 80,
-      usedPTOHours: 56,
-      remainingPTOHours: 24,
-      carryoverHours: 8,
-    },
-    {
-      employeeId: 3,
-      employeeName: "Bob Johnson",
-      totalPTOHours: 80,
-      usedPTOHours: 16,
-      remainingPTOHours: 64,
-      carryoverHours: 24,
-    },
-    {
-      employeeId: 4,
-      employeeName: "Alice Wilson",
-      totalPTOHours: 80,
-      usedPTOHours: 72,
-      remainingPTOHours: 8,
-      carryoverHours: 4,
-    },
-  ];
+  // Sample report data computed from seedData
+  const sampleReportData = seedEmployees.map((emp, index) => {
+    const employeeId = index + 1;
+    const approvedEntries = seedPTOEntries.filter(
+      (e) =>
+        e.employee_id === employeeId &&
+        e.approved_by !== null &&
+        e.type === "PTO",
+    );
+    const usedPto = approvedEntries.reduce((sum, e) => sum + e.hours, 0);
+    const totalPto = 96 + emp.carryover_hours; // annual + carryover
+    const remainingPto = totalPto - usedPto;
+
+    return {
+      employeeId,
+      employeeName: emp.name,
+      totalPTOHours: totalPto,
+      usedPTOHours: usedPto,
+      remainingPTOHours: remainingPto,
+      carryoverHours: emp.carryover_hours,
+    };
+  });
 
   // Set initial data
   reportGenerator.reportData = sampleReportData;

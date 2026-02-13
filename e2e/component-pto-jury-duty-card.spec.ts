@@ -58,7 +58,7 @@ test("pto-jury-duty-card component test", async ({ page }) => {
 
   // Check that dates are displayed
   const dateElements = card.locator(".usage-date");
-  await expect(dateElements).toHaveCount(2); // We have 2 test entries
+  await expect(dateElements).toHaveCount(5); // We have 5 test entries
 
   // Test clickable date functionality
   const firstDate = dateElements.first();

@@ -26,6 +26,7 @@ This document outlines all remaining tasks to complete the DWP Hours Tracker app
 
 8. **[admin-review-acknowledgment.md](admin-review-acknowledgment.md)** - Admin review acknowledgment
 9. **[issue-submit-time-off-calendar-regressions.md](issue-submit-time-off-calendar-regressions.md)** - Submit Time Off calendar missing features
+10. ✅ **[issue-test-file-conventions-regression.md](issue-test-file-conventions-regression.md)** - Test files not following web-components-assistant conventions
 
 ## Task Dependencies
 
@@ -113,6 +114,7 @@ database-schema.md
 9. **issue-date-handling-regression.md** - critical date handling bug fix needed
 10. **design-constraints.md** - code quality improvements needed
 11. Implement **admin-review-acknowledgment.md** - admin review UI
+12. ✅ **issue-test-file-conventions-regression.md** - fix test file conventions regression
 
 Each task file contains detailed checklists for implementation steps.</content>
 <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/TASKS/README.md
