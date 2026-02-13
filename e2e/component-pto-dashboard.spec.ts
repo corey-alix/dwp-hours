@@ -95,6 +95,35 @@ test("pto-dashboard component test", async ({ page }) => {
         { date: "2026-02-14", hours: 8 },
         { date: "2026-02-12", hours: 8 },
       ];
+      card.fullPtoEntries = [
+        {
+          id: 1,
+          employeeId: 1,
+          date: "2026-02-16",
+          type: "Sick",
+          hours: 8,
+          createdAt: "2026-01-01T00:00:00Z",
+          approved_by: 3,
+        },
+        {
+          id: 2,
+          employeeId: 1,
+          date: "2026-02-14",
+          type: "Sick",
+          hours: 8,
+          createdAt: "2026-01-01T00:00:00Z",
+          approved_by: 3,
+        },
+        {
+          id: 3,
+          employeeId: 1,
+          date: "2026-02-12",
+          type: "Sick",
+          hours: 8,
+          createdAt: "2026-01-01T00:00:00Z",
+          approved_by: 3,
+        },
+      ];
     });
     await page.waitForTimeout(100); // Wait for render
 
@@ -131,7 +160,18 @@ test("pto-dashboard component test", async ({ page }) => {
     });
     expect(sickData.rows[0]).toBe("Allowed24 hours");
     expect(sickData.rows[1]).toBe("Used24.00 hours");
-    expect(sickData.rows[2]).toBe("Remaining0.00 hours");
+    expect(sickData.rows[2]).toBe("Remaining0.00 hours"); // Check that the "Used" label has the approved class
+    const sickUsedLabel = await page.evaluate(() => {
+      const card = document.querySelector("pto-sick-card");
+      if (!card) return null;
+      const shadow = card.shadowRoot;
+      if (!shadow) return null;
+      const rows = shadow.querySelectorAll(".row");
+      const usedRow = rows[1]; // Second row is "Used"
+      const label = usedRow?.querySelector(".label");
+      return label?.className;
+    });
+    expect(sickUsedLabel).toBe("label approved");
     expect(sickData.entries[0]).toBe("2/16/2026 8.0 hours");
     expect(sickData.entries[1]).toBe("2/14/2026 8.0 hours");
     expect(sickData.entries[2]).toBe("2/12/2026 8.0 hours");
@@ -159,6 +199,18 @@ test("pto-dashboard component test", async ({ page }) => {
     expect(bereavementData.rows[0]).toBe("Allowed40 hours");
     expect(bereavementData.rows[1]).toBe("Used8.00 hours");
     expect(bereavementData.rows[2]).toBe("Remaining32.00 hours");
+    // Check that the "Used" label has the approved class
+    const bereavementUsedLabel = await page.evaluate(() => {
+      const card = document.querySelector("pto-bereavement-card");
+      if (!card) return null;
+      const shadow = card.shadowRoot;
+      if (!shadow) return null;
+      const rows = shadow.querySelectorAll(".row");
+      const usedRow = rows[1]; // Second row is "Used"
+      const label = usedRow?.querySelector(".label");
+      return label?.className;
+    });
+    expect(bereavementUsedLabel).toBe("label approved");
     // Check usage entries
     expect(bereavementData.entries[0]).toBe("6/12/2026 8.0 hours");
   });

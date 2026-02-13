@@ -188,9 +188,13 @@ export function playground(): void {
 
   sick.bucket = ptoStatus.sickTime;
   sick.usageEntries = sickEntries;
+  sick.fullPtoEntries = fullPtoEntries.filter((e) => e.type === "Sick");
 
   bereavement.bucket = ptoStatus.bereavementTime;
   bereavement.usageEntries = bereavementEntries;
+  bereavement.fullPtoEntries = fullPtoEntries.filter(
+    (e) => e.type === "Bereavement",
+  );
 
   jury.bucket = ptoStatus.juryDutyTime;
   jury.usageEntries = juryEntries;

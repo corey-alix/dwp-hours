@@ -590,12 +590,20 @@ class UIManager {
         getCurrentYear(),
         "Sick",
       );
+      sickCard.fullPtoEntries = entries.filter(
+        (e) => e.type === "Sick" && parseDate(e.date).year === getCurrentYear(),
+      );
 
       bereavementCard.bucket = status.bereavementTime;
       bereavementCard.usageEntries = this.buildUsageEntries(
         entries,
         getCurrentYear(),
         "Bereavement",
+      );
+      bereavementCard.fullPtoEntries = entries.filter(
+        (e) =>
+          e.type === "Bereavement" &&
+          parseDate(e.date).year === getCurrentYear(),
       );
 
       juryDutyCard.bucket = status.juryDutyTime;
@@ -857,6 +865,9 @@ class UIManager {
       getCurrentYear(),
       "Sick",
     );
+    sickCard.fullPtoEntries = entries.filter(
+      (e) => e.type === "Sick" && parseDate(e.date).year === getCurrentYear(),
+    );
 
     const bereavementCard = createElement<PtoBereavementCard>(
       "pto-bereavement-card",
@@ -866,6 +877,10 @@ class UIManager {
       entries,
       getCurrentYear(),
       "Bereavement",
+    );
+    bereavementCard.fullPtoEntries = entries.filter(
+      (e) =>
+        e.type === "Bereavement" && parseDate(e.date).year === getCurrentYear(),
     );
 
     const juryDutyCard = createElement<PtoJuryDutyCard>("pto-jury-duty-card");
