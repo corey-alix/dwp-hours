@@ -77,14 +77,21 @@ client/components/[component-name]/
     <component-name id="component-id"></component-name>
 
     <script type="module">
-      import { componentName } from "/app.js";
-      componentName();
+      import { employeeList } from "/app.js";
+      employeeList();
     </script>
   </body>
 </html>
 ```
 
-**Design Constraint**: HTML test files must NOT contain inline attributes on web components. All data and configuration must be set programmatically in the corresponding test.ts file. This ensures clean separation of concerns and consistent testing patterns.
+**Design Constraints**:
+
+- HTML test files must import `/app.js` to ensure all components are loaded and registered
+- HTML test files must import and call the `playground` function from the corresponding `test.ts` file
+- HTML test files must NOT contain inline attributes on web components
+- HTML test files must NOT contain test logic or code beyond the minimal imports and function call
+- All data configuration, test scenarios, and component manipulation must be in the corresponding test.ts file
+- This ensures clean separation of concerns and consistent testing patterns
 
 ### test.ts Pattern
 

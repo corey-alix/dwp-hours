@@ -26,6 +26,7 @@ import {
   PtoEmployeeInfoCard,
   PtoEntryForm,
   PtoJuryDutyCard,
+  PtoPtoCard,
   PtoSickCard,
   PtoSummaryCard,
   PriorYearReview,
@@ -895,6 +896,17 @@ class UIManager {
         e.type === "Jury Duty" && parseDate(e.date).year === getCurrentYear(),
     );
 
+    const ptoCard = createElement<PtoPtoCard>("pto-pto-card");
+    ptoCard.bucket = status.ptoTime;
+    ptoCard.usageEntries = this.buildUsageEntries(
+      entries,
+      getCurrentYear(),
+      "PTO",
+    );
+    ptoCard.fullPtoEntries = entries.filter(
+      (e) => e.type === "PTO" && parseDate(e.date).year === getCurrentYear(),
+    );
+
     const employeeInfoCard = createElement<PtoEmployeeInfoCard>(
       "pto-employee-info-card",
     );
@@ -912,6 +924,7 @@ class UIManager {
     summaryContainer.appendChild(sickCard);
     summaryContainer.appendChild(bereavementCard);
     summaryContainer.appendChild(juryDutyCard);
+    summaryContainer.appendChild(ptoCard);
     summaryContainer.appendChild(employeeInfoCard);
 
     // Re-attach event listeners for the newly created components

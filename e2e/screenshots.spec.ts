@@ -191,6 +191,16 @@ test("pto-jury-duty-card component screenshot", async ({ page }) => {
   );
 });
 
+test("pto-pto-card component screenshot", async ({ page }) => {
+  await page.goto("/components/pto-pto-card/test.html");
+  await page.waitForSelector("#test-output", { timeout: 10000 });
+  await stabilizePage(page);
+  await compareAndUpdateScreenshot(
+    await page.screenshot({ fullPage: true }),
+    "assets/pto-pto-card-component.png",
+  );
+});
+
 test("pto-employee-info-card component screenshot", async ({ page }) => {
   await page.goto("/components/pto-employee-info-card/test.html");
   await page.waitForSelector("#test-output", { timeout: 10000 });
