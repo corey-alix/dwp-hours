@@ -8,12 +8,13 @@ This task encompasses multiple objectives:
 2. **Create a comprehensive design system** for building PTO card components with consistent patterns and interfaces
 3. **Implement a new PTO card component** following the design system for standard PTO time tracking
 4. **Establish testing patterns** and validation procedures for PTO card components
+5. **🔥 PRIORITY: Fix test file compliance violations** - pto-dashboard/test.html violates web-components-assistant policy and includes unused components
 
 The project extends beyond the original scope of fixing approval indicators to create a scalable, maintainable architecture for all PTO card components in the DWP Hours Tracker application.
 
 ## Priority
 
-🟡 Medium Priority
+� **High Priority** - Compliance violations in test files
 
 ## Checklist
 
@@ -900,3 +901,29 @@ export class PtoPtoCard extends SimplePtoBucketCard {
 - ✅ **Consistent Design System**: All cards follow identical patterns and interfaces
 - ✅ **Comprehensive Testing**: Full test coverage including unit tests, E2E tests, and approval indicator validation
 - ✅ **Production Ready**: PTO card component is fully implemented and tested
+
+### Phase 9: Test File Compliance Fixes
+
+- [x] Refactor pto-dashboard/test.html to comply with web-components-assistant policy (no code in test.html files)
+- [x] Remove inline styles, event listeners, and test logic from test.html
+- [x] Move all component population and event handling to test.ts playground function
+- [x] Add <pto-pto-card> population logic to test.ts or remove the unused component from test.html
+- [x] Ensure test.html follows the clean pattern: minimal HTML with only component tags and script import
+- [x] Update test.ts to handle PTO card data population and submission event logging
+- [x] Validation: Test files comply with web components assistant guidelines
+
+### Phase 10: Additional Test File Compliance Violations
+
+- [ ] Fix pto-calendar/test.html: Remove extensive inline styles (188 lines of complex HTML), buttons, event listeners, and test logic
+- [ ] Fix admin-panel/test.html: Move toggle button creation from HTML to test.ts playground function
+- [ ] Fix pto-entry-form/test.html: Remove inline styles from test-output div
+- [ ] Fix employee-form/test.html: Remove inline styles from test-output div
+- [ ] Fix data-table/test.html: Remove inline styles from test-output div
+- [ ] Fix employee-list/test.html: Remove inline styles from test-output div
+- [ ] Fix confirmation-dialog/test.html: Move button creation from HTML to test.ts and remove inline styles
+- [ ] Fix pto-request-queue/test.html: Remove inline styles from test-output div
+- [ ] Fix pto-summary-card/test.html: Remove inline styles from test-output div
+- [ ] Fix pto-employee-info-card/test.html: Remove inline styles and inline attributes from web component
+- [ ] Fix prior-year-review/test.html: Remove inline styles from test-output div and standardize script import
+- [ ] Update corresponding test.ts files to handle moved test logic and UI elements
+- [ ] Validation: All test.html files comply with clean pattern (minimal HTML, no code/logic)

@@ -4,6 +4,7 @@ import {
   PtoBereavementCard,
   PtoEmployeeInfoCard,
   PtoJuryDutyCard,
+  PtoPtoCard,
   PtoSickCard,
   PtoSummaryCard,
 } from "./index.js";
@@ -163,6 +164,7 @@ export function playground(): void {
 
   const summary = querySingle<PtoSummaryCard>("pto-summary-card");
   const accrual = querySingle<PtoAccrualCard>("pto-accrual-card");
+  const pto = querySingle<PtoPtoCard>("pto-pto-card");
   const sick = querySingle<PtoSickCard>("pto-sick-card");
   const bereavement = querySingle<PtoBereavementCard>("pto-bereavement-card");
   const jury = querySingle<PtoJuryDutyCard>("pto-jury-duty-card");
@@ -186,6 +188,10 @@ export function playground(): void {
   accrual.setAttribute("request-mode", "true");
   accrual.setAttribute("annual-allocation", "96");
 
+  pto.bucket = ptoStatus.ptoTime;
+  pto.usageEntries = ptoEntries;
+  pto.fullPtoEntries = fullPtoEntries.filter((e) => e.type === "PTO");
+
   sick.bucket = ptoStatus.sickTime;
   sick.usageEntries = sickEntries;
   sick.fullPtoEntries = fullPtoEntries.filter((e) => e.type === "Sick");
@@ -205,5 +211,62 @@ export function playground(): void {
     nextRolloverDate: formatDateForDisplay(ptoStatus.nextRolloverDate),
   };
 
+  // Set up PTO request submission event handling
+  const handlePtoRequestSubmit = (event: CustomEvent) => {
+    console.log("PTO Request Submit Event Received:", event);
+    console.log("Event detail:", event.detail);
+    const { requests } = event.detail;
+    console.log("Requests:", requests);
+
+    const timestamp = new Date().toLocaleString();
+    const submissionText = `
+[${timestamp}] PTO Request Submitted:
+${requests.map((req: any) => `  - ${req.date}: ${req.hours} hours (${req.type})`).join("\n")}
+
+Total Requests: ${requests.length}
+`;
+
+    console.log(submissionText);
+
+    // Visual feedback - create a temporary log element if it doesn't exist
+    let logElement = document.getElementById("submission-log");
+    if (!logElement) {
+      logElement = document.createElement("div");
+      logElement.id = "submission-log";
+      logElement.style.cssText = `
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 12px;
+        margin: 16px 0;
+        font-family: monospace;
+        white-space: pre-wrap;
+      `;
+      logElement.innerHTML =
+        "<strong>PTO Request Submissions:</strong>\n(No submissions yet)";
+      document.body.appendChild(logElement);
+    }
+
+    logElement.textContent += submissionText;
+
+    // Visual feedback
+    logElement.style.background = "#d4edda";
+    logElement.style.borderColor = "#c3e6cb";
+    setTimeout(() => {
+      logElement!.style.background = "#f8f9fa";
+      logElement!.style.borderColor = "#dee2e6";
+    }, 2000);
+  };
+
+  // Listen for PTO request submissions from the accrual card
+  document.addEventListener(
+    "pto-request-submit",
+    handlePtoRequestSubmit as EventListener,
+  );
+
+  console.log("Event listener added for pto-request-submit");
   console.log("PTO dashboard playground test initialized with API data");
+  console.log(
+    "Instructions: Select a month, choose PTO type, paint cells, edit hours, submit",
+  );
 }
