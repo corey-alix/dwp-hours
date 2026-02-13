@@ -101,17 +101,10 @@ export class PtoJuryDutyCard extends SimplePtoBucketCard {
       juryDutyEntries.every((e) => e.approved_by !== null);
     const approvedClass = allApproved ? " approved" : "";
 
-    const remainingValue = this.data.remaining.toFixed(2);
-    const remainingClass = this.data.remaining < 0 ? "negative-balance" : "";
-    const remainingDisplay =
-      this.data.remaining < 0
-        ? `-${Math.abs(this.data.remaining).toFixed(2)}`
-        : remainingValue;
-
     const body = `
             <div class="row"><span class="label">Allowed</span><span>${this.data.allowed} hours</span></div>
             <div class="row"><span class="label${approvedClass}">Used</span><span>${this.data.used.toFixed(2)} hours</span></div>
-            <div class="row"><span class="label">Remaining</span><span class="${remainingClass}">${remainingDisplay} hours</span></div>
+            <div class="row"><span class="label">Remaining</span><span>${this.data.remaining.toFixed(2)} hours</span></div>
             ${toggleButtonHtml}
             ${usageSection}
         `;

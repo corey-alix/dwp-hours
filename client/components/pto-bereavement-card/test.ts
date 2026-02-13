@@ -34,12 +34,12 @@ export function playground() {
   const allBereavementEntries = seedPTOEntries
     .filter((e) => e.employee_id === 1 && e.type === "Bereavement")
     .map((seedEntry, index) => ({
-      id: index + 1, // Mock ID for testing
+      id: index + 1,
       employeeId: seedEntry.employee_id,
       date: seedEntry.date,
       type: seedEntry.type,
       hours: seedEntry.hours,
-      createdAt: "2025-01-01T00:00:00.000Z", // Mock created date
+      createdAt: "2025-01-01T00:00:00.000Z",
       approved_by: seedEntry.approved_by,
     }));
   card.fullPtoEntries = allBereavementEntries;

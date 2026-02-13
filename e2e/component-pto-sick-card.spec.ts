@@ -82,4 +82,51 @@ test("pto-sick-card component test", async ({ page }) => {
   await toggleButton.click();
   await expect(toggleButton).toContainText("Show Details");
   await expect(usageSection).not.toBeVisible();
+
+  // Test approval indicators - set up fullPtoEntries with approved entries
+  await page.locator("pto-sick-card").evaluate((card: any) => {
+    card.fullPtoEntries = [
+      {
+        id: 1,
+        employeeId: 1,
+        date: "2026-02-12",
+        type: "Sick",
+        hours: 8,
+        createdAt: "2026-01-01T00:00:00Z",
+        approved_by: 3,
+      },
+      {
+        id: 2,
+        employeeId: 1,
+        date: "2026-02-13",
+        type: "Sick",
+        hours: 8,
+        createdAt: "2026-01-01T00:00:00Z",
+        approved_by: 3,
+      },
+      {
+        id: 3,
+        employeeId: 1,
+        date: "2026-02-17",
+        type: "Sick",
+        hours: 8,
+        createdAt: "2026-01-01T00:00:00Z",
+        approved_by: 3,
+      },
+    ];
+  });
+  await page.waitForTimeout(100); // Wait for render
+
+  // Check that the "Used" label has the approved class (green checkmark)
+  const sickUsedLabel = await page.evaluate(() => {
+    const card = document.querySelector("pto-sick-card");
+    if (!card) return null;
+    const shadow = card.shadowRoot;
+    if (!shadow) return null;
+    const rows = shadow.querySelectorAll(".row");
+    const usedRow = rows[1]; // Second row is "Used"
+    const label = usedRow?.querySelector(".label");
+    return label?.className;
+  });
+  expect(sickUsedLabel).toBe("label approved");
 });
