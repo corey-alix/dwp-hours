@@ -27,6 +27,20 @@ export function playground() {
     hours: e.hours,
   }));
 
+  // Set full entries for approval status checking
+  const allJuryEntries = seedPTOEntries.filter(
+    (e) => e.employee_id === 1 && e.type === "Jury Duty",
+  );
+  card.fullPtoEntries = allJuryEntries.map((e, index) => ({
+    id: index + 1,
+    employeeId: 1,
+    date: e.date,
+    type: e.type as "Jury Duty",
+    hours: e.hours,
+    createdAt: new Date().toISOString(),
+    approved_by: e.approved_by,
+  }));
+
   querySingle("#test-output").textContent = "Jury duty data set.";
 
   // Test toggle functionality

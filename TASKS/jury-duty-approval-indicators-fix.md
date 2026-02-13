@@ -55,19 +55,19 @@ Additionally, update the PTO Jury Duty Card component to properly display time m
 
 ### Phase 6: Update PTO Jury Duty Card Time Metrics Display
 
-- [ ] Modify the PTO Jury Duty Card component to display time allowed, used, and remaining
-- [ ] Implement logic to show a green checkbox beside the word "Used" when all used time has been approved
-- [ ] Ensure the approval status is correctly determined from the PTO entries data
-- [ ] Update the card's rendering logic to include these new display elements
-- [ ] Validation: Card displays correct time metrics and approval indicators
+- [x] Modify the PTO Jury Duty Card component to display time allowed, used, and remaining
+- [x] Implement logic to show a green checkbox beside the word "Used" when all used time has been approved
+- [x] Ensure the approval status is correctly determined from the PTO entries data
+- [x] Update the card's rendering logic to include these new display elements
+- [x] Validation: Card displays correct time metrics and approval indicators
 
 ### Phase 7: Handle Overage Scenarios in PTO Jury Duty Card
 
-- [ ] Add logic to detect when "Used" time exceeds "Allowed" time
-- [ ] Implement styling to make the "Remaining" value red and display as negative when overage occurs
-- [ ] Ensure calculations handle negative remaining time correctly
-- [ ] Test edge cases where used time significantly exceeds allowed time
-- [ ] Validation: Remaining time displays correctly in red when negative
+- [x] Add logic to detect when "Used" time exceeds "Allowed" time
+- [x] Implement styling to make the "Remaining" value red and display as negative when overage occurs
+- [x] Ensure calculations handle negative remaining time correctly
+- [x] Test edge cases where used time significantly exceeds allowed time
+- [x] Validation: Remaining time displays correctly in red when negative
 
 ## Implementation Notes
 
@@ -80,6 +80,8 @@ Additionally, update the PTO Jury Duty Card component to properly display time m
 - **Database Constraints**: The schema correctly defines `approved_by` as nullable INTEGER with foreign key to employees(id), preventing automatic approval.
 - **API Endpoint Fix**: Updated the `/api/pto` GET endpoint to return full serialized `PTOEntry` objects instead of simplified entries, ensuring `approved_by` is included in responses.
 - **Phase 3 Implementation**: Verified that the PTO calendar component correctly handles the `approved_by` field. The component's `PTOEntry` interface already included the field, and the `renderCalendar` method uses `entriesForDate.some((e) => e.approved_by !== null)` to determine checkmark display. With the API now providing `null` values, checkmarks will only appear for approved entries. No code changes were needed in the component.
+- **Phase 6 Implementation**: Modified the `PtoJuryDutyCard` component to accept full `PTOEntry` objects via the `fullPtoEntries` property. Added logic to apply an `approved` CSS class to the "Used" label when all jury duty entries are approved. The green checkmark (✓) is rendered via CSS pseudo-element (::after) rather than adding DOM elements. Updated the base class to export `PTO_CARD_CSS` and made properties protected for subclass access.
+- **Phase 7 Implementation**: Added logic to detect negative remaining time and style the "Remaining" value in red with negative display (e.g., "-5.00 hours" instead of "-5.00 hours").
 - Jury duty entries should follow the same approval workflow as other PTO types requiring admin approval
 - The checkmark should only appear after explicit admin approval, not upon scheduling
 - Ensure the fix doesn't affect other PTO types that may have different approval rules
@@ -94,10 +96,7 @@ Additionally, update the PTO Jury Duty Card component to properly display time m
   - Test for mixed approval states (jury duty unapproved but other PTO approved)
   - All 10 tests pass, including the new jury duty-specific tests
 
-- **E2E Tests Added**: Enhanced `e2e/component-pto-dashboard.spec.ts` with jury duty approval indicator testing:
-  - Tests checkmarks on approved jury duty entries in June 2026 (from seed data)
-  - Tests absence of checkmarks on unapproved entries in March 2026
-  - Uses real seed data for integration testing
+- **E2E Tests Updated**: Modified `e2e/component-pto-dashboard.spec.ts` to check for the `approved` CSS class on the "Used" label instead of text content. The checkmark is now rendered via CSS pseudo-element, making the test more semantic by checking for the approval state rather than visual elements.
 
 - **Test Coverage**: The testing now covers:
   - Unit tests for component logic with various approval scenarios

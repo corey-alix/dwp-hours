@@ -113,14 +113,22 @@ for (let month = 1; month <= 12; month++) {
 }
 
 // Convert simplified PTO entries to full PTOEntry format for the component
-const fullPtoEntries = ptoEntries.map((entry, index) => ({
-  id: index + 1,
-  employeeId: 1,
-  date: entry.date,
-  type: entry.type as "PTO" | "Sick" | "Bereavement" | "Jury Duty",
-  hours: entry.hours,
-  createdAt: today(),
-}));
+const fullPtoEntries = ptoEntries.map((entry, index) => {
+  // Find the corresponding entry in seed data to get approval status
+  const seedEntry = seedPTOEntries.find(
+    (se) =>
+      se.date === entry.date && se.type === entry.type && se.employee_id === 1,
+  );
+  return {
+    id: index + 1,
+    employeeId: 1,
+    date: entry.date,
+    type: entry.type as "PTO" | "Sick" | "Bereavement" | "Jury Duty",
+    hours: entry.hours,
+    createdAt: today(),
+    approved_by: seedEntry?.approved_by || null,
+  };
+});
 
 // Filter entries by type
 const sickEntries = ptoEntries
@@ -186,6 +194,7 @@ export function playground(): void {
 
   jury.bucket = ptoStatus.juryDutyTime;
   jury.usageEntries = juryEntries;
+  jury.fullPtoEntries = fullPtoEntries.filter((e) => e.type === "Jury Duty");
 
   info.info = {
     hireDate: formatDateForDisplay(ptoStatus.hireDate),

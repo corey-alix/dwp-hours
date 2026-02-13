@@ -604,6 +604,10 @@ class UIManager {
         getCurrentYear(),
         "Jury Duty",
       );
+      juryDutyCard.fullPtoEntries = entries.filter(
+        (e) =>
+          e.type === "Jury Duty" && parseDate(e.date).year === getCurrentYear(),
+      );
 
       employeeInfoCard.info = {
         hireDate: realHireDate,
@@ -870,6 +874,10 @@ class UIManager {
       entries,
       getCurrentYear(),
       "Jury Duty",
+    );
+    juryDutyCard.fullPtoEntries = entries.filter(
+      (e) =>
+        e.type === "Jury Duty" && parseDate(e.date).year === getCurrentYear(),
     );
 
     const employeeInfoCard = createElement<PtoEmployeeInfoCard>(

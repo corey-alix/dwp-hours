@@ -182,6 +182,18 @@ test("pto-dashboard component test", async ({ page }) => {
     expect(juryData.rows[0]).toBe("Allowed40 hours");
     expect(juryData.rows[1]).toBe("Used40.00 hours");
     expect(juryData.rows[2]).toBe("Remaining0.00 hours");
+    // Check that the "Used" label has the approved class
+    const usedLabel = await page.evaluate(() => {
+      const card = document.querySelector("pto-jury-duty-card");
+      if (!card) return null;
+      const shadow = card.shadowRoot;
+      if (!shadow) return null;
+      const rows = shadow.querySelectorAll(".row");
+      const usedRow = rows[1]; // Second row is "Used"
+      const label = usedRow?.querySelector(".label");
+      return label?.className;
+    });
+    expect(usedLabel).toBe("label approved");
     // Check that there are jury duty entries
     expect(juryData.entries.length).toBeGreaterThan(0);
     expect(juryData.entries[0]).toBe("6/15/2026 8.0 hours");
@@ -344,8 +356,8 @@ test("pto-dashboard component test", async ({ page }) => {
       '.day[data-date="2026-03-10"]',
     );
     await expect(marchDay10Again).toHaveClass(/type-PTO/);
-    // Note: Calendar shows checkmarks for all entries since approval status is not included in PTOEntry
+    // Note: Now that approval status is properly checked, unapproved entries should not show checkmarks
     const checkmarkMarch10 = marchDay10Again.locator(".checkmark");
-    await expect(checkmarkMarch10).toBeVisible();
+    await expect(checkmarkMarch10).not.toBeVisible();
   });
 });
