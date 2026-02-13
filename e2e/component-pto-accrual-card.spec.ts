@@ -7,7 +7,7 @@ test("pto-accrual-card component test", async ({ page }) => {
   });
 
   await page.goto("/components/pto-accrual-card/test.html");
-  await page.waitForSelector("#test-output");
+  await page.waitForSelector("pto-accrual-card");
 
   // Allow for non-critical errors (like missing favicon)
   const criticalErrors = consoleMessages.filter(

@@ -21,7 +21,7 @@ test("report-generator component test", async ({ page }) => {
   }
 
   // Wait for the page to load and component to initialize
-  await page.waitForSelector("#test-output");
+  await page.waitForSelector("report-generator");
 
   // Check that no console errors occurred during loading
   const errors = consoleMessages.filter((msg) => msg.type === "error");

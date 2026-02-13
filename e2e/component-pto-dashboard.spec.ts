@@ -10,7 +10,7 @@ test("pto-dashboard component test", async ({ page }) => {
   });
 
   await page.goto("/components/pto-dashboard/test.html");
-  await page.waitForSelector("#test-output");
+  await page.waitForSelector("pto-summary-card");
 
   // Allow for non-critical errors (like missing favicon)
   const criticalErrors = consoleMessages.filter(

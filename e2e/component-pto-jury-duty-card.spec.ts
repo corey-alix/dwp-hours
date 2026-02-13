@@ -7,7 +7,7 @@ test("pto-jury-duty-card component test", async ({ page }) => {
   });
 
   await page.goto("/components/pto-jury-duty-card/test.html");
-  await page.waitForSelector("#test-output");
+  await page.waitForSelector("pto-jury-duty-card");
 
   // Allow for non-critical errors (like missing favicon)
   const criticalErrors = consoleMessages.filter(

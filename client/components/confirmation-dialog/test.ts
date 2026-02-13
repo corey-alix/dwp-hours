@@ -3,7 +3,13 @@ import { querySingle } from "../test-utils.js";
 export function playground() {
   console.log("Starting Confirmation Dialog playground test...");
 
-  const showButton = querySingle("#show-dialog");
+  // Create show button programmatically
+  const showButton = document.createElement("button");
+  showButton.id = "show-dialog";
+  showButton.textContent = "Show Dialog";
+  showButton.style.margin = "10px 0";
+  document.body.insertBefore(showButton, querySingle("#test-output"));
+
   showButton.addEventListener("click", () => {
     // Create and append the dialog
     const dialog = document.createElement("confirmation-dialog");
