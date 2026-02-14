@@ -15,6 +15,7 @@ export class EmployeeList extends HTMLElement {
   private _employees: Employee[] = [];
   private _filteredEmployees: Employee[] = [];
   private _searchTerm = "";
+  private _editingEmployeeId: number | null = null;
 
   constructor() {
     super();
@@ -22,7 +23,7 @@ export class EmployeeList extends HTMLElement {
   }
 
   static get observedAttributes() {
-    return ["employees"];
+    return ["employees", "editing-employee-id"];
   }
 
   connectedCallback() {
@@ -39,6 +40,9 @@ export class EmployeeList extends HTMLElement {
       } catch (e) {
         console.error("Invalid employees JSON:", e);
       }
+    } else if (oldValue !== newValue && name === "editing-employee-id") {
+      this._editingEmployeeId = newValue ? parseInt(newValue) : null;
+      this.render();
     }
   }
 
@@ -48,6 +52,14 @@ export class EmployeeList extends HTMLElement {
 
   get employees(): Employee[] {
     return this._employees;
+  }
+
+  set editingEmployeeId(value: number | null) {
+    this.setAttribute("editing-employee-id", value ? value.toString() : "");
+  }
+
+  get editingEmployeeId(): number | null {
+    return this._editingEmployeeId;
   }
 
   private filterEmployees() {
@@ -265,6 +277,14 @@ export class EmployeeList extends HTMLElement {
                     font-size: 18px;
                     color: var(--color-text);
                 }
+
+                .inline-editor {
+                    background: var(--color-surface);
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px var(--color-shadow);
+                    border: 1px solid var(--color-border);
+                    margin-bottom: 12px;
+                }
             </style>
 
             <div class="employee-list">
@@ -281,7 +301,11 @@ export class EmployeeList extends HTMLElement {
                       this._filteredEmployees.length === 0
                         ? '<div class="empty-state"><h3>No employees found</h3><p>Try adjusting your search or add a new employee.</p></div>'
                         : this._filteredEmployees
-                            .map((emp) => this.renderEmployeeCard(emp))
+                            .map((emp) =>
+                              this._editingEmployeeId === emp.id
+                                ? this.renderInlineEditor(emp)
+                                : this.renderEmployeeCard(emp),
+                            )
                             .join("")
                     }
                 </div>
@@ -320,6 +344,14 @@ export class EmployeeList extends HTMLElement {
         `;
   }
 
+  private renderInlineEditor(employee: Employee): string {
+    return `
+            <div class="inline-editor" data-employee-id="${employee.id}">
+                <employee-form employee='${JSON.stringify(employee)}' is-edit="true"></employee-form>
+            </div>
+        `;
+  }
+
   private setupEventListeners() {
     const searchInput = querySingle<HTMLInputElement>(
       "#search-input",
@@ -343,10 +375,33 @@ export class EmployeeList extends HTMLElement {
           this.dispatchEvent(
             new CustomEvent(`employee-${action}`, {
               detail: { employeeId: parseInt(employeeId) },
+              bubbles: true,
+              composed: true,
             }),
           );
         }
       }
+    });
+
+    // Listen for events from inline editor
+    this.shadow.addEventListener("employee-submit", (e) => {
+      this.dispatchEvent(
+        new CustomEvent("employee-submit", {
+          detail: (e as CustomEvent).detail,
+          bubbles: true,
+          composed: true,
+        }),
+      );
+    });
+
+    this.shadow.addEventListener("form-cancel", (e) => {
+      this.dispatchEvent(
+        new CustomEvent("form-cancel", {
+          detail: (e as CustomEvent).detail,
+          bubbles: true,
+          composed: true,
+        }),
+      );
     });
   }
 }

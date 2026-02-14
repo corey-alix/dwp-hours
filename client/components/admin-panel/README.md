@@ -73,6 +73,23 @@ adminPanel.currentView = "pto-requests";
 adminPanel.addEventListener("view-change", (e) => {
   console.log("View changed to:", e.detail.view);
 });
+
+// Employee management events
+adminPanel.addEventListener("create-employee", (e) => {
+  console.log("Create employee:", e.detail.employee);
+});
+
+adminPanel.addEventListener("update-employee", (e) => {
+  console.log("Update employee:", e.detail.employee);
+});
+
+adminPanel.addEventListener("employee-delete", (e) => {
+  console.log("Delete employee:", e.detail.employeeId);
+});
+
+adminPanel.addEventListener("employee-acknowledge", (e) => {
+  console.log("Acknowledge employee:", e.detail.employeeId, e.detail.month);
+});
 ```
 
 ## Component Structure
@@ -94,10 +111,10 @@ adminPanel.addEventListener("view-change", (e) => {
 
 ## Testing
 
-Run the component test suite:
+Run the component unit test suite:
 
 ```bash
-npm run test:e2e component-admin-panel
+npm run test:unit -- tests/components/admin-panel.test.ts
 ```
 
 Or visit the test page directly:

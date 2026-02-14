@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { SUCCESS_MESSAGES } from "../shared/businessRules.js";
 
 test.describe("Employee Authentication & Workflow", () => {
   test("should complete comprehensive PTO calendar request workflow", async ({
@@ -105,7 +106,7 @@ test.describe("Employee Authentication & Workflow", () => {
     expect(responseBody).toBeDefined();
     expect(responseBody).toHaveProperty(
       "message",
-      "PTO entries created successfully",
+      SUCCESS_MESSAGES["pto.created"],
     );
     expect(responseBody).toHaveProperty("ptoEntry");
 

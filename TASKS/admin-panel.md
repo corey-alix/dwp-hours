@@ -26,6 +26,7 @@ Implement the admin panel functionality using web components architecture follow
 
 - [x] `employee-list` - Display employees with search/filter capabilities
 - [x] `employee-form` - Reusable form for create/edit operations
+- [ ] Inline edit flow for employee cards (swap to `employee-form`, cancel/save restores card)
 
 ### PTO Review Components
 

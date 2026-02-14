@@ -32,6 +32,7 @@ import { sendMagicLinkEmail } from "./utils/mailer.js";
 import { PtoEntryDAL } from "./dal/PtoEntryDAL.js";
 import {
   VALIDATION_MESSAGES,
+  SUCCESS_MESSAGES,
   MessageKey,
   validatePTOBalance,
 } from "../shared/businessRules.js";
@@ -375,7 +376,7 @@ initDatabase()
             }
             // For security, don't reveal if user exists
             return res.json({
-              message: "If the email exists, a magic link has been sent.",
+              message: SUCCESS_MESSAGES["auth.link_sent"],
             });
           }
 
@@ -421,7 +422,7 @@ initDatabase()
           }
 
           res.json({
-            message: "If the email exists, a magic link has been sent.",
+            message: SUCCESS_MESSAGES["auth.link_sent"],
           });
         } catch (error) {
           log(`Error requesting magic link: ${error}`);
@@ -1415,6 +1416,7 @@ initDatabase()
             { employeeId: authenticatedEmployeeId, date, hours, type },
           ];
 
+          const ptoEntryRepo = dataSource.getRepository(PtoEntry);
           const results = [];
           for (const request of ptoRequests) {
             const {
@@ -1457,13 +1459,43 @@ initDatabase()
             });
 
             if (!result.success) {
-              console.log("PTO validation failed for request:", {
-                employeeId: empIdNum,
-                date: reqDate,
-                hours: reqHoursNum,
-                type: reqType,
-                errors: result.errors,
-              });
+              // Check if this is a duplicate entry error
+              const hasDuplicateError = result.errors.some(err => err.messageKey === 'pto.duplicate');
+              
+              if (hasDuplicateError) {
+                // Check if there's an existing entry with the same date and employee
+                const existingEntry = await ptoEntryRepo.findOne({
+                  where: {
+                    employee_id: empIdNum,
+                    date: reqDate,
+                  },
+                });
+
+                if (existingEntry) {
+                  // If the existing entry has the same type, update it instead
+                  if (existingEntry.type === reqType) {
+                    const updateResult = await ptoEntryDAL.updatePtoEntry(existingEntry.id, {
+                      hours: reqHoursNum,
+                    });
+
+                    if (!updateResult.success) {
+                      const fieldErrors = updateResult.errors.map((err) => ({
+                        field: err.field,
+                        message: VALIDATION_MESSAGES[err.messageKey as MessageKey],
+                      }));
+                      return res
+                        .status(400)
+                        .json({ error: "validation_failed", fieldErrors });
+                    }
+
+                    results.push(updateResult.ptoEntry);
+                    continue; // Skip to next request
+                  }
+                  // If different type, return the duplicate error
+                }
+              }
+
+              // For other validation errors, return them as before
               const fieldErrors = result.errors.map((err) => ({
                 field: err.field,
                 message: VALIDATION_MESSAGES[err.messageKey as MessageKey],
@@ -1477,7 +1509,7 @@ initDatabase()
             results.push(result.ptoEntry);
           }
 
-          log(`PTO entries created successfully: ${results.length} entries`);
+          log(`PTO entries processed successfully: ${results.length} entries`);
           results.forEach((entry, index) => {
             log(
               `Entry ${index + 1}: Employee ${entry.employee_id}, Date ${entry.date}, Type ${entry.type}, Hours ${entry.hours}`,
@@ -1486,7 +1518,7 @@ initDatabase()
 
           const lastResult = results[results.length - 1];
           const response: PTOCreateResponse = {
-            message: "PTO entries created successfully",
+            message: SUCCESS_MESSAGES["pto.created"],
             ptoEntry: serializePTOEntry(lastResult),
           };
 

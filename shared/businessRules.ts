@@ -41,6 +41,16 @@ export const VALIDATION_MESSAGES = {
     "This month has been acknowledged by the administrator and is no longer editable",
 } as const;
 
+export const SUCCESS_MESSAGES = {
+  "pto.created": "PTO request processed successfully",
+  "auth.link_sent": "If the email exists, a magic link has been sent.",
+} as const;
+
+export const UI_ERROR_MESSAGES = {
+  failed_to_refresh_pto_data: "Failed to refresh PTO data",
+  failed_to_load_pto_status: "Failed to load PTO status",
+} as const;
+
 export type MessageKey = keyof typeof VALIDATION_MESSAGES;
 
 /**

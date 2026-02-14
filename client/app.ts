@@ -14,6 +14,9 @@ import {
   getCurrentMonth,
 } from "../shared/dateUtils.js";
 
+// Import business rules
+import { UI_ERROR_MESSAGES } from "../shared/businessRules.js";
+
 // Import components and test utilities
 import "./components/index.js";
 import {
@@ -488,6 +491,9 @@ class UIManager {
     console.log("loadPTOStatus called, currentUser:", this.currentUser);
     if (!this.currentUser) return;
 
+    // Load PTO data
+    await this.refreshPTOData();
+
     // Create loading structure first
     const statusDiv = querySingle("#pto-status");
     const hireDate = "Loading..."; // Placeholder
@@ -519,19 +525,19 @@ class UIManager {
     sickCard.bucket = null; // Will show loading
     sickCard.usageEntries = [];
 
-    const bereavementCard = createElement(
+    const bereavementCard = createElement<PtoBereavementCard>(
       "pto-bereavement-card",
-    ) as PtoBereavementCard;
+    );
     bereavementCard.bucket = null; // Will show loading
     bereavementCard.usageEntries = [];
 
-    const juryDutyCard = createElement("pto-jury-duty-card") as PtoJuryDutyCard;
+    const juryDutyCard = createElement<PtoJuryDutyCard>("pto-jury-duty-card");
     juryDutyCard.bucket = null; // Will show loading
     juryDutyCard.usageEntries = [];
 
-    const employeeInfoCard = createElement(
+    const employeeInfoCard = createElement<PtoEmployeeInfoCard>(
       "pto-employee-info-card",
-    ) as PtoEmployeeInfoCard;
+    );
     employeeInfoCard.info = { hireDate, nextRolloverDate };
 
     summaryContainer.appendChild(summaryCard);
@@ -632,7 +638,7 @@ class UIManager {
         handleNavigateToMonth,
       );
     } catch (error) {
-      console.error("Failed to load PTO status:", error);
+      console.error(UI_ERROR_MESSAGES.failed_to_load_pto_status, error);
       const statusDiv = querySingle("#pto-status");
       statusDiv.innerHTML = `
                 <h3>PTO Status</h3>
@@ -792,9 +798,9 @@ class UIManager {
       // Re-render all PTO components with fresh data
       await this.renderPTOStatus(status, entries);
     } catch (error) {
-      console.error("Failed to refresh PTO data:", error);
+      console.error(UI_ERROR_MESSAGES.failed_to_refresh_pto_data, error);
       notifications.error(
-        "Failed to refresh PTO data. Please refresh the page.",
+        `${UI_ERROR_MESSAGES.failed_to_refresh_pto_data}. Please refresh the page.`,
       );
     }
   }

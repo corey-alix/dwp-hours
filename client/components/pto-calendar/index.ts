@@ -40,6 +40,7 @@ export interface CalendarEntry {
   date: string;
   hours: number;
   type: string;
+  id?: number; // For existing entries being updated
 }
 
 export interface PTOEntry {
@@ -149,11 +150,17 @@ export class PtoCalendar extends HTMLElement {
   }
 
   getSelectedRequests(): CalendarEntry[] {
-    return Array.from(this.selectedCells.entries()).map(([date, hours]) => ({
-      date,
-      hours,
-      type: this.selectedPtoType || "PTO",
-    }));
+    return Array.from(this.selectedCells.entries()).map(([date, hours]) => {
+      const existingEntry = this.ptoEntries.find(
+        (entry) => entry.date === date,
+      );
+      return {
+        date,
+        hours,
+        type: existingEntry?.type || this.selectedPtoType || "PTO",
+        id: existingEntry?.id,
+      };
+    });
   }
 
   clearSelection() {
@@ -288,7 +295,7 @@ export class PtoCalendar extends HTMLElement {
                             this.selectedCells.get(dateStr) || 8;
                           const isWeekendDate = isWeekend(dateStr);
                           const dayClass = entry
-                            ? `day type-${entry.type.replace(/\s+/g, "-")}`
+                            ? `day has-pto type-${entry.type.replace(/\s+/g, "-")}`
                             : isSelected && this.selectedPtoType
                               ? `day type-${this.selectedPtoType.replace(/\s+/g, "-")}`
                               : "day";
@@ -616,6 +623,8 @@ export class PtoCalendar extends HTMLElement {
               this.selectedCells.delete(date);
             } else {
               this.selectedCells.set(date, existingEntry.hours);
+              // Set the PTO type for this selection
+              this.selectedPtoType = existingEntry.type;
             }
             this.render();
           }
@@ -692,6 +701,8 @@ export class PtoCalendar extends HTMLElement {
               // Update existing entry
               this.ptoEntries[existingEntryIndex].hours = value;
               this.setAttribute("pto-entries", JSON.stringify(this.ptoEntries));
+              // Also mark as selected for submission
+              this.selectedCells.set(date, value);
             } else {
               // Update selected cell
               this.selectedCells.set(date, value);

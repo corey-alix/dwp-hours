@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { UI_ERROR_MESSAGES } from "../shared/businessRules.js";
 
 test("admin-panel component test", async ({ page }) => {
   // Navigate to the main app first to authenticate
@@ -42,7 +43,8 @@ test("admin-panel component test", async ({ page }) => {
       msg.type === "error" &&
       !msg.text.includes("favicon") &&
       !msg.text.includes("manifest") &&
-      !msg.text.includes("Failed to load PTO status"),
+      !msg.text.includes(UI_ERROR_MESSAGES.failed_to_load_pto_status) &&
+      !msg.text.includes(UI_ERROR_MESSAGES.failed_to_refresh_pto_data),
   );
   expect(errors).toHaveLength(0);
 
@@ -106,7 +108,8 @@ test("admin-panel component test", async ({ page }) => {
       msg.type === "error" &&
       !msg.text.includes("favicon") &&
       !msg.text.includes("manifest") &&
-      !msg.text.includes("Failed to load PTO status"),
+      !msg.text.includes(UI_ERROR_MESSAGES.failed_to_load_pto_status) &&
+      !msg.text.includes(UI_ERROR_MESSAGES.failed_to_refresh_pto_data),
   );
   expect(finalErrors).toHaveLength(0);
 });

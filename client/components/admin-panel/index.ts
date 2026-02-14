@@ -29,6 +29,8 @@ export class AdminPanel extends BaseComponent {
   private _ptoRequests: PTORequest[] = [];
   private _showEmployeeForm = false;
   private _editingEmployee: Employee | null = null;
+  private _editingEmployeeId: number | null = null;
+  private _isSubmitting = false;
 
   static get observedAttributes() {
     return ["current-view"];
@@ -57,6 +59,10 @@ export class AdminPanel extends BaseComponent {
   setEmployees(employees: Employee[]) {
     this._employees = employees;
     this.requestUpdate();
+  }
+
+  get employees(): Employee[] {
+    return [...this._employees];
   }
 
   // Method to set PTO requests for testing
@@ -273,7 +279,7 @@ export class AdminPanel extends BaseComponent {
     switch (this._currentView) {
       case "employees":
         return `
-          <employee-list employees='${JSON.stringify(this._employees)}'>
+          <employee-list employees='${JSON.stringify(this._employees)}' editing-employee-id='${this._editingEmployeeId || ""}'>
             ${this._showEmployeeForm ? `<employee-form slot="top-content" employee='${JSON.stringify(this._editingEmployee)}' is-edit='${!!this._editingEmployee}'></employee-form>` : ""}
           </employee-list>
         `;
@@ -344,7 +350,7 @@ export class AdminPanel extends BaseComponent {
         this.handleEmployeeSubmit(employee, isEdit);
         break;
       case "form-cancel":
-        this.hideEmployeeForm();
+        this.handleFormCancel();
         break;
       case "employee-delete":
         this.dispatchEvent(
@@ -368,6 +374,15 @@ export class AdminPanel extends BaseComponent {
         const employeeId = event.detail.employeeId;
         this.showEmployeeForm(employeeId);
         break;
+      case "update-employee":
+        // Handle our own update-employee events to update local state
+        console.log("AdminPanel: received update-employee event", event.detail);
+        this.handleEmployeeUpdate(event.detail.employee);
+        break;
+      case "create-employee":
+        // Handle our own create-employee events to update local state
+        this.handleEmployeeCreate(event.detail.employee);
+        break;
     }
   }
 
@@ -376,51 +391,158 @@ export class AdminPanel extends BaseComponent {
     super.setupEventDelegation();
 
     // Listen for custom events from child components
-    this.shadowRoot.addEventListener("employee-submit", (e) => {
+    this.addEventListener("employee-submit", (e) => {
+      e.stopPropagation();
       this.handleCustomEvent(e as CustomEvent);
     });
-    this.shadowRoot.addEventListener("form-cancel", (e) => {
+    this.addEventListener("form-cancel", (e) => {
       this.handleCustomEvent(e as CustomEvent);
     });
-    this.shadowRoot.addEventListener("employee-delete", (e) => {
+    this.addEventListener("employee-delete", (e) => {
       this.handleCustomEvent(e as CustomEvent);
     });
-    this.shadowRoot.addEventListener("employee-acknowledge", (e) => {
+    this.addEventListener("employee-acknowledge", (e) => {
       this.handleCustomEvent(e as CustomEvent);
     });
-    this.shadowRoot.addEventListener("employee-edit", (e) => {
+    this.addEventListener("employee-edit", (e) => {
       this.handleCustomEvent(e as CustomEvent);
     });
+    // Listen for our own events to update local state
+    // this.addEventListener("update-employee", (e) => {
+    //   this.handleCustomEvent(e as CustomEvent);
+    // });
+  }
+
+  private handleFormCancel() {
+    // Store the previously editing employee ID for focus management
+    const previouslyEditingId = this._editingEmployeeId;
+    this.hideEmployeeForm();
+    this.requestUpdate();
+
+    // Return focus to the Edit button of the previously edited employee
+    if (previouslyEditingId) {
+      setTimeout(() => this.focusEditButton(previouslyEditingId), 0);
+    }
+  }
+
+  private handleEmployeeUpdate(updatedEmployee: Employee) {
+    console.log("AdminPanel: handleEmployeeUpdate called", updatedEmployee);
+    // Update the employee in the local list
+    const index = this._employees.findIndex(
+      (emp) => emp.id === updatedEmployee.id,
+    );
+    console.log("AdminPanel: found employee at index", index);
+    if (index !== -1) {
+      this._employees[index] = updatedEmployee;
+      console.log(
+        "AdminPanel: updated employee, hiding form and requesting update",
+      );
+      this.hideEmployeeForm();
+      this.requestUpdate();
+    }
+  }
+
+  private handleEmployeeCreate(newEmployee: Employee) {
+    // Add the new employee to the local list
+    this._employees.push(newEmployee);
+    this.hideEmployeeForm();
+    this.requestUpdate();
+  }
+
+  private focusFormFirstInput() {
+    // Find the employee form and focus the first input
+    const employeeList = this.shadowRoot?.querySelector("employee-list");
+    if (employeeList?.shadowRoot) {
+      const employeeForm =
+        employeeList.shadowRoot.querySelector("employee-form");
+      if (employeeForm?.shadowRoot) {
+        const firstInput = employeeForm.shadowRoot.querySelector(
+          "input",
+        ) as HTMLInputElement;
+        firstInput?.focus();
+      }
+    }
   }
 
   private showEmployeeForm(employeeId?: number) {
     if (employeeId) {
-      this._editingEmployee =
-        this._employees.find((emp) => emp.id === employeeId) || null;
+      // Inline editing of existing employee
+      this._editingEmployeeId = employeeId;
+      this._showEmployeeForm = false; // Don't show slot-based form
+      this._editingEmployee = null;
     } else {
+      // Adding new employee - show form in slot
+      this._editingEmployeeId = null; // Clear any inline editing
+      this._showEmployeeForm = true;
       this._editingEmployee = null;
     }
-    this._showEmployeeForm = true;
     this.requestUpdate();
+
+    // Focus management: move focus to the form when it opens
+    if (employeeId) {
+      // For inline editing, focus the first input in the employee form
+      setTimeout(() => this.focusFormFirstInput(), 0);
+    }
   }
 
   private hideEmployeeForm() {
     this._showEmployeeForm = false;
     this._editingEmployee = null;
+    this._editingEmployeeId = null;
+    this._isSubmitting = false;
     this.requestUpdate();
   }
 
+  private focusEditButton(employeeId: number) {
+    // Find the edit button for the specified employee and focus it
+    const employeeList = this.shadowRoot?.querySelector("employee-list");
+    if (employeeList?.shadowRoot) {
+      const editButton = employeeList.shadowRoot.querySelector(
+        `[data-employee-id="${employeeId}"][data-action="edit"]`,
+      ) as HTMLElement;
+      editButton?.focus();
+    }
+  }
+
   private async handleEmployeeSubmit(employee: Employee, isEdit: boolean) {
+    if (this._isSubmitting) {
+      console.log("AdminPanel: already submitting, ignoring");
+      return;
+    }
+    this._isSubmitting = true;
+    console.log("AdminPanel: handleEmployeeSubmit called", {
+      employee,
+      isEdit,
+    });
+    // Store the employee ID for focus management before hiding the form
+    const employeeId = isEdit ? employee.id : null;
+
     // Dispatch event for parent component to handle data persistence
     const eventType = isEdit ? "update-employee" : "create-employee";
+    console.log("AdminPanel: dispatching event", eventType, {
+      employee,
+      isEdit,
+    });
     this.dispatchEvent(
       new CustomEvent(eventType, {
         detail: { employee, isEdit },
-        bubbles: true,
+        bubbles: false,
         composed: true,
       }),
     );
+
+    // Hide the form and update local state
+    console.log("AdminPanel: hiding form and requesting update");
     this.hideEmployeeForm();
+    this.requestUpdate();
+
+    // Update local state for immediate UI feedback (only for edits)
+    // Note: Removed direct call to handleEmployeeUpdate since the event will handle it
+
+    // Return focus to the Edit button after save
+    if (employeeId) {
+      setTimeout(() => this.focusEditButton(employeeId), 0);
+    }
   }
 }
 
