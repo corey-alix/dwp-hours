@@ -6,6 +6,7 @@
     <title>PTO Bereavement Card Test</title>
     <link rel="stylesheet" href="../../styles.css" />
   </head>
+
   <body>
     <h1>PTO Bereavement Card Component Test</h1>
     <div
@@ -23,6 +24,15 @@
     <script type="module">
       import { ptoBereavementCard } from "/app.js";
       ptoBereavementCard();
+
+      // Connect date clicks to test output
+      const card = document.getElementById("pto-bereavement-card");
+      const output = document.getElementById("test-output");
+
+      card.addEventListener("navigate-to-month", (event) => {
+        const { month, year } = event.detail;
+        output.textContent = `Navigated to: ${month}/${year}`;
+      });
     </script>
   </body>
 </html>

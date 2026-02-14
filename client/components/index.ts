@@ -2,6 +2,7 @@
 export { BaseComponent } from "./base-component.js";
 export { ConfirmationDialog } from "./confirmation-dialog/index.js";
 export { AdminPanel } from "./admin-panel/index.js";
+export { AdminMonthlyReview } from "./admin-monthly-review/index.js";
 export { EmployeeList } from "./employee-list/index.js";
 export { EmployeeForm } from "./employee-form/index.js";
 export { PtoEntryForm } from "./pto-entry-form/index.js";

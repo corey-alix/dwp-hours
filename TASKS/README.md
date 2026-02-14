@@ -8,25 +8,26 @@ This document outlines all remaining tasks to complete the DWP Hours Tracker app
 
 ### 🔥 High Priority (Foundation - Complete First)
 
-1. **[database-schema.md](database-schema.md)** - Complete database schema
-2. **[authentication.md](authentication.md)** - Implement real authentication
-3. **[pto-calculations.md](pto-calculations.md)** - PTO status calculations
-4. **[api-endpoints.md](api-endpoints.md)** - Complete API endpoints
-5. **[issue-date-handling-regression.md](issue-date-handling-regression.md)** - Fix timezone-related date shifting bugs
+1. ✅ **[database-schema.md](database-schema.md)** - Complete database schema
+2. ✅ **[authentication.md](authentication.md)** - Implement real authentication
+3. ✅ **[pto-calculations.md](pto-calculations.md)** - PTO status calculations
+4. ✅ **[api-endpoints.md](api-endpoints.md)** - Complete API endpoints
+5. ✅ **[issue-date-handling-regression.md](issue-date-handling-regression.md)** - Fix timezone-related date shifting bugs
 
 ### 🟡 Medium Priority (Backend/API Core Features)
 
-5. **[testing-suite.md](testing-suite.md)** - Testing implementation
-6. **[data-migration.md](data-migration.md)** - Legacy data migration (see [`.github/skills/pto-spreadsheet-layout/SKILL.md`](../.github/skills/pto-spreadsheet-layout/SKILL.md) for spreadsheet structure reference)
-7. **[security-production.md](security-production.md)** - Security & production features
-8. **[design-constraints.md](design-constraints.md)** ✅ - Code quality improvements and design constraint compliance
-9. **[database-reset-reload-service.md](database-reset-reload-service.md)** ✅ - Deterministic DB reload for consistent E2E
+6. ✅ **[testing-suite.md](testing-suite.md)** - Testing implementation
+7. ✅ **[data-migration.md](data-migration.md)** - Legacy data migration (see [`.github/skills/pto-spreadsheet-layout/SKILL.md`](../.github/skills/pto-spreadsheet-layout/SKILL.md) for spreadsheet structure reference)
+8. ✅ **[security-production.md](security-production.md)** - Security & production features
+9. ✅ **[design-constraints.md](design-constraints.md)** - Code quality improvements and design constraint compliance
+10. ✅ **[database-reset-reload-service.md](database-reset-reload-service.md)** - Deterministic DB reload for consistent E2E
+11. **[planet-branch-workflow.md](planet-branch-workflow.md)** - Standardized feature development workflow using planet branches
 
 ### 🟢 Low Priority (Frontend/UI Features)
 
-8. **[admin-review-acknowledgment.md](admin-review-acknowledgment.md)** - Admin review acknowledgment
-9. **[issue-submit-time-off-calendar-regressions.md](issue-submit-time-off-calendar-regressions.md)** - Submit Time Off calendar missing features
-10. ✅ **[issue-test-file-conventions-regression.md](issue-test-file-conventions-regression.md)** - Test files not following web-components-assistant conventions
+11. **[admin-review-acknowledgment.md](admin-review-acknowledgment.md)** - Admin review acknowledgment
+12. **[issue-submit-time-off-calendar-regressions.md](issue-submit-time-off-calendar-regressions.md)** - Submit Time Off calendar missing features
+13. ✅ **[issue-test-file-conventions-regression.md](issue-test-file-conventions-regression.md)** - Test files not following web-components-assistant conventions
 
 ## Task Dependencies
 
@@ -111,8 +112,8 @@ database-schema.md
 6. ✅ **data-migration.md** - legacy data migration completed
 7. ✅ **security-production.md** - production readiness completed
 8. ✅ **admin-panel.md** - admin UI features completed
-9. **issue-date-handling-regression.md** - critical date handling bug fix needed
-10. **design-constraints.md** - code quality improvements needed
+9. ✅ **issue-date-handling-regression.md** - critical date handling bug fix needed
+10. ✅ **design-constraints.md** - code quality improvements needed
 11. Implement **admin-review-acknowledgment.md** - admin review UI
 12. ✅ **issue-test-file-conventions-regression.md** - fix test file conventions regression
 

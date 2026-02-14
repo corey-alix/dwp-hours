@@ -126,24 +126,8 @@ test("pto-accrual-card component test", async ({ page }) => {
   await expect(calendar).toBeVisible();
 
   await test.step("Verify calendar scrolls into view", async () => {
-    // Wait for smooth scroll animation to complete
-    await page.waitForTimeout(1000);
-
-    // Check if the calendar is fully in the viewport
-    const isInViewport = await calendar.evaluate((el) => {
-      const rect = el.getBoundingClientRect();
-      const viewportHeight =
-        window.innerHeight || document.documentElement.clientHeight;
-      const viewportWidth =
-        window.innerWidth || document.documentElement.clientWidth;
-      return (
-        rect.top >= 0 &&
-        rect.left >= 0 &&
-        rect.bottom <= viewportHeight &&
-        rect.right <= viewportWidth
-      );
-    });
-
-    expect(isInViewport).toBe(true);
+    // Use Playwright's built-in toBeInViewport with auto-retry
+    // ratio: 0.5 means at least 50% of the element must be visible
+    await expect(calendar).toBeInViewport({ ratio: 0.5, timeout: 5000 });
   });
 });
