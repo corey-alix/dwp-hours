@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { APIClient } from "../client/APIClient.js";
+import {
+  VALIDATION_MESSAGES,
+  SUCCESS_MESSAGES,
+} from "../shared/businessRules.js";
 
 // Mock fetch globally
 const fetchMock = vi.fn();
@@ -54,7 +58,7 @@ describe("APIClient", () => {
   describe("createPTOEntry", () => {
     it("should create a single PTO entry", async () => {
       const mockResponse = {
-        message: "PTO entries created successfully",
+        message: SUCCESS_MESSAGES["pto.created"],
         ptoEntry: {
           id: 1,
           employeeId: 1,
@@ -91,7 +95,7 @@ describe("APIClient", () => {
 
     it("should create multiple PTO entries", async () => {
       const mockResponse = {
-        message: "PTO entries created successfully",
+        message: SUCCESS_MESSAGES["pto.created"],
         ptoEntry: {
           id: 2,
           employeeId: 1,
@@ -168,7 +172,7 @@ describe("APIClient", () => {
   describe("requestAuthLink", () => {
     it("should request authentication link", async () => {
       const mockResponse = {
-        message: "If the email exists, a magic link has been sent.",
+        message: SUCCESS_MESSAGES["auth.link_sent"],
       };
       fetchMock.mockResolvedValueOnce({
         json: () => Promise.resolve(mockResponse),

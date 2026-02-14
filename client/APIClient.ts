@@ -23,6 +23,18 @@ export class APIClient {
     return response.json();
   }
 
+  async put(endpoint: string, data: any): Promise<any> {
+    const response = await fetch(`${this.baseURL}${endpoint}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+      credentials: "include",
+    });
+    return response.json();
+  }
+
   // Typed API methods
   async requestAuthLink(
     identifier: string,
@@ -67,7 +79,7 @@ export class APIClient {
     id: number,
     updates: Partial<{ date: string; hours: number; type: string }>,
   ): Promise<ApiTypes.PTOUpdateResponse> {
-    return this.post(`/pto/${id}`, updates);
+    return this.put(`/pto/${id}`, updates);
   }
 
   async deletePTOEntry(id: number): Promise<ApiTypes.GenericMessageResponse> {
