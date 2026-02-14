@@ -1,0 +1,1 @@
+bash make-scripts-executable.sh
