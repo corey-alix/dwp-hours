@@ -10,6 +10,8 @@ public
 private
 *.private
 *.json
+!ecosystem.config.json
+!deploy-info.json
 db/backups/
 *.xml
 test-results
