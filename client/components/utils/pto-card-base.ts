@@ -48,6 +48,12 @@ export const PTO_CARD_CSS = `
             font-weight: var(--font-weight-semibold);
         }
 
+        .card .usage-date.approved::after {
+            content: " ✓";
+            color: var(--color-success);
+            font-weight: var(--font-weight-semibold);
+        }
+
         .card .negative-balance {
             color: var(--color-error);
             font-weight: var(--font-weight-semibold);
@@ -221,6 +227,12 @@ export class PtoSectionCard extends HTMLElement {
                 .card .label {
                     font-weight: var(--font-weight-semibold);
                     color: var(--color-text);
+                }
+
+                .card .label.approved::after {
+                    content: " ✓";
+                    color: var(--color-success);
+                    font-weight: var(--font-weight-semibold);
                 }
 
                 .card .negative-balance {

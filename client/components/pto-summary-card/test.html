@@ -6,11 +6,19 @@
     <title>PTO Summary Card Test</title>
     <link rel="stylesheet" href="../../styles.css" />
   </head>
+
   <body>
     <h1>PTO Summary Card Component Test</h1>
     <div id="test-output"></div>
 
-    <pto-summary-card id="pto-summary-card"></pto-summary-card>
+    <h2>John Doe (Employee 1 - has unapproved PTO)</h2>
+    <pto-summary-card id="pto-summary-card-john"></pto-summary-card>
+
+    <h2>Jane Smith (Employee 2 - has unapproved PTO)</h2>
+    <pto-summary-card id="pto-summary-card-jane"></pto-summary-card>
+
+    <h2>Admin User (Employee 3 - has approved PTO)</h2>
+    <pto-summary-card id="pto-summary-card-admin"></pto-summary-card>
 
     <script type="module">
       import { ptoSummaryCard } from "/app.js";

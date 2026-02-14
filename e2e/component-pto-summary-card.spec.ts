@@ -18,12 +18,12 @@ test("pto-summary-card component test", async ({ page }) => {
   );
   expect(criticalErrors).toHaveLength(0);
 
-  await expect(page.locator("pto-summary-card")).toBeVisible();
-  await expect(page.locator("#test-output")).toContainText(
-    "Initial data set via property",
-  );
+  await expect(page.locator("pto-summary-card")).toHaveCount(3);
+  await expect(page.locator("#pto-summary-card-john")).toBeVisible();
+  await expect(page.locator("#pto-summary-card-jane")).toBeVisible();
+  await expect(page.locator("#pto-summary-card-admin")).toBeVisible();
 
-  // Wait for attribute update
+  // Wait for attribute update (both cards are set up)
   await page.waitForTimeout(2500);
   await expect(page.locator("#test-output")).toContainText(
     "Data updated via attribute",

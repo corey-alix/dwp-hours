@@ -72,9 +72,9 @@ export class PtoRequestQueue extends HTMLElement {
 
                 .queue-header {
                     display: flex;
-                    justify-content: space-between;
+                    gap: var(--space-header);
                     align-items: center;
-                    padding: 20px;
+                    padding: var(--space-lg);
                     border-bottom: 1px solid var(--color-border);
                     background: var(--color-surface);
                 }
@@ -112,19 +112,22 @@ export class PtoRequestQueue extends HTMLElement {
                 }
 
                 .queue-content {
-                    flex: 1;
+                    gap: var(--space-header);
+                    display: flex;
+                    flex-wrap: wrap;
                     overflow-y: auto;
-                    padding: 20px;
+                    padding: var(--space-lg);
                 }
 
                 .request-card {
                     background: var(--color-surface);
-                    border-radius: 8px;
-                    padding: 20px;
-                    margin-bottom: 16px;
+                    border-radius: var(--border-radius-lg);
+                    padding: var(--space-lg);
+                    margin-bottom: var(--space-md);
                     box-shadow: var(--shadow-md);
                     border: 1px solid var(--color-border);
                     transition: box-shadow 0.3s ease;
+                    flex: 1 1 24em;
                 }
 
                 .request-card:hover {
@@ -135,7 +138,7 @@ export class PtoRequestQueue extends HTMLElement {
                     display: flex;
                     justify-content: space-between;
                     align-items: flex-start;
-                    margin-bottom: 16px;
+                    margin-bottom: var(--space-md);
                 }
 
                 .employee-info {
@@ -169,8 +172,8 @@ export class PtoRequestQueue extends HTMLElement {
                 .request-details {
                     display: grid;
                     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-                    gap: 16px;
-                    margin-bottom: 16px;
+                    gap: var(--space-md);
+                    margin-bottom: var(--space-md);
                 }
 
                 .detail-item {
@@ -244,7 +247,7 @@ export class PtoRequestQueue extends HTMLElement {
 
                 .empty-state {
                     text-align: center;
-                    padding: var(--space-2xl) * 1.5 var(--space-xl);
+                    padding: calc(var(--space-2xl) * 1.5) var(--space-xl);
                     color: var(--color-text-muted);
                 }
 
@@ -262,7 +265,7 @@ export class PtoRequestQueue extends HTMLElement {
                 .status-badge {
                     padding: var(--space-xs) var(--space-sm);
                     border-radius: var(--border-radius-xl);
-                    font-size: 11px;
+                    font-size: var(--font-size-xs);
                     font-weight: var(--font-weight-bold);
                     text-transform: uppercase;
                     letter-spacing: 0.5px;

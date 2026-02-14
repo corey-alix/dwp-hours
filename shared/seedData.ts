@@ -177,7 +177,7 @@ export const seedPTOEntries: SeedPtoEntry[] = [
     date: "2026-05-01",
     type: "PTO",
     hours: 40,
-    approved_by: null,
+    approved_by: 3,
   },
 ];
 
