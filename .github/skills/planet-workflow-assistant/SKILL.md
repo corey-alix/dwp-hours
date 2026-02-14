@@ -4,6 +4,10 @@
 
 Specialized assistant for managing the planet branch workflow, providing guided feature development with planet-based staging environments. Handles feature creation, completion, planet promotion, and repository maintenance with safety checks and validation.
 
+## Critical Requirements
+
+**Console Feedback Required**: Do not proceed with workflow operations if console/terminal output is not visible. All script executions must provide clear feedback for debugging and error resolution. If console output cannot be observed, request it from the user before proceeding.
+
 ## Trigger
 
 Activate when users need to:
