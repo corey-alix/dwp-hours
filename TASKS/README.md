@@ -25,7 +25,7 @@ This document outlines all remaining tasks to complete the DWP Hours Tracker app
 
 ### 🟢 Low Priority (Frontend/UI Features)
 
-11. **[admin-review-acknowledgment.md](admin-review-acknowledgment.md)** - Admin review acknowledgment
+11. ✅ **[admin-review-acknowledgment.md](admin-review-acknowledgment.md)** - Admin review acknowledgment
 12. **[issue-submit-time-off-calendar-regressions.md](issue-submit-time-off-calendar-regressions.md)** - Submit Time Off calendar missing features
 13. ✅ **[issue-test-file-conventions-regression.md](issue-test-file-conventions-regression.md)** - Test files not following web-components-assistant conventions
 
@@ -66,7 +66,6 @@ database-schema.md
 
 ### 🚧 In Progress
 
-- Admin review acknowledgment UI (backend completed, frontend pending)
 - Production deployment
 
 ## Implementation Guidelines
@@ -114,8 +113,10 @@ database-schema.md
 8. ✅ **admin-panel.md** - admin UI features completed
 9. ✅ **issue-date-handling-regression.md** - critical date handling bug fix needed
 10. ✅ **design-constraints.md** - code quality improvements needed
-11. Implement **admin-review-acknowledgment.md** - admin review UI
-12. ✅ **issue-test-file-conventions-regression.md** - fix test file conventions regression
+11. ✅ **admin-review-acknowledgment.md** - admin review UI
+12. **planet-branch-workflow.md** - standardized feature development workflow
+13. **issue-submit-time-off-calendar-regressions.md** - submit time off calendar missing features
+14. ✅ **issue-test-file-conventions-regression.md** - fix test file conventions regression
 
 Each task file contains detailed checklists for implementation steps.</content>
 <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/TASKS/README.md

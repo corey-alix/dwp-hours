@@ -14,7 +14,7 @@ Implement a feature where the administrator, after reviewing employee hours and 
 
 - [x] Analyze current employee acknowledgment system for patterns to replicate
 - [x] Design database schema changes: Create admin_acknowledgements table with id (primary key), employee_id, month, admin_id, acknowledged_at, with foreign keys to employees table
-- [x] Implement API endpoint for admin to acknowledge review of a month's hours
+- [x] Implement API endpoints for admin acknowledgments: POST /api/admin-acknowledgements (submission), GET /api/admin-acknowledgements/:employeeId (per-employee retrieval), and acknowledgment status included in GET /api/admin/monthly-review/:month response
 - [x] Add validation to ensure only admins can perform acknowledgment
 - [x] Implement logic to mark month as reviewed upon acknowledgment
 - [x] Write unit tests for acknowledgment API and logic
@@ -42,7 +42,7 @@ Implement a feature where the administrator, after reviewing employee hours and 
   - **Implementation**: Add event listeners for acknowledgment actions and API integration
 - [x] **Add admin acknowledgment API calls**: Integrate frontend with existing admin-acknowledgements API endpoints
   - **Components Involved**: `admin-panel/index.ts`, `app.ts` (API client integration)
-  - **Implementation**: Use existing `APIClient.submitAdminAcknowledgement()` and `getAdminAcknowledgements()` methods
+  - **Implementation**: Use existing `APIClient.submitAdminAcknowledgement()` method and acknowledgment status included in `getAdminMonthlyReview()` response
 - [x] **Test UI changes**: Use `admin-panel/test.html` to verify acknowledgment UI components work correctly
   - **Components Involved**: `admin-panel/test.html`, `admin-panel/test.ts`
   - **Implementation**: Update test files to include acknowledgment UI testing scenarios
@@ -96,12 +96,13 @@ All documentation updated, task checklists completed, builds and linting verifie
 
 ### Key Deliverables Completed:
 
-- Backend API endpoints for admin acknowledgments
+- Backend API endpoints for admin acknowledgments (POST for submission, GET per-employee, acknowledgment status included in monthly review)
 - Frontend `admin-monthly-review` web component with full UI
 - Component testing architecture using seed data
 - E2E test coverage for acknowledgment workflows
 - Integration with admin panel navigation
 - Event-driven data flow following project patterns
+- **Efficient API Design**: Acknowledgment status included in monthly review response for single-request data fetching
 - **Comprehensive architectural documentation** including event-driven patterns, testing architecture, and component hierarchy
 - Type safety with shared models between client and server
 
@@ -135,6 +136,7 @@ All documentation updated, task checklists completed, builds and linting verifie
 - Handle edge cases like multiple admins or re-acknowledgment
 - Use consistent error handling and logging
 - Integrate with existing admin panel UI
+- **Efficient API Design**: Acknowledgment status is included in the monthly review API response (`AdminMonthlyReviewItem` includes `acknowledgedByAdmin`, `adminAcknowledgedAt`, `adminAcknowledgedBy` fields) rather than requiring separate API calls
 - **Testing**: Use `client/components/admin-panel/test.html` for unit testing admin acknowledgment UI components
 - **Test Data**: Use seed data from `shared/seedData.ts` (automatically loaded by admin-panel/test.ts) instead of real production data
 - **Component Testing Architecture**: The `admin-monthly-review/index.ts` component cannot call `fetchEmployeeMonthlyData` directly. Instead, the `admin-monthly-review/test.ts` must read `shared/seedData.ts` and formulate a model resembling the "/api/admin/monthly-review/:month" API response (which needs to be defined in `shared/api-models.d.ts`) to pass to the component for testing
