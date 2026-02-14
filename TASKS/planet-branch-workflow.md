@@ -1,8 +1,27 @@
 # Planet Branch Workflow
 
+## Objective
+
+Implement an agent-driven planet-based branching workflow where developers simply describe their task using "/planet-workflow <task description>", and the AI agent automatically:
+
+- Analyzes the task description to determine effort and urgency levels
+- Maps the task to the appropriate planet branch (mercury, mars, earth, jupiter, saturn)
+- Locates and validates the corresponding worktree environment
+- Creates the feature branch within that worktree
+- Provides clear feedback on actions taken or reasons for inaction
+
+The agent has full authority to modify git workflow scripts as needed to achieve this seamless experience. This workflow will:
+
+- Enable parallel development across different urgency levels
+- Reduce merge conflicts through isolated planet environments
+- Provide structured multi-stage validation (feature → planet → main)
+- Integrate with existing worktree system for isolated testing
+- Maintain code quality through planet-specific review requirements
+- Be adopted by the team as the standard development workflow
+
 ## Description
 
-Design and implement a standardized workflow for feature development using the planet branches (mercury, mars, earth, jupiter, saturn) as staging environments based on effort and urgency characteristics. This includes scripts for creating, naming, and managing feature branches, with automated merging through planet branches before reaching main.
+Design and implement an AI-agent-assisted workflow for feature development using planet branches as staging environments. The agent analyzes natural language task descriptions to automatically categorize features by effort/urgency, manage worktree environments, and execute git operations. Scripts in `scripts/git/` can be modified by the agent as needed to support this automated workflow.
 
 ## Introduction
 
@@ -17,6 +36,24 @@ This workflow diverges from typical git branching strategies by introducing plan
 Features are developed on branches created from the appropriate planet, then merged back to that planet for team testing, and finally planets are merged into main when ready. This creates a multi-stage validation pipeline while maintaining parallel development across different urgency levels.
 
 The workflow integrates with the existing worktree system (see `scripts/set-port.sh`), where each planet has a dedicated worktree with automatic port assignment for isolated development and testing environments.
+
+## User Interaction
+
+Developers interact with the workflow through natural language commands to the AI agent:
+
+```
+/planet-workflow Add user authentication feature
+/planet-workflow Fix critical security vulnerability in login
+/planet-workflow Implement new dashboard UI redesign
+```
+
+The agent automatically:
+
+1. Parses the task description to assess effort and urgency
+2. Maps to appropriate planet using the decision criteria
+3. Validates the target worktree is ready (no uncommitted changes, proper state)
+4. Creates feature branch in the correct worktree
+5. Reports success or explains why the operation couldn't proceed
 
 ## Planet Selection Criteria
 
@@ -147,33 +184,39 @@ graph TD
 
 ### Example 1: Urgent Security Fix
 
-1. Developer: "Need to fix critical auth vulnerability"
-2. Agent: Maps to Mercury (urgent, high-priority)
-3. `pnpm run feature:start` → Creates `feature/mercury/security-fix`
-4. Develop and test on Mercury worktree (port 3001)
-5. `pnpm run feature:finish` → Squash merge to mercury branch
-6. Team tests on mercury worktree
-7. `pnpm run planet:promote` → Merge mercury → main
+1. Developer: `/planet-workflow Fix critical authentication vulnerability`
+2. Agent: Analyzes "critical" + "vulnerability" → Maps to Mercury (high urgency)
+3. Agent: Validates Mercury worktree (port 3001) is ready
+4. Agent: Creates `feature/mercury/fix-critical-auth-vulnerability` in Mercury worktree
+5. Agent: Reports "Created feature branch 'feature/mercury/fix-critical-auth-vulnerability' in Mercury worktree. Ready for development."
+6. Developer works on the feature
+7. `pnpm run feature:finish` → Squash merge to mercury branch
+8. Team tests on mercury worktree
+9. `pnpm run planet:promote` → Merge mercury → main
 
 ### Example 2: Major UI Redesign
 
-1. Developer: "Planning large dashboard overhaul"
-2. Agent: Maps to Jupiter (big effort, not urgent)
-3. `pnpm run feature:start` → Creates `feature/jupiter/dashboard-redesign`
-4. Extended development on Jupiter worktree (port 3005)
-5. `pnpm run feature:finish` → Squash merge to jupiter branch
-6. Extended team testing and iteration
-7. `pnpm run planet:promote` → Merge jupiter → main
+1. Developer: `/planet-workflow Implement large dashboard UI overhaul`
+2. Agent: Analyzes "large" + "overhaul" → Maps to Jupiter (high effort, low urgency)
+3. Agent: Validates Jupiter worktree (port 3005) is ready
+4. Agent: Creates `feature/jupiter/implement-large-dashboard-ui-overhaul` in Jupiter worktree
+5. Agent: Reports "Created feature branch 'feature/jupiter/implement-large-dashboard-ui-overhaul' in Jupiter worktree. This is a large effort feature - plan accordingly."
+6. Extended development on Jupiter worktree
+7. `pnpm run feature:finish` → Squash merge to jupiter branch
+8. Extended team testing and iteration
+9. `pnpm run planet:promote` → Merge jupiter → main
 
 ### Example 3: Standard Feature
 
-1. Developer: "Adding user profile page"
-2. Agent: Maps to Saturn (moderate effort, not urgent)
-3. `pnpm run feature:start` → Creates `feature/saturn/user-profile`
-4. Development on Saturn worktree (port 3006)
-5. `pnpm run feature:finish` → Squash merge to saturn branch
-6. Team review and testing
-7. `pnpm run planet:promote` → Merge saturn → main
+1. Developer: `/planet-workflow Add user profile page`
+2. Agent: Analyzes "add" + "page" → Maps to Saturn (moderate effort, low urgency)
+3. Agent: Validates Saturn worktree (port 3006) is ready
+4. Agent: Creates `feature/saturn/add-user-profile-page` in Saturn worktree
+5. Agent: Reports "Created feature branch 'feature/saturn/add-user-profile-page' in Saturn worktree. Standard feature workflow initiated."
+6. Development on Saturn worktree
+7. `pnpm run feature:finish` → Squash merge to saturn branch
+8. Team review and testing
+9. `pnpm run planet:promote` → Merge saturn → main
 
 ## Comparison to Standard Workflows
 
@@ -254,8 +297,8 @@ Validation confirms the workflow enhances parallel development while maintaining
 - [x] Design commit message standards for feature branches with prefixes for migrations (e.g., `[MIGRATED FROM Mercury]`)
 - [x] Create decision tree for planet selection based on feature characteristics
 - [x] Document workflow diagram showing feature → planet → main flow with mermaid.js
-- [x] Create planet-workflow.prompt.md in .github/prompts for agent-assisted workflow management
-- [x] Create planet-workflow-assistant skill in .github/skills for guided workflow operations
+- [x] Create planet-workflow.prompt.md in .github/prompts for agent-assisted workflow management (agent maintains)
+- [x] Create planet-workflow-assistant skill in .github/skills for guided workflow operations (agent maintains)
 - [x] Validate design with existing team processes
 - [x] Update TASKS/README.md with workflow overview
 
@@ -317,6 +360,8 @@ Validation confirms the workflow enhances parallel development while maintaining
 
 ## Implementation Notes
 
+- The AI agent has full authority to modify scripts in `scripts/git/`, planet-workflow.prompt.md, and planet-workflow-assistant skill files as needed to support the automated workflow
+- Agent analyzes natural language task descriptions to determine effort/urgency automatically
 - Scripts should integrate with existing merge-squash-push.sh pattern and extend it with --planet flag
 - Maintain backward compatibility with current branch structure during gradual rollout
 - Use planet characteristics as mental model for team decision-making

@@ -8,7 +8,7 @@ Specialized assistant for managing the planet branch workflow, providing guided 
 
 Activate when users need to:
 
-- Start new features with planet selection
+- Use "/planet-workflow <task description>" to start new features automatically
 - Finish and merge feature branches
 - Promote planet branches to main
 - Check workflow status and available actions
@@ -19,23 +19,24 @@ Activate when users need to:
 
 Follow this structured approach:
 
-1. **Context Assessment**: Determine current branch, workflow position, and available actions
-2. **User Guidance**: Provide clear options and confirm intent for workflow actions
-3. **Safety Validation**: Check for uncommitted changes, branch types, and blocking conditions
-4. **Action Execution**: Run appropriate scripts with proper error handling
-5. **Status Confirmation**: Show results and next available actions
-6. **Recovery Guidance**: Provide clear steps if operations fail
+1. **Command Detection**: Recognize "/planet-workflow <task>" commands and parse the task description
+2. **Intent Analysis**: Analyze task description to determine effort/urgency levels and map to planet
+3. **Worktree Validation**: Locate correct worktree and confirm it's ready for new work
+4. **Branch Creation**: Execute feature branch creation in the appropriate worktree
+5. **Status Reporting**: Provide clear feedback on actions taken or reasons for inaction
+6. **Recovery Guidance**: Offer clear steps if operations fail
 
 ## Examples
 
 Common queries that should trigger this skill:
 
-- "Start a new feature for user authentication"
+- "/planet-workflow Add user authentication feature"
+- "/planet-workflow Fix critical security vulnerability"
+- "/planet-workflow Implement dashboard UI redesign"
 - "Finish this feature branch"
 - "Promote mars to main"
 - "What's my workflow status?"
 - "Clean up old branches safely"
-- "How do I merge this feature?"
 
 ## Additional Context
 

@@ -4,7 +4,7 @@ Assist developers with the planet branch workflow for feature development, inclu
 
 ## Instructions
 
-1. **Feature Creation**: When a user wants to start a new feature, guide them through planet selection based on effort/urgency, then execute the feature creation process.
+1. **Feature Creation**: When a user provides a task description via "/planet-workflow <task>", automatically analyze the description to determine effort and urgency levels, map to the appropriate planet, validate the worktree, create the feature branch, and report results.
 
 2. **Feature Completion**: When finishing a feature, validate the current branch, ensure it's ready, and merge it back to the source planet.
 
@@ -18,12 +18,12 @@ Assist developers with the planet branch workflow for feature development, inclu
 
 ### Create Feature Branch
 
-- Prompt for feature description (provide default: "test feature" for testing scenarios)
-- Ask about effort level (small/medium/large) with default: small
-- Ask about urgency level (low/medium/high) with default: low
-- Map to appropriate planet based on characteristics
-- Execute: `bash scripts/git/create-feature-branch.sh --effort <level> --urgency <level> [--description <desc>] [--override <planet>]` (declarative)
-- Confirm branch creation and initial setup
+- Parse task description from "/planet-workflow <task>" command
+- Analyze description to determine effort level (small/medium/large) and urgency level (low/medium/high)
+- Map to appropriate planet based on effort/urgency matrix
+- Locate and validate the target worktree is ready (no uncommitted changes, proper state)
+- Execute feature branch creation in the correct worktree
+- Report success with branch name and worktree details, or explain why operation failed
 
 ### Finish Feature Branch
 

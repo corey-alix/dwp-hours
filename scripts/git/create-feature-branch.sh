@@ -22,6 +22,7 @@ OVERRIDE_PLANET=""
 FEATURE_DESC=""
 EFFORT=""
 URGENCY=""
+TASK_DESC=""
 DRY_RUN=false
 
 while [[ $# -gt 0 ]]; do
@@ -42,17 +43,67 @@ while [[ $# -gt 0 ]]; do
             URGENCY="$2"
             shift 2
             ;;
+        --task)
+            TASK_DESC="$2"
+            shift 2
+            ;;
         --dry-run)
             DRY_RUN=true
             shift
             ;;
         *)
             echo "Unknown option: $1"
-            echo "Usage: $0 [--override <planet>] [--description <desc>] [--effort <small|medium|large>] [--urgency <low|medium|high>] [--dry-run]"
+            echo "Usage: $0 [--override <planet>] [--description <desc>] [--effort <small|medium|large>] [--urgency <low|medium|high>] [--task <description>] [--dry-run]"
             exit 1
             ;;
     esac
 done
+
+# Function to analyze task description and determine effort/urgency
+analyze_task() {
+    local desc="$1"
+    local desc_lower=$(echo "$desc" | tr '[:upper:]' '[:lower:]')
+    
+    # Default values
+    local effort="medium"
+    local urgency="medium"
+    
+    # Urgency keywords
+    if echo "$desc_lower" | grep -qE '\b(critical|urgent|security|vulnerability|blocker|emergency|hotfix)\b'; then
+        urgency="high"
+    elif echo "$desc_lower" | grep -qE '\b(customer|enhancement|important|request|bug|issue)\b'; then
+        urgency="medium"
+    else
+        urgency="low"
+    fi
+    
+    # Effort keywords
+    if echo "$desc_lower" | grep -qE '\b(large|major|overhaul|redesign|extensive|complex|epic)\b'; then
+        effort="large"
+    elif echo "$desc_lower" | grep -qE '\b(small|fix|quick|simple|minor|tiny)\b'; then
+        effort="small"
+    else
+        effort="medium"
+    fi
+    
+    echo "$effort:$urgency"
+}
+
+# If task description provided, analyze it
+if [[ -n "$TASK_DESC" ]]; then
+    if [[ -n "$EFFORT" || -n "$URGENCY" ]]; then
+        echo "Error: Cannot specify both --task and --effort/--urgency"
+        exit 1
+    fi
+    ANALYSIS=$(analyze_task "$TASK_DESC")
+    EFFORT=$(echo "$ANALYSIS" | cut -d: -f1)
+    URGENCY=$(echo "$ANALYSIS" | cut -d: -f2)
+    echo "Task analysis: '$TASK_DESC' → effort=$EFFORT, urgency=$URGENCY"
+    # Use task description as feature description if not specified
+    if [[ -z "$FEATURE_DESC" ]]; then
+        FEATURE_DESC="$TASK_DESC"
+    fi
+fi
 
 # Safety checks
 if ! git diff --quiet || ! git diff --cached --quiet; then
