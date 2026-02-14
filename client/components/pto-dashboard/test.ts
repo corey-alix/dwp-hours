@@ -188,9 +188,18 @@ export function playground(): void {
   accrual.setAttribute("request-mode", "true");
   accrual.setAttribute("annual-allocation", "96");
 
+  const ptoEntriesFiltered = approvedEntries
+    .filter((e) => e.type === "PTO")
+    .map((e) => ({
+      date: e.date,
+      hours: e.hours,
+    }));
+
   pto.bucket = ptoStatus.ptoTime;
-  pto.usageEntries = ptoEntries;
-  pto.fullPtoEntries = fullPtoEntries.filter((e) => e.type === "PTO");
+  pto.usageEntries = ptoEntriesFiltered;
+  pto.fullPtoEntries = fullPtoEntries.filter(
+    (e) => e.type === "PTO" && e.approved_by !== null,
+  );
 
   sick.bucket = ptoStatus.sickTime;
   sick.usageEntries = sickEntries;

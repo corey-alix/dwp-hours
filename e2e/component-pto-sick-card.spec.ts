@@ -58,7 +58,7 @@ test("pto-sick-card component test", async ({ page }) => {
 
   // Check that dates are displayed
   const dateElements = card.locator(".usage-date");
-  await expect(dateElements).toHaveCount(6); // We have 6 test entries (2025 + 2026)
+  await expect(dateElements).toHaveCount(6); // We have 6 approved sick entries
 
   // Test clickable date functionality
   const firstDate = dateElements.first();
@@ -89,6 +89,33 @@ test("pto-sick-card component test", async ({ page }) => {
       {
         id: 1,
         employeeId: 1,
+        date: "2025-02-12",
+        type: "Sick",
+        hours: 8,
+        createdAt: "2025-01-01T00:00:00Z",
+        approved_by: 3,
+      },
+      {
+        id: 2,
+        employeeId: 1,
+        date: "2025-02-14",
+        type: "Sick",
+        hours: 8,
+        createdAt: "2025-01-01T00:00:00Z",
+        approved_by: 3,
+      },
+      {
+        id: 3,
+        employeeId: 1,
+        date: "2025-09-03",
+        type: "Sick",
+        hours: 8,
+        createdAt: "2025-01-01T00:00:00Z",
+        approved_by: 3,
+      },
+      {
+        id: 4,
+        employeeId: 1,
         date: "2026-02-12",
         type: "Sick",
         hours: 8,
@@ -96,7 +123,7 @@ test("pto-sick-card component test", async ({ page }) => {
         approved_by: 3,
       },
       {
-        id: 2,
+        id: 5,
         employeeId: 1,
         date: "2026-02-13",
         type: "Sick",
@@ -105,7 +132,16 @@ test("pto-sick-card component test", async ({ page }) => {
         approved_by: 3,
       },
       {
-        id: 3,
+        id: 6,
+        employeeId: 1,
+        date: "2026-02-16",
+        type: "Sick",
+        hours: 8,
+        createdAt: "2026-01-01T00:00:00Z",
+        approved_by: 3,
+      },
+      {
+        id: 7,
         employeeId: 1,
         date: "2026-02-17",
         type: "Sick",
@@ -114,6 +150,16 @@ test("pto-sick-card component test", async ({ page }) => {
         approved_by: 3,
       },
     ];
+  });
+  await page.waitForTimeout(100); // Wait for render
+
+  // Expand the card again to check date classes
+  await page.evaluate(() => {
+    const card = document.querySelector("pto-sick-card");
+    const button = card?.shadowRoot?.querySelector(
+      ".toggle-button",
+    ) as HTMLButtonElement;
+    button?.dispatchEvent(new Event("click", { bubbles: true }));
   });
   await page.waitForTimeout(100); // Wait for render
 
@@ -141,6 +187,9 @@ test("pto-sick-card component test", async ({ page }) => {
   });
   // All sick dates should be approved (show green checkmarks)
   expect(sickDateClasses).toEqual([
+    "usage-date approved",
+    "usage-date approved",
+    "usage-date approved",
     "usage-date approved",
     "usage-date approved",
     "usage-date approved",

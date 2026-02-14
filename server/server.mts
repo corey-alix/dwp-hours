@@ -1458,8 +1458,10 @@ initDatabase()
 
             if (!result.success) {
               // Check if this is a duplicate entry error
-              const hasDuplicateError = result.errors.some(err => err.messageKey === 'pto.duplicate');
-              
+              const hasDuplicateError = result.errors.some(
+                (err) => err.messageKey === "pto.duplicate",
+              );
+
               if (hasDuplicateError) {
                 // Check if there's an existing entry with the same date and employee
                 const existingEntry = await ptoEntryRepo.findOne({
@@ -1472,14 +1474,18 @@ initDatabase()
                 if (existingEntry) {
                   // If the existing entry has the same type, update it instead
                   if (existingEntry.type === reqType) {
-                    const updateResult = await ptoEntryDAL.updatePtoEntry(existingEntry.id, {
-                      hours: reqHoursNum,
-                    });
+                    const updateResult = await ptoEntryDAL.updatePtoEntry(
+                      existingEntry.id,
+                      {
+                        hours: reqHoursNum,
+                      },
+                    );
 
                     if (!updateResult.success) {
                       const fieldErrors = updateResult.errors.map((err) => ({
                         field: err.field,
-                        message: VALIDATION_MESSAGES[err.messageKey as MessageKey],
+                        message:
+                          VALIDATION_MESSAGES[err.messageKey as MessageKey],
                       }));
                       return res
                         .status(400)

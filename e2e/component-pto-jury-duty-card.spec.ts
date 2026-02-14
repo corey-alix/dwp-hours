@@ -135,6 +135,10 @@ test("pto-jury-duty-card component test", async ({ page }) => {
   });
   await page.waitForTimeout(100); // Wait for render
 
+  // Expand the card again to check date classes
+  await toggleButton.click();
+  await expect(toggleButton).toContainText("Hide Details");
+
   // Check that the "Used" label has the approved class (green checkmark)
   const juryUsedLabel = await page.evaluate(() => {
     const card = document.querySelector("pto-jury-duty-card");
