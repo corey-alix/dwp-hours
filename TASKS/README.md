@@ -21,12 +21,12 @@ This document outlines all remaining tasks to complete the DWP Hours Tracker app
 8. ✅ **[security-production.md](security-production.md)** - Security & production features
 9. ✅ **[design-constraints.md](design-constraints.md)** - Code quality improvements and design constraint compliance
 10. ✅ **[database-reset-reload-service.md](database-reset-reload-service.md)** - Deterministic DB reload for consistent E2E
-11. **[planet-branch-workflow.md](planet-branch-workflow.md)** - Standardized feature development workflow using planet branches
+11. REVISIT **[planet-branch-workflow.md](planet-branch-workflow.md)** - Standardized feature development workflow using planet branches
 
 ### 🟢 Low Priority (Frontend/UI Features)
 
 11. ✅ **[admin-review-acknowledgment.md](admin-review-acknowledgment.md)** - Admin review acknowledgment
-12. **[issue-submit-time-off-calendar-regressions.md](issue-submit-time-off-calendar-regressions.md)** - Submit Time Off calendar missing features
+12. ✅ **[issue-submit-time-off-calendar-regressions.md](issue-submit-time-off-calendar-regressions.md)** - Submit Time Off calendar missing features
 13. ✅ **[issue-test-file-conventions-regression.md](issue-test-file-conventions-regression.md)** - Test files not following web-components-assistant conventions
 
 ## Task Dependencies
@@ -115,7 +115,7 @@ database-schema.md
 10. ✅ **design-constraints.md** - code quality improvements needed
 11. ✅ **admin-review-acknowledgment.md** - admin review UI
 12. **planet-branch-workflow.md** - standardized feature development workflow
-13. **issue-submit-time-off-calendar-regressions.md** - submit time off calendar missing features
+13. ✅ **issue-submit-time-off-calendar-regressions.md** - submit time off calendar missing features
 14. ✅ **issue-test-file-conventions-regression.md** - fix test file conventions regression
 
 Each task file contains detailed checklists for implementation steps.</content>
