@@ -14,6 +14,30 @@ You are assisting with the DWP Hours Tracker, a Node.js/TypeScript application f
 
 ## Development Workflow
 
+### Terminal and Console Output
+
+**⚠️ CRITICAL: Tmux Interference with Console Output**
+
+If using tmux (terminal multiplexer), be aware that it can prevent the AI assistant from seeing console output. This creates a "blind debugging" scenario where:
+
+- Commands execute successfully (you can see them in tmux)
+- AI assistant cannot see output or errors
+- Debugging and troubleshooting become impossible
+- Workflow operations proceed without proper feedback
+
+**Solutions**:
+
+- Exit tmux when working with AI-assisted workflows: `tmux detach` or `Ctrl-B D`
+- Use direct terminal access for workflow operations
+- If tmux is required, configure it to allow output passthrough
+- Always verify console output visibility before complex operations
+
+**Symptoms of tmux interference**:
+
+- Commands appear to run but no output is visible to the AI
+- "Alternate buffer" behavior in terminal
+- Debugging requires manual output sharing
+
 ### Server Management
 
 **Important**: Avoid starting the development server within this environment. The current workflow of starting a blocking dev server and then running tests creates conflicts where tests may kill or interfere with the server process.
