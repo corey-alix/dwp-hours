@@ -8,6 +8,40 @@ Advises on appropriate testing approaches, recommends testing levels, and ensure
 
 Activated when users mention testing, validation, or quality assurance needs.
 
+## Comprehensive Validation Pipeline
+
+When implementing code changes, follow this validation sequence:
+
+1. **Build Validation**: `npm run build` - Ensure TypeScript compilation succeeds
+2. **Lint Validation**: `npm run lint` - Check code quality and style compliance
+3. **Unit Test Validation**: `npm run test:unit` - Verify business logic integrity
+4. **E2E Test Validation**: `npm run test:e2e` - Confirm end-to-end functionality
+5. **Documentation Update**: Update relevant TASKS files and READMEs
+
+**Test File Convention Investigation**:
+
+- Use `git log` to identify when violations were introduced
+- Use `grep` patterns to find violations across multiple files
+- Audit HTML files for inline attributes vs programmatic setup
+- Validate that seedData.ts contains required test data
+
+**Refactoring Safety**:
+
+- Changes affecting only code organization (not functionality) can skip extensive manual testing
+- Always run full test suite to catch unexpected side effects
+- Update task documentation to reflect completed work
+
+## Test File Convention Enforcement
+
+Ensure test files follow web-components-assistant guidelines:
+
+- **HTML Files**: Must NOT contain inline attributes on web components
+- **TypeScript Files**: Handle all data and configuration programmatically
+- **Data Sources**: Use seedData.ts for consistent test data
+- **Validation**: Run build + lint + tests after refactoring
+
+**Pattern**: HTML defines structure, TypeScript sets properties via `setAttribute()` or direct assignment.
+
 ## Response Pattern
 
 1. Suggest appropriate testing level (unit/integration/E2E) based on the feature

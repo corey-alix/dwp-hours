@@ -1,34 +1,34 @@
 import { querySingle } from "../test-utils.js";
-import { PtoSickCard } from "./index.js";
+import { PtoPtoCard } from "./index.js";
 import { seedPTOEntries } from "../../../shared/seedData.js";
 
 export function playground() {
-  console.log("Starting PTO Sick Card test...");
+  console.log("Starting PTO Card test...");
 
-  const card = querySingle<PtoSickCard>("pto-sick-card");
+  const card = querySingle<PtoPtoCard>("pto-pto-card");
 
   // Compute bucket data from seedData
-  const approvedSickEntries = seedPTOEntries.filter(
-    (e) => e.employee_id === 1 && e.approved_by !== null && e.type === "Sick",
+  const approvedPtoEntries = seedPTOEntries.filter(
+    (e) => e.employee_id === 1 && e.approved_by !== null && e.type === "PTO",
   );
-  const usedSick = approvedSickEntries.reduce((sum, e) => sum + e.hours, 0);
-  const allowedSick = 24; // Business rule constant
+  const usedPto = approvedPtoEntries.reduce((sum, e) => sum + e.hours, 0);
+  const allowedPto = 80; // Business rule constant
 
   card.bucket = {
-    allowed: allowedSick,
-    used: usedSick,
-    remaining: allowedSick - usedSick,
+    allowed: allowedPto,
+    used: usedPto,
+    remaining: allowedPto - usedPto,
   };
 
   // Set usage entries for display
-  card.usageEntries = approvedSickEntries.map((e) => ({
+  card.usageEntries = approvedPtoEntries.map((e) => ({
     date: e.date,
     hours: e.hours,
   }));
 
   // Set full PTO entries for approval testing
-  const allSickEntries = seedPTOEntries
-    .filter((e) => e.employee_id === 1 && e.type === "Sick")
+  const allPtoEntries = seedPTOEntries
+    .filter((e) => e.employee_id === 1 && e.type === "PTO")
     .map((seedEntry, index) => ({
       id: index + 1,
       employeeId: seedEntry.employee_id,
@@ -38,9 +38,9 @@ export function playground() {
       createdAt: "2025-01-01T00:00:00.000Z",
       approved_by: seedEntry.approved_by,
     }));
-  card.fullPtoEntries = allSickEntries;
+  card.fullPtoEntries = allPtoEntries;
 
-  querySingle("#test-output").textContent = "Sick time data set.";
+  querySingle("#test-output").textContent = "PTO data set.";
 
   // Test toggle functionality - check if toggle button exists
   const toggleButton = card.shadowRoot?.querySelector(

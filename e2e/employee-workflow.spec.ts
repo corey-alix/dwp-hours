@@ -8,7 +8,9 @@ test.describe("Employee Authentication & Workflow", () => {
     test.setTimeout(20000);
 
     page.on("console", (msg) => {
-      console.log(`[browser ${msg.type()}] ${msg.text()}`);
+      if (msg.type() === "error") {
+        console.log(`[browser error] ${msg.text()}`);
+      }
     });
     page.on("pageerror", (error) => {
       console.log(`[pageerror] ${error.message}`);
@@ -18,25 +20,6 @@ test.describe("Employee Authentication & Workflow", () => {
         const failure = request.failure();
         console.log(
           `[requestfailed] ${request.method()} ${request.url()} :: ${failure?.errorText ?? "unknown"}`,
-        );
-      }
-    });
-    page.on("response", async (response) => {
-      if (response.url().includes("/api/pto")) {
-        const status = response.status();
-        const method = response.request().method();
-        const contentType = response.headers()["content-type"] ?? "";
-        let bodyPreview = "";
-        if (contentType.includes("application/json")) {
-          try {
-            const body = await response.json();
-            bodyPreview = JSON.stringify(body);
-          } catch (error) {
-            bodyPreview = `json-parse-error:${(error as Error).message}`;
-          }
-        }
-        console.log(
-          `[response] ${method} ${status} ${response.url()}${bodyPreview ? ` :: ${bodyPreview}` : ""}`,
         );
       }
     });
@@ -119,9 +102,5 @@ test.describe("Employee Authentication & Workflow", () => {
 
     // Verify success notification appears
     await expect(page.locator(".notification-toast.success")).toBeVisible();
-
-    console.log(
-      "Comprehensive PTO calendar request workflow completed successfully",
-    );
   });
 });

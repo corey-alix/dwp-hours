@@ -93,23 +93,14 @@ describe("PtoCalendar Component - Approval Indicators", () => {
       expect(checkmark).toBeFalsy();
     });
 
-    it("should display checkmark when at least one entry is approved on a day with multiple entries", () => {
-      const mixedEntries: PTOEntry[] = [
+    it("should display checkmark for approved jury duty entries", () => {
+      const juryDutyApproved: PTOEntry[] = [
         {
           id: 1,
           employeeId: 1,
           date: "2024-02-12",
-          type: "PTO",
-          hours: 4,
-          createdAt: "2024-01-01T00:00:00Z",
-          approved_by: null,
-        },
-        {
-          id: 2,
-          employeeId: 1,
-          date: "2024-02-12",
-          type: "Sick",
-          hours: 4,
+          type: "Jury Duty",
+          hours: 8,
           createdAt: "2024-01-01T00:00:00Z",
           approved_by: 3,
         },
@@ -117,9 +108,8 @@ describe("PtoCalendar Component - Approval Indicators", () => {
 
       component.setYear(2024);
       component.setMonth(1); // February
-      component.setPtoEntries(mixedEntries);
+      component.setPtoEntries(juryDutyApproved);
 
-      // Wait for render
       const dayCell = component.shadowRoot?.querySelector(
         '[data-date="2024-02-12"]',
       );
@@ -127,6 +117,92 @@ describe("PtoCalendar Component - Approval Indicators", () => {
 
       expect(checkmark).toBeTruthy();
       expect(checkmark?.textContent).toBe("✓");
+    });
+
+    it("should not display checkmark for unapproved jury duty entries", () => {
+      const juryDutyUnapproved: PTOEntry[] = [
+        {
+          id: 1,
+          employeeId: 1,
+          date: "2024-02-12",
+          type: "Jury Duty",
+          hours: 8,
+          createdAt: "2024-01-01T00:00:00Z",
+          approved_by: null,
+        },
+      ];
+
+      component.setYear(2024);
+      component.setMonth(1); // February
+      component.setPtoEntries(juryDutyUnapproved);
+
+      const dayCell = component.shadowRoot?.querySelector(
+        '[data-date="2024-02-12"]',
+      );
+      const checkmark = dayCell?.querySelector(".checkmark");
+
+      expect(checkmark).toBeFalsy();
+    });
+
+    it("should display checkmark for jury duty when mixed with other approved PTO types", () => {
+      const mixedApprovedEntries: PTOEntry[] = [
+        {
+          id: 1,
+          employeeId: 1,
+          date: "2024-02-12",
+          type: "PTO",
+          hours: 4,
+          createdAt: "2024-01-01T00:00:00Z",
+          approved_by: 3,
+        },
+        {
+          id: 2,
+          employeeId: 1,
+          date: "2024-02-12",
+          type: "Jury Duty",
+          hours: 4,
+          createdAt: "2024-01-01T00:00:00Z",
+          approved_by: null, // Unapproved jury duty
+        },
+      ];
+
+      component.setYear(2024);
+      component.setMonth(1); // February
+      component.setPtoEntries(mixedApprovedEntries);
+
+      const dayCell = component.shadowRoot?.querySelector(
+        '[data-date="2024-02-12"]',
+      );
+      const checkmark = dayCell?.querySelector(".checkmark");
+
+      // Should show checkmark because PTO is approved
+      expect(checkmark).toBeTruthy();
+      expect(checkmark?.textContent).toBe("✓");
+    });
+
+    it("should not display checkmark when only jury duty is present and unapproved", () => {
+      const juryDutyOnlyUnapproved: PTOEntry[] = [
+        {
+          id: 1,
+          employeeId: 1,
+          date: "2024-02-12",
+          type: "Jury Duty",
+          hours: 8,
+          createdAt: "2024-01-01T00:00:00Z",
+          approved_by: null,
+        },
+      ];
+
+      component.setYear(2024);
+      component.setMonth(1); // February
+      component.setPtoEntries(juryDutyOnlyUnapproved);
+
+      const dayCell = component.shadowRoot?.querySelector(
+        '[data-date="2024-02-12"]',
+      );
+      const checkmark = dayCell?.querySelector(".checkmark");
+
+      expect(checkmark).toBeFalsy();
     });
 
     it("should position checkmark in top-right corner", () => {

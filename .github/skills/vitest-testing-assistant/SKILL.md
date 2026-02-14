@@ -8,6 +8,17 @@ Provides guidance for implementing unit and integration tests using Vitest, foll
 
 Activated when users mention unit testing, Vitest, test coverage, mocking, API testing, or ask about testing backend functions, database operations, or business logic validation.
 
+## Test File Refactoring Validation
+
+When modifying test setup code, use unit tests to validate changes:
+
+1. **Import Changes**: Test that new imports (like seedData.ts) work correctly
+2. **Data Transformation**: Validate that data filtering and transformation logic produces expected results
+3. **Component Initialization**: Ensure programmatic property setting matches previous inline attribute behavior
+4. **Type Safety**: Verify TypeScript compilation passes with refactored code
+
+**Example**: After replacing hardcoded test data with seedData imports, run unit tests to confirm data integrity and component behavior.
+
 ## Response Pattern
 
 1. Assess current test coverage and identify gaps in unit/integration testing

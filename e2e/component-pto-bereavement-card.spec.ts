@@ -7,7 +7,7 @@ test("pto-bereavement-card component test", async ({ page }) => {
   });
 
   await page.goto("/components/pto-bereavement-card/test.html");
-  await page.waitForSelector("#test-output");
+  await page.waitForSelector("pto-bereavement-card");
 
   // Allow for non-critical errors (like missing favicon)
   const criticalErrors = consoleMessages.filter(
@@ -58,7 +58,7 @@ test("pto-bereavement-card component test", async ({ page }) => {
 
   // Check that dates are displayed
   const dateElements = card.locator(".usage-date");
-  await expect(dateElements).toHaveCount(1); // We have 1 test entry
+  await expect(dateElements).toHaveCount(2); // We have 2 test entries
 
   // Test clickable date functionality
   const firstDate = dateElements.first();
@@ -82,4 +82,50 @@ test("pto-bereavement-card component test", async ({ page }) => {
   await toggleButton.click();
   await expect(toggleButton).toContainText("Show Details");
   await expect(usageSection).not.toBeVisible();
+
+  // Test approval indicators - set up fullPtoEntries with approved entries
+  await page.locator("pto-bereavement-card").evaluate((card: any) => {
+    card.fullPtoEntries = [
+      {
+        id: 1,
+        employeeId: 1,
+        date: "2026-06-12",
+        type: "Bereavement",
+        hours: 8,
+        createdAt: "2026-01-01T00:00:00Z",
+        approved_by: 3,
+      },
+    ];
+  });
+  await page.waitForTimeout(100); // Wait for render
+
+  // Expand the card to show the usage section
+  const toggleButtonAfter = card.locator(".toggle-button");
+  await toggleButtonAfter.click();
+  await expect(toggleButtonAfter).toContainText("Hide Details");
+
+  // Check that the "Used" label has the approved class (green checkmark)
+  const bereavementUsedLabel = await page.evaluate(() => {
+    const card = document.querySelector("pto-bereavement-card");
+    if (!card) return null;
+    const shadow = card.shadowRoot;
+    if (!shadow) return null;
+    const rows = shadow.querySelectorAll(".row");
+    const usedRow = rows[1]; // Second row is "Used"
+    const label = usedRow?.querySelector(".label");
+    return label?.className;
+  });
+  expect(bereavementUsedLabel).toBe("label approved");
+
+  // Check individual date approval indicators
+  const bereavementDateClasses = await page.evaluate(() => {
+    const card = document.querySelector("pto-bereavement-card");
+    if (!card) return [];
+    const shadow = card.shadowRoot;
+    if (!shadow) return [];
+    const dateSpans = shadow.querySelectorAll(".usage-date");
+    return Array.from(dateSpans).map((span) => span.className);
+  });
+  // Bereavement dates should show approval status: first not approved, second approved
+  expect(bereavementDateClasses).toEqual(["usage-date", "usage-date approved"]);
 });

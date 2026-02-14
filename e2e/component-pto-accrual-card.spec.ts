@@ -7,7 +7,7 @@ test("pto-accrual-card component test", async ({ page }) => {
   });
 
   await page.goto("/components/pto-accrual-card/test.html");
-  await page.waitForSelector("#test-output");
+  await page.waitForSelector("pto-accrual-card");
 
   // Allow for non-critical errors (like missing favicon)
   const criticalErrors = consoleMessages.filter(
@@ -26,9 +26,10 @@ test("pto-accrual-card component test", async ({ page }) => {
   // Test accrued and used values for all months
   await test.step("Check accrued and used values for all months", async () => {
     const expectedAccrued = [
-      8.09, 7.36, 8.09, 8.09, 7.72, 8.09, 8.46, 7.72, 8.09, 8.09, 7.72, 8.46,
+      14.91, 14.2, 14.91, 15.62, 15.62, 14.91, 17.04, 15.62, 15.62, 16.33,
+      14.91, 16.33,
     ];
-    const expectedUsed = [24, 48, 16, 0, 0, 0, 80, 0, 0, 0, 0, 0];
+    const expectedUsed = [0, 48, 8, 8, 0, 48, 80, 0, 0, 0, 0, 0];
 
     for (let month = 1; month <= 12; month++) {
       const monthRow = page.locator(
@@ -43,23 +44,6 @@ test("pto-accrual-card component test", async ({ page }) => {
   });
 
   // Test calendar state for key months
-  await test.step("Check calendar for January", async () => {
-    const januaryButton = page.locator('button[data-month="1"]');
-    await januaryButton.click();
-    const calendar = page.locator("pto-calendar");
-    await expect(calendar).toBeVisible();
-    // Check bereavement entries
-    await expect(calendar.locator('[data-date="2026-01-21"]')).toHaveClass(
-      /type-Bereavement/,
-    );
-    await expect(calendar.locator('[data-date="2026-01-22"]')).toHaveClass(
-      /type-Bereavement/,
-    );
-    await expect(calendar.locator('[data-date="2026-01-23"]')).toHaveClass(
-      /type-Bereavement/,
-    );
-  });
-
   await test.step("Check calendar for February", async () => {
     const februaryButton = page.locator('button[data-month="2"]');
     await februaryButton.click();
@@ -69,20 +53,20 @@ test("pto-accrual-card component test", async ({ page }) => {
     await expect(calendar.locator('[data-date="2026-02-12"]')).toHaveClass(
       /type-Sick/,
     );
-    await expect(calendar.locator('[data-date="2026-02-14"]')).toHaveClass(
+    await expect(calendar.locator('[data-date="2026-02-13"]')).toHaveClass(
       /type-Sick/,
     );
-    await expect(calendar.locator('[data-date="2026-02-16"]')).toHaveClass(
+    await expect(calendar.locator('[data-date="2026-02-17"]')).toHaveClass(
       /type-Sick/,
     );
     // Check PTO entries
     await expect(calendar.locator('[data-date="2026-02-20"]')).toHaveClass(
       /type-PTO/,
     );
-    await expect(calendar.locator('[data-date="2026-02-22"]')).toHaveClass(
+    await expect(calendar.locator('[data-date="2026-02-23"]')).toHaveClass(
       /type-PTO/,
     );
-    await expect(calendar.locator('[data-date="2026-02-24"]')).toHaveClass(
+    await expect(calendar.locator('[data-date="2026-02-25"]')).toHaveClass(
       /type-PTO/,
     );
   });
@@ -92,33 +76,37 @@ test("pto-accrual-card component test", async ({ page }) => {
     await marchButton.click();
     const calendar = page.locator("pto-calendar");
     await expect(calendar).toBeVisible();
-    // Check PTO entries
-    await expect(calendar.locator('[data-date="2026-03-02"]')).toHaveClass(
-      /type-PTO/,
-    );
-    await expect(calendar.locator('[data-date="2026-03-03"]')).toHaveClass(
-      /type-PTO/,
-    );
-    await expect(calendar.locator('[data-date="2026-03-04"]')).toHaveClass(
-      /type-PTO/,
-    );
-    await expect(calendar.locator('[data-date="2026-03-05"]')).toHaveClass(
+    // Check PTO entry
+    await expect(calendar.locator('[data-date="2026-03-10"]')).toHaveClass(
       /type-PTO/,
     );
   });
 
-  await test.step("Check calendar for July", async () => {
-    const julyButton = page.locator('button[data-month="7"]');
-    await julyButton.click();
+  await test.step("Check calendar for June", async () => {
+    const juneButton = page.locator('button[data-month="6"]');
+    await juneButton.click();
     const calendar = page.locator("pto-calendar");
     await expect(calendar).toBeVisible();
+    // Check bereavement entry
+    await expect(calendar.locator('[data-date="2026-06-12"]')).toHaveClass(
+      /type-Bereavement/,
+    );
     // Check jury duty entries
-    const juryDates = [20, 21, 22, 23, 24, 27, 28, 29, 30, 31];
-    for (const date of juryDates) {
-      await expect(
-        calendar.locator(`[data-date="2026-07-${date}"]`),
-      ).toHaveClass(/type-Jury-Duty/);
-    }
+    await expect(calendar.locator('[data-date="2026-06-15"]')).toHaveClass(
+      /type-Jury-Duty/,
+    );
+    await expect(calendar.locator('[data-date="2026-06-16"]')).toHaveClass(
+      /type-Jury-Duty/,
+    );
+    await expect(calendar.locator('[data-date="2026-06-17"]')).toHaveClass(
+      /type-Jury-Duty/,
+    );
+    await expect(calendar.locator('[data-date="2026-06-18"]')).toHaveClass(
+      /type-Jury-Duty/,
+    );
+    await expect(calendar.locator('[data-date="2026-06-19"]')).toHaveClass(
+      /type-Jury-Duty/,
+    );
   });
 
   // Test PTO types in legend
