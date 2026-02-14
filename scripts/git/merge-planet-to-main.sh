@@ -94,6 +94,9 @@ git push origin main
 
 echo "✅ Planet '$PLANET' promoted to main successfully!"
 echo ""
+echo "Switching back to $PLANET branch..."
+git checkout "$PLANET"
+echo ""
 echo "Next steps:"
 echo "1. Deploy main to production"
 echo "2. Consider cleaning up feature branches with 'pnpm run branch:cleanup'"

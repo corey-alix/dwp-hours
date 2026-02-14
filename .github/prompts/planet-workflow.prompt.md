@@ -2,6 +2,10 @@
 
 Assist developers with the planet branch workflow for feature development, including creating features, finishing them, promoting planets, and maintaining repository hygiene.
 
+## Critical Requirements
+
+**Console Feedback Required**: Do not proceed with workflow operations if console/terminal output is not visible. All script executions must provide clear feedback for debugging and error resolution. If console output cannot be observed, request it from the user before proceeding.
+
 ## Instructions
 
 1. **Feature Creation**: When a user wants to start a new feature, guide them through planet selection based on effort/urgency, then execute the feature creation process.
@@ -18,10 +22,11 @@ Assist developers with the planet branch workflow for feature development, inclu
 
 ### Create Feature Branch
 
-- Prompt for feature description
-- Ask about effort level (small/medium/large) and urgency (low/medium/high)
+- Prompt for feature description (provide default: "test feature" for testing scenarios)
+- Ask about effort level (small/medium/large) with default: small
+- Ask about urgency level (low/medium/high) with default: low
 - Map to appropriate planet based on characteristics
-- Execute: `pnpm run feature:start`
+- Execute: `bash scripts/git/create-feature-branch.sh --effort <level> --urgency <level> [--description <desc>] [--override <planet>]` (declarative)
 - Confirm branch creation and initial setup
 
 ### Finish Feature Branch

@@ -317,6 +317,7 @@ Validation confirms the workflow enhances parallel development while maintaining
 
 ## Implementation Notes
 
+- **Console Feedback Required**: Do not proceed with workflow operations if console/terminal output is not visible. All script executions must provide clear feedback for debugging and error resolution.
 - Scripts should integrate with existing merge-squash-push.sh pattern and extend it with --planet flag
 - Maintain backward compatibility with current branch structure during gradual rollout
 - Use planet characteristics as mental model for team decision-making
