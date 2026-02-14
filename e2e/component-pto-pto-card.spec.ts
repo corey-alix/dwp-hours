@@ -1,13 +1,13 @@
 import { test, expect } from "@playwright/test";
 
-test("pto-bereavement-card component test", async ({ page }) => {
+test("pto-pto-card component test", async ({ page }) => {
   const consoleMessages: { type: string; text: string }[] = [];
   page.on("console", (msg) => {
     consoleMessages.push({ type: msg.type(), text: msg.text() });
   });
 
-  await page.goto("/components/pto-bereavement-card/test.html");
-  await page.waitForSelector("pto-bereavement-card");
+  await page.goto("/components/pto-pto-card/test.html");
+  await page.waitForSelector("pto-pto-card");
 
   // Allow for non-critical errors (like missing favicon)
   const criticalErrors = consoleMessages.filter(
@@ -18,10 +18,8 @@ test("pto-bereavement-card component test", async ({ page }) => {
   );
   expect(criticalErrors).toHaveLength(0);
 
-  await expect(page.locator("pto-bereavement-card")).toBeVisible();
-  await expect(page.locator("#test-output")).toContainText(
-    "Bereavement data set with usage.",
-  );
+  await expect(page.locator("pto-pto-card")).toBeVisible();
+  await expect(page.locator("#test-output")).toContainText("PTO data set.");
 
   // Wait for the async tests to complete
   await expect(page.locator("#test-output")).toContainText(
@@ -30,7 +28,7 @@ test("pto-bereavement-card component test", async ({ page }) => {
   );
 
   // Test expandable functionality - the playground function may have already expanded it
-  const card = page.locator("pto-bereavement-card");
+  const card = page.locator("pto-pto-card");
 
   // Check that toggle button exists
   const toggleButton = card.locator(".toggle-button");
@@ -58,21 +56,21 @@ test("pto-bereavement-card component test", async ({ page }) => {
 
   // Check that dates are displayed
   const dateElements = card.locator(".usage-date");
-  await expect(dateElements).toHaveCount(2); // We have 2 test entries
+  await expect(dateElements).toHaveCount(3); // We have 3 test entries
 
   // Test clickable date functionality
   const firstDate = dateElements.first();
   await expect(firstDate).toHaveCSS("cursor", "pointer");
   await expect(firstDate).toHaveCSS("text-decoration", "underline");
 
-  // Click on date and check for event
+  // Click on date and check for event (we can't directly test the event, but we can check console logs)
   const initialConsoleCount = consoleMessages.length;
   await firstDate.click();
 
   // Wait a bit for event handling
   await page.waitForTimeout(100);
 
-  // Check that navigate-to-month event was fired
+  // Check that navigate-to-month event was fired (look for console logs)
   const eventLogs = consoleMessages
     .slice(initialConsoleCount)
     .filter((msg) => msg.text.includes("navigate-to-month event fired!"));
@@ -84,13 +82,31 @@ test("pto-bereavement-card component test", async ({ page }) => {
   await expect(usageSection).not.toBeVisible();
 
   // Test approval indicators - set up fullPtoEntries with approved entries
-  await page.locator("pto-bereavement-card").evaluate((card: any) => {
+  await page.locator("pto-pto-card").evaluate((card: any) => {
     card.fullPtoEntries = [
       {
         id: 1,
         employeeId: 1,
-        date: "2026-06-12",
-        type: "Bereavement",
+        date: "2026-02-20",
+        type: "PTO",
+        hours: 8,
+        createdAt: "2026-01-01T00:00:00Z",
+        approved_by: 3,
+      },
+      {
+        id: 2,
+        employeeId: 1,
+        date: "2026-02-23",
+        type: "PTO",
+        hours: 8,
+        createdAt: "2026-01-01T00:00:00Z",
+        approved_by: 3,
+      },
+      {
+        id: 3,
+        employeeId: 1,
+        date: "2026-02-25",
+        type: "PTO",
         hours: 8,
         createdAt: "2026-01-01T00:00:00Z",
         approved_by: 3,
@@ -100,8 +116,8 @@ test("pto-bereavement-card component test", async ({ page }) => {
   await page.waitForTimeout(100); // Wait for render
 
   // Check that the "Used" label has the approved class (green checkmark)
-  const bereavementUsedLabel = await page.evaluate(() => {
-    const card = document.querySelector("pto-bereavement-card");
+  const ptoUsedLabel = await page.evaluate(() => {
+    const card = document.querySelector("pto-pto-card");
     if (!card) return null;
     const shadow = card.shadowRoot;
     if (!shadow) return null;
@@ -110,17 +126,21 @@ test("pto-bereavement-card component test", async ({ page }) => {
     const label = usedRow?.querySelector(".label");
     return label?.className;
   });
-  expect(bereavementUsedLabel).toBe("label approved");
+  expect(ptoUsedLabel).toBe("label approved");
 
   // Check individual date approval indicators
-  const bereavementDateClasses = await page.evaluate(() => {
-    const card = document.querySelector("pto-bereavement-card");
+  const ptoDateClasses = await page.evaluate(() => {
+    const card = document.querySelector("pto-pto-card");
     if (!card) return [];
     const shadow = card.shadowRoot;
     if (!shadow) return [];
     const dateSpans = shadow.querySelectorAll(".usage-date");
     return Array.from(dateSpans).map((span) => span.className);
   });
-  // Bereavement date should be approved (show green checkmark)
-  expect(bereavementDateClasses).toEqual(["usage-date approved"]);
+  // All PTO dates should be approved (show green checkmarks)
+  expect(ptoDateClasses).toEqual([
+    "usage-date approved",
+    "usage-date approved",
+    "usage-date approved",
+  ]);
 });

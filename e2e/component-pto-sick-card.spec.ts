@@ -129,4 +129,20 @@ test("pto-sick-card component test", async ({ page }) => {
     return label?.className;
   });
   expect(sickUsedLabel).toBe("label approved");
+
+  // Check individual date approval indicators
+  const sickDateClasses = await page.evaluate(() => {
+    const card = document.querySelector("pto-sick-card");
+    if (!card) return [];
+    const shadow = card.shadowRoot;
+    if (!shadow) return [];
+    const dateSpans = shadow.querySelectorAll(".usage-date");
+    return Array.from(dateSpans).map((span) => span.className);
+  });
+  // All sick dates should be approved (show green checkmarks)
+  expect(sickDateClasses).toEqual([
+    "usage-date approved",
+    "usage-date approved",
+    "usage-date approved",
+  ]);
 });

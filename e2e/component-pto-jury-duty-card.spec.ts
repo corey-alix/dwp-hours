@@ -82,4 +82,83 @@ test("pto-jury-duty-card component test", async ({ page }) => {
   await toggleButton.click();
   await expect(toggleButton).toContainText("Show Details");
   await expect(usageSection).not.toBeVisible();
+
+  // Test approval indicators - set up fullPtoEntries with approved entries
+  await page.locator("pto-jury-duty-card").evaluate((card: any) => {
+    card.fullPtoEntries = [
+      {
+        id: 1,
+        employeeId: 1,
+        date: "2026-06-15",
+        type: "Jury Duty",
+        hours: 8,
+        createdAt: "2026-01-01T00:00:00Z",
+        approved_by: 3,
+      },
+      {
+        id: 2,
+        employeeId: 1,
+        date: "2026-06-16",
+        type: "Jury Duty",
+        hours: 8,
+        createdAt: "2026-01-01T00:00:00Z",
+        approved_by: 3,
+      },
+      {
+        id: 3,
+        employeeId: 1,
+        date: "2026-06-17",
+        type: "Jury Duty",
+        hours: 8,
+        createdAt: "2026-01-01T00:00:00Z",
+        approved_by: 3,
+      },
+      {
+        id: 4,
+        employeeId: 1,
+        date: "2026-06-18",
+        type: "Jury Duty",
+        hours: 8,
+        createdAt: "2026-01-01T00:00:00Z",
+        approved_by: 3,
+      },
+      {
+        id: 5,
+        employeeId: 1,
+        date: "2026-06-19",
+        type: "Jury Duty",
+        hours: 8,
+        createdAt: "2026-01-01T00:00:00Z",
+        approved_by: 3,
+      },
+    ];
+  });
+  await page.waitForTimeout(100); // Wait for render
+
+  // Check that the "Used" label has the approved class (green checkmark)
+  const juryUsedLabel = await page.evaluate(() => {
+    const card = document.querySelector("pto-jury-duty-card");
+    if (!card) return null;
+    const shadow = card.shadowRoot;
+    if (!shadow) return null;
+    const rows = shadow.querySelectorAll(".row");
+    const usedRow = rows[1]; // Second row is "Used"
+    const label = usedRow?.querySelector(".label");
+    return label?.className;
+  });
+  expect(juryUsedLabel).toBe("label approved");
+
+  // Check individual date approval indicators
+  const juryDateClasses = await page.evaluate(() => {
+    const card = document.querySelector("pto-jury-duty-card");
+    if (!card) return [];
+    const shadow = card.shadowRoot;
+    if (!shadow) return [];
+    const dateSpans = shadow.querySelectorAll(".usage-date");
+    return Array.from(dateSpans).map((span) => span.className);
+  });
+  // All jury duty dates should be approved (show green checkmarks)
+  expect(juryDateClasses.every((cls) => cls === "usage-date approved")).toBe(
+    true,
+  );
 });

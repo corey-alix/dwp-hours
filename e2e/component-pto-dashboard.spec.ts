@@ -175,6 +175,22 @@ test("pto-dashboard component test", async ({ page }) => {
     expect(sickData.entries[0]).toBe("2/16/2026 8.0 hours");
     expect(sickData.entries[1]).toBe("2/14/2026 8.0 hours");
     expect(sickData.entries[2]).toBe("2/12/2026 8.0 hours");
+
+    // Check individual date approval indicators
+    const sickDateClasses = await page.evaluate(() => {
+      const card = document.querySelector("pto-sick-card");
+      if (!card) return [];
+      const shadow = card.shadowRoot;
+      if (!shadow) return [];
+      const dateSpans = shadow.querySelectorAll(".usage-date");
+      return Array.from(dateSpans).map((span) => span.className);
+    });
+    // All sick dates should be approved (show green checkmarks)
+    expect(sickDateClasses).toEqual([
+      "usage-date approved",
+      "usage-date approved",
+      "usage-date approved",
+    ]);
   });
 
   // Assert pto-bereavement-card values
@@ -213,6 +229,18 @@ test("pto-dashboard component test", async ({ page }) => {
     expect(bereavementUsedLabel).toBe("label approved");
     // Check usage entries
     expect(bereavementData.entries[0]).toBe("6/12/2026 8.0 hours");
+
+    // Check individual date approval indicators
+    const bereavementDateClasses = await page.evaluate(() => {
+      const card = document.querySelector("pto-bereavement-card");
+      if (!card) return [];
+      const shadow = card.shadowRoot;
+      if (!shadow) return [];
+      const dateSpans = shadow.querySelectorAll(".usage-date");
+      return Array.from(dateSpans).map((span) => span.className);
+    });
+    // Bereavement date should be approved (show green checkmark)
+    expect(bereavementDateClasses).toEqual(["usage-date approved"]);
   });
 
   // Assert pto-jury-duty-card values
@@ -249,6 +277,70 @@ test("pto-dashboard component test", async ({ page }) => {
     // Check that there are jury duty entries
     expect(juryData.entries.length).toBeGreaterThan(0);
     expect(juryData.entries[0]).toBe("6/15/2026 8.0 hours");
+
+    // Check individual date approval indicators
+    const juryDateClasses = await page.evaluate(() => {
+      const card = document.querySelector("pto-jury-duty-card");
+      if (!card) return [];
+      const shadow = card.shadowRoot;
+      if (!shadow) return [];
+      const dateSpans = shadow.querySelectorAll(".usage-date");
+      return Array.from(dateSpans).map((span) => span.className);
+    });
+    // All jury duty dates should be approved (show green checkmarks)
+    expect(juryDateClasses.every((cls) => cls === "usage-date approved")).toBe(
+      true,
+    );
+  });
+
+  // Assert pto-pto-card values
+  await test.step("Assert pto-pto-card values", async () => {
+    // First expand the PTO card details
+    await page.locator("pto-pto-card").locator(".toggle-button").click();
+
+    const ptoData = await page.evaluate(() => {
+      const card = document.querySelector("pto-pto-card");
+      if (!card) return { rows: [], entries: [] };
+      const shadow = card.shadowRoot;
+      if (!shadow) return { rows: [], entries: [] };
+      const rows = shadow.querySelectorAll(".row");
+      const rowTexts = Array.from(rows).map((row) => row.textContent.trim());
+      const entries = shadow.querySelectorAll(".usage-list li");
+      const entryTexts = Array.from(entries).map((li) => li.textContent.trim());
+      return { rows: rowTexts, entries: entryTexts };
+    });
+    expect(ptoData.rows[0]).toBe("Allowed136 hours");
+    expect(ptoData.rows[1]).toBe("Used24.00 hours");
+    expect(ptoData.rows[2]).toBe("Remaining112.00 hours");
+    // Check that the "Used" label has the approved class
+    const ptoUsedLabel = await page.evaluate(() => {
+      const card = document.querySelector("pto-pto-card");
+      if (!card) return null;
+      const shadow = card.shadowRoot;
+      if (!shadow) return null;
+      const rows = shadow.querySelectorAll(".row");
+      const usedRow = rows[1]; // Second row is "Used"
+      const label = usedRow?.querySelector(".label");
+      return label?.className;
+    });
+    expect(ptoUsedLabel).toBe("label approved");
+    // Check that there are PTO entries
+    expect(ptoData.entries.length).toBeGreaterThan(0);
+    expect(ptoData.entries[0]).toBe("2/20/2026 8.0 hours");
+
+    // Check individual date approval indicators
+    const ptoDateClasses = await page.evaluate(() => {
+      const card = document.querySelector("pto-pto-card");
+      if (!card) return [];
+      const shadow = card.shadowRoot;
+      if (!shadow) return [];
+      const dateSpans = shadow.querySelectorAll(".usage-date");
+      return Array.from(dateSpans).map((span) => span.className);
+    });
+    // All PTO dates should be approved (show green checkmarks)
+    expect(ptoDateClasses.every((cls) => cls === "usage-date approved")).toBe(
+      true,
+    );
   });
 
   // Assert pto-employee-info-card values

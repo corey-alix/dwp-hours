@@ -75,7 +75,15 @@ export class PtoJuryDutyCard extends SimplePtoBucketCard {
                 const ariaLabel = isValidDateString(entry.date)
                   ? `aria-label="Navigate to ${label} in calendar"`
                   : "";
-                return `<li><span class="${clickableClass}" ${dateAttr} ${tabIndex} ${ariaLabel}>${label}</span> <span>${entry.hours.toFixed(1)} hours</span></li>`;
+                // Check if this specific entry is approved
+                const correspondingFullEntry = this.fullEntries.find(
+                  (e) => e.date === entry.date && e.type === "Jury Duty",
+                );
+                const isApproved =
+                  correspondingFullEntry &&
+                  correspondingFullEntry.approved_by !== null;
+                const approvedClass = isApproved ? " approved" : "";
+                return `<li><span class="${clickableClass}${approvedClass}" ${dateAttr} ${tabIndex} ${ariaLabel}>${label}</span> <span>${entry.hours.toFixed(1)} hours</span></li>`;
               })
               .join("");
 

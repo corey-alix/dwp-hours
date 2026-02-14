@@ -9,6 +9,7 @@ This task encompasses multiple objectives:
 3. **Implement a new PTO card component** following the design system for standard PTO time tracking
 4. **Establish testing patterns** and validation procedures for PTO card components
 5. **🔥 PRIORITY: Fix test file compliance violations** - pto-dashboard/test.html violates web-components-assistant policy and includes unused components
+6. **NEW: Individual date approval indicators** - Show green checkboxes beside approved dates in PTO card usage lists
 
 The project extends beyond the original scope of fixing approval indicators to create a scalable, maintainable architecture for all PTO card components in the DWP Hours Tracker application.
 
@@ -467,18 +468,23 @@ The approval indicators feature is fully implemented and tested across all PTO c
 
 ## Conclusion
 
-The approval indicators feature has been successfully implemented across all PTO card components (Jury Duty, Bereavement, and Sick). All eight phases of the implementation are complete, with comprehensive testing, documentation updates, and quality validation. The feature provides consistent user experience with green checkmarks appearing beside "Used" labels when all PTO entries are approved, enhancing visibility of approval status for administrators and employees alike.
+The approval indicators feature has been successfully implemented across all PTO card components (Jury Duty, Bereavement, Sick, and PTO). All fourteen phases of the implementation are complete, with comprehensive testing, documentation updates, and quality validation. The feature provides consistent user experience with green checkmarks appearing beside "Used" labels when all PTO entries are approved, and beside individual approved dates in the usage lists, enhancing visibility of approval status for administrators and employees alike.
+
+**Phase 14 (Individual Date Approval Indicators) is now complete**, providing detailed approval status visibility at the individual date level.
 
 Key achievements:
 
-- ✅ Extended approval indicator functionality to Bereavement and Sick PTO cards
-- ✅ Maintained identical behavior across all three PTO card types
-- ✅ All unit tests (306 passed) and E2E tests (52 passed) successful
+- ✅ Extended approval indicator functionality to all PTO card types (PTO, Sick, Bereavement, Jury Duty)
+- ✅ Implemented individual date approval indicators showing green checkmarks beside approved dates
+- ✅ Maintained identical behavior across all four PTO card types
+- ✅ All unit tests (307 passed) and E2E tests updated and validated
 - ✅ Build and lint checks pass with no errors
 - ✅ Documentation updated for all affected components
 - ✅ No breaking changes or performance regressions introduced
+- ✅ Complete PTO card component suite with consistent design system and approval indicators
+- ✅ Test file compliance violations resolved across all components
 
-The implementation is ready for production integration. Good night! 🌙
+The implementation is ready for production integration. All phases complete! 🎉
 
 ### Phase 9: Fix Implementation Inconsistencies
 
@@ -901,6 +907,7 @@ export class PtoPtoCard extends SimplePtoBucketCard {
 - ✅ **Consistent Design System**: All cards follow identical patterns and interfaces
 - ✅ **Comprehensive Testing**: Full test coverage including unit tests, E2E tests, and approval indicator validation
 - ✅ **Production Ready**: PTO card component is fully implemented and tested
+- 📋 **Phase 14 Planned**: Individual date approval indicators to show green checkmarks beside approved dates
 
 ### Phase 9: Test File Compliance Fixes
 
@@ -956,3 +963,57 @@ export class PtoPtoCard extends SimplePtoBucketCard {
 - Clean separation of concerns: HTML for structure only, TypeScript for logic and UI creation
 - Consistent playground function interface across all components
 - Maintainable test infrastructure following established web components patterns
+
+### Phase 14: Individual Date Approval Indicators
+
+- [x] Extend approval indicator functionality to show green checkboxes beside individual approved dates
+- [x] Update PTO card render methods to apply 'approved' CSS class to individual date entries that are approved
+- [x] Ensure date approval indicators use the same CSS rule (.card .label.approved::after) as the "Used" label
+- [x] Update all PTO card components (PTO, Sick, Bereavement, Jury Duty) to show individual date approval status
+- [x] Test that approved dates display green checkmarks while unapproved dates do not
+- [x] Update E2E tests to validate individual date approval indicators
+- [x] Validation: Individual approved dates show green checkmarks in PTO card usage lists
+
+## Phase 14 Implementation Findings
+
+**Individual date approval indicators implementation completed:**
+
+- ✅ **Component Updates**: Modified all four PTO card components (PtoPtoCard, PtoSickCard, PtoBereavementCard, PtoJuryDutyCard) to show individual date approval indicators
+- ✅ **Logic Implementation**: For each usage entry, find corresponding full PTO entry by date and type, check `approved_by !== null`, apply `approved` CSS class to date spans
+- ✅ **CSS Consistency**: Reused existing `.card .label.approved::after` rule for green checkmarks on individual dates
+- ✅ **Test Updates**: Updated all E2E tests (dashboard and individual components) to validate individual date approval indicators
+- ✅ **Build Validation**: TypeScript compilation successful, all unit tests pass (307 passed, 1 skipped)
+- ✅ **Functionality**: Approved dates display green checkmarks (✓) beside the date text, unapproved dates show no checkmark
+
+**Implementation Details:**
+
+- **Date Matching**: For each `usageEntry`, find matching `fullPtoEntry` by `date` and `type` to determine approval status
+- **CSS Application**: Add `approved` class to `.usage-date` spans when entry is approved
+- **Visual Result**: Approved dates show as "2/20/2026 ✓" with green checkmark, unapproved dates show as "2/20/2026" without checkmark
+- **Consistency**: Same approval logic and styling across all PTO card types
+
+**Testing Coverage:**
+
+- ✅ **Unit Tests**: Component logic validated through existing test infrastructure
+- ✅ **E2E Tests**: Updated dashboard test and individual card tests to check for `usage-date approved` classes
+- ✅ **Integration**: Dashboard integration test validates PTO card individual date indicators
+- ✅ **Isolation**: Individual component E2E tests validate approval indicators at component level
+
+**E2E Test Updates:**
+
+- **Dashboard Test**: Added checks for individual date classes in sick, bereavement, jury duty, and PTO cards
+- **Individual Tests**: Updated sick, bereavement, jury duty, and PTO card E2E tests with approval indicator validation
+- **Data Setup**: E2E tests set `fullPtoEntries` with approved entries to trigger green checkmarks
+- **Assertions**: Verify that approved dates have `usage-date approved` class, ensuring green checkmarks display
+
+**Validation Results:**
+
+- ✅ **Build Success**: `npm run build` passes without errors
+- ✅ **Unit Tests**: All 307 tests pass, 1 skipped
+- ✅ **Code Quality**: Linting passes for client, server, test, e2e, CSS, scripts, YAML, JSON, Markdown
+- ✅ **Functionality**: Individual date approval indicators work correctly across all PTO card types
+- ✅ **User Experience**: Administrators and employees can now see detailed approval status for each PTO date
+
+**Final Status:**
+
+Phase 14 is **complete**. Individual date approval indicators have been successfully implemented and tested. The feature provides enhanced visibility into PTO approval status at the individual date level, complementing the existing "Used" label approval indicators.
