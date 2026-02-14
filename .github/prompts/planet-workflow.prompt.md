@@ -18,10 +18,12 @@ Assist developers with the planet branch workflow for feature development, inclu
 
 ### Create Feature Branch
 
+- **Pre-check**: Immediately check for uncommitted changes using `git status --porcelain`
+- If uncommitted changes found: Report error immediately and stop (do not prompt for details or proceed further)
 - Prompt for feature description
 - Ask about effort level (small/medium/large) and urgency (low/medium/high)
 - Map to appropriate planet based on characteristics
-- Execute: `pnpm run feature:start`
+- Execute: `pnpm run feature:start` (interactive) or `bash scripts/create-feature-branch.sh --override <planet> --description <desc>` (non-interactive)
 - Confirm branch creation and initial setup
 
 ### Finish Feature Branch

@@ -54,6 +54,8 @@
     "squash//": "provide <branch name> <optional message>",
     "feature:start": "bash scripts/create-feature-branch.sh",
     "feature:start//": "interactively create a new feature branch from the appropriate planet",
+    "feature:start:quick": "bash scripts/create-feature-branch.sh --override $(git branch --show-current)",
+    "feature:start:quick//": "create feature branch on current planet (requires --description flag)",
     "feature:finish": "bash scripts/merge-to-planet.sh",
     "feature:finish//": "merge the current feature branch back to its source planet",
     "feature:migrate": "bash scripts/migrate-feature.sh",

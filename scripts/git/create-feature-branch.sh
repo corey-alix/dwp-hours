@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Create a new feature branch with planet selection
-# Usage: ./create-feature-branch.sh [--override <planet>] [--dry-run]
+# Usage: ./create-feature-branch.sh [--override <planet>] [--description <desc>] [--dry-run]
 
 set -euo pipefail
 
@@ -19,6 +19,7 @@ VALID_PLANETS=("mercury" "mars" "earth" "jupiter" "saturn")
 
 # Parse arguments
 OVERRIDE_PLANET=""
+FEATURE_DESC=""
 DRY_RUN=false
 
 while [[ $# -gt 0 ]]; do
@@ -27,13 +28,17 @@ while [[ $# -gt 0 ]]; do
             OVERRIDE_PLANET="$2"
             shift 2
             ;;
+        --description)
+            FEATURE_DESC="$2"
+            shift 2
+            ;;
         --dry-run)
             DRY_RUN=true
             shift
             ;;
         *)
             echo "Unknown option: $1"
-            echo "Usage: $0 [--override <planet>] [--dry-run]"
+            echo "Usage: $0 [--override <planet>] [--description <desc>] [--dry-run]"
             exit 1
             ;;
     esac
@@ -92,7 +97,9 @@ else
 fi
 
 # Get feature description
-read -p "Enter feature description (e.g., 'add-user-authentication'): " FEATURE_DESC
+if [[ -z "$FEATURE_DESC" ]]; then
+    read -p "Enter feature description (e.g., 'add-user-authentication'): " FEATURE_DESC
+fi
 
 # Validate description
 if [[ -z "$FEATURE_DESC" ]]; then

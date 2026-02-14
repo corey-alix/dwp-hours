@@ -63,11 +63,11 @@ The following declarative npm scripts would be added to package.json to support 
 
 ```json
 {
-  "feature:start": "bash scripts/create-feature-branch.sh",
-  "feature:finish": "bash scripts/merge-to-planet.sh",
-  "planet:promote": "bash scripts/merge-planet-to-main.sh",
-  "workflow:status": "bash scripts/show-workflow-status.sh",
-  "branch:cleanup": "bash scripts/cleanup-feature-branches.sh"
+  "feature:start": "bash scripts/git/create-feature-branch.sh",
+  "feature:finish": "bash scripts/git/merge-to-planet.sh",
+  "planet:promote": "bash scripts/git/merge-planet-to-main.sh",
+  "workflow:status": "bash scripts/git/show-workflow-status.sh",
+  "branch:cleanup": "bash scripts/git/cleanup-feature-branches.sh"
 }
 ```
 
@@ -261,14 +261,14 @@ Validation confirms the workflow enhances parallel development while maintaining
 
 ### Phase 2: Script Development
 
-- [x] Create `scripts/create-feature-branch.sh` for automated branch creation with planet selection logic (decision matrix, enums, --override flag)
+- [x] Create `scripts/git/create-feature-branch.sh` for automated branch creation with planet selection logic (decision matrix, enums, --override flag)
 - [x] Implement planet selection logic based on user prompts (effort: small/medium/large, urgency: low/medium/high)
 - [x] Add validation to prevent invalid planet selections and detect wrong planet branches
-- [x] Create `scripts/merge-to-planet.sh` for squashing feature branches into target planet
-- [x] Create `scripts/merge-planet-to-main.sh` for promoting planets to main with validation (rebase + merge --no-ff)
-- [x] Create `scripts/show-workflow-status.sh` for displaying current workflow position
-- [x] Create `scripts/cleanup-feature-branches.sh` for safe branch cleanup with --force option and logging
-- [x] Create `scripts/migrate-feature.sh` for moving features between planets (cherry-pick, new branch, delete old)
+- [x] Create `scripts/git/merge-to-planet.sh` for squashing feature branches into target planet
+- [x] Create `scripts/git/merge-planet-to-main.sh` for promoting planets to main with validation (rebase + merge --no-ff)
+- [x] Create `scripts/git/show-workflow-status.sh` for displaying current workflow position
+- [x] Create `scripts/git/cleanup-feature-branches.sh` for safe branch cleanup with --force option and logging
+- [x] Create `scripts/git/migrate-feature.sh` for moving features between planets (cherry-pick, new branch, delete old)
 - [x] Implement safety checks (branch exists, no uncommitted changes, proper permissions, dry-run modes)
 - [x] Add robust error handling (set -euo pipefail, clear error messages)
 - [x] Extend existing merge-squash-push.sh with --planet flag for planet context
@@ -317,6 +317,7 @@ Validation confirms the workflow enhances parallel development while maintaining
 
 ## Implementation Notes
 
+- Scripts should perform immediate pre-checks for uncommitted changes before proceeding with user prompts to avoid unnecessary steps and fail fast
 - Scripts should integrate with existing merge-squash-push.sh pattern and extend it with --planet flag
 - Maintain backward compatibility with current branch structure during gradual rollout
 - Use planet characteristics as mental model for team decision-making

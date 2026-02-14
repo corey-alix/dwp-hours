@@ -109,19 +109,26 @@ graph TD
 
 ### 1. Feature Creation
 
+**Interactive Mode:**
+
 ```bash
 pnpm run feature:start
 ```
 
-This interactive script will:
+**Non-Interactive Mode:**
 
-- Ask about feature urgency (low/medium/high)
-- Ask about estimated effort (small/medium/large)
-- Recommend appropriate planet based on matrix
-- Allow override if needed
+```bash
+# From a planet branch
+bash scripts/create-feature-branch.sh --override mars --description "add-user-authentication"
+```
+
+Both modes will:
+
 - Create branch: `feature/{planet}/{description}`
+- Add initial commit for branch setup
+- Switch to the new feature branch
 
-**Example Output:**
+**Interactive Example:**
 
 ```
 What's the urgency level? (low/medium/high): medium
@@ -129,6 +136,13 @@ What's the effort level? (small/medium/large): small
 Recommended planet: Earth
 Create feature/earth/user-profile? (y/n): y
 Switched to branch 'feature/earth/user-profile'
+```
+
+**Non-Interactive Example:**
+
+```bash
+bash scripts/create-feature-branch.sh --override mars --description "add-user-authentication"
+# Creates: feature/mars/add-user-authentication
 ```
 
 ### 2. Development
