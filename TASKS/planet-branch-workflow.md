@@ -96,12 +96,14 @@ Start: New Feature Request
 - **Effort**: `small`, `medium`, `large`
 - **Urgency**: `low`, `medium`, `high`
 
-The following declarative npm scripts would be added to package.json to support the workflow:
+The following declarative npm scripts are available in package.json to support the workflow:
 
 ```json
 {
   "feature:start": "bash scripts/create-feature-branch.sh",
   "feature:finish": "bash scripts/merge-to-planet.sh",
+  "feature:migrate": "bash scripts/migrate-feature.sh",
+  "feature:validate": "bash scripts/validate-feature.sh",
   "planet:promote": "bash scripts/merge-planet-to-main.sh",
   "workflow:status": "bash scripts/show-workflow-status.sh",
   "branch:cleanup": "bash scripts/cleanup-feature-branches.sh"
@@ -110,9 +112,13 @@ The following declarative npm scripts would be added to package.json to support 
 
 - `feature:start` - Interactively create a new feature branch from the appropriate planet
 - `feature:finish` - Merge the current feature branch back to its source planet
-- `planet:promote` - Merge a planet branch into main when ready for production
-- `workflow:status` - Show current branch status and workflow position
-- `branch:cleanup` - Remove merged feature branches (excluding planets)
+- `feature:migrate` - Move features between planets with cherry-pick and branch recreation
+- `feature:validate` - Check branch naming and planet fit for current feature
+- `planet:promote` - Merge a planet branch into main with validation and rebase
+- `workflow:status` - Show current workflow position and branch status
+- `branch:cleanup` - Remove merged feature branches with --force option and logging
+
+The agent can execute these npm scripts directly and has authority to modify package.json scripts as needed for workflow improvements. The goal is a consistent, efficient, declarative git experience where developers simply describe their tasks and the agent handles all git operations seamlessly.
 
 ## Key Concepts
 
