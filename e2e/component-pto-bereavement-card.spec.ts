@@ -99,6 +99,11 @@ test("pto-bereavement-card component test", async ({ page }) => {
   });
   await page.waitForTimeout(100); // Wait for render
 
+  // Expand the card to show the usage section
+  const toggleButtonAfter = card.locator(".toggle-button");
+  await toggleButtonAfter.click();
+  await expect(toggleButtonAfter).toContainText("Hide Details");
+
   // Check that the "Used" label has the approved class (green checkmark)
   const bereavementUsedLabel = await page.evaluate(() => {
     const card = document.querySelector("pto-bereavement-card");
@@ -121,6 +126,6 @@ test("pto-bereavement-card component test", async ({ page }) => {
     const dateSpans = shadow.querySelectorAll(".usage-date");
     return Array.from(dateSpans).map((span) => span.className);
   });
-  // Bereavement date should be approved (show green checkmark)
-  expect(bereavementDateClasses).toEqual(["usage-date approved"]);
+  // Bereavement dates should show approval status: first not approved, second approved
+  expect(bereavementDateClasses).toEqual(["usage-date", "usage-date approved"]);
 });

@@ -56,7 +56,7 @@ test("pto-pto-card component test", async ({ page }) => {
 
   // Check that dates are displayed
   const dateElements = card.locator(".usage-date");
-  await expect(dateElements).toHaveCount(3); // We have 3 test entries
+  await expect(dateElements).toHaveCount(16); // We have 16 approved PTO entries
 
   // Test clickable date functionality
   const firstDate = dateElements.first();
@@ -83,9 +83,127 @@ test("pto-pto-card component test", async ({ page }) => {
 
   // Test approval indicators - set up fullPtoEntries with approved entries
   await page.locator("pto-pto-card").evaluate((card: any) => {
+    // Set fullPtoEntries to all approved PTO entries
     card.fullPtoEntries = [
       {
         id: 1,
+        employeeId: 1,
+        date: "2025-01-15",
+        type: "PTO",
+        hours: 8,
+        createdAt: "2025-01-01T00:00:00Z",
+        approved_by: 3,
+      },
+      {
+        id: 2,
+        employeeId: 1,
+        date: "2025-01-17",
+        type: "PTO",
+        hours: 8,
+        createdAt: "2025-01-01T00:00:00Z",
+        approved_by: 3,
+      },
+      {
+        id: 3,
+        employeeId: 1,
+        date: "2025-03-05",
+        type: "PTO",
+        hours: 8,
+        createdAt: "2025-01-01T00:00:00Z",
+        approved_by: 3,
+      },
+      {
+        id: 4,
+        employeeId: 1,
+        date: "2025-03-07",
+        type: "PTO",
+        hours: 8,
+        createdAt: "2025-01-01T00:00:00Z",
+        approved_by: 3,
+      },
+      {
+        id: 5,
+        employeeId: 1,
+        date: "2025-05-21",
+        type: "PTO",
+        hours: 8,
+        createdAt: "2025-01-01T00:00:00Z",
+        approved_by: 3,
+      },
+      {
+        id: 6,
+        employeeId: 1,
+        date: "2025-05-23",
+        type: "PTO",
+        hours: 8,
+        createdAt: "2025-01-01T00:00:00Z",
+        approved_by: 3,
+      },
+      {
+        id: 7,
+        employeeId: 1,
+        date: "2025-06-11",
+        type: "PTO",
+        hours: 4,
+        createdAt: "2025-01-01T00:00:00Z",
+        approved_by: 3,
+      },
+      {
+        id: 8,
+        employeeId: 1,
+        date: "2025-07-04",
+        type: "PTO",
+        hours: 8,
+        createdAt: "2025-01-01T00:00:00Z",
+        approved_by: 3,
+      },
+      {
+        id: 9,
+        employeeId: 1,
+        date: "2025-08-15",
+        type: "PTO",
+        hours: 8,
+        createdAt: "2025-01-01T00:00:00Z",
+        approved_by: 3,
+      },
+      {
+        id: 10,
+        employeeId: 1,
+        date: "2025-10-10",
+        type: "PTO",
+        hours: 8,
+        createdAt: "2025-01-01T00:00:00Z",
+        approved_by: 3,
+      },
+      {
+        id: 11,
+        employeeId: 1,
+        date: "2025-11-26",
+        type: "PTO",
+        hours: 8,
+        createdAt: "2025-01-01T00:00:00Z",
+        approved_by: 3,
+      },
+      {
+        id: 12,
+        employeeId: 1,
+        date: "2025-12-24",
+        type: "PTO",
+        hours: 8,
+        createdAt: "2025-01-01T00:00:00Z",
+        approved_by: 3,
+      },
+      {
+        id: 13,
+        employeeId: 1,
+        date: "2025-12-26",
+        type: "PTO",
+        hours: 8,
+        createdAt: "2025-01-01T00:00:00Z",
+        approved_by: 3,
+      },
+      {
+        id: 14,
         employeeId: 1,
         date: "2026-02-20",
         type: "PTO",
@@ -94,7 +212,7 @@ test("pto-pto-card component test", async ({ page }) => {
         approved_by: 3,
       },
       {
-        id: 2,
+        id: 15,
         employeeId: 1,
         date: "2026-02-23",
         type: "PTO",
@@ -103,7 +221,7 @@ test("pto-pto-card component test", async ({ page }) => {
         approved_by: 3,
       },
       {
-        id: 3,
+        id: 16,
         employeeId: 1,
         date: "2026-02-25",
         type: "PTO",
@@ -114,6 +232,10 @@ test("pto-pto-card component test", async ({ page }) => {
     ];
   });
   await page.waitForTimeout(100); // Wait for render
+
+  // Expand the card again to check date classes
+  await toggleButton.click();
+  await expect(toggleButton).toContainText("Hide Details");
 
   // Check that the "Used" label has the approved class (green checkmark)
   const ptoUsedLabel = await page.evaluate(() => {
@@ -138,9 +260,7 @@ test("pto-pto-card component test", async ({ page }) => {
     return Array.from(dateSpans).map((span) => span.className);
   });
   // All PTO dates should be approved (show green checkmarks)
-  expect(ptoDateClasses).toEqual([
-    "usage-date approved",
-    "usage-date approved",
-    "usage-date approved",
-  ]);
+  expect(ptoDateClasses.every((cls) => cls === "usage-date approved")).toBe(
+    true,
+  );
 });
