@@ -525,19 +525,19 @@ class UIManager {
     sickCard.bucket = null; // Will show loading
     sickCard.usageEntries = [];
 
-    const bereavementCard = createElement(
+    const bereavementCard = createElement<PtoBereavementCard>(
       "pto-bereavement-card",
-    ) as PtoBereavementCard;
+    );
     bereavementCard.bucket = null; // Will show loading
     bereavementCard.usageEntries = [];
 
-    const juryDutyCard = createElement("pto-jury-duty-card") as PtoJuryDutyCard;
+    const juryDutyCard = createElement<PtoJuryDutyCard>("pto-jury-duty-card");
     juryDutyCard.bucket = null; // Will show loading
     juryDutyCard.usageEntries = [];
 
-    const employeeInfoCard = createElement(
+    const employeeInfoCard = createElement<PtoEmployeeInfoCard>(
       "pto-employee-info-card",
-    ) as PtoEmployeeInfoCard;
+    );
     employeeInfoCard.info = { hireDate, nextRolloverDate };
 
     summaryContainer.appendChild(summaryCard);

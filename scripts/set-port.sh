@@ -22,4 +22,5 @@ if [ -z "$PORT" ]; then
     PORT=$((BASE_PORT + $(echo "$WORKTREE_NAME" | cksum | cut -d' ' -f1) % 100))
 fi
 
+export PORT
 printf "%s\n" "$PORT"

@@ -65,11 +65,20 @@ Fix critical timezone regression in date handling that causes PTO entries to shi
 
 ## Questions and Concerns
 
-1. What timezone is the production server running in?
-2. Are there any other date operations affected (monthly hours, reports)?
-3. Should the application support multiple timezones or standardize on UTC?
-4. Are there existing tests that cover different timezone scenarios?
-5. What temporal library options are being considered (dayjs, Temporal API)?
+1. What timezone is the production server running in?  
+   **Answer:** UTC, all dates are strings
+
+2. Are there any other date operations affected (monthly hours, reports)?  
+   **Answer:** no
+
+3. Should the application support multiple timezones or standardize on UTC?  
+   **Answer:** no
+
+4. Are there existing tests that cover different timezone scenarios?  
+   **Answer:** the application should be time-zone agnostic
+
+5. What temporal library options are being considered (dayjs, Temporal API)?  
+   **Answer:** only #file:dateUtils.ts
 
 ## Regression Report: Date Handling Causes Timezone Shifts
 
