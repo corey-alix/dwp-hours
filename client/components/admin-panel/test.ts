@@ -1,7 +1,11 @@
 import { querySingle } from "../test-utils.js";
 import { addEventListener } from "../test-utils.js";
 import { AdminPanel } from "./index.js";
-import { seedEmployees, seedPTOEntries } from "../../../shared/seedData.js";
+import {
+  seedEmployees,
+  seedPTOEntries,
+  seedAdminAcknowledgments,
+} from "../../../shared/seedData.js";
 
 // Admin Panel Test Data Integration:
 // This test harness integrates seed data from shared/seedData.ts to provide
@@ -63,6 +67,31 @@ export function playground() {
 
     adminPanel.setEmployees(employees);
     adminPanel.setPTORequests(ptoRequests);
+
+    // Set admin acknowledgment data for monthly review component
+    const acknowledgments = seedAdminAcknowledgments.map((ack) => ({
+      id: `${ack.employee_id}-${ack.month}`, // Simple ID for testing
+      employeeId: ack.employee_id,
+      month: ack.month,
+      adminId: ack.admin_id,
+      acknowledgedAt: ack.acknowledged_at,
+      adminName:
+        employees.find((emp) => emp.id === ack.admin_id)?.name ||
+        "Unknown Admin",
+    }));
+
+    // Find and set data on admin-monthly-review component if it exists
+    const shadowRoot = adminPanel.shadowRoot;
+    if (shadowRoot) {
+      const monthlyReview = shadowRoot.querySelector("admin-monthly-review");
+      if (
+        monthlyReview &&
+        typeof (monthlyReview as any).setAcknowledgmentData === "function"
+      ) {
+        (monthlyReview as any).setAcknowledgmentData(acknowledgments);
+      }
+    }
+
     seedDataLoaded = true;
     setOutput("Seed data loaded");
     toggleButton.textContent = "Unload Seed Data";
@@ -71,6 +100,19 @@ export function playground() {
   const unloadSeedData = () => {
     adminPanel.setEmployees([]);
     adminPanel.setPTORequests([]);
+
+    // Clear admin acknowledgment data
+    const shadowRoot = adminPanel.shadowRoot;
+    if (shadowRoot) {
+      const monthlyReview = shadowRoot.querySelector("admin-monthly-review");
+      if (
+        monthlyReview &&
+        typeof (monthlyReview as any).setAcknowledgmentData === "function"
+      ) {
+        (monthlyReview as any).setAcknowledgmentData([]);
+      }
+    }
+
     seedDataLoaded = false;
     setOutput("Seed data unloaded (empty state)");
     toggleButton.textContent = "Load Seed Data";
@@ -141,6 +183,17 @@ export function playground() {
           );
         },
       );
+    }
+
+    // Handle admin acknowledgment events from monthly review component
+    const monthlyReview = shadowRoot.querySelector("admin-monthly-review");
+    if (monthlyReview instanceof HTMLElement) {
+      addEventListener(monthlyReview, "admin-acknowledge", (e: CustomEvent) => {
+        const { employeeId, employeeName, month } = e.detail || {};
+        setOutput(
+          `Admin Acknowledge: ${employeeName || "Unknown"} (${employeeId || "unknown"}) for ${month || "unknown month"}`,
+        );
+      });
     }
 
     const requestQueue = shadowRoot.querySelector("pto-request-queue");

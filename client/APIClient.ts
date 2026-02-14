@@ -124,10 +124,10 @@ export class APIClient {
     return this.post("/admin-acknowledgements", { employeeId, month });
   }
 
-  async getAdminAcknowledgements(
-    employeeId: number,
-  ): Promise<ApiTypes.AdminAcknowledgementResponse> {
-    return this.get(`/admin-acknowledgements/${employeeId}`);
+  async getAdminMonthlyReview(
+    month: string,
+  ): Promise<ApiTypes.AdminMonthlyReviewResponse> {
+    return this.get(`/admin/monthly-review/${month}`);
   }
 
   async getEmployees(): Promise<ApiTypes.EmployeesResponse> {

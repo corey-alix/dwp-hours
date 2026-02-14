@@ -1014,6 +1014,100 @@ initDatabase()
       },
     );
 
+    // Admin Monthly Review endpoint
+    app.get(
+      "/api/admin/monthly-review/:month",
+      authenticateAdmin(() => dataSource, log),
+      async (req, res) => {
+        try {
+          const { month } = req.params;
+          const monthStr = Array.isArray(month) ? month[0] : month;
+
+          // Validate month format
+          if (!/^\d{4}-\d{2}$/.test(monthStr)) {
+            log(
+              `Admin monthly review failed: Invalid month format: ${monthStr}`,
+            );
+            return res
+              .status(400)
+              .json({ error: "Invalid month format. Use YYYY-MM" });
+          }
+
+          const employeeRepo = dataSource.getRepository(Employee);
+          const monthlyHoursRepo = dataSource.getRepository(MonthlyHours);
+          const ptoEntryRepo = dataSource.getRepository(PtoEntry);
+          const adminAckRepo = dataSource.getRepository(AdminAcknowledgement);
+
+          // Get all employees
+          const employees = await employeeRepo.find({
+            order: { name: "ASC" },
+          });
+
+          const result = [];
+
+          for (const employee of employees) {
+            // Get monthly hours for this employee and month
+            const monthlyHours = await monthlyHoursRepo.findOne({
+              where: { employee_id: employee.id, month: monthStr },
+            });
+
+            // Get PTO entries for this employee and month
+            const monthStart = monthStr + "-01";
+            const monthEnd = endOfMonth(monthStart);
+
+            const ptoEntries = await ptoEntryRepo.find({
+              where: {
+                employee_id: employee.id,
+                date: Between(monthStart, monthEnd),
+              },
+            });
+
+            // Calculate PTO usage by category
+            const ptoByCategory = {
+              PTO: 0,
+              Sick: 0,
+              Bereavement: 0,
+              "Jury Duty": 0,
+            };
+
+            ptoEntries.forEach((entry) => {
+              if (ptoByCategory.hasOwnProperty(entry.type)) {
+                ptoByCategory[entry.type as keyof typeof ptoByCategory] +=
+                  entry.hours;
+              }
+            });
+
+            // Check if acknowledged by admin
+            const adminAck = await adminAckRepo.findOne({
+              where: { employee_id: employee.id, month: monthStr },
+              relations: ["admin"],
+            });
+
+            result.push({
+              employeeId: employee.id,
+              employeeName: employee.name,
+              month: monthStr,
+              totalHours: monthlyHours ? monthlyHours.hours_worked : 0,
+              ptoHours: ptoByCategory.PTO,
+              sickHours: ptoByCategory.Sick,
+              bereavementHours: ptoByCategory.Bereavement,
+              juryDutyHours: ptoByCategory["Jury Duty"],
+              acknowledgedByAdmin: !!adminAck,
+              adminAcknowledgedAt: adminAck
+                ? dateToString(adminAck.acknowledged_at)
+                : undefined,
+              adminAcknowledgedBy: adminAck?.admin?.name || undefined,
+            });
+          }
+
+          res.json(result);
+        } catch (error) {
+          log(`Error getting admin monthly review: ${error}`);
+          res.status(500).json({ error: "Internal server error" });
+        }
+      },
+    );
+
     // Enhanced Employee routes
     app.get(
       "/api/employees",

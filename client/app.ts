@@ -30,6 +30,7 @@ import {
   PtoSickCard,
   PtoSummaryCard,
   PriorYearReview,
+  AdminMonthlyReview,
 } from "./components/index.js";
 import type { CalendarEntry } from "./components/pto-calendar/index.js";
 import {
@@ -50,8 +51,17 @@ export { AdminPanel };
 
 // Dummy reference to prevent tree-shaking
 const _adminPanelRef = AdminPanel;
+const _adminMonthlyReviewRef = AdminMonthlyReview;
 
 const api = new APIClient();
+
+// Export the API client for use in components
+export {
+  api,
+
+  // Make API client available globally for components
+};
+(window as any).api = api;
 
 // Notification/Toast System
 class NotificationManager {
@@ -295,8 +305,12 @@ class UIManager {
         addEventListener(adminPanel, "employee-delete", (e: CustomEvent) =>
           this.handleDeleteEmployee(e.detail.employeeId),
         );
-        addEventListener(adminPanel, "employee-acknowledge", (e: CustomEvent) =>
-          this.handleAcknowledgeEmployee(e.detail.employeeId),
+        addEventListener(adminPanel, "admin-acknowledge", (e: CustomEvent) =>
+          this.handleAdminAcknowledgeReview(
+            e.detail.employeeId,
+            e.detail.employeeName,
+            e.detail.month,
+          ),
         );
       }
     } catch (error) {
@@ -448,15 +462,32 @@ class UIManager {
     }
   }
 
-  private handleAcknowledgeEmployee(employeeId: number): void {
-    // Show month selection dialog for acknowledgment
-    const month = prompt(
-      "Enter month to acknowledge (YYYY-MM):",
-      getCurrentMonth(),
-    );
-    if (month) {
+  private handleAdminAcknowledgeReview(
+    employeeId: number,
+    employeeName: string,
+    month: string,
+  ): void {
+    // Show confirmation dialog before submitting acknowledgment
+    const dialog = document.createElement("confirmation-dialog") as any;
+    dialog.message = `Are you sure you want to acknowledge the monthly review for ${employeeName} (${month})? This action confirms that you have reviewed their hours and PTO data for this month.`;
+    dialog.confirmText = "Acknowledge";
+    dialog.cancelText = "Cancel";
+
+    // Handle confirmation
+    const handleConfirm = () => {
       this.submitAdminAcknowledgment(employeeId, month);
-    }
+      document.body.removeChild(dialog);
+    };
+
+    // Handle cancellation
+    const handleCancel = () => {
+      document.body.removeChild(dialog);
+    };
+
+    dialog.addEventListener("confirm", handleConfirm);
+    dialog.addEventListener("cancel", handleCancel);
+
+    document.body.appendChild(dialog);
   }
 
   private async submitAdminAcknowledgment(

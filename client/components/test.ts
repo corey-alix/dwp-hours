@@ -1,6 +1,7 @@
 // Component playground functions
 import { playground as confirmationDialog } from "./confirmation-dialog/test.js";
 import { playground as adminPanel } from "./admin-panel/test.js";
+import { playground as adminMonthlyReview } from "./admin-monthly-review/test.js";
 import { playground as employeeList } from "./employee-list/test.js";
 import { playground as employeeForm } from "./employee-form/test.js";
 import { playground as ptoEntryForm } from "./pto-entry-form/test.js";
@@ -22,6 +23,7 @@ import { playground as priorYearReview } from "./prior-year-review/test.js";
 export {
   confirmationDialog,
   adminPanel,
+  adminMonthlyReview,
   employeeList,
   employeeForm,
   ptoEntryForm,

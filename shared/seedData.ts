@@ -6,6 +6,13 @@ export type SeedPtoEntry = {
   approved_by?: number | null; // Admin ID who approved, null = pending approval
 };
 
+export type SeedAdminAcknowledgment = {
+  employee_id: number;
+  month: string; // YYYY-MM format
+  admin_id: number;
+  acknowledged_at: string;
+};
+
 export type SeedEmployee = {
   name: string;
   identifier: string;
@@ -179,6 +186,42 @@ export const seedPTOEntries: SeedPtoEntry[] = [
     hours: 40,
     approved_by: null,
   },
+];
+
+export const seedAdminAcknowledgments: SeedAdminAcknowledgment[] = [
+  // John Doe acknowledgments for 2025
+  {
+    employee_id: 1,
+    month: "2025-01",
+    admin_id: 3,
+    acknowledged_at: "2025-02-01T09:00:00Z",
+  },
+  {
+    employee_id: 1,
+    month: "2025-02",
+    admin_id: 3,
+    acknowledged_at: "2025-03-01T10:15:00Z",
+  },
+  {
+    employee_id: 1,
+    month: "2025-03",
+    admin_id: 3,
+    acknowledged_at: "2025-04-01T08:30:00Z",
+  },
+  // Jane Smith acknowledgments for 2025 (some acknowledged, some not)
+  {
+    employee_id: 2,
+    month: "2025-01",
+    admin_id: 3,
+    acknowledged_at: "2025-02-02T11:00:00Z",
+  },
+  {
+    employee_id: 2,
+    month: "2025-02",
+    admin_id: 3,
+    acknowledged_at: "2025-03-02T14:20:00Z",
+  },
+  // Leave some months unacknowledged for testing
 ];
 
 export const seedEmployees: SeedEmployee[] = [
