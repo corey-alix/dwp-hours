@@ -202,6 +202,35 @@ export interface PTOUpdateResponse {
   ptoEntry: PTOEntry;
 }
 
+export interface AdminMonthlyReviewResponse extends Array<{
+  employeeId: number;
+  employeeName: string;
+  month: string;
+  totalHours: number;
+  ptoHours: number;
+  sickHours: number;
+  bereavementHours: number;
+  juryDutyHours: number;
+  acknowledgedByAdmin: boolean;
+  adminAcknowledgedAt?: string;
+  adminAcknowledgedBy?: string;
+}> {}
+
+// Individual item type for admin monthly review
+export interface AdminMonthlyReviewItem {
+  employeeId: number;
+  employeeName: string;
+  month: string;
+  totalHours: number;
+  ptoHours: number;
+  sickHours: number;
+  bereavementHours: number;
+  juryDutyHours: number;
+  acknowledgedByAdmin: boolean;
+  adminAcknowledgedAt?: string;
+  adminAcknowledgedBy?: string;
+}
+
 export interface GenericMessageResponse {
   message: string;
 }

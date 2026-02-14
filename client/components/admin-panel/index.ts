@@ -233,6 +233,11 @@ export class AdminPanel extends BaseComponent {
                                 </a>
                             </li>
                             <li class="nav-item">
+                                <a href="#" class="nav-link ${this._currentView === "monthly-review" ? "active" : ""}" data-view="monthly-review">
+                                    📅 Monthly Review
+                                </a>
+                            </li>
+                            <li class="nav-item">
                                 <a href="#" class="nav-link ${this._currentView === "settings" ? "active" : ""}" data-view="settings">
                                     ⚙️ Settings
                                 </a>
@@ -263,6 +268,7 @@ export class AdminPanel extends BaseComponent {
       employees: "Employee Management",
       "pto-requests": "PTO Request Queue",
       reports: "Reports & Analytics",
+      "monthly-review": "Monthly Employee Review",
       settings: "System Settings",
     };
     return titles[view] || "Admin Panel";
@@ -287,6 +293,8 @@ export class AdminPanel extends BaseComponent {
         return `<pto-request-queue requests='${JSON.stringify(this._ptoRequests)}'></pto-request-queue>`;
       case "reports":
         return "<report-generator></report-generator>";
+      case "monthly-review":
+        return "<admin-monthly-review></admin-monthly-review>";
       case "settings":
         return `
                     <div style="padding: 20px;">
@@ -364,6 +372,15 @@ export class AdminPanel extends BaseComponent {
       case "employee-acknowledge":
         this.dispatchEvent(
           new CustomEvent("employee-acknowledge", {
+            detail: event.detail,
+            bubbles: true,
+            composed: true,
+          }),
+        );
+        break;
+      case "admin-acknowledge":
+        this.dispatchEvent(
+          new CustomEvent("admin-acknowledge", {
             detail: event.detail,
             bubbles: true,
             composed: true,

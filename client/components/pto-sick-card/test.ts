@@ -54,17 +54,6 @@ export function playground() {
     const isExpanded = card.getAttribute("expanded") === "true";
     console.log("Card expanded after click:", isExpanded);
 
-    // Test individual date approval indicators
-    const approvedDates = card.shadowRoot?.querySelectorAll(
-      ".usage-date.approved",
-    );
-    const unapprovedDates = card.shadowRoot?.querySelectorAll(
-      ".usage-date:not(.approved)",
-    );
-    console.log(
-      `Found ${approvedDates?.length || 0} approved dates and ${unapprovedDates?.length || 0} unapproved dates`,
-    );
-
     // Test clickable date
     const dateElement = card.shadowRoot?.querySelector(
       ".usage-date",
