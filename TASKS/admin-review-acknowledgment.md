@@ -55,8 +55,8 @@ Implement a feature where the administrator, after reviewing employee hours and 
 
 ### Phase 3: Testing and Validation ✅ COMPLETED
 
-- [x] **Add unit tests for frontend components**: Test admin acknowledgment UI components using `admin-panel/test.html`
-- [x] **Add E2E tests for admin review acknowledgment flow**: Create comprehensive E2E tests covering the full acknowledgment workflow
+- [x] **Add Vitest unit tests for frontend components**: Create comprehensive unit tests using Vitest with happy-dom environment, using `shared/seedData.ts` for realistic mock data without network calls
+- [x] **Add Playwright E2E tests for admin review acknowledgment flow**: Create end-to-end tests using Playwright for integration testing with real API calls and screenshot testing for visual regression
 - [x] **Manual testing of acknowledgment feature**: Test admin acknowledgment in browser using `admin-panel/test.html` with seed data loaded by the component's test.ts file
 - [x] **Test permission validation**: Ensure only admins can acknowledge reviews
 - [x] **Test edge cases**: Handle multiple admins, re-acknowledgment, invalid data
@@ -107,16 +107,16 @@ All documentation updated, task checklists completed, builds and linting verifie
 
 ### Testing Infrastructure:
 
-- Component test harness: `client/components/admin-monthly-review/test.html`
-- Seed data integration: Reads `shared/seedData.ts` for realistic test scenarios
-- E2E tests: `e2e/component-admin-monthly-review.spec.ts`
-- Manual testing: Verified in browser with admin panel integration
+- **Vitest Unit Tests**: `tests/components/admin-monthly-review.test.ts` - Isolated component testing with happy-dom environment using seedData mocking
+- **Component test harness**: `client/components/admin-monthly-review/test.html` and `test.ts` - Manual testing with seed data integration
+- **Playwright E2E Tests**: `e2e/component-admin-monthly-review.spec.ts` - Integration testing with real API and screenshot testing
+- **Manual testing**: Verified in browser with admin panel integration
 
 ### Architectural Patterns Implemented:
 
 - **Event-Driven Design**: Loose coupling via custom events
 - **Data Flow Architecture**: Parent injection with method calls
-- **Testing Architecture**: Seed data integration without network dependencies
+- **Dual Testing Strategy**: Vitest unit tests (seedData mocking) + Playwright E2E tests (real API, screenshots)
 - **Type Safety**: Shared interfaces between client and server
 - **Component Composition**: Hierarchical parent-child relationships
 
@@ -124,8 +124,8 @@ All documentation updated, task checklists completed, builds and linting verifie
 
 - ✅ `npm run build` - TypeScript compilation successful
 - ✅ `npm run lint` - Code quality standards met (TypeScript errors in test.ts fixed)
-- ✅ Unit tests - Component functionality validated
-- ✅ E2E tests - End-to-end workflows tested
+- ✅ Vitest unit tests - Component functionality validated with seedData mocking
+- ✅ Playwright E2E tests - End-to-end workflows tested with real API and screenshots
 - ✅ Manual testing - Browser compatibility verified
 
 ## Implementation Notes
@@ -138,6 +138,7 @@ All documentation updated, task checklists completed, builds and linting verifie
 - **Testing**: Use `client/components/admin-panel/test.html` for unit testing admin acknowledgment UI components
 - **Test Data**: Use seed data from `shared/seedData.ts` (automatically loaded by admin-panel/test.ts) instead of real production data
 - **Component Testing Architecture**: The `admin-monthly-review/index.ts` component cannot call `fetchEmployeeMonthlyData` directly. Instead, the `admin-monthly-review/test.ts` must read `shared/seedData.ts` and formulate a model resembling the "/api/admin/monthly-review/:month" API response (which needs to be defined in `shared/api-models.d.ts`) to pass to the component for testing
+- **Dual Testing Strategy**: Components have both Vitest unit tests (isolated, seedData mocking) and Playwright E2E tests (integration, real API, screenshots)
 - **Relevant Skills**: Refer to `.github/skills/web-components-assistant/` for web component implementation patterns, `.github/skills/testing-strategy/` for testing approaches and validation pipeline, and `.github/skills/task-implementation-assistant/` for general task implementation guidance
 
 ## Architectural Design Elements
@@ -208,6 +209,7 @@ Admin Panel (admin-panel/index.ts)
 
 #### Component-Level Testing
 
+- **Vitest Unit Tests**: `tests/components/admin-monthly-review.test.ts` - Isolated testing with happy-dom and seedData mocking
 - **Manual Testing**: `admin-monthly-review/test.html` for interactive browser testing
 - **Automated Testing**: `admin-monthly-review/test.ts` with seed data integration
 - **Event Validation**: Tests both incoming data handling and outgoing event dispatch
@@ -215,7 +217,8 @@ Admin Panel (admin-panel/index.ts)
 #### Integration Testing
 
 - **Admin Panel Integration**: `admin-panel/test.html` tests full workflow
-- **E2E Testing**: `e2e/component-admin-monthly-review.spec.ts` covers complete user journeys
+- **Playwright E2E Tests**: `e2e/component-admin-monthly-review.spec.ts` covers complete user journeys with real API
+- **Screenshot Testing**: Visual regression testing for component states
 - **API Testing**: Validates server endpoints with proper typing
 
 ### Data Flow Architecture
@@ -247,9 +250,10 @@ User Interaction → Component Event → Parent Handler → API Call → Data In
 
 #### 🧪 **Testing Architecture**
 
-- **Seed Data Integration**: Realistic test scenarios from shared seed data
+- **Dual Testing Strategy**: Both Vitest unit tests (seedData mocking, isolated) and Playwright E2E tests (real API, screenshots)
+- **Seed Data Integration**: Realistic test scenarios from shared seed data for unit tests
 - **Type Compliance**: Test data matches production API responses
-- **Event Simulation**: Full event-driven flow testing without network calls
+- **Event Simulation**: Full event-driven flow testing without network calls in unit tests
 
 #### 🏗️ **Component Composition**
 

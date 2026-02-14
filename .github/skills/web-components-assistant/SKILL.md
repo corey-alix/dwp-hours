@@ -40,8 +40,9 @@ Follow this structured approach when implementing web components:
 8. **Event Handling**: Use event delegation via handleDelegatedClick/handleDelegatedSubmit methods
 9. **Data Flow Architecture**: Use event-driven data flow - components dispatch events for data requests, parent handles API calls and data injection via methods like setPtoData()
 10. **Memory Management**: BaseComponent automatically handles event listener cleanup
-11. **Integration Testing**: Test component in the DWP Hours Tracker context
-12. **Documentation**: Update component usage documentation
+11. **Unit Testing**: Create Vitest tests with happy-dom using seedData for mocking
+12. **Integration Testing**: Test component in the DWP Hours Tracker context with Playwright E2E tests
+13. **Documentation**: Update component usage documentation
 
 ## Component Testing Pattern
 
@@ -53,7 +54,69 @@ When creating web components, follow this testing structure:
 client/components/[component-name]/
 ├── index.ts          # Component implementation
 ├── test.html         # Manual testing page
-└── test.ts           # Automated test playground
+├── test.ts           # Automated test playground
+└── [component-name].test.ts  # Vitest unit tests (in tests/components/)
+
+tests/components/
+└── [component-name].test.ts  # Vitest unit tests with happy-dom
+```
+
+### Vitest Unit Tests
+
+Create comprehensive unit tests using Vitest with happy-dom environment:
+
+- **Mock API Responses**: Use `shared/seedData.ts` to provide realistic test data without network calls
+- **Component Isolation**: Test component logic, rendering, and event handling in isolation
+- **Data Injection Pattern**: Use component methods (like `setPtoData()`) to inject mock data
+- **DOM Testing**: Verify rendered output, CSS classes, and element interactions
+- **Event Testing**: Assert that components dispatch correct custom events with proper detail objects
+
+Example Vitest test structure:
+
+```typescript
+// @vitest-environment happy-dom
+
+import { describe, it, expect } from "vitest";
+import { ComponentName } from "../../client/components/[component-name]/index.js";
+import { seedDataType } from "../../shared/seedData.js";
+
+describe("ComponentName Component", () => {
+  it("should render correctly with mock data", () => {
+    const component = new ComponentName();
+    component.setData(mockDataFromSeed);
+    // Assert DOM structure and content
+  });
+});
+```
+
+**Mocking with Seed Data**: Always use `shared/seedData.ts` for realistic test data. Transform seed data into component-specific formats using data injection methods rather than simulating API calls.
+
+### Playwright E2E Tests
+
+Create end-to-end tests using Playwright for integration testing:
+
+- **Real API Usage**: Tests run against the actual application with real API calls (data provided by parent components)
+- **Screenshot Testing**: Capture component states in various UI configurations
+- **Full Integration**: Test components within the complete application context
+- **User Interactions**: Verify click handlers, form submissions, and navigation
+- **Visual Regression**: Ensure UI consistency across browser updates
+
+Since components use event-driven architecture and don't make direct API calls, Playwright tests focus on:
+
+- Component rendering in different parent contexts (like admin-panel test page)
+- Event emission and handling by parent components
+- Visual appearance and responsive behavior
+- Integration with other UI elements
+
+Example Playwright test:
+
+```typescript
+test("component displays correctly in admin panel", async ({ page }) => {
+  // Navigate to test page with real data
+  await page.goto("/components/admin-panel/test.html");
+  // Take screenshots of different states
+  await expect(page.locator("component-name")).toHaveScreenshot();
+});
 ```
 
 ### test.html Pattern
@@ -121,8 +184,9 @@ export function playground() {
 2. Add playground import/export to `client/components/test.ts`
 3. Create test.html following the pattern above
 4. Create test.ts with component-specific test logic
-5. Add E2E test in `e2e/component-[name].spec.ts`
-6. Update component exports in main test.ts file
+5. Create Vitest unit tests in `tests/components/[component-name].test.ts`
+6. Add E2E test in `e2e/component-[name].spec.ts`
+7. Update component exports in main test.ts file
 
 ## Data Flow Patterns
 
@@ -245,7 +309,7 @@ Common queries that should trigger this skill:
 - **Memory Management**: All components must extend BaseComponent to prevent memory leaks from event listeners
 - **Consistency**: Use BaseComponent's event delegation and reactive update patterns for all components
 - **Accessibility**: Implement ARIA attributes and keyboard navigation as per MDN accessibility guidelines
-- **Testing**: Components should be testable with the existing Playwright E2E setup
+- **Testing**: Components should have both Vitest unit tests (with seedData mocking) and Playwright E2E tests (with screenshot testing)
 - **Dependencies**: Avoid external component libraries; use native web components with BaseComponent for better performance and smaller bundle size
 - **Related Skills**: Works with `task-implementation-assistant` for admin panel tasks, `code-review-qa` for component quality checks</content>
   <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/.github/skills/web-components-assistant/SKILL.md

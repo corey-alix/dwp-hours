@@ -74,12 +74,13 @@ test("admin-panel component test", async ({ page }) => {
 
   // Check navigation links
   const navLinks = navMenu.locator(".nav-link");
-  await expect(navLinks).toHaveCount(4);
+  await expect(navLinks).toHaveCount(5);
 
   // Check that all expected navigation items are present
   await expect(navLinks.filter({ hasText: "👥 Employees" })).toBeVisible();
   await expect(navLinks.filter({ hasText: "📋 PTO Requests" })).toBeVisible();
   await expect(navLinks.filter({ hasText: "📊 Reports" })).toBeVisible();
+  await expect(navLinks.filter({ hasText: "📅 Monthly Review" })).toBeVisible();
   await expect(navLinks.filter({ hasText: "⚙️ Settings" })).toBeVisible();
 
   // Check main content area

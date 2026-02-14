@@ -25,12 +25,17 @@ export class AdminMonthlyReview extends BaseComponent {
     this.requestEmployeeData();
   }
 
-  attributeChangedCallback(name: string, oldValue: string, newValue: string) {
+  attributeChangedCallback(
+    name: string,
+    oldValue: string | null,
+    newValue: string,
+  ) {
     if (oldValue !== newValue) {
       switch (name) {
         case "employee-data":
           try {
             this._employeeData = JSON.parse(newValue);
+            this._isLoading = false;
           } catch (e) {
             console.error("Invalid employee data JSON:", e);
             this._employeeData = [];
@@ -161,10 +166,6 @@ export class AdminMonthlyReview extends BaseComponent {
     } catch (error) {
       console.error("Failed to acknowledge employee:", error);
     }
-  }
-
-  protected update(): void {
-    this.innerHTML = this.render();
   }
 
   protected handleDelegatedClick(e: Event): void {

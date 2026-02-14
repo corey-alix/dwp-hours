@@ -130,13 +130,88 @@ export function playground() {
     }
   });
 
-  // Handle employee creation/update events from admin panel
-  addEventListener(adminPanel, "create-employee", (e: CustomEvent) => {
-    console.log("Create employee:", e.detail);
-    setOutput(`Create Employee: ${e.detail.employee.name}`);
-    // In a real app, this would save to database and refresh the list
-    // For testing, we don't update the local list since the component handles it
-  });
+  // Handle admin monthly review data requests
+  addEventListener(
+    adminPanel,
+    "admin-monthly-review-request",
+    (e: CustomEvent) => {
+      console.log("Admin monthly review request:", e.detail);
+      const { month } = e.detail;
+
+      // Employee ID mapping (matches seed data conventions)
+      const employeeIdMap: Record<string, number> = {
+        "John Doe": 1,
+        "Jane Smith": 2,
+        "Admin User": 3,
+      };
+
+      // Build data for ALL employees, computing hours from seedPTOEntries
+      // and acknowledgment status from seedAdminAcknowledgments
+      const mockData = seedEmployees.map((emp) => {
+        const empId = employeeIdMap[emp.name] || 0;
+
+        // Sum PTO hours by type for the requested month
+        const monthEntries = seedPTOEntries.filter(
+          (entry) =>
+            entry.employee_id === empId && entry.date.startsWith(month),
+        );
+        const ptoHours = monthEntries
+          .filter((e) => e.type === "PTO")
+          .reduce((sum, e) => sum + e.hours, 0);
+        const sickHours = monthEntries
+          .filter((e) => e.type === "Sick")
+          .reduce((sum, e) => sum + e.hours, 0);
+        const bereavementHours = monthEntries
+          .filter((e) => e.type === "Bereavement")
+          .reduce((sum, e) => sum + e.hours, 0);
+        const juryDutyHours = monthEntries
+          .filter((e) => e.type === "Jury Duty")
+          .reduce((sum, e) => sum + e.hours, 0);
+        const totalHours =
+          172 - ptoHours - sickHours - bereavementHours - juryDutyHours;
+
+        // Check acknowledgment status
+        const ack = seedAdminAcknowledgments.find(
+          (a) => a.employee_id === empId && a.month === month,
+        );
+        const admin = ack
+          ? seedEmployees.find(
+              (_, i) => employeeIdMap[seedEmployees[i].name] === ack.admin_id,
+            )
+          : undefined;
+
+        return {
+          employeeId: empId,
+          employeeName: emp.name,
+          month,
+          totalHours,
+          ptoHours,
+          sickHours,
+          bereavementHours,
+          juryDutyHours,
+          acknowledgedByAdmin: !!ack,
+          adminAcknowledgedAt: ack?.acknowledged_at || null,
+          adminAcknowledgedBy: admin?.name || null,
+        };
+      });
+
+      // Inject data into the monthly review component
+      const shadowRoot = adminPanel.shadowRoot;
+      if (shadowRoot) {
+        const monthlyReview = shadowRoot.querySelector("admin-monthly-review");
+        if (
+          monthlyReview &&
+          typeof (monthlyReview as any).setEmployeeData === "function"
+        ) {
+          (monthlyReview as any).setEmployeeData(mockData);
+        }
+      }
+
+      setOutput(
+        `Loaded monthly review data for ${month}: ${mockData.length} employees`,
+      );
+    },
+  );
 
   addEventListener(adminPanel, "update-employee", (e: CustomEvent) => {
     console.log("Update employee:", e.detail);
