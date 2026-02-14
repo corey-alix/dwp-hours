@@ -1,5 +1,7 @@
 # Planet Branch Workflow Guide
 
+<!-- Mars test feature: confirming workflow viability on Mars planet -->
+
 ## Overview
 
 The Planet Branch Workflow is a structured approach to feature development that uses planet branches (Mercury, Mars, Earth, Jupiter, Saturn) as staging environments based on effort and urgency characteristics. This workflow enables parallel development across different priority levels while maintaining code quality and team coordination.
