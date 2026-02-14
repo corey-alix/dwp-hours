@@ -382,11 +382,5 @@ Validation confirms the workflow enhances parallel development while maintaining
 
 ## Questions and Concerns
 
-1. How should we handle features that span multiple planets or change urgency during development? → Allow migration via `feature:migrate --to <planet>` script: cherry-pick commits, create new branch, delete old. Track with commit message prefixes.
-2. Should planet branches have different merge requirements (e.g., more reviews for Mercury)? → Yes—configure branch protection: Mercury (1 review), Jupiter (code owners + tests). Scripts can query API for enforcement.
-3. What happens if a feature branch is created from wrong planet - migration process? → Detect via branch name parsing in `feature:finish`; prompt migration or abort. Add `feature:validate` script.
-4. How to prevent planet branch pollution with too many direct commits? → Enforce no direct commits: use pre-push hooks to reject if not from feature branch. Require all changes via features.
-5. Integration with existing squash scripts - maintain or replace? → Extend merge-squash-push.sh with --planet flag for planet context; deprecate old scripts by wrapping in new ones.
-6. How will the agent assistance integrate with manual workflow operations? → Use prompt.md for decision tree queries; skill executes scripts via API calls. Ensure fallback to manual: scripts runnable standalone.
-7. What safety constraints should apply to automated cleanup operations? → Require --force for destructive ops; exclude unmerged branches; log deletions. Add undo via reflog references.</content>
+8. Why did the workflow not trigger automatically during the initial run of planet-workflow.prompt.md? → The planet-workflow-assistant skill was not listed in the .github/copilot-instructions.md agent skills section, preventing automatic activation. This has been resolved by adding the skill to the instructions, enabling automatic triggering when users prefix commands with "/planet-workflow".</content>
    <parameter name="filePath">/home/ca0v/code/corey-alix/dwp-hours/mars/TASKS/planet-branch-workflow.md

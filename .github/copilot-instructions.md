@@ -52,6 +52,7 @@ This project uses specialized agent skills located in `.github/skills/` director
 - **architecture-guidance**: Provides design and architecture recommendations
 - **testing-strategy**: Advises on testing approaches and coverage
 - **dependency-management**: Manages task priorities and dependencies
+- **planet-workflow-assistant**: Manages planet branch workflow for feature development
 
 ## Development Best Practices and Learnings
 
