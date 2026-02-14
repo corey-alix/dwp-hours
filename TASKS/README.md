@@ -12,7 +12,7 @@ This document outlines all remaining tasks to complete the DWP Hours Tracker app
 2. ✅ **[authentication.md](authentication.md)** - Implement real authentication
 3. ✅ **[pto-calculations.md](pto-calculations.md)** - PTO status calculations
 4. ✅ **[api-endpoints.md](api-endpoints.md)** - Complete API endpoints
-5. **[issue-date-handling-regression.md](issue-date-handling-regression.md)** - Fix timezone-related date shifting bugs
+5. ✅ **[issue-date-handling-regression.md](issue-date-handling-regression.md)** - Fix timezone-related date shifting bugs
 
 ### 🟡 Medium Priority (Backend/API Core Features)
 
@@ -112,8 +112,8 @@ database-schema.md
 6. ✅ **data-migration.md** - legacy data migration completed
 7. ✅ **security-production.md** - production readiness completed
 8. ✅ **admin-panel.md** - admin UI features completed
-9. **issue-date-handling-regression.md** - critical date handling bug fix needed
-10. **design-constraints.md** - code quality improvements needed
+9. ✅ **issue-date-handling-regression.md** - critical date handling bug fix needed
+10. ✅ **design-constraints.md** - code quality improvements needed
 11. Implement **admin-review-acknowledgment.md** - admin review UI
 12. ✅ **issue-test-file-conventions-regression.md** - fix test file conventions regression
 

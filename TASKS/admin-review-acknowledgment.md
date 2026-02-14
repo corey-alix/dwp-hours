@@ -23,13 +23,29 @@ Implement a feature where the administrator, after reviewing employee hours and 
 ### Phase 2: Frontend UI Implementation
 
 - [ ] **Design admin acknowledgment UI**: Add acknowledgment section to admin panel reports/employee review view
+  - **Components Involved**: `admin-panel/index.ts` (main container), `report-generator/index.ts` (current reports view)
+  - **New Component Opportunity**: Consider creating `admin-monthly-review/index.ts` for dedicated monthly data review interface
 - [ ] **Implement acknowledgment button**: Add "Acknowledge Review" button for each employee's monthly data
+  - **Components Involved**: `report-generator/index.ts` or new `admin-monthly-review/index.ts`
+  - **Integration**: Add buttons to monthly data rows in the review interface
 - [ ] **Create acknowledgment modal/form**: Build confirmation dialog for admin acknowledgment
+  - **Components Involved**: `confirmation-dialog/index.ts` (existing component can be reused/extended)
+  - **New Component Opportunity**: Create `admin-acknowledgment-modal/index.ts` if confirmation-dialog needs admin-specific features
 - [ ] **Integrate with admin panel navigation**: Ensure acknowledgment UI is accessible from reports section
+  - **Components Involved**: `admin-panel/index.ts` (navigation and view switching)
+  - **Implementation**: Add "Monthly Review" or "Acknowledgment" tab to admin panel navigation
 - [ ] **Add acknowledgment status indicators**: Show which months have been acknowledged by admins
+  - **Components Involved**: `report-generator/index.ts` or `admin-monthly-review/index.ts`
+  - **Implementation**: Add visual indicators (checkmarks, badges) next to acknowledged months
 - [ ] **Update admin panel component**: Modify admin-panel/index.ts to handle admin acknowledgment events
+  - **Components Involved**: `admin-panel/index.ts`
+  - **Implementation**: Add event listeners for acknowledgment actions and API integration
 - [ ] **Add admin acknowledgment API calls**: Integrate frontend with existing admin-acknowledgements API endpoints
+  - **Components Involved**: `admin-panel/index.ts`, `app.ts` (API client integration)
+  - **Implementation**: Use existing `APIClient.submitAdminAcknowledgement()` and `getAdminAcknowledgements()` methods
 - [ ] **Test UI changes**: Use `admin-panel/test.html` to verify acknowledgment UI components work correctly
+  - **Components Involved**: `admin-panel/test.html`, `admin-panel/test.ts`
+  - **Implementation**: Update test files to include acknowledgment UI testing scenarios
 
 ### Phase 3: Testing and Validation
 
@@ -66,6 +82,10 @@ Documentation updates are pending.
 ## Next Steps
 
 1. **Start Phase 2**: Design and implement the admin acknowledgment UI in the admin panel
+   - Evaluate whether to extend `report-generator/index.ts` or create new `admin-monthly-review/index.ts` component
+   - Consider creating `employee-monthly-card/index.ts` for better employee data presentation in monthly review interface
+   - Leverage existing `confirmation-dialog/index.ts` for acknowledgment modal
+   - Update `admin-panel/index.ts` navigation to include monthly review access
 2. **Test UI components**: Use `client/components/admin-panel/test.html` to verify acknowledgment functionality during development
 3. **Complete Phase 3**: Add comprehensive testing coverage including E2E tests
 4. **Finish Phase 4**: Update documentation and deploy
@@ -79,3 +99,26 @@ Documentation updates are pending.
 - Integrate with existing admin panel UI
 - **Testing**: Use `client/components/admin-panel/test.html` for unit testing admin acknowledgment UI components
 - **Test Data**: Use seed data from `shared/seedData.ts` (automatically loaded by admin-panel/test.ts) instead of real production data
+
+## Component Analysis
+
+**Existing Components to Leverage/Modify:**
+
+- `admin-panel/index.ts`: Main container and navigation - needs updates for acknowledgment events and potentially new navigation items
+- `report-generator/index.ts`: Current reports view - could be extended with acknowledgment features or used as reference for new monthly review component
+- `confirmation-dialog/index.ts`: Existing modal component - can be reused for acknowledgment confirmation dialogs
+- `employee-list/index.ts`: Has basic "Acknowledge" button - currently uses prompt(), could be enhanced with proper modal
+
+**Potential New Components:**
+
+- `admin-monthly-review/index.ts`: Dedicated component for monthly employee data review and acknowledgment (recommended for clean separation)
+- `admin-acknowledgment-modal/index.ts`: Specialized modal for acknowledgment confirmation with month selection and admin details
+- `acknowledgment-status-indicator/index.ts`: Reusable component for showing acknowledgment status badges/icons
+- `employee-monthly-card/index.ts`: Card component for displaying individual employee monthly data with acknowledgment status and actions (could enhance employee-list or be used in admin-monthly-review)
+
+**Component Integration Points:**
+
+- Admin panel navigation: Add "Monthly Review" tab alongside existing "Reports", "Employees", "PTO Requests"
+- Event flow: `admin-monthly-review` → `admin-panel` → `app.ts` → API calls
+- Data flow: Fetch employee monthly data → display with acknowledgment status → handle acknowledgment actions
+- Employee display: Use `employee-monthly-card` components within `admin-monthly-review` for clean, card-based layout of employee monthly data
