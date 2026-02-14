@@ -116,13 +116,6 @@ test.describe("File-Based Data Migration API", () => {
     // Verify total counts match what was reported in migration summary
     expect(monthlyHours.length).toBe(summary.monthlyHoursInserted);
     expect(ptoEntries.length).toBe(summary.ptoEntriesInserted);
-
-    console.log("Migration completed successfully:", {
-      employeeId,
-      monthlyHoursCount: monthlyHours.length,
-      ptoEntriesCount: ptoEntries.length,
-      warnings: result.warnings,
-    });
   });
 
   test("should handle missing Excel file gracefully", async ({ page }) => {

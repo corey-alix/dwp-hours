@@ -14,7 +14,13 @@ export function playground() {
 
   const adminPanel = querySingle<AdminPanel>("admin-panel");
   const testOutput = querySingle<HTMLElement>("#test-output");
-  const toggleButton = querySingle<HTMLButtonElement>("#toggle-seed-data");
+
+  // Create toggle button programmatically
+  const toggleButton = document.createElement("button");
+  toggleButton.id = "toggle-seed-data";
+  toggleButton.textContent = "Toggle Seed Data";
+  toggleButton.style.margin = "10px 0";
+  document.body.insertBefore(toggleButton, adminPanel);
 
   let seedDataLoaded = false;
 

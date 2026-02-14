@@ -5,7 +5,11 @@ test.describe("Employee Admin Panel - Add Employee", () => {
 
   test("should add a new employee through admin panel UI", async ({ page }) => {
     // Listen for console messages
-    page.on("console", (msg) => console.log("PAGE LOG:", msg.text()));
+    page.on("console", (msg) => {
+      if (msg.type() === "error") {
+        console.log("PAGE ERROR:", msg.text());
+      }
+    });
 
     // Navigate to the admin panel test page
     await page.goto("/components/admin-panel/test.html");

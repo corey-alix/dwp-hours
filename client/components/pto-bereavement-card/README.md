@@ -7,6 +7,7 @@ The PTO Bereavement Card component displays bereavement leave information in a s
 ## Features
 
 - **Bucket Display**: Shows available vs used bereavement hours
+- **Approval Indicators**: Green checkbox beside "Used" when all bereavement time is approved
 - **Expandable Details**: Toggle to show/hide detailed entry information
 - **Theme Integration**: Consistent with other PTO card components
 - **Responsive Design**: Adapts to different screen sizes
@@ -18,6 +19,7 @@ The PTO Bereavement Card component displays bereavement leave information in a s
 <pto-bereavement-card
   data='{"available": 24, "used": 8, "remaining": 16}'
   entries='[{"date": "2024-01-15", "hours": 8, "description": "Family bereavement"}]'
+  full-entries='[{"id": 1, "employeeId": 1, "date": "2024-01-15", "type": "Bereavement", "hours": 8, "createdAt": "2024-01-01T00:00:00Z", "approved_by": 3}]'
   expanded="false"
 >
 </pto-bereavement-card>
@@ -26,7 +28,8 @@ The PTO Bereavement Card component displays bereavement leave information in a s
 ## Attributes
 
 - `data`: JSON object with bereavement bucket data
-- `entries`: JSON array of bereavement usage entries
+- `entries`: JSON array of bereavement usage entries (simplified format)
+- `full-entries`: JSON array of full PTOEntry objects with approval status
 - `expanded`: Boolean to control expanded state
 
 ## Data Structures
@@ -43,11 +46,22 @@ type BereavementEntry = {
   hours: number; // Hours used
   description?: string; // Optional description
 };
+
+type PTOEntry = {
+  id: number;
+  employeeId: number;
+  date: string;
+  type: "Bereavement";
+  hours: number;
+  createdAt: string;
+  approved_by?: number | null;
+};
 ```
 
 ## Features
 
 - **Balance Display**: Shows available, used, and remaining hours
+- **Approval Status**: Green checkmark (✓) appears after the word "Used" (displayed as "Used ✓") when all bereavement entries are approved. The checkmark is rendered via CSS using the `approved` class.
 - **Entry Details**: Lists individual bereavement entries when expanded
 - **Toggle Interface**: Expand/collapse for detailed view
 - **Consistent Styling**: Matches other PTO bucket cards

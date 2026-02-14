@@ -8,6 +8,17 @@ Provides guidance for implementing end-to-end tests using Playwright, following 
 
 Activated when users mention Playwright testing, E2E testing, browser automation, test setup, or ask about testing frontend functionality, user workflows, or integration testing.
 
+## Test File Convention Validation
+
+When refactoring test files, use E2E tests to validate that functionality remains intact:
+
+1. **Pre-Refactoring**: Run full E2E test suite to establish baseline
+2. **Post-Refactoring**: Run E2E tests to ensure no regressions
+3. **Component-Specific**: Target tests for modified components using grep patterns
+4. **CI/CD Validation**: Ensure tests pass in automated environments
+
+**Example**: After removing inline attributes from test.html files, run E2E tests to confirm component initialization still works correctly.
+
 ## Response Pattern
 
 1. Assess current testing setup and identify gaps in E2E coverage

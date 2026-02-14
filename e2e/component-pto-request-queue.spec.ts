@@ -11,7 +11,7 @@ test("pto-request-queue component test", async ({ page }) => {
   await page.goto("/components/pto-request-queue/test.html");
 
   // Wait for the page to load and component to initialize
-  await page.waitForSelector("#test-output");
+  await page.waitForSelector("pto-request-queue");
 
   // Check that no console errors occurred during loading
   const errors = consoleMessages.filter((msg) => msg.type === "error");

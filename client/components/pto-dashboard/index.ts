@@ -1,4 +1,5 @@
 // Re-exports for backward compatibility - components have been moved to individual folders
+export { PtoPtoCard } from "../pto-pto-card/index.js";
 export { PtoSummaryCard } from "../pto-summary-card/index.js";
 export { PtoAccrualCard } from "../pto-accrual-card/index.js";
 export { PtoSickCard } from "../pto-sick-card/index.js";

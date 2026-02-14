@@ -4,211 +4,100 @@ import {
   PtoBereavementCard,
   PtoEmployeeInfoCard,
   PtoJuryDutyCard,
+  PtoPtoCard,
   PtoSickCard,
   PtoSummaryCard,
 } from "./index.js";
 import { today } from "../../../shared/dateUtils.js";
+import { seedPTOEntries, seedEmployees } from "../../../shared/seedData.js";
 
-// API response data
+// Get employee data
+const employee = seedEmployees.find(
+  (e) => e.identifier === "john.doe@gmail.com",
+)!;
+
+// Filter seed data for employee 1 and 2026 entries
+const allPtoEntries = seedPTOEntries
+  .filter((entry) => entry.employee_id === 1 && entry.date.startsWith("2026-"))
+  .map((entry) => ({
+    date: entry.date,
+    type: entry.type,
+    hours: entry.hours,
+  }));
+
+// Get approved entries for bucket usage
+const approvedEntries = seedPTOEntries.filter(
+  (entry) =>
+    entry.employee_id === 1 &&
+    entry.date.startsWith("2026-") &&
+    entry.approved_by !== null,
+);
+
+// Compute used hours by type from approved entries
+const ptoUsed = approvedEntries
+  .filter((e) => e.type === "PTO")
+  .reduce((sum, e) => sum + e.hours, 0);
+const sickUsed = approvedEntries
+  .filter((e) => e.type === "Sick")
+  .reduce((sum, e) => sum + e.hours, 0);
+const bereavementUsed = approvedEntries
+  .filter((e) => e.type === "Bereavement")
+  .reduce((sum, e) => sum + e.hours, 0);
+const juryUsed = approvedEntries
+  .filter((e) => e.type === "Jury Duty")
+  .reduce((sum, e) => sum + e.hours, 0);
+
+// Simple PTO status derived from seed data
+const annualAllocation = 96; // Based on pto_rate * 135.6 hours/year
+const carryover = employee.carryover_hours;
+const availablePTO = annualAllocation + carryover - ptoUsed;
+
 const ptoStatus = {
   employeeId: 1,
-  hireDate: "2020-01-14",
-  annualAllocation: 96,
-  availablePTO: 96,
-  usedPTO: 40,
-  carryoverFromPreviousYear: 40,
+  hireDate: employee.hire_date,
+  annualAllocation,
+  availablePTO,
+  usedPTO: ptoUsed,
+  carryoverFromPreviousYear: carryover,
   monthlyAccruals: [
-    {
-      month: 1,
-      hours: 8.091954022988507,
-    },
-    {
-      month: 2,
-      hours: 7.35632183908046,
-    },
-    {
-      month: 3,
-      hours: 8.091954022988507,
-    },
-    {
-      month: 4,
-      hours: 8.091954022988507,
-    },
-    {
-      month: 5,
-      hours: 7.724137931034482,
-    },
-    {
-      month: 6,
-      hours: 8.091954022988507,
-    },
-    {
-      month: 7,
-      hours: 8.459770114942529,
-    },
-    {
-      month: 8,
-      hours: 7.724137931034482,
-    },
-    {
-      month: 9,
-      hours: 8.091954022988507,
-    },
-    {
-      month: 10,
-      hours: 8.091954022988507,
-    },
-    {
-      month: 11,
-      hours: 7.724137931034482,
-    },
-    {
-      month: 12,
-      hours: 8.459770114942529,
-    },
+    { month: 1, hours: 8.1 },
+    { month: 2, hours: 7.4 },
+    { month: 3, hours: 8.1 },
+    { month: 4, hours: 8.1 },
+    { month: 5, hours: 7.7 },
+    { month: 6, hours: 8.1 },
+    { month: 7, hours: 8.5 },
+    { month: 8, hours: 7.7 },
+    { month: 9, hours: 8.1 },
+    { month: 10, hours: 8.1 },
+    { month: 11, hours: 7.7 },
+    { month: 12, hours: 8.5 },
   ],
   nextRolloverDate: "2027-01-01",
   sickTime: {
     allowed: 24,
-    used: 24,
-    remaining: 0,
+    used: sickUsed,
+    remaining: 24 - sickUsed,
   },
   ptoTime: {
-    allowed: 136,
-    used: 40,
-    remaining: 96,
+    allowed: annualAllocation + carryover,
+    used: ptoUsed,
+    remaining: availablePTO,
   },
   bereavementTime: {
     allowed: 40,
-    used: 24,
-    remaining: 16,
+    used: bereavementUsed,
+    remaining: 40 - bereavementUsed,
   },
   juryDutyTime: {
     allowed: 40,
-    used: 80,
-    remaining: -40,
+    used: juryUsed,
+    remaining: 40 - juryUsed,
   },
 };
 
-const ptoEntries = [
-  {
-    date: "2026-03-02",
-    type: "PTO",
-    hours: 4,
-  },
-  {
-    date: "2026-03-03",
-    type: "PTO",
-    hours: 4,
-  },
-  {
-    date: "2026-03-04",
-    type: "PTO",
-    hours: 4,
-  },
-  {
-    date: "2026-03-05",
-    type: "PTO",
-    hours: 4,
-  },
-  {
-    date: "2026-02-24",
-    type: "PTO",
-    hours: 8,
-  },
-  {
-    date: "2026-02-22",
-    type: "PTO",
-    hours: 8,
-  },
-  {
-    date: "2026-02-20",
-    type: "PTO",
-    hours: 8,
-  },
-  {
-    date: "2026-02-16",
-    type: "Sick",
-    hours: 8,
-  },
-  {
-    date: "2026-02-14",
-    type: "Sick",
-    hours: 8,
-  },
-  {
-    date: "2026-02-12",
-    type: "Sick",
-    hours: 8,
-  },
-  // Bereavement time: January 21-23
-  {
-    date: "2026-01-21",
-    type: "Bereavement",
-    hours: 8,
-  },
-  {
-    date: "2026-01-22",
-    type: "Bereavement",
-    hours: 8,
-  },
-  {
-    date: "2026-01-23",
-    type: "Bereavement",
-    hours: 8,
-  },
-  // Jury duty: July 20-31
-  {
-    date: "2026-07-20",
-    type: "Jury Duty",
-    hours: 8,
-  },
-  {
-    date: "2026-07-21",
-    type: "Jury Duty",
-    hours: 8,
-  },
-  {
-    date: "2026-07-22",
-    type: "Jury Duty",
-    hours: 8,
-  },
-  {
-    date: "2026-07-23",
-    type: "Jury Duty",
-    hours: 8,
-  },
-  {
-    date: "2026-07-24",
-    type: "Jury Duty",
-    hours: 8,
-  },
-  {
-    date: "2026-07-27",
-    type: "Jury Duty",
-    hours: 8,
-  },
-  {
-    date: "2026-07-28",
-    type: "Jury Duty",
-    hours: 8,
-  },
-  {
-    date: "2026-07-29",
-    type: "Jury Duty",
-    hours: 8,
-  },
-  {
-    date: "2026-07-30",
-    type: "Jury Duty",
-    hours: 8,
-  },
-  {
-    date: "2026-07-31",
-    type: "Jury Duty",
-    hours: 8,
-  },
-];
+// Use all entries for the calendar display (including pending)
+const ptoEntries = allPtoEntries;
 
 // Computed values
 const currentYear = 2026;
@@ -225,14 +114,22 @@ for (let month = 1; month <= 12; month++) {
 }
 
 // Convert simplified PTO entries to full PTOEntry format for the component
-const fullPtoEntries = ptoEntries.map((entry, index) => ({
-  id: index + 1,
-  employeeId: 1,
-  date: entry.date,
-  type: entry.type as "PTO" | "Sick" | "Bereavement" | "Jury Duty",
-  hours: entry.hours,
-  createdAt: today(),
-}));
+const fullPtoEntries = ptoEntries.map((entry, index) => {
+  // Find the corresponding entry in seed data to get approval status
+  const seedEntry = seedPTOEntries.find(
+    (se) =>
+      se.date === entry.date && se.type === entry.type && se.employee_id === 1,
+  );
+  return {
+    id: index + 1,
+    employeeId: 1,
+    date: entry.date,
+    type: entry.type as "PTO" | "Sick" | "Bereavement" | "Jury Duty",
+    hours: entry.hours,
+    createdAt: today(),
+    approved_by: seedEntry?.approved_by || null,
+  };
+});
 
 // Filter entries by type
 const sickEntries = ptoEntries
@@ -267,6 +164,7 @@ export function playground(): void {
 
   const summary = querySingle<PtoSummaryCard>("pto-summary-card");
   const accrual = querySingle<PtoAccrualCard>("pto-accrual-card");
+  const pto = querySingle<PtoPtoCard>("pto-pto-card");
   const sick = querySingle<PtoSickCard>("pto-sick-card");
   const bereavement = querySingle<PtoBereavementCard>("pto-bereavement-card");
   const jury = querySingle<PtoJuryDutyCard>("pto-jury-duty-card");
@@ -286,19 +184,98 @@ export function playground(): void {
   console.log("Set ptoEntries");
   accrual.calendarYear = currentYear;
 
+  // Set properties that were previously inline attributes
+  accrual.setAttribute("request-mode", "true");
+  accrual.setAttribute("annual-allocation", "96");
+
+  const ptoEntriesFiltered = approvedEntries
+    .filter((e) => e.type === "PTO")
+    .map((e) => ({
+      date: e.date,
+      hours: e.hours,
+    }));
+
+  pto.bucket = ptoStatus.ptoTime;
+  pto.usageEntries = ptoEntriesFiltered;
+  pto.fullPtoEntries = fullPtoEntries.filter(
+    (e) => e.type === "PTO" && e.approved_by !== null,
+  );
+
   sick.bucket = ptoStatus.sickTime;
   sick.usageEntries = sickEntries;
+  sick.fullPtoEntries = fullPtoEntries.filter((e) => e.type === "Sick");
 
   bereavement.bucket = ptoStatus.bereavementTime;
   bereavement.usageEntries = bereavementEntries;
+  bereavement.fullPtoEntries = fullPtoEntries.filter(
+    (e) => e.type === "Bereavement",
+  );
 
   jury.bucket = ptoStatus.juryDutyTime;
   jury.usageEntries = juryEntries;
+  jury.fullPtoEntries = fullPtoEntries.filter((e) => e.type === "Jury Duty");
 
   info.info = {
     hireDate: formatDateForDisplay(ptoStatus.hireDate),
     nextRolloverDate: formatDateForDisplay(ptoStatus.nextRolloverDate),
   };
 
+  // Set up PTO request submission event handling
+  const handlePtoRequestSubmit = (event: CustomEvent) => {
+    console.log("PTO Request Submit Event Received:", event);
+    console.log("Event detail:", event.detail);
+    const { requests } = event.detail;
+    console.log("Requests:", requests);
+
+    const timestamp = new Date().toLocaleString();
+    const submissionText = `
+[${timestamp}] PTO Request Submitted:
+${requests.map((req: any) => `  - ${req.date}: ${req.hours} hours (${req.type})`).join("\n")}
+
+Total Requests: ${requests.length}
+`;
+
+    console.log(submissionText);
+
+    // Visual feedback - create a temporary log element if it doesn't exist
+    let logElement = document.getElementById("submission-log");
+    if (!logElement) {
+      logElement = document.createElement("div");
+      logElement.id = "submission-log";
+      logElement.style.cssText = `
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 12px;
+        margin: 16px 0;
+        font-family: monospace;
+        white-space: pre-wrap;
+      `;
+      logElement.innerHTML =
+        "<strong>PTO Request Submissions:</strong>\n(No submissions yet)";
+      document.body.appendChild(logElement);
+    }
+
+    logElement.textContent += submissionText;
+
+    // Visual feedback
+    logElement.style.background = "#d4edda";
+    logElement.style.borderColor = "#c3e6cb";
+    setTimeout(() => {
+      logElement!.style.background = "#f8f9fa";
+      logElement!.style.borderColor = "#dee2e6";
+    }, 2000);
+  };
+
+  // Listen for PTO request submissions from the accrual card
+  document.addEventListener(
+    "pto-request-submit",
+    handlePtoRequestSubmit as EventListener,
+  );
+
+  console.log("Event listener added for pto-request-submit");
   console.log("PTO dashboard playground test initialized with API data");
+  console.log(
+    "Instructions: Select a month, choose PTO type, paint cells, edit hours, submit",
+  );
 }

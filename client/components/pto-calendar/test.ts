@@ -1,4 +1,6 @@
 import { PtoCalendar, CalendarEntry, PTOEntry } from "./index.js";
+import { seedPTOEntries } from "../../../shared/seedData.js";
+import { today } from "../../../shared/dateUtils.js";
 
 export function playground(): HTMLElement {
   const container = document.createElement("div");
@@ -10,65 +12,22 @@ export function playground(): HTMLElement {
   // Create calendar component
   const calendar = document.createElement("pto-calendar") as PtoCalendar;
 
-  // Sample data for February 2024
-  const sampleEntries: PTOEntry[] = [
-    {
-      id: 1,
-      employeeId: 1,
-      date: "2024-02-12",
-      hours: 4.0,
-      type: "Sick",
-      createdAt: "2024-01-01T00:00:00Z",
-      approved_by: 3, // Approved
-    },
-    {
-      id: 2,
-      employeeId: 1,
-      date: "2024-02-14",
-      hours: 8.0,
-      type: "Sick",
-      createdAt: "2024-01-01T00:00:00Z",
-      approved_by: 3, // Approved
-    },
-    {
-      id: 3,
-      employeeId: 1,
-      date: "2024-02-16",
-      hours: 8.0,
-      type: "Sick",
-      createdAt: "2024-01-01T00:00:00Z",
-      // No approved_by - pending
-    },
-    {
-      id: 4,
-      employeeId: 1,
-      date: "2024-02-20",
-      hours: 8.0,
-      type: "PTO",
-      createdAt: "2024-01-01T00:00:00Z",
-      approved_by: 3, // Approved
-    },
-    {
-      id: 5,
-      employeeId: 1,
-      date: "2024-02-21",
-      hours: 8.0,
-      type: "PTO",
-      createdAt: "2024-01-01T00:00:00Z",
-      // No approved_by - pending
-    },
-    {
-      id: 6,
-      employeeId: 1,
-      date: "2024-02-22",
-      hours: 4.0,
-      type: "PTO",
-      createdAt: "2024-01-01T00:00:00Z",
-      approved_by: 3, // Approved
-    },
-  ];
+  // Use seed data for February 2026
+  const sampleEntries: PTOEntry[] = seedPTOEntries
+    .filter(
+      (entry) => entry.employee_id === 1 && entry.date.startsWith("2026-02"),
+    )
+    .map((entry, index) => ({
+      id: entry.employee_id * 1000 + index, // Generate unique id
+      employeeId: entry.employee_id,
+      date: entry.date,
+      hours: entry.hours,
+      type: entry.type as "PTO" | "Sick" | "Bereavement" | "Jury Duty",
+      createdAt: today(),
+      approved_by: entry.approved_by,
+    }));
 
-  calendar.setYear(2024);
+  calendar.setYear(2026);
   calendar.setMonth(1); // February (0-indexed)
   calendar.setPtoEntries(sampleEntries);
   calendar.setReadonly(false); // Start in editable mode for testing
