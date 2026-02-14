@@ -47,6 +47,7 @@ import type {
   HoursSubmitResponse,
   AcknowledgementSubmitResponse,
   AdminAcknowledgementSubmitResponse,
+  AdminMonthlyReviewItem,
 } from "../shared/api-models.js";
 import {
   serializePTOEntry,
@@ -1043,7 +1044,7 @@ initDatabase()
             order: { name: "ASC" },
           });
 
-          const result = [];
+          const result: AdminMonthlyReviewItem[] = [];
 
           for (const employee of employees) {
             // Get monthly hours for this employee and month

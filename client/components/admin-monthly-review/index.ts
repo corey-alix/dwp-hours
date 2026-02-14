@@ -1,21 +1,17 @@
-interface MonthlyEmployeeData {
-  employeeId: number;
-  employeeName: string;
-  month: string;
-  totalHours: number;
-  ptoHours: number;
-  sickHours: number;
-  bereavementHours: number;
-  juryDutyHours: number;
-  acknowledgedByAdmin: boolean;
-  adminAcknowledgedAt?: string;
-  adminAcknowledgedBy?: string;
-}
-
 import { querySingle } from "../test-utils.js";
+import { BaseComponent } from "../base-component.js";
+import type { AdminMonthlyReviewItem } from "../../../shared/api-models.js";
 
-export class AdminMonthlyReview extends HTMLElement {
-  private _employeeData: MonthlyEmployeeData[] = [];
+// Admin Monthly Review Component Architecture:
+// This component implements the event-driven data flow pattern:
+// 1. Dispatches events for data requests (admin-monthly-review-request)
+// 2. Receives data via method injection (setEmployeeData)
+// 3. Never makes direct API calls - parent components handle data fetching
+// 4. Uses shared AdminMonthlyReviewItem types for type safety
+// 5. Follows BaseComponent patterns for memory-safe event handling
+
+export class AdminMonthlyReview extends BaseComponent {
+  private _employeeData: AdminMonthlyReviewItem[] = [];
   private _selectedMonth: string = new Date().toISOString().slice(0, 7); // YYYY-MM format
   private _isLoading = false;
   private _acknowledgmentData: any[] = [];
@@ -25,8 +21,8 @@ export class AdminMonthlyReview extends HTMLElement {
   }
 
   connectedCallback() {
-    this.loadEmployeeData();
-    this.addEventListener("click", this.handleClick.bind(this));
+    super.connectedCallback();
+    this.requestEmployeeData();
   }
 
   attributeChangedCallback(name: string, oldValue: string, newValue: string) {
@@ -42,13 +38,13 @@ export class AdminMonthlyReview extends HTMLElement {
           break;
         case "selected-month":
           this._selectedMonth = newValue;
-          this.loadEmployeeData();
+          this.requestEmployeeData();
           break;
         case "acknowledgment-data":
           try {
             this._acknowledgmentData = JSON.parse(newValue);
             // Reload employee data when acknowledgment data changes
-            this.loadEmployeeData();
+            this.requestEmployeeData();
           } catch (e) {
             console.error("Invalid acknowledgment data JSON:", e);
             this._acknowledgmentData = [];
@@ -59,76 +55,27 @@ export class AdminMonthlyReview extends HTMLElement {
     }
   }
 
-  private async loadEmployeeData(): Promise<void> {
+  private requestEmployeeData(): void {
     this._isLoading = true;
     this.update();
 
-    try {
-      // TODO: Implement API call to fetch employee monthly data
-      // For now, use mock data
-      this._employeeData = await this.fetchEmployeeMonthlyData(
-        this._selectedMonth,
-      );
-    } catch (error) {
-      console.error("Failed to load employee data:", error);
-      this._employeeData = [];
-    } finally {
-      this._isLoading = false;
-      this.update();
-    }
+    // Event-driven data flow: dispatch event for parent to handle data fetching
+    // Parent component listens for this event and calls setEmployeeData() with results
+    this.dispatchEvent(
+      new CustomEvent("admin-monthly-review-request", {
+        bubbles: true,
+        composed: true,
+        detail: { month: this._selectedMonth },
+      }),
+    );
   }
 
-  private async fetchEmployeeMonthlyData(
-    month: string,
-  ): Promise<MonthlyEmployeeData[]> {
-    try {
-      // Try to fetch from API first
-      const response = await (window as any).api.getAdminMonthlyReview(month);
-      return response.data.map((item: any) => ({
-        employeeId: item.employeeId,
-        employeeName: item.employeeName,
-        month: item.month,
-        totalHours: item.totalHours,
-        ptoHours: item.ptoHours,
-        sickHours: item.sickHours,
-        bereavementHours: item.bereavementHours,
-        juryDutyHours: item.juryDutyHours,
-        acknowledgedByAdmin: item.acknowledgedByAdmin,
-        adminAcknowledgedAt: item.adminAcknowledgedAt,
-        adminAcknowledgedBy: item.adminAcknowledgedBy,
-      }));
-    } catch (error) {
-      console.warn("API call failed, falling back to mock data:", error);
-      // Fallback to mock data for development
-      return [
-        {
-          employeeId: 1,
-          employeeName: "John Doe",
-          month: month,
-          totalHours: 160,
-          ptoHours: 16,
-          sickHours: 8,
-          bereavementHours: 0,
-          juryDutyHours: 0,
-          acknowledgedByAdmin: this.isAcknowledged(1, month),
-          adminAcknowledgedAt: this.getAcknowledgmentDate(1, month),
-          adminAcknowledgedBy: this.getAcknowledgmentAdmin(1, month),
-        },
-        {
-          employeeId: 2,
-          employeeName: "Jane Smith",
-          month: month,
-          totalHours: 160,
-          ptoHours: 8,
-          sickHours: 0,
-          bereavementHours: 0,
-          juryDutyHours: 0,
-          acknowledgedByAdmin: this.isAcknowledged(2, month),
-          adminAcknowledgedAt: this.getAcknowledgmentDate(2, month),
-          adminAcknowledgedBy: this.getAcknowledgmentAdmin(2, month),
-        },
-      ];
-    }
+  // Method for parent to inject employee data
+  // This implements the "data injection" pattern - parent handles API, component handles UI
+  setEmployeeData(data: AdminMonthlyReviewItem[]): void {
+    this._employeeData = data;
+    this._isLoading = false;
+    this.update();
   }
 
   private isAcknowledged(employeeId: number, month: string): boolean {
@@ -197,7 +144,9 @@ export class AdminMonthlyReview extends HTMLElement {
     }
 
     try {
-      // Dispatch event to parent component (admin-panel) to handle acknowledgment
+      // Event-driven architecture: dispatch acknowledgment event to parent
+      // Parent component handles API call to /api/admin-acknowledgements
+      // This maintains separation between UI actions and business logic
       this.dispatchEvent(
         new CustomEvent("admin-acknowledge", {
           detail: {
@@ -214,11 +163,11 @@ export class AdminMonthlyReview extends HTMLElement {
     }
   }
 
-  private update(): void {
+  protected update(): void {
     this.innerHTML = this.render();
   }
 
-  private handleClick(e: Event): void {
+  protected handleDelegatedClick(e: Event): void {
     const target = e.target as HTMLElement;
 
     // Handle month selector
@@ -227,7 +176,7 @@ export class AdminMonthlyReview extends HTMLElement {
     ) as HTMLInputElement;
     if (monthInput) {
       this._selectedMonth = monthInput.value;
-      this.loadEmployeeData();
+      this.requestEmployeeData();
       return;
     }
 
@@ -417,7 +366,7 @@ export class AdminMonthlyReview extends HTMLElement {
     `;
   }
 
-  private renderEmployeeCard(employee: MonthlyEmployeeData): string {
+  private renderEmployeeCard(employee: AdminMonthlyReviewItem): string {
     const isAcknowledged = employee.acknowledgedByAdmin;
 
     return `
