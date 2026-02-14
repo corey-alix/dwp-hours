@@ -6,16 +6,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default async function setup() {
-  console.log("🔄 Resetting database before test...");
-
   try {
     // Run the seed script to reset database to clean state
     execSync("npm run seed", {
       cwd: path.join(__dirname, "..", ".."),
       stdio: "pipe", // Use pipe to suppress output
     });
-
-    console.log("✅ Database reset complete");
   } catch (error) {
     console.error("❌ Failed to reset database:", error);
     throw error;

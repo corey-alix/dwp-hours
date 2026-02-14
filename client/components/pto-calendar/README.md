@@ -78,9 +78,12 @@ type CalendarEntry = {
 Approved PTO entries are visually indicated with a green checkmark (✓) positioned in the top-right corner of the day cell. The checkmark uses the `--color-success` design token for consistent theming.
 
 - **Appearance**: Small green checkmark (✓) in top-right corner
-- **Condition**: Appears when at least one PTO entry for the day has `approved_by` set
+- **Condition**: Appears when at least one PTO entry for the day has `approved_by` set to a non-null value
+- **Jury Duty Specific**: Jury duty entries follow the same approval workflow as other PTO types - the checkmark only appears after explicit administrative approval, not upon initial scheduling
 - **Styling**: Uses semantic success color from design tokens
 - **Accessibility**: Visual indicator only (no screen reader text added)
+
+**Important**: Unapproved jury duty entries will not display the checkmark, ensuring users understand that jury duty time is not active until approved by an administrator.
 
 ## Features
 

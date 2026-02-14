@@ -1,53 +1,20 @@
 import { querySingle } from "../test-utils.js";
 import { addEventListener } from "../test-utils.js";
 import { DataTable } from "./index.js";
+import { seedEmployees } from "../../../shared/seedData.js";
 
 export function playground() {
   console.log("Starting Data Table playground test...");
 
   const dataTable = querySingle("data-table") as DataTable;
 
-  // Sample table data
-  const sampleData = [
-    {
-      id: 1,
-      name: "John Doe",
-      department: "Engineering",
-      hireDate: "2020-01-15",
-    },
-    {
-      id: 2,
-      name: "Jane Smith",
-      department: "Marketing",
-      hireDate: "2019-03-22",
-    },
-    {
-      id: 3,
-      name: "Bob Johnson",
-      department: "Engineering",
-      hireDate: "2018-11-08",
-    },
-    { id: 4, name: "Alice Wilson", department: "HR", hireDate: "2021-07-12" },
-    {
-      id: 5,
-      name: "Charlie Brown",
-      department: "Sales",
-      hireDate: "2022-02-28",
-    },
-    {
-      id: 6,
-      name: "Diana Prince",
-      department: "Engineering",
-      hireDate: "2017-09-15",
-    },
-    {
-      id: 7,
-      name: "Edward Norton",
-      department: "Marketing",
-      hireDate: "2020-05-03",
-    },
-    { id: 8, name: "Fiona Green", department: "HR", hireDate: "2021-11-20" },
-  ];
+  // Sample table data from seedEmployees
+  const sampleData = seedEmployees.map((emp, index) => ({
+    id: index + 1,
+    name: emp.name,
+    department: "Engineering", // Mock department
+    hireDate: emp.hire_date,
+  }));
 
   // Table columns configuration
   const columns = [

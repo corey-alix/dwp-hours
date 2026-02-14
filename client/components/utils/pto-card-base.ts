@@ -4,7 +4,7 @@ import {
   parseDate,
 } from "../../../shared/dateUtils.js";
 
-const PTO_CARD_CSS = `
+export const PTO_CARD_CSS = `
     <style>
         :host {
             display: block;
@@ -40,6 +40,12 @@ const PTO_CARD_CSS = `
 
         .card .label {
             font-weight: var(--font-weight-medium);
+        }
+
+        .card .label.approved::after {
+            content: " ✓";
+            color: var(--color-success);
+            font-weight: var(--font-weight-semibold);
         }
 
         .card .negative-balance {
@@ -231,10 +237,10 @@ export class PtoSectionCard extends HTMLElement {
 }
 
 export class SimplePtoBucketCard extends PtoSectionCard {
-  private cardTitle: string;
-  private data: any = null;
-  private entries: any[] = [];
-  private expanded: boolean = false;
+  protected cardTitle: string;
+  protected data: any = null;
+  protected entries: any[] = [];
+  protected expanded: boolean = false;
 
   constructor(title: string) {
     super();
@@ -336,10 +342,17 @@ export class SimplePtoBucketCard extends PtoSectionCard {
           })()
         : "";
 
+    const remainingValue = this.data.remaining.toFixed(2);
+    const remainingClass = this.data.remaining < 0 ? "negative-balance" : "";
+    const remainingDisplay =
+      this.data.remaining < 0
+        ? `-${Math.abs(this.data.remaining).toFixed(2)}`
+        : remainingValue;
+
     const body = `
             <div class="row"><span class="label">Allowed</span><span>${this.data.allowed} hours</span></div>
             <div class="row"><span class="label">Used</span><span>${this.data.used.toFixed(2)} hours</span></div>
-            <div class="row"><span class="label">Remaining</span><span>${this.data.remaining.toFixed(2)} hours</span></div>
+            <div class="row"><span class="label">Remaining</span><span class="${remainingClass}">${remainingDisplay} hours</span></div>
             ${toggleButtonHtml}
             ${usageSection}
         `;

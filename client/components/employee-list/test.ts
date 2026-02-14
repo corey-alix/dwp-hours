@@ -1,42 +1,23 @@
 import { querySingle } from "../test-utils.js";
 import { addEventListener } from "../test-utils.js";
 import { EmployeeList } from "./index.js";
+import { seedEmployees } from "../../../shared/seedData.js";
 
 export function playground() {
   console.log("Starting Employee List playground test...");
 
   const employeeList = querySingle<EmployeeList>("employee-list");
 
-  // Sample employee data
-  const sampleEmployees = [
-    {
-      id: 1,
-      name: "John Doe",
-      identifier: "JD001",
-      ptoRate: 0.71,
-      carryoverHours: 40,
-      role: "Employee",
-      hash: "hash1",
-    },
-    {
-      id: 2,
-      name: "Jane Smith",
-      identifier: "JS002",
-      ptoRate: 0.68,
-      carryoverHours: 25,
-      role: "Admin",
-      hash: "hash2",
-    },
-    {
-      id: 3,
-      name: "Bob Johnson",
-      identifier: "BJ003",
-      ptoRate: 0.71,
-      carryoverHours: 15,
-      role: "Employee",
-      hash: "hash3",
-    },
-  ];
+  // Sample employee data from seedEmployees
+  const sampleEmployees = seedEmployees.map((emp, index) => ({
+    id: index + 1,
+    name: emp.name,
+    identifier: emp.identifier,
+    ptoRate: emp.pto_rate,
+    carryoverHours: emp.carryover_hours,
+    role: emp.role,
+    hash: emp.hash ?? "",
+  }));
 
   // Set initial data
   employeeList.employees = sampleEmployees;

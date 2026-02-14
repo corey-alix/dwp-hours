@@ -1,6 +1,8 @@
 import { querySingle } from "../test-utils.js";
 import { addEventListener } from "../test-utils.js";
 import { PtoRequestQueue } from "./index.js";
+import { seedPTOEntries, seedEmployees } from "../../../shared/seedData.js";
+import { today } from "../../../shared/dateUtils.js";
 
 interface PTORequest {
   id: number;
@@ -19,42 +21,31 @@ export function playground() {
 
   const ptoQueue = querySingle<PtoRequestQueue>("pto-request-queue");
 
-  // Sample PTO requests data
-  const sampleRequests: PTORequest[] = [
-    {
-      id: 1,
-      employeeId: 1,
-      employeeName: "John Doe",
-      startDate: "2024-02-15",
-      endDate: "2024-02-16",
-      type: "PTO",
-      hours: 16,
-      status: "pending",
-      createdAt: "2024-02-01",
-    },
-    {
-      id: 2,
-      employeeId: 2,
-      employeeName: "Jane Smith",
-      startDate: "2024-02-20",
-      endDate: "2024-02-20",
-      type: "Sick",
-      hours: 8,
-      status: "pending",
-      createdAt: "2024-02-02",
-    },
-    {
-      id: 3,
-      employeeId: 3,
-      employeeName: "Bob Johnson",
-      startDate: "2024-03-01",
-      endDate: "2024-03-05",
-      type: "PTO",
-      hours: 40,
-      status: "approved",
-      createdAt: "2024-02-01",
-    },
-  ];
+  // Sample PTO requests data from seedData (pending entries)
+  const sampleRequests: PTORequest[] = seedPTOEntries
+    .filter((entry) => entry.approved_by === null)
+    .map((entry, index) => {
+      const employee = seedEmployees.find(
+        (e) =>
+          e.name ===
+          (entry.employee_id === 1
+            ? "John Doe"
+            : entry.employee_id === 2
+              ? "Jane Smith"
+              : "Admin User"),
+      )!;
+      return {
+        id: index + 1,
+        employeeId: entry.employee_id,
+        employeeName: employee.name,
+        startDate: entry.date,
+        endDate: entry.date, // Assuming single day for simplicity
+        type: entry.type,
+        hours: entry.hours,
+        status: "pending" as const,
+        createdAt: today(),
+      };
+    });
 
   // Set initial data
   ptoQueue.requests = sampleRequests;

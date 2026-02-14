@@ -31,7 +31,6 @@ test.describe("Sick Time Rendering Consistency", () => {
 
     // Extract usage entries from sick card
     const dashboardSickEntries = await sickCard.locator("li").allTextContents();
-    console.log("Dashboard sick entries found:", dashboardSickEntries);
 
     // The data does NOT have sick time for 2/2/2026, so dashboard should NOT show it
     // This test will FAIL if the UX incorrectly shows 2/2/2026, highlighting the bug
@@ -44,7 +43,6 @@ test.describe("Sick Time Rendering Consistency", () => {
     const hasFeb17InDashboard = dashboardSickEntries.some(
       (entry) => entry.includes("2026-02-17") || entry.includes("2/17/2026"),
     );
-    console.log("Has Feb 17 in dashboard:", hasFeb17InDashboard);
     // Note: Reports functionality is not yet implemented - it shows "Reports coming soon!" alert
     // For now, we'll skip the reports comparison test
     // TODO: Re-enable this test once reports UI is implemented

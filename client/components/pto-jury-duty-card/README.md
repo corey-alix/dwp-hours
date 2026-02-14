@@ -2,11 +2,13 @@
 
 ## Overview
 
-The PTO Jury Duty Card component displays jury duty leave information in a simple bucket format. It shows available hours, used hours, and provides expandable details for jury duty leave tracking.
+The PTO Jury Duty Card component displays jury duty leave information in a simple bucket format. It shows available hours, used hours, remaining hours, and provides expandable details for jury duty leave tracking. It includes approval status indicators and handles overage scenarios.
 
 ## Features
 
 - **Bucket Display**: Shows available vs used jury duty hours
+- **Approval Indicators**: Green checkbox beside "Used" when all jury duty time is approved
+- **Overage Handling**: Red styling for negative remaining time
 - **Expandable Details**: Toggle to show/hide detailed entry information
 - **Theme Integration**: Consistent with other PTO card components
 - **Responsive Design**: Adapts to different screen sizes
@@ -16,8 +18,9 @@ The PTO Jury Duty Card component displays jury duty leave information in a simpl
 
 ```html
 <pto-jury-duty-card
-  data='{"available": 16, "used": 8, "remaining": 8}'
-  entries='[{"date": "2024-02-15", "hours": 8, "description": "Jury duty service"}]'
+  data='{"allowed": 40, "used": 32, "remaining": 8}'
+  entries='[{"date": "2026-06-15", "hours": 8}]'
+  full-entries='[{"id": 1, "employeeId": 1, "date": "2026-06-15", "type": "Jury Duty", "hours": 8, "createdAt": "2026-01-01T00:00:00Z", "approved_by": 3}]'
   expanded="false"
 >
 </pto-jury-duty-card>
@@ -26,28 +29,40 @@ The PTO Jury Duty Card component displays jury duty leave information in a simpl
 ## Attributes
 
 - `data`: JSON object with jury duty bucket data
-- `entries`: JSON array of jury duty usage entries
+- `entries`: JSON array of jury duty usage entries (simplified format)
+- `full-entries`: JSON array of full PTOEntry objects with approval status
 - `expanded`: Boolean to control expanded state
 
 ## Data Structures
 
 ```typescript
 type JuryDutyData = {
-  available: number; // Total available jury duty hours
-  used: number; // Hours already used
-  remaining: number; // Hours remaining
+  allowed: number; // Total allowed jury duty hours
+  used: number; // Hours already used (approved entries only)
+  remaining: number; // Hours remaining (can be negative)
 };
 
 type JuryDutyEntry = {
   date: string; // YYYY-MM-DD format
   hours: number; // Hours used
-  description?: string; // Optional description
+};
+
+type PTOEntry = {
+  id: number;
+  employeeId: number;
+  date: string;
+  type: "Jury Duty";
+  hours: number;
+  createdAt: string;
+  approved_by?: number | null;
 };
 ```
 
 ## Features
 
-- **Balance Display**: Shows available, used, and remaining hours
+- **Balance Display**: Shows allowed, used, and remaining hours
+- **Approval Status**: Green checkmark (✓) appears after the word "Used" (displayed as "Used ✓") when all jury duty entries are approved. The checkmark is rendered via CSS using the `approved` class.
+- **Overage Styling**: Remaining time displays in red when negative (e.g., "-2.50 hours")
 - **Entry Details**: Lists individual jury duty entries when expanded
 - **Toggle Interface**: Expand/collapse for detailed view
 - **Consistent Styling**: Matches other PTO bucket cards

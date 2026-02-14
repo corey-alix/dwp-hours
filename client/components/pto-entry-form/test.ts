@@ -10,11 +10,26 @@ import {
   today,
   getNextBusinessDay,
 } from "../../../shared/dateUtils.js";
+import { seedPTOEntries, seedEmployees } from "../../../shared/seedData.js";
 
 export function playground() {
   console.log("Starting PTO Entry Form playground test...");
 
   const ptoForm = querySingle<PtoEntryForm>("pto-entry-form");
+
+  // Compute available PTO balance from seedData
+  const employee = seedEmployees.find(
+    (e) => e.identifier === "john.doe@gmail.com",
+  )!;
+  const approvedPtoEntries = seedPTOEntries.filter(
+    (e) => e.employee_id === 1 && e.approved_by !== null && e.type === "PTO",
+  );
+  const usedPto = approvedPtoEntries.reduce((sum, e) => sum + e.hours, 0);
+  const availablePtoBalance = employee.carryover_hours + 96 - usedPto; // 96 is annual allocation
+
+  // Set property that was previously an inline attribute
+  ptoForm.setAttribute("available-pto-balance", availablePtoBalance.toString());
+
   const testOutput = querySingle<HTMLDivElement>("#test-output");
   const logList = ensureLogList(testOutput);
 

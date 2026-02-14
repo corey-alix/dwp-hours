@@ -1,207 +1,86 @@
 import { querySingle } from "../test-utils.js";
 import { PtoAccrualCard } from "./index.js";
 import { parseDate, today } from "../../../shared/dateUtils.js";
+import { seedPTOEntries, seedEmployees } from "../../../shared/seedData.js";
 
-// API response data
+// Compute data from seedData
+const employee = seedEmployees.find(
+  (e) => e.identifier === "john.doe@gmail.com",
+)!;
+
+// Get approved entries for computing bucket usage
+const approvedSeedEntries = seedPTOEntries.filter(
+  (entry) =>
+    entry.employee_id === 1 &&
+    entry.date.startsWith("2026-") &&
+    entry.approved_by !== null,
+);
+
+// Compute used hours by type
+const ptoUsed = approvedSeedEntries
+  .filter((e) => e.type === "PTO")
+  .reduce((sum, e) => sum + e.hours, 0);
+const sickUsed = approvedSeedEntries
+  .filter((e) => e.type === "Sick")
+  .reduce((sum, e) => sum + e.hours, 0);
+const bereavementUsed = approvedSeedEntries
+  .filter((e) => e.type === "Bereavement")
+  .reduce((sum, e) => sum + e.hours, 0);
+const juryUsed = approvedSeedEntries
+  .filter((e) => e.type === "Jury Duty")
+  .reduce((sum, e) => sum + e.hours, 0);
+
+// Work days in 2026 per month (Mon-Fri)
+const workDaysPerMonth = [21, 20, 21, 22, 22, 21, 24, 22, 22, 23, 21, 23];
+const totalWorkDays = workDaysPerMonth.reduce((sum, d) => sum + d, 0);
+
+// Compute annual allocation and monthly accruals
+const annualAllocation = employee.pto_rate * totalWorkDays;
+const monthlyAccruals = workDaysPerMonth.map((workDays, i) => ({
+  month: i + 1,
+  hours: workDays * employee.pto_rate,
+}));
+
+// API response data - computed from seed data
 const ptoStatus = {
   employeeId: 1,
-  hireDate: "2020-01-14",
-  annualAllocation: 96,
-  availablePTO: 96,
-  usedPTO: 40,
-  carryoverFromPreviousYear: 40,
-  monthlyAccruals: [
-    {
-      month: 1,
-      hours: 8.091954022988507,
-    },
-    {
-      month: 2,
-      hours: 7.35632183908046,
-    },
-    {
-      month: 3,
-      hours: 8.091954022988507,
-    },
-    {
-      month: 4,
-      hours: 8.091954022988507,
-    },
-    {
-      month: 5,
-      hours: 7.724137931034482,
-    },
-    {
-      month: 6,
-      hours: 8.091954022988507,
-    },
-    {
-      month: 7,
-      hours: 8.459770114942529,
-    },
-    {
-      month: 8,
-      hours: 7.724137931034482,
-    },
-    {
-      month: 9,
-      hours: 8.091954022988507,
-    },
-    {
-      month: 10,
-      hours: 8.091954022988507,
-    },
-    {
-      month: 11,
-      hours: 7.724137931034482,
-    },
-    {
-      month: 12,
-      hours: 8.459770114942529,
-    },
-  ],
+  hireDate: employee.hire_date,
+  annualAllocation,
+  availablePTO: annualAllocation + employee.carryover_hours - ptoUsed, // allocation + carryover - used
+  usedPTO: ptoUsed,
+  carryoverFromPreviousYear: employee.carryover_hours,
+  monthlyAccruals,
   nextRolloverDate: "2027-01-01",
   sickTime: {
     allowed: 24,
-    used: 24,
-    remaining: 0,
+    used: sickUsed,
+    remaining: 24 - sickUsed,
   },
   ptoTime: {
-    allowed: 136,
-    used: 40,
-    remaining: 96,
+    allowed: annualAllocation + employee.carryover_hours,
+    used: ptoUsed,
+    remaining: annualAllocation + employee.carryover_hours - ptoUsed,
   },
   bereavementTime: {
     allowed: 40,
-    used: 24,
-    remaining: 16,
+    used: bereavementUsed,
+    remaining: 40 - bereavementUsed,
   },
   juryDutyTime: {
     allowed: 40,
-    used: 80,
-    remaining: -40,
+    used: juryUsed,
+    remaining: 40 - juryUsed,
   },
 };
 
-const ptoEntries = [
-  {
-    date: "2026-03-02",
-    type: "PTO",
-    hours: 4,
-  },
-  {
-    date: "2026-03-03",
-    type: "PTO",
-    hours: 4,
-  },
-  {
-    date: "2026-03-04",
-    type: "PTO",
-    hours: 4,
-  },
-  {
-    date: "2026-03-05",
-    type: "PTO",
-    hours: 4,
-  },
-  {
-    date: "2026-02-24",
-    type: "PTO",
-    hours: 8,
-  },
-  {
-    date: "2026-02-22",
-    type: "PTO",
-    hours: 8,
-  },
-  {
-    date: "2026-02-20",
-    type: "PTO",
-    hours: 8,
-  },
-  {
-    date: "2026-02-16",
-    type: "Sick",
-    hours: 8,
-  },
-  {
-    date: "2026-02-14",
-    type: "Sick",
-    hours: 8,
-  },
-  {
-    date: "2026-02-12",
-    type: "Sick",
-    hours: 8,
-  },
-  // Bereavement time: January 21-23
-  {
-    date: "2026-01-21",
-    type: "Bereavement",
-    hours: 8,
-  },
-  {
-    date: "2026-01-22",
-    type: "Bereavement",
-    hours: 8,
-  },
-  {
-    date: "2026-01-23",
-    type: "Bereavement",
-    hours: 8,
-  },
-  // Jury duty: July 20-31
-  {
-    date: "2026-07-20",
-    type: "Jury Duty",
-    hours: 8,
-  },
-  {
-    date: "2026-07-21",
-    type: "Jury Duty",
-    hours: 8,
-  },
-  {
-    date: "2026-07-22",
-    type: "Jury Duty",
-    hours: 8,
-  },
-  {
-    date: "2026-07-23",
-    type: "Jury Duty",
-    hours: 8,
-  },
-  {
-    date: "2026-07-24",
-    type: "Jury Duty",
-    hours: 8,
-  },
-  {
-    date: "2026-07-27",
-    type: "Jury Duty",
-    hours: 8,
-  },
-  {
-    date: "2026-07-28",
-    type: "Jury Duty",
-    hours: 8,
-  },
-  {
-    date: "2026-07-29",
-    type: "Jury Duty",
-    hours: 8,
-  },
-  {
-    date: "2026-07-30",
-    type: "Jury Duty",
-    hours: 8,
-  },
-  {
-    date: "2026-07-31",
-    type: "Jury Duty",
-    hours: 8,
-  },
-];
+// Use all entries for the calendar display (including pending)
+const ptoEntries = seedPTOEntries
+  .filter((entry) => entry.employee_id === 1 && entry.date.startsWith("2026-"))
+  .map((entry) => ({
+    date: entry.date,
+    type: entry.type,
+    hours: entry.hours,
+  }));
 
 export function playground() {
   console.log("Starting PTO Accrual Card test...");

@@ -15,7 +15,7 @@ test("employee-form component test", async ({ page }) => {
   await page.goto("/components/employee-form/test.html");
 
   // Wait for the page to load and component to initialize
-  await page.waitForSelector("#test-output");
+  await page.waitForSelector("employee-form");
 
   // Check that no console errors occurred during loading
   const errors = consoleMessages.filter((msg) => msg.type === "error");

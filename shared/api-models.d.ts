@@ -20,6 +20,7 @@ export interface PTOEntry {
   type: "PTO" | "Sick" | "Bereavement" | "Jury Duty";
   hours: number;
   createdAt: string; // ISO date string
+  approved_by?: number | null;
   employee?: Employee;
 }
 
