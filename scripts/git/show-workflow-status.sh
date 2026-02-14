@@ -75,7 +75,11 @@ echo "----------------"
 for planet in "${VALID_PLANETS[@]}"; do
     if git show-ref --verify --quiet "refs/heads/$planet" 2>/dev/null; then
         COMMITS_AHEAD=$(git rev-list --count "main..$planet" 2>/dev/null || echo "0")
+        # Ensure COMMITS_AHEAD is a clean integer
+        COMMITS_AHEAD=$((COMMITS_AHEAD + 0))
         FEATURE_COUNT=$(git branch -r 2>/dev/null | grep "origin/feature/$planet/" | wc -l 2>/dev/null || echo "0")
+        # Ensure FEATURE_COUNT is a clean integer
+        FEATURE_COUNT=$((FEATURE_COUNT + 0))
         STATUS="✅ Active"
         if [[ "$planet" == "$CURRENT_BRANCH" ]]; then
             STATUS="🔵 Current"
