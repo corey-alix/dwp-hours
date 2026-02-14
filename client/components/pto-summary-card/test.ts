@@ -26,7 +26,19 @@ export function playground() {
     carryoverFromPreviousYear: employee.carryover_hours,
   };
 
-  querySingle("#test-output").textContent = "Initial data set via property";
+  // Set full PTO entries for approval testing
+  const allPtoEntries = seedPTOEntries
+    .filter((e) => e.employee_id === 1 && e.type === "PTO")
+    .map((seedEntry, index) => ({
+      id: index + 1,
+      employeeId: seedEntry.employee_id,
+      date: seedEntry.date,
+      type: seedEntry.type,
+      hours: seedEntry.hours,
+      createdAt: "2025-01-01T00:00:00.000Z",
+      approved_by: seedEntry.approved_by,
+    }));
+  card.fullPtoEntries = allPtoEntries;
 
   // Test attribute-based data setting
   setTimeout(() => {
@@ -39,6 +51,7 @@ export function playground() {
         carryoverFromPreviousYear: employee.carryover_hours,
       }),
     );
+    card.setAttribute("full-entries", JSON.stringify(allPtoEntries));
     querySingle("#test-output").textContent = "Data updated via attribute";
   }, 2000);
 }
