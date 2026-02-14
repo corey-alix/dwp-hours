@@ -26,6 +26,7 @@ import {
   PtoEmployeeInfoCard,
   PtoEntryForm,
   PtoJuryDutyCard,
+  PtoPtoCard,
   PtoSickCard,
   PtoSummaryCard,
   PriorYearReview,
@@ -590,6 +591,9 @@ class UIManager {
         getCurrentYear(),
         "Sick",
       );
+      sickCard.fullPtoEntries = entries.filter(
+        (e) => e.type === "Sick" && parseDate(e.date).year === getCurrentYear(),
+      );
 
       bereavementCard.bucket = status.bereavementTime;
       bereavementCard.usageEntries = this.buildUsageEntries(
@@ -597,12 +601,21 @@ class UIManager {
         getCurrentYear(),
         "Bereavement",
       );
+      bereavementCard.fullPtoEntries = entries.filter(
+        (e) =>
+          e.type === "Bereavement" &&
+          parseDate(e.date).year === getCurrentYear(),
+      );
 
       juryDutyCard.bucket = status.juryDutyTime;
       juryDutyCard.usageEntries = this.buildUsageEntries(
         entries,
         getCurrentYear(),
         "Jury Duty",
+      );
+      juryDutyCard.fullPtoEntries = entries.filter(
+        (e) =>
+          e.type === "Jury Duty" && parseDate(e.date).year === getCurrentYear(),
       );
 
       employeeInfoCard.info = {
@@ -853,6 +866,9 @@ class UIManager {
       getCurrentYear(),
       "Sick",
     );
+    sickCard.fullPtoEntries = entries.filter(
+      (e) => e.type === "Sick" && parseDate(e.date).year === getCurrentYear(),
+    );
 
     const bereavementCard = createElement<PtoBereavementCard>(
       "pto-bereavement-card",
@@ -863,6 +879,10 @@ class UIManager {
       getCurrentYear(),
       "Bereavement",
     );
+    bereavementCard.fullPtoEntries = entries.filter(
+      (e) =>
+        e.type === "Bereavement" && parseDate(e.date).year === getCurrentYear(),
+    );
 
     const juryDutyCard = createElement<PtoJuryDutyCard>("pto-jury-duty-card");
     juryDutyCard.bucket = status.juryDutyTime;
@@ -870,6 +890,21 @@ class UIManager {
       entries,
       getCurrentYear(),
       "Jury Duty",
+    );
+    juryDutyCard.fullPtoEntries = entries.filter(
+      (e) =>
+        e.type === "Jury Duty" && parseDate(e.date).year === getCurrentYear(),
+    );
+
+    const ptoCard = createElement<PtoPtoCard>("pto-pto-card");
+    ptoCard.bucket = status.ptoTime;
+    ptoCard.usageEntries = this.buildUsageEntries(
+      entries,
+      getCurrentYear(),
+      "PTO",
+    );
+    ptoCard.fullPtoEntries = entries.filter(
+      (e) => e.type === "PTO" && parseDate(e.date).year === getCurrentYear(),
     );
 
     const employeeInfoCard = createElement<PtoEmployeeInfoCard>(
@@ -889,6 +924,7 @@ class UIManager {
     summaryContainer.appendChild(sickCard);
     summaryContainer.appendChild(bereavementCard);
     summaryContainer.appendChild(juryDutyCard);
+    summaryContainer.appendChild(ptoCard);
     summaryContainer.appendChild(employeeInfoCard);
 
     // Re-attach event listeners for the newly created components

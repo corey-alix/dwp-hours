@@ -15,7 +15,7 @@ export default defineConfig({
   workers: 1,
   maxFailures: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: [["list"], ["junit", { outputFile: "test-results/junit-e2e.xml" }]],
+  reporter: [["line"], ["junit", { outputFile: "test-results/junit-e2e.xml" }]],
   timeout: 5 * 1000,
   globalSetup: "./scripts/pretest.mjs",
   /* Web server to start before running tests */

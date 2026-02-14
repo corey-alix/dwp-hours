@@ -47,7 +47,6 @@ export async function compareAndUpdateScreenshot(
 
   if (!baselineExists) {
     fs.writeFileSync(baselinePath, newBuffer);
-    console.log(`Created baseline: ${baselinePath}`);
     return;
   }
 
@@ -76,13 +75,8 @@ export async function compareAndUpdateScreenshot(
 
     if (diffCount > pixelThreshold) {
       fs.writeFileSync(baselinePath, newBuffer);
-      console.log(
-        `Updated baseline (${diffCount} pixels differed): ${baselinePath}`,
-      );
     } else {
-      console.log(
-        `No significant change (${diffCount} pixels): ${baselinePath}`,
-      );
+      // No significant change
     }
   } catch (error) {
     console.error(`Error comparing screenshots: ${error}`);

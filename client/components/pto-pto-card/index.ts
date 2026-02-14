@@ -6,11 +6,11 @@ import {
 } from "../../../shared/dateUtils.js";
 import type { PTOEntry } from "../../../shared/api-models.js";
 
-export class PtoSickCard extends SimplePtoBucketCard {
+export class PtoPtoCard extends SimplePtoBucketCard {
   private fullEntries: PTOEntry[] = [];
 
   constructor() {
-    super("Sick Time");
+    super("PTO");
   }
 
   static get observedAttributes() {
@@ -77,7 +77,7 @@ export class PtoSickCard extends SimplePtoBucketCard {
                   : "";
                 // Check if this specific entry is approved
                 const correspondingFullEntry = this.fullEntries.find(
-                  (e) => e.date === entry.date && e.type === "Sick",
+                  (e) => e.date === entry.date && e.type === "PTO",
                 );
                 const isApproved =
                   correspondingFullEntry &&
@@ -100,11 +100,10 @@ export class PtoSickCard extends SimplePtoBucketCard {
           })()
         : "";
 
-    // Check if all sick entries are approved
-    const sickEntries = this.fullEntries.filter((e) => e.type === "Sick");
+    // Check if all PTO entries are approved
+    const ptoEntries = this.fullEntries.filter((e) => e.type === "PTO");
     const allApproved =
-      sickEntries.length > 0 &&
-      sickEntries.every((e) => e.approved_by !== null);
+      ptoEntries.length > 0 && ptoEntries.every((e) => e.approved_by !== null);
     const approvedClass = allApproved ? " approved" : "";
 
     const remainingValue = this.data.remaining.toFixed(2);
@@ -170,4 +169,4 @@ export class PtoSickCard extends SimplePtoBucketCard {
   }
 }
 
-customElements.define("pto-sick-card", PtoSickCard);
+customElements.define("pto-pto-card", PtoPtoCard);

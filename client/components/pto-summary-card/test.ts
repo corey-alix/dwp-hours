@@ -1,15 +1,29 @@
 import { querySingle } from "../test-utils.js";
 import { PtoSummaryCard } from "./index.js";
+import { seedPTOEntries, seedEmployees } from "../../../shared/seedData.js";
+
 export function playground() {
   console.log("Starting PTO Summary Card playground test...");
 
   const card = querySingle<PtoSummaryCard>("pto-summary-card");
-  // Set initial sample data
+
+  // Compute summary from seedData
+  const employee = seedEmployees.find(
+    (e) => e.identifier === "john.doe@gmail.com",
+  )!;
+  const approvedPtoEntries = seedPTOEntries.filter(
+    (e) => e.employee_id === 1 && e.approved_by !== null && e.type === "PTO",
+  );
+  const usedPto = approvedPtoEntries.reduce((sum, e) => sum + e.hours, 0);
+  const annualAllocation = 96; // Standard annual allocation
+  const availablePto = annualAllocation + employee.carryover_hours - usedPto;
+
+  // Set initial sample data computed from seedData
   card.summary = {
-    annualAllocation: 80,
-    availablePTO: 45.5,
-    usedPTO: 34.5,
-    carryoverFromPreviousYear: 0,
+    annualAllocation,
+    availablePTO: availablePto,
+    usedPTO: usedPto,
+    carryoverFromPreviousYear: employee.carryover_hours,
   };
 
   querySingle("#test-output").textContent = "Initial data set via property";
@@ -19,10 +33,10 @@ export function playground() {
     card.setAttribute(
       "data",
       JSON.stringify({
-        annualAllocation: 100,
-        availablePTO: 60,
-        usedPTO: 40,
-        carryoverFromPreviousYear: 5,
+        annualAllocation,
+        availablePTO: availablePto,
+        usedPTO: usedPto,
+        carryoverFromPreviousYear: employee.carryover_hours,
       }),
     );
     querySingle("#test-output").textContent = "Data updated via attribute";
