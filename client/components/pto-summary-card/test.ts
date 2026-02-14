@@ -5,14 +5,32 @@ import { seedPTOEntries, seedEmployees } from "../../../shared/seedData.js";
 export function playground() {
   console.log("Starting PTO Summary Card playground test...");
 
-  const card = querySingle<PtoSummaryCard>("pto-summary-card");
+  // Set up John Doe card (employee 1)
+  setupEmployeeCard("john.doe@gmail.com", "pto-summary-card-john", 1);
+
+  // Set up Jane Smith card (employee 2)
+  setupEmployeeCard("jane.smith@example.com", "pto-summary-card-jane", 2);
+
+  // Set up Admin User card (employee 3)
+  setupEmployeeCard("admin@example.com", "pto-summary-card-admin", 3);
+}
+
+function setupEmployeeCard(
+  employeeIdentifier: string,
+  cardId: string,
+  employeeId: number,
+) {
+  const card = querySingle<PtoSummaryCard>(`#${cardId}`);
 
   // Compute summary from seedData
   const employee = seedEmployees.find(
-    (e) => e.identifier === "john.doe@gmail.com",
+    (e) => e.identifier === employeeIdentifier,
   )!;
   const approvedPtoEntries = seedPTOEntries.filter(
-    (e) => e.employee_id === 1 && e.approved_by !== null && e.type === "PTO",
+    (e) =>
+      e.employee_id === employeeId &&
+      e.approved_by !== null &&
+      e.type === "PTO",
   );
   const usedPto = approvedPtoEntries.reduce((sum, e) => sum + e.hours, 0);
   const annualAllocation = 96; // Standard annual allocation
@@ -28,7 +46,7 @@ export function playground() {
 
   // Set full PTO entries for approval testing
   const allPtoEntries = seedPTOEntries
-    .filter((e) => e.employee_id === 1 && e.type === "PTO")
+    .filter((e) => e.employee_id === employeeId && e.type === "PTO")
     .map((seedEntry, index) => ({
       id: index + 1,
       employeeId: seedEntry.employee_id,
@@ -38,7 +56,7 @@ export function playground() {
       createdAt: "2025-01-01T00:00:00.000Z",
       approved_by: seedEntry.approved_by,
     }));
-  card.fullPtoEntries = allPtoEntries;
+  card.setAttribute("full-entries", JSON.stringify(allPtoEntries));
 
   // Test attribute-based data setting
   setTimeout(() => {
