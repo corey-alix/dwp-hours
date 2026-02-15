@@ -17,7 +17,7 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const DB_PATH = path.join(__dirname, "..", "db", "dwp-hours.db");
+const DB_PATH = path.join(__dirname, "db", "dwp-hours.db");
 
 // Load existing database
 let db: Database;
@@ -30,7 +30,7 @@ try {
   db = new SQL.Database();
 
   // Execute schema to create tables
-  const schemaPath = path.join(__dirname, "..", "db", "schema.sql");
+  const schemaPath = path.join(__dirname, "db", "schema.sql");
   const schema = fs.readFileSync(schemaPath, "utf8");
   db.exec(schema);
 } catch (error) {

@@ -100,6 +100,10 @@ fi
 
 print_success "Build completed successfully!"
 
+# Build seed script
+print_status "Building seed script..."
+npx esbuild scripts/seed.ts --bundle --outfile=dist/seed.mjs --format=esm --platform=node --packages=external
+
 # Prepare deployment package
 print_status "Preparing deployment package..."
 
@@ -120,6 +124,7 @@ cp db/schema.sql "$DEPLOY_DIR/db/" 2>/dev/null || true
 
 # Copy init-db script
 cp scripts/init-db.ts "$DEPLOY_DIR/" 2>/dev/null || true
+cp dist/seed.mjs "$DEPLOY_DIR/" 2>/dev/null || true
 
 # Create deployment info
 cat > "$DEPLOY_DIR/deploy-info.json" << EOF
@@ -252,6 +257,8 @@ async function initDB() {
 
 initDB().catch(console.error);
 \"
+            echo 'Running database seeding...'
+            node seed.mjs
         else
             echo 'Database file exists, skipping initialization'
         fi
