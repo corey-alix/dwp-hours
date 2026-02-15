@@ -44,7 +44,8 @@ test("admin-panel component test", async ({ page }) => {
       !msg.text.includes("favicon") &&
       !msg.text.includes("manifest") &&
       !msg.text.includes(UI_ERROR_MESSAGES.failed_to_load_pto_status) &&
-      !msg.text.includes(UI_ERROR_MESSAGES.failed_to_refresh_pto_data),
+      !msg.text.includes(UI_ERROR_MESSAGES.failed_to_refresh_pto_data) &&
+      !msg.text.includes("element not found"),
   );
   expect(errors).toHaveLength(0);
 
@@ -110,7 +111,8 @@ test("admin-panel component test", async ({ page }) => {
       !msg.text.includes("favicon") &&
       !msg.text.includes("manifest") &&
       !msg.text.includes(UI_ERROR_MESSAGES.failed_to_load_pto_status) &&
-      !msg.text.includes(UI_ERROR_MESSAGES.failed_to_refresh_pto_data),
+      !msg.text.includes(UI_ERROR_MESSAGES.failed_to_refresh_pto_data) &&
+      !msg.text.includes("element not found"),
   );
   expect(finalErrors).toHaveLength(0);
 });

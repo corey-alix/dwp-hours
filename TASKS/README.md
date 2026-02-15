@@ -122,5 +122,7 @@ database-schema.md
 17. Implement **admin-review-acknowledgment.md** - admin review UI
 18. ✅ **issue-test-file-conventions-regression.md** - fix test file conventions regression
 
+LATER: See ./TASKS/declarative-ui-elements.md for details
+
 Each task file contains detailed checklists for implementation steps.</content>
 <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/TASKS/README.md
