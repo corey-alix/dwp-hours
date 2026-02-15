@@ -126,7 +126,15 @@
     "dev:external": "pnpm run build:test-assets && http-serve public -p ${PORT:-3000} -o",
     "dev:external//": "start frontend dev server (static file server) on PORT",
     "dev:worktree": "./scripts/dev-worktree.sh",
-    "dev:worktree//": "start dev server with worktree-specific port"
+    "dev:worktree//": "start dev server with worktree-specific port",
+    "do:deploy": "./scripts/deploy.sh",
+    "do:deploy//": "deploy application to DigitalOcean server",
+    "do:bash": "ssh -i $HOME/.ssh/id_ed25519 deploy@206.189.237.101",
+    "do:bash//": "SSH into DigitalOcean server",
+    "do:logs": "ssh -i $HOME/.ssh/id_ed25519 deploy@206.189.237.101 /var/www/dwp-hours/scripts/tail-logs.sh 100",
+    "do:logs//": "show last 100 lines from newest log files on DigitalOcean server",
+    "do:restart": "ssh -i $HOME/.ssh/id_ed25519 deploy@206.189.237.101 \"cd /var/www/dwp-hours && pm2 restart dwp-hours-tracker\"",
+    "do:restart//": "restart the application on DigitalOcean server"
   },
   "keywords": [
     "pto",
