@@ -79,7 +79,8 @@ app.set('trust proxy', true)
 
 // Helper function to get base URL for magic links
 function getBaseUrl(req: Request): string {
-  const protocol = req.protocol
+  // Check X-Forwarded-Proto header first (for proxies), then fall back to req.protocol
+  const protocol = req.get("X-Forwarded-Proto") || req.protocol
   const host = req.get("host")
   return `${protocol}://${host}`
 }
