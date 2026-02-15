@@ -274,9 +274,7 @@ export function listBackups(): BackupFileInfo[] {
         ageDays: (Date.now() - stats.mtime.getTime()) / MS_PER_DAY,
       };
     })
-    .sort(
-      (a, b) => new Date(b.created).getTime() - new Date(a.created).getTime(),
-    );
+    .sort((a, b) => b.filename.localeCompare(a.filename));
 }
 
 /**
