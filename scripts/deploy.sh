@@ -1,296 +1,211 @@
 #!/bin/bash
 
 # DWP Hours Tracker Deployment Script
-# This script builds the application and prepares it for deployment
+# Builds everything locally and deploys a ready-to-run package to DigitalOcean.
+# No package installation happens on the server.
 
-set -e  # Exit on any error
+set -e
 
-echo "🚀 Starting DWP Hours Tracker deployment build..."
-
-# Colors for output
+# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 # Configuration
-BUILD_DIR="dist"
 DEPLOY_DIR="deploy"
 SERVER_USER="deploy"
 SERVER_HOST="206.189.237.101"
 SERVER_PATH="/var/www/dwp-hours"
 SSH_KEY="$HOME/.ssh/id_ed25519"
 
-# Function to print colored output
-print_status() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
+print_status()  { echo -e "${BLUE}[INFO]${NC} $1"; }
+print_success() { echo -e "${GREEN}[OK]${NC} $1"; }
+print_warning() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+print_error()   { echo -e "${RED}[ERROR]${NC} $1"; }
 
-print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
-
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-# Function to check if command exists
-command_exists() {
-    command -v "$1" >/dev/null 2>&1
-}
-
-# Pre-flight checks
+# ──────────────────────────────────────────────
+# 1. Pre-flight checks (local)
+# ──────────────────────────────────────────────
 print_status "Running pre-flight checks..."
 
-# Check if required tools are installed
-for tool in node npm rsync ssh; do
-    if ! command_exists "$tool"; then
-        print_error "$tool is not installed. Please install it first."
-        exit 1
-    fi
+for tool in node pnpm rsync ssh curl; do
+    command -v "$tool" >/dev/null 2>&1 || { print_error "$tool is required but not installed."; exit 1; }
 done
 
-# Check if SSH key exists
-if [ ! -f "$SSH_KEY" ]; then
-    print_error "SSH key not found at $SSH_KEY"
+[ -f "$SSH_KEY" ] || { print_error "SSH key not found at $SSH_KEY"; exit 1; }
+
+if ! ssh -i "$SSH_KEY" -o ConnectTimeout=10 -o BatchMode=yes "$SERVER_USER@$SERVER_HOST" "echo ok" >/dev/null 2>&1; then
+    print_error "Cannot connect to server via SSH."
     exit 1
 fi
 
-# Check if we can connect to the server
-print_status "Testing SSH connection to server..."
-if ! ssh -i "$SSH_KEY" -o ConnectTimeout=10 -o BatchMode=yes "$SERVER_USER@$SERVER_HOST" "echo 'SSH connection successful'" >/dev/null 2>&1; then
-    print_error "Cannot connect to server. Please check SSH configuration."
-    exit 1
-fi
+print_success "Pre-flight checks passed"
 
-print_success "Pre-flight checks passed!"
+# ──────────────────────────────────────────────
+# 2. Build locally
+# ──────────────────────────────────────────────
+print_status "Building application locally..."
 
-# Clean previous builds
-print_status "Cleaning previous builds..."
-rm -rf "$BUILD_DIR" "$DEPLOY_DIR"
-mkdir -p "$BUILD_DIR" "$DEPLOY_DIR"
+pnpm install --frozen-lockfile
+pnpm run build
 
-# Install dependencies
-print_status "Installing dependencies..."
-if command_exists pnpm; then
-    pnpm install --frozen-lockfile
-else
-    npm ci
-fi
+[ -f "dist/server.mjs" ]    || { print_error "dist/server.mjs not found"; exit 1; }
+[ -f "public/index.html" ]  || { print_error "public/index.html not found"; exit 1; }
+[ -f "public/app.js" ]      || { print_error "public/app.js not found"; exit 1; }
 
-# Build the application
-print_status "Building application..."
-npm run build
+print_success "Build completed"
 
-# Verify build outputs
-if [ ! -f "dist/server.mjs" ]; then
-    print_error "Server build failed - dist/server.mjs not found"
-    exit 1
-fi
+# Seed the database locally
+print_status "Seeding database locally..."
+pnpm run seed
 
-if [ ! -f "public/index.html" ]; then
-    print_error "Client build failed - public/index.html not found"
-    exit 1
-fi
+[ -f "db/dwp-hours.db" ] || { print_error "db/dwp-hours.db not found after seeding"; exit 1; }
+print_success "Database seeded"
 
-print_success "Build completed successfully!"
+# ──────────────────────────────────────────────
+# 3. Assemble deployment package
+# ──────────────────────────────────────────────
+print_status "Assembling deployment package..."
 
-# Build seed script
-print_status "Building seed script..."
-npx esbuild scripts/seed.ts --bundle --outfile=dist/seed.mjs --format=esm --platform=node --packages=external
+rm -rf "$DEPLOY_DIR"
+mkdir -p "$DEPLOY_DIR/dist" "$DEPLOY_DIR/public" "$DEPLOY_DIR/db"
 
-# Prepare deployment package
-print_status "Preparing deployment package..."
+# Server bundle
+cp dist/server.mjs "$DEPLOY_DIR/dist/"
+cp dist/server.mjs.map "$DEPLOY_DIR/dist/" 2>/dev/null || true
 
-# Copy server files
-cp -r dist/ "$DEPLOY_DIR/"
-cp ecosystem.config.json "$DEPLOY_DIR/"
-cp package.json "$DEPLOY_DIR/"
-cp package-lock.json "$DEPLOY_DIR/" 2>/dev/null || true
-cp pnpm-lock.yaml "$DEPLOY_DIR/" 2>/dev/null || true
-
-# Copy client files
-mkdir -p "$DEPLOY_DIR/public"
+# Client assets
 cp -r public/* "$DEPLOY_DIR/public/"
 
-# Copy database files
-mkdir -p "$DEPLOY_DIR/db"
+# Database (seeded locally)
+cp db/dwp-hours.db "$DEPLOY_DIR/db/"
 cp db/schema.sql "$DEPLOY_DIR/db/" 2>/dev/null || true
 
-# Copy init-db script
-cp scripts/init-db.ts "$DEPLOY_DIR/" 2>/dev/null || true
-cp dist/seed.mjs "$DEPLOY_DIR/" 2>/dev/null || true
+# Server-side scripts
+mkdir -p "$DEPLOY_DIR/scripts"
+cp scripts/server/*.sh "$DEPLOY_DIR/scripts/"
+chmod +x "$DEPLOY_DIR/scripts/"*.sh
 
-# Create deployment info
-cat > "$DEPLOY_DIR/deploy-info.json" << EOF
-{
-    "version": "$(node -p "require('./package.json').version")",
-    "build_date": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
-    "git_commit": "$(git rev-parse HEAD 2>/dev/null || echo 'unknown')",
-    "node_version": "$(node --version)",
-    "npm_version": "$(npm --version)"
-}
-EOF
+# PM2 config
+cp ecosystem.config.json "$DEPLOY_DIR/"
 
-print_success "Deployment package prepared!"
-
-# Create deployment verification script
-cat > "$DEPLOY_DIR/verify-deployment.sh" << 'EOF'
-#!/bin/bash
-echo "🔍 Verifying deployment..."
-
-# Check if files exist
-files_to_check=(
-    "dist/server.mjs"
-    "ecosystem.config.json"
-    "package.json"
-    "public/index.html"
-    "public/app.js"
-)
-
-for file in "${files_to_check[@]}"; do
-    if [ -f "$file" ]; then
-        echo "✅ $file exists"
-    else
-        echo "❌ $file missing"
-        exit 1
-    fi
-done
-
-# Check Node.js version
-node_version=$(node --version | sed 's/v//')
-required_version="18.0.0"
-
-if [ "$(printf '%s\n' "$required_version" "$node_version" | sort -V | head -n1)" = "$required_version" ]; then
-    echo "✅ Node.js version $node_version meets requirement (>= $required_version)"
-else
-    echo "❌ Node.js version $node_version does not meet requirement (>= $required_version)"
-    exit 1
-fi
-
-echo "✅ Deployment verification passed!"
-EOF
-
-chmod +x "$DEPLOY_DIR/verify-deployment.sh"
-
-# Run verification
-print_status "Running deployment verification..."
-if ! (cd "$DEPLOY_DIR" && ./verify-deployment.sh); then
-    print_error "Deployment verification failed!"
-    exit 1
-fi
-
-print_success "Deployment package ready for upload!"
-
-print_success "Deployment package ready for upload!"
-
-print_status "Starting deployment to server..."
-
-# Run deployment verification on server first
-print_status "Running pre-deployment checks on server..."
-ssh -i "$SSH_KEY" "$SERVER_USER@$SERVER_HOST" "
-    echo 'Checking server prerequisites...'
-    command -v node >/dev/null 2>&1 && echo '✅ Node.js installed' || echo '❌ Node.js not found'
-    command -v npm >/dev/null 2>&1 && echo '✅ npm installed' || echo '❌ npm not found'
-    command -v pm2 >/dev/null 2>&1 && echo '✅ PM2 installed' || echo '❌ PM2 not found'
-    [ -d '/var/www/dwp-hours' ] && echo '✅ Application directory exists' || echo '❌ Application directory missing'
-    [ -d '/var/www/dwp-hours/db' ] && echo '✅ Database directory exists' || echo '❌ Database directory missing'
+# Minimal package.json with only production dependencies (no scripts, no devDeps)
+LOCAL_VERSION=$(node -p "require('./package.json').version")
+node -e "
+const pkg = require('./package.json');
+const minimal = {
+  name: pkg.name,
+  version: pkg.version,
+  type: 'module',
+  dependencies: Object.assign({}, pkg.dependencies)
+};
+// Remove npm-run-all — only needed for build scripts, not runtime
+delete minimal.dependencies['npm-run-all'];
+require('fs').writeFileSync('$DEPLOY_DIR/package.json', JSON.stringify(minimal, null, 2) + '\n');
 "
 
-    # Upload files to server
-    print_status "Uploading files to server..."
-    rsync -avz -e "ssh -i $SSH_KEY" --delete \
-        --exclude='node_modules' \
-        --exclude='.git' \
-        --exclude='*.log' \
-        "$DEPLOY_DIR/" \
-        "$SERVER_USER@$SERVER_HOST:$SERVER_PATH/"
+# Copy lockfile for reproducible installs
+cp pnpm-lock.yaml "$DEPLOY_DIR/" 2>/dev/null || true
 
-    # Install dependencies on server
-    print_status "Installing dependencies on server..."
-    ssh -i "$SSH_KEY" "$SERVER_USER@$SERVER_HOST" "
-        cd '$SERVER_PATH'
-        if command -v pnpm >/dev/null 2>&1; then
-            pnpm install --prod --frozen-lockfile --ignore-scripts
-        else
-            npm ci --omit=dev --ignore-scripts
-        fi
-    "
-
-    # Set proper permissions
-    print_status "Setting file permissions..."
-    ssh -i "$SSH_KEY" "$SERVER_USER@$SERVER_HOST" "
-        chown -R root:root '$SERVER_PATH'
-        chmod 755 '$SERVER_PATH/db'
-        find '$SERVER_PATH' -type f -name '*.sh' -exec chmod +x {} \;
-    "
-
-    # Initialize database if needed
-    print_status "Initializing database..."
-    ssh -i "$SSH_KEY" "$SERVER_USER@$SERVER_HOST" "
-        cd '$SERVER_PATH'
-        if [ ! -f 'db/dwp-hours.db' ] || [ ! -s 'db/dwp-hours.db' ]; then
-            echo 'Database file not found or empty, initializing...'
-            node -e \"
-const initSqlJs = require('sql.js');
-const fs = require('fs');
-const path = require('path');
-
-async function initDB() {
-  const SQL = await initSqlJs();
-  const db = new SQL.Database();
-  
-  const schema = fs.readFileSync('db/schema.sql', 'utf8');
-  db.exec(schema);
-  
-  const data = db.export();
-  const buffer = Buffer.from(data);
-  fs.writeFileSync('db/dwp-hours.db', buffer);
-  
-  console.log('Database initialized successfully');
+# Deploy metadata
+cat > "$DEPLOY_DIR/deploy-info.json" << EOF
+{
+    "version": "$LOCAL_VERSION",
+    "build_date": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+    "git_commit": "$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')",
+    "node_version": "$(node --version)"
 }
+EOF
 
-initDB().catch(console.error);
-\"
-            echo 'Running database seeding...'
-            node seed.mjs
-        else
-            echo 'Database file exists, skipping initialization'
-        fi
-    "
+print_success "Deployment package assembled"
 
-    # Stop existing application
-    print_status "Stopping existing application..."
-    ssh -i "$SSH_KEY" "$SERVER_USER@$SERVER_HOST" "
-        pm2 stop dwp-hours-tracker 2>/dev/null || true
-        pm2 delete dwp-hours-tracker 2>/dev/null || true
-    "
+# ──────────────────────────────────────────────
+# 4. Install production dependencies locally
+# ──────────────────────────────────────────────
+print_status "Installing production dependencies in deploy dir..."
 
-    # Start application with PM2
-    print_status "Starting application with PM2..."
-    ssh -i "$SSH_KEY" "$SERVER_USER@$SERVER_HOST" "
-        cd '$SERVER_PATH'
+(cd "$DEPLOY_DIR" && pnpm install --prod --no-frozen-lockfile)
+
+print_success "Production dependencies installed ($(du -sh "$DEPLOY_DIR/node_modules" | cut -f1))"
+
+# ──────────────────────────────────────────────
+# 5. Local verification
+# ──────────────────────────────────────────────
+print_status "Verifying deployment package..."
+
+for f in dist/server.mjs ecosystem.config.json package.json public/index.html public/app.js node_modules; do
+    [ -e "$DEPLOY_DIR/$f" ] || { print_error "Missing: $f"; exit 1; }
+done
+
+print_success "Local verification passed"
+
+# ──────────────────────────────────────────────
+# 6. Upload to server
+# ──────────────────────────────────────────────
+print_status "Uploading to $SERVER_HOST..."
+
+rsync -az --delete \
+    -e "ssh -i $SSH_KEY" \
+    --exclude='.git' \
+    --exclude='*.log' \
+    --exclude='db/backups' \
+    "$DEPLOY_DIR/" \
+    "$SERVER_USER@$SERVER_HOST:$SERVER_PATH/"
+
+print_success "Upload complete"
+
+# ──────────────────────────────────────────────
+# 7. Restart application on server
+# ──────────────────────────────────────────────
+print_status "Restarting application on server..."
+
+ssh -i "$SSH_KEY" "$SERVER_USER@$SERVER_HOST" "
+    cd '$SERVER_PATH'
+
+    # Ensure db directory has correct permissions
+    chmod 755 db
+
+    # Restart PM2 (use restart if running, otherwise start fresh)
+    if pm2 describe dwp-hours-tracker >/dev/null 2>&1; then
+        pm2 restart dwp-hours-tracker
+    else
         pm2 start ecosystem.config.json
         pm2 save
-    "
+    fi
+"
 
-    # Wait a moment for the application to start
-    sleep 3
+print_success "Application restarted"
 
-    # Verify deployment
-    print_status "Verifying deployment..."
-    ssh -i "$SSH_KEY" "$SERVER_USER@$SERVER_HOST" "
-        pm2 list
-        curl -f http://localhost:3000/api/version 2>/dev/null && echo '✅ API responding' || echo '❌ API not responding'
-    "
+# ──────────────────────────────────────────────
+# 8. Verify deployment
+# ──────────────────────────────────────────────
+print_status "Waiting for server to start..."
+sleep 3
 
-    print_success "Deployment completed successfully!"
-    print_status "Application should be available at: http://$SERVER_HOST"
-    print_status "API should be available at: http://$SERVER_HOST/api/"
+print_status "Verifying deployment..."
 
-print_success "Build script completed!"
+# Check API version endpoint
+DEPLOYED_VERSION=$(curl -sf "https://ca0v.us/api/version" | node -e "
+    let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>{
+        try { console.log(JSON.parse(d).version); } catch { console.log('unknown'); }
+    });
+" 2>/dev/null || echo "unreachable")
+
+if [ "$DEPLOYED_VERSION" = "$LOCAL_VERSION" ]; then
+    print_success "Version verified: $LOCAL_VERSION"
+else
+    print_warning "Version mismatch — Local: $LOCAL_VERSION, Deployed: $DEPLOYED_VERSION"
+fi
+
+# Grab tail of server log
+print_status "Recent server logs:"
+ssh -i "$SSH_KEY" "$SERVER_USER@$SERVER_HOST" "
+    pm2 logs dwp-hours-tracker --lines 15 --nostream 2>&1 || true
+"
+
+echo ""
+print_success "Deployment complete!"
+print_status "App: https://ca0v.us"
+print_status "API: https://ca0v.us/api/version"
