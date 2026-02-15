@@ -115,8 +115,17 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // Run backup checks after each response is sent (no user latency cost)
 app.use(backupMiddleware);
 
+// Logging middleware for static file access
+app.use((req, res, next) => {
+  if (req.path === "/index.html" || req.path === "/" || req.path === "") {
+    logger.info(`Access to index.html from ${req.ip}`);
+  }
+  next();
+});
+
 // Logout endpoint (doesn't require database)
 app.post("/api/auth/logout", (req, res) => {
+  logger.info(`API access: ${req.method} ${req.path} by unauthenticated user`);
   logger.info(`User logout`);
   res.clearCookie("auth_hash", { path: "/" });
   res.json({ success: true });
@@ -250,6 +259,9 @@ initDatabase()
   .then(async () => {
     // Health check endpoint
     app.get("/api/health", (req, res) => {
+      logger.info(
+        `API access: ${req.method} ${req.path} by unauthenticated user`,
+      );
       res.json({
         status: "healthy",
         timestamp: new Date().toISOString(),
@@ -260,6 +272,9 @@ initDatabase()
 
     // Version endpoint
     app.get("/api/version", (req, res) => {
+      logger.info(
+        `API access: ${req.method} ${req.path} by unauthenticated user`,
+      );
       res.json({
         version: VERSION,
         fileAge: FILE_AGE,
@@ -269,6 +284,9 @@ initDatabase()
 
     // Backup status endpoint
     app.get("/api/backup/status", (req, res) => {
+      logger.info(
+        `API access: ${req.method} ${req.path} by unauthenticated user`,
+      );
       try {
         res.json(getBackupStatus());
       } catch (error) {
@@ -326,6 +344,9 @@ initDatabase()
     app.post(
       "/api/test/reload-database",
       async (req: Request, res: Response) => {
+        logger.info(
+          `API access: ${req.method} ${req.path} by unauthenticated user`,
+        );
         try {
           // Only allow in test environment or with special header
           if (
@@ -360,6 +381,9 @@ initDatabase()
 
     // Test-only database seed endpoint
     app.post("/api/test/seed", async (req: Request, res: Response) => {
+      logger.info(
+        `API access: ${req.method} ${req.path} by unauthenticated user`,
+      );
       try {
         // Only allow in test/development environment or with special header
         if (
@@ -434,6 +458,9 @@ initDatabase()
           .withMessage("Valid email address required"),
       ],
       async (req: Request, res: Response) => {
+        logger.info(
+          `API access: ${req.method} ${req.path} by unauthenticated user`,
+        );
         try {
           const errors = validationResult(req);
           if (!errors.isEmpty()) {
@@ -534,6 +561,9 @@ initDatabase()
     );
 
     app.get("/api/auth/validate", async (req, res) => {
+      logger.info(
+        `API access: ${req.method} ${req.path} by unauthenticated user`,
+      );
       try {
         const { token, ts } = req.query;
         if (!token || !ts) {
