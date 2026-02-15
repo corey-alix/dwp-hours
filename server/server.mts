@@ -36,6 +36,14 @@ import {
   MessageKey,
   validatePTOBalance,
 } from "../shared/businessRules.js";
+import { BACKUP_CONFIG } from "../shared/backupConfig.js";
+import {
+  backupMiddleware,
+  initBackupSystem,
+  getBackupStatus,
+  validateBackupFilename,
+  restoreFromBackup,
+} from "./backup.js";
 import { performBulkMigration, performFileMigration } from "./bulkMigration.js";
 import { authenticate, authenticateAdmin } from "./utils/auth.js";
 import { seedEmployees, seedPTOEntries } from "../shared/seedData.js";
@@ -56,6 +64,7 @@ import {
   serializeAcknowledgement,
   serializeAdminAcknowledgement,
 } from "../shared/entity-transforms.js";
+import { logger } from "../shared/logger.js";
 
 const VERSION = `1.0.0`; // INCREMENT BEFORE EACH CHANGE
 const START_TIME = new Date().toISOString();
@@ -103,8 +112,12 @@ app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
+// Run backup checks after each response is sent (no user latency cost)
+app.use(backupMiddleware);
+
 // Logout endpoint (doesn't require database)
 app.post("/api/auth/logout", (req, res) => {
+  logger.info(`User logout`);
   res.clearCookie("auth_hash", { path: "/" });
   res.json({ success: true });
 });
@@ -118,22 +131,7 @@ if (process.env.NODE_ENV !== "production") {
 app.use(express.static(path.join(process.cwd(), "public")));
 
 // Database setup
-const DB_PATH = path.join(process.cwd(), "db", "dwp-hours.db");
-const LOG_PATH = path.join(process.cwd(), "logs", "app.log");
-
-// Ensure logs directory exists
-const logsDir = path.dirname(LOG_PATH);
-if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir, { recursive: true });
-}
-
-// Simple file-based logging
-function log(message: string) {
-  const timestamp = new Date().toISOString();
-  const logMessage = `[${timestamp}]${message}\n`;
-  fs.appendFileSync(LOG_PATH, logMessage);
-  console.log(message);
-}
+const DB_PATH = path.join(process.cwd(), BACKUP_CONFIG.DB_PATH);
 
 // Check if port is in use
 function checkPortInUse(port: number): Promise<boolean> {
@@ -149,6 +147,33 @@ function checkPortInUse(port: number): Promise<boolean> {
   });
 }
 
+// Schedule automated log cleanup
+function scheduleLogCleanup(): void {
+  // Run log cleanup daily at 2 AM
+  const now = new Date();
+  const nextCleanup = new Date(now);
+  nextCleanup.setHours(2, 0, 0, 0); // 2 AM tomorrow
+
+  if (nextCleanup <= now) {
+    nextCleanup.setDate(nextCleanup.getDate() + 1);
+  }
+
+  const timeUntilCleanup = nextCleanup.getTime() - now.getTime();
+
+  setTimeout(() => {
+    // Run cleanup
+    logger.cleanupOldLogs(30); // Keep 30 days of logs
+
+    // Schedule next cleanup (daily)
+    setInterval(
+      () => {
+        logger.cleanupOldLogs(30);
+      },
+      24 * 60 * 60 * 1000,
+    ); // Every 24 hours
+  }, timeUntilCleanup);
+}
+
 // Database connection
 let db: initSqlJs.Database;
 let SQL: initSqlJs.SqlJsStatic;
@@ -157,34 +182,34 @@ let ptoEntryDAL: PtoEntryDAL;
 
 async function initDatabase() {
   try {
-    log("Initializing SQL.js...");
+    logger.info("Initializing SQL.js...");
     SQL = await initSqlJs();
-    log("SQL.js initialized successfully.");
+    logger.info("SQL.js initialized successfully.");
 
-    log("Creating database instance...");
+    logger.info("Creating database instance...");
     let filebuffer: Uint8Array | undefined;
     if (fs.existsSync(DB_PATH)) {
       filebuffer = fs.readFileSync(DB_PATH);
-      log("Loaded existing database file.");
+      logger.info("Loaded existing database file.");
     } else {
-      log("No existing database file found, creating new database.");
+      logger.info("No existing database file found, creating new database.");
     }
     db = new SQL.Database(filebuffer);
-    log("Database instance created.");
+    logger.info("Database instance created.");
 
     // Read and execute schema
-    log("Reading database schema...");
+    logger.info("Reading database schema...");
     const schemaPath = path.join(process.cwd(), "db", "schema.sql");
-    log(`Schema path: ${schemaPath} `);
+    logger.info(`Schema path: ${schemaPath} `);
     const schema = fs.readFileSync(schemaPath, "utf8");
-    log("Schema file read successfully.");
+    logger.info("Schema file read successfully.");
 
-    log("Executing schema...");
+    logger.info("Executing schema...");
     db.exec(schema);
-    log("Schema executed successfully.");
+    logger.info("Schema executed successfully.");
 
     // Initialize TypeORM DataSource
-    log("Initializing TypeORM DataSource...");
+    logger.info("Initializing TypeORM DataSource...");
     dataSource = new DataSource({
       type: "sqljs",
       location: DB_PATH,
@@ -200,26 +225,26 @@ async function initDatabase() {
       logging: false,
     });
 
-    log("Connecting to database with TypeORM...");
+    logger.info("Connecting to database with TypeORM...");
     await dataSource.initialize();
-    log("Connected to SQLite database with TypeORM.");
+    logger.info("Connected to SQLite database with TypeORM.");
 
     // Initialize DAL
     ptoEntryDAL = new PtoEntryDAL(dataSource);
-    log("PTO Entry DAL initialized.");
+    logger.info("PTO Entry DAL initialized.");
   } catch (error) {
     const err = error as Error;
-    log(`Database connection error: ${err} `);
-    log(`Error stack: ${err.stack} `);
+    logger.error(`Database connection error: ${err} `);
+    logger.error(`Error stack: ${err.stack} `);
     throw err;
   }
 }
 
 // Initialize database on startup
-log(`Start time: ${START_TIME} `);
-log(`Version: ${VERSION} `);
-log(`File age: ${FILE_AGE}`);
-log(`Port ${PORT}...`);
+logger.info(`Start time: ${START_TIME} `);
+logger.info(`Version: ${VERSION} `);
+logger.info(`File age: ${FILE_AGE}`);
+logger.info(`Port ${PORT}...`);
 
 initDatabase()
   .then(async () => {
@@ -242,6 +267,61 @@ initDatabase()
       });
     });
 
+    // Backup status endpoint
+    app.get("/api/backup/status", (req, res) => {
+      try {
+        res.json(getBackupStatus());
+      } catch (error) {
+        logger.error(`Failed to get backup status: ${error}`);
+        res.status(500).json({ error: "Failed to get backup status" });
+      }
+    });
+
+    // Backup restore endpoint
+    app.post(
+      "/api/backup/restore",
+      authenticateAdmin(() => dataSource, logger.log),
+      async (req, res) => {
+        try {
+          const backupPath = validateBackupFilename(req.body.filename);
+
+          // Close current database connection
+          if (dataSource && dataSource.isInitialized) {
+            await dataSource.destroy();
+            logger.info("DataSource destroyed for restore");
+          }
+
+          const preRestoreBackup = restoreFromBackup(backupPath);
+
+          // Re-initialize database
+          await initDatabase();
+          logger.info("Database re-initialized after restore");
+
+          res.json({
+            message: "Database restored successfully",
+            restoredFrom: req.body.filename,
+            preRestoreBackup,
+          });
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : String(error);
+
+          if (message === "Filename is required") {
+            return res.status(400).json({ error: message });
+          }
+          if (message === "Backup file not found") {
+            return res.status(404).json({ error: message });
+          }
+          if (message === "Invalid backup filename format") {
+            return res.status(400).json({ error: message });
+          }
+
+          logger.error(`Failed to restore backup: ${error}`);
+          res.status(500).json({ error: "Failed to restore backup" });
+        }
+      },
+    );
+
     // Test-only database reload endpoint
     app.post(
       "/api/test/reload-database",
@@ -252,17 +332,17 @@ initDatabase()
             process.env.NODE_ENV === "test" ||
             req.headers["x-test-reload"] === "true"
           ) {
-            log("Reloading database for testing...");
+            logger.info("Reloading database for testing...");
 
             // Destroy current DataSource
             if (dataSource && dataSource.isInitialized) {
               await dataSource.destroy();
-              log("DataSource destroyed.");
+              logger.info("DataSource destroyed.");
             }
 
             // Re-initialize database from disk
             await initDatabase();
-            log("Database reloaded from disk.");
+            logger.info("Database reloaded from disk.");
 
             res.json({ message: "Database reloaded successfully" });
           } else {
@@ -272,7 +352,7 @@ initDatabase()
             });
           }
         } catch (error) {
-          log(`Database reload error: ${error} `);
+          logger.error(`Database reload error: ${error} `);
           res.status(500).json({ error: "Database reload failed" });
         }
       },
@@ -287,7 +367,7 @@ initDatabase()
           process.env.NODE_ENV === "development" ||
           req.headers["x-test-seed"] === "true"
         ) {
-          log("Seeding database for testing...");
+          logger.info("Seeding database for testing...");
 
           // Clear all tables
           db.exec("DELETE FROM admin_acknowledgements;");
@@ -331,7 +411,7 @@ initDatabase()
             );
           }
 
-          log("Database seeded successfully.");
+          logger.info("Database seeded successfully.");
           res.json({ message: "Database seeded successfully" });
         } else {
           res.status(403).json({
@@ -340,7 +420,7 @@ initDatabase()
           });
         }
       } catch (error) {
-        log(`Database seed error: ${error} `);
+        logger.error(`Database seed error: ${error} `);
         res.status(500).json({ error: "Database seeding failed" });
       }
     });
@@ -379,11 +459,12 @@ initDatabase()
           });
 
           if (!employee) {
+            logger.info(`Login attempt for unknown user: ${identifier}`);
             if (shouldReturnMagicLink) {
               const timestamp = Date.now();
               const baseUrl = getBaseUrl(req);
               const magicLink = `${baseUrl}/?token=missing-user&ts=${timestamp}`;
-              log(`Magic link for ${identifier}: ${magicLink}`);
+              logger.debug(`Magic link for ${identifier}: ${magicLink}`);
               return res.json({
                 message: "Magic link generated",
                 magicLink,
@@ -394,6 +475,10 @@ initDatabase()
               message: SUCCESS_MESSAGES["auth.link_sent"],
             });
           }
+
+          logger.info(
+            `Login request for user: ${identifier} (Employee ID: ${employee.id})`,
+          );
 
           // Generate secret hash if not exists
           let secretHash = employee.hash;
@@ -417,7 +502,7 @@ initDatabase()
           const magicLink = `${baseUrl}/?token=${temporalHash}&ts=${timestamp}`;
 
           if (shouldReturnMagicLink) {
-            log(`Magic link for ${identifier}: ${magicLink}`);
+            logger.debug(`Magic link for ${identifier}: ${magicLink}`);
           }
 
           if (shouldReturnMagicLink) {
@@ -430,8 +515,9 @@ initDatabase()
 
           try {
             await sendMagicLinkEmail(identifier, magicLink);
+            logger.info(`Magic link email sent to: ${identifier}`);
           } catch (emailError) {
-            log(`Error sending magic link email: ${emailError}`);
+            logger.error(`Error sending magic link email: ${emailError}`);
             return res
               .status(500)
               .json({ error: "Failed to send magic link email" });
@@ -441,7 +527,7 @@ initDatabase()
             message: SUCCESS_MESSAGES["auth.link_sent"],
           });
         } catch (error) {
-          log(`Error requesting magic link: ${error}`);
+          logger.error(`Error requesting magic link: ${error}`);
           res.status(500).json({ error: "Internal server error" });
         }
       },
@@ -451,7 +537,7 @@ initDatabase()
       try {
         const { token, ts } = req.query;
         if (!token || !ts) {
-          log("Auth validation failed: Token and timestamp required");
+          logger.warn("Auth validation failed: Token and timestamp required");
           return res
             .status(400)
             .json({ error: "Token and timestamp required" });
@@ -461,7 +547,7 @@ initDatabase()
         const now = Date.now();
         // Expire after 1 hour
         if (now - timestamp > 60 * 60 * 1000) {
-          log("Auth validation failed: Token expired");
+          logger.warn("Auth validation failed: Token expired");
           return res.status(401).json({ error: "Token expired" });
         }
 
@@ -482,7 +568,7 @@ initDatabase()
           }
         }
         if (!validEmployee) {
-          log("Auth validation failed: Invalid token");
+          logger.warn("Auth validation failed: Invalid token");
           return res.status(401).json({ error: "Invalid token" });
         }
 
@@ -497,7 +583,7 @@ initDatabase()
         const sessionToken = `${validEmployee.id}.${sessionTimestamp}.${signature}`;
 
         // Return session token and employee info
-        log(
+        logger.info(
           `Auth validation successful for employee ${validEmployee.id} (${validEmployee.name})`,
         );
         res.json({
@@ -510,7 +596,7 @@ initDatabase()
           },
         });
       } catch (error) {
-        log(`Error validating token: ${error}`);
+        logger.error(`Error validating token: ${error}`);
         res.status(500).json({ error: "Internal server error" });
       }
     });
@@ -518,7 +604,7 @@ initDatabase()
     // PTO routes
     app.get(
       "/api/pto/status",
-      authenticate(() => dataSource, log),
+      authenticate(() => dataSource, logger.log),
       async (req, res) => {
         try {
           const authenticatedEmployeeId = req.employee!.id;
@@ -530,7 +616,7 @@ initDatabase()
             where: { id: authenticatedEmployeeId },
           });
           if (!employee) {
-            log(
+            logger.info(
               `PTO status request failed: Employee not found: ${authenticatedEmployeeId}`,
             );
             return res.status(404).json({ error: "Employee not found" });
@@ -573,7 +659,7 @@ initDatabase()
 
           res.json(status);
         } catch (error) {
-          log(`Error getting PTO status: ${error}`);
+          logger.error(`Error getting PTO status: ${error}`);
           res.status(500).json({ error: "Internal server error" });
         }
       },
@@ -582,14 +668,16 @@ initDatabase()
     // Monthly Hours routes
     app.post(
       "/api/hours",
-      authenticate(() => dataSource, log),
+      authenticate(() => dataSource, logger.log),
       async (req, res) => {
         try {
           const { month, hours } = req.body;
           const employeeId = req.employee!.id; // Use authenticated user's ID
 
           if (!month || hours === undefined) {
-            log("Hours submission failed: Month and hours are required");
+            logger.warn(
+              "Hours submission failed: Month and hours are required",
+            );
             return res
               .status(400)
               .json({ error: "Month and hours are required" });
@@ -598,13 +686,13 @@ initDatabase()
           const hoursNum = parseFloat(hours);
 
           if (isNaN(hoursNum)) {
-            log(`Hours submission failed: Invalid hours (${hours})`);
+            logger.info(`Hours submission failed: Invalid hours (${hours})`);
             return res.status(400).json({ error: "Invalid hours" });
           }
 
           // Validate hours (reasonable range: 0-400 hours per month)
           if (hoursNum < 0 || hoursNum > 400) {
-            log(
+            logger.info(
               `Hours submission failed: Hours must be between 0 and 400, got: ${hoursNum}`,
             );
             return res
@@ -619,14 +707,18 @@ initDatabase()
             where: { id: employeeId },
           });
           if (!employee) {
-            log(`Hours submission failed: Employee not found: ${employeeId}`);
+            logger.info(
+              `Hours submission failed: Employee not found: ${employeeId}`,
+            );
             return res.status(404).json({ error: "Employee not found" });
           }
 
           // Parse month (expected format: YYYY-MM)
           const monthStart = month + "-01";
           if (!isValidDateString(monthStart)) {
-            log(`Hours submission failed: Invalid month format: ${month}`);
+            logger.info(
+              `Hours submission failed: Invalid month format: ${month}`,
+            );
             return res
               .status(400)
               .json({ error: "Invalid month format. Use YYYY-MM" });
@@ -662,7 +754,7 @@ initDatabase()
             res.status(201).json(response);
           }
         } catch (error) {
-          log(`Error submitting hours: ${error}`);
+          logger.error(`Error submitting hours: ${error}`);
           res.status(500).json({ error: "Internal server error" });
         }
       },
@@ -670,7 +762,7 @@ initDatabase()
 
     app.get(
       "/api/hours",
-      authenticate(() => dataSource, log),
+      authenticate(() => dataSource, logger.log),
       async (req, res) => {
         try {
           const { year } = req.query;
@@ -683,7 +775,7 @@ initDatabase()
             where: { id: requestedEmployeeId },
           });
           if (!employee) {
-            log(
+            logger.info(
               `Hours retrieval failed: Employee not found: ${requestedEmployeeId}`,
             );
             return res.status(404).json({ error: "Employee not found" });
@@ -707,7 +799,7 @@ initDatabase()
 
           res.json({ employeeId: requestedEmployeeId, hours });
         } catch (error) {
-          log(`Error getting hours: ${error}`);
+          logger.error(`Error getting hours: ${error}`);
           res.status(500).json({ error: "Internal server error" });
         }
       },
@@ -716,14 +808,14 @@ initDatabase()
     // Acknowledgement routes
     app.post(
       "/api/acknowledgements",
-      authenticate(() => dataSource, log),
+      authenticate(() => dataSource, logger.log),
       async (req, res) => {
         try {
           const { month } = req.body;
           const employeeId = req.employee!.id; // Use authenticated user's ID
 
           if (!month) {
-            log("Acknowledgement submission failed: Month is required");
+            logger.warn("Acknowledgement submission failed: Month is required");
             return res.status(400).json({ error: "Month is required" });
           }
 
@@ -734,7 +826,7 @@ initDatabase()
             where: { id: employeeId },
           });
           if (!employee) {
-            log(
+            logger.info(
               `Acknowledgement submission failed: Employee not found: ${employeeId}`,
             );
             return res.status(404).json({ error: "Employee not found" });
@@ -743,7 +835,7 @@ initDatabase()
           // Parse month (expected format: YYYY-MM)
           const monthStart = month + "-01";
           if (!isValidDateString(monthStart)) {
-            log(
+            logger.info(
               `Acknowledgement submission failed: Invalid month format: ${month}`,
             );
             return res
@@ -757,7 +849,7 @@ initDatabase()
           });
 
           if (existingAck) {
-            log(
+            logger.info(
               `Acknowledgement submission failed: Acknowledgement already exists for employee ${employeeId}, month ${month}`,
             );
             return res
@@ -779,7 +871,7 @@ initDatabase()
 
           res.status(201).json(response);
         } catch (error) {
-          log(`Error submitting acknowledgement: ${error}`);
+          logger.error(`Error submitting acknowledgement: ${error}`);
           res.status(500).json({ error: "Internal server error" });
         }
       },
@@ -787,7 +879,7 @@ initDatabase()
 
     app.get(
       "/api/acknowledgements",
-      authenticate(() => dataSource, log),
+      authenticate(() => dataSource, logger.log),
       async (req, res) => {
         try {
           const requestedEmployeeId = req.employee!.id;
@@ -799,7 +891,7 @@ initDatabase()
             where: { id: requestedEmployeeId },
           });
           if (!employee) {
-            log(
+            logger.info(
               `Acknowledgement retrieval failed: Employee not found: ${requestedEmployeeId}`,
             );
             return res.status(404).json({ error: "Employee not found" });
@@ -812,7 +904,7 @@ initDatabase()
 
           res.json({ employeeId: requestedEmployeeId, acknowledgements });
         } catch (error) {
-          log(`Error getting acknowledgements: ${error}`);
+          logger.error(`Error getting acknowledgements: ${error}`);
           res.status(500).json({ error: "Internal server error" });
         }
       },
@@ -821,7 +913,7 @@ initDatabase()
     // Monthly summary for acknowledgements
     app.get(
       "/api/monthly-summary/:month",
-      authenticate(() => dataSource, log),
+      authenticate(() => dataSource, logger.log),
       async (req, res) => {
         try {
           const { month } = req.params;
@@ -836,7 +928,7 @@ initDatabase()
             where: { id: requestedEmployeeId },
           });
           if (!employee) {
-            log(
+            logger.info(
               `Monthly summary request failed: Employee not found: ${requestedEmployeeId}`,
             );
             return res.status(404).json({ error: "Employee not found" });
@@ -845,7 +937,7 @@ initDatabase()
           // Parse month (expected format: YYYY-MM)
           const monthStart = monthStr + "-01";
           if (!isValidDateString(monthStart)) {
-            log(
+            logger.info(
               `Monthly summary request failed: Invalid month format: ${monthStr}`,
             );
             return res
@@ -895,7 +987,7 @@ initDatabase()
             ptoUsage: ptoByCategory,
           });
         } catch (error) {
-          log(`Error getting monthly summary: ${error}`);
+          logger.error(`Error getting monthly summary: ${error}`);
           res.status(500).json({ error: "Internal server error" });
         }
       },
@@ -904,14 +996,14 @@ initDatabase()
     // Admin Acknowledgement routes
     app.post(
       "/api/admin-acknowledgements",
-      authenticateAdmin(() => dataSource, log),
+      authenticateAdmin(() => dataSource, logger.log),
       async (req, res) => {
         try {
           const { employeeId, month } = req.body;
           const adminId = req.employee!.id; // Use authenticated admin's ID
 
           if (!employeeId || !month) {
-            log(
+            logger.info(
               "Admin acknowledgement submission failed: Employee ID and month are required",
             );
             return res
@@ -922,7 +1014,7 @@ initDatabase()
           const employeeIdNum = parseInt(employeeId);
 
           if (isNaN(employeeIdNum)) {
-            log(
+            logger.info(
               `Admin acknowledgement submission failed: Invalid employee ID: ${employeeId}`,
             );
             return res.status(400).json({ error: "Invalid employee ID" });
@@ -935,7 +1027,7 @@ initDatabase()
             where: { id: employeeIdNum },
           });
           if (!employee) {
-            log(
+            logger.info(
               `Admin acknowledgement submission failed: Employee not found: ${employeeIdNum}`,
             );
             return res.status(404).json({ error: "Employee not found" });
@@ -944,7 +1036,7 @@ initDatabase()
           // Parse month (expected format: YYYY-MM)
           const monthStr = month;
           if (!/^\d{4}-\d{2}$/.test(monthStr)) {
-            log(
+            logger.info(
               `Admin acknowledgement submission failed: Invalid month format: ${monthStr}`,
             );
             return res
@@ -958,7 +1050,7 @@ initDatabase()
           });
 
           if (existingAck) {
-            log(
+            logger.info(
               `Admin acknowledgement submission failed: Admin acknowledgement already exists for employee ${employeeIdNum}, month ${monthStr}`,
             );
             return res.status(409).json({
@@ -981,7 +1073,7 @@ initDatabase()
 
           res.status(201).json(response);
         } catch (error) {
-          log(`Error submitting admin acknowledgement: ${error}`);
+          logger.error(`Error submitting admin acknowledgement: ${error}`);
           res.status(500).json({ error: "Internal server error" });
         }
       },
@@ -989,7 +1081,7 @@ initDatabase()
 
     app.get(
       "/api/admin-acknowledgements/:employeeId",
-      authenticateAdmin(() => dataSource, log),
+      authenticateAdmin(() => dataSource, logger.log),
       async (req, res) => {
         try {
           const { employeeId } = req.params;
@@ -997,7 +1089,7 @@ initDatabase()
           const adminId = req.employee!.id;
 
           if (isNaN(employeeIdNum)) {
-            log(
+            logger.info(
               `Admin acknowledgement retrieval failed: Invalid employee ID (${employeeId})`,
             );
             return res.status(400).json({ error: "Invalid employee ID" });
@@ -1010,7 +1102,7 @@ initDatabase()
             where: { id: employeeIdNum },
           });
           if (!employee) {
-            log(
+            logger.info(
               `Admin acknowledgement retrieval failed: Employee not found: ${employeeIdNum}`,
             );
             return res.status(404).json({ error: "Employee not found" });
@@ -1024,7 +1116,7 @@ initDatabase()
 
           res.json({ employeeId: employeeIdNum, acknowledgements });
         } catch (error) {
-          log(`Error getting admin acknowledgements: ${error}`);
+          logger.error(`Error getting admin acknowledgements: ${error}`);
           res.status(500).json({ error: "Internal server error" });
         }
       },
@@ -1033,7 +1125,7 @@ initDatabase()
     // Admin Monthly Review endpoint
     app.get(
       "/api/admin/monthly-review/:month",
-      authenticateAdmin(() => dataSource, log),
+      authenticateAdmin(() => dataSource, logger.log),
       async (req, res) => {
         try {
           const { month } = req.params;
@@ -1041,7 +1133,7 @@ initDatabase()
 
           // Validate month format
           if (!/^\d{4}-\d{2}$/.test(monthStr)) {
-            log(
+            logger.info(
               `Admin monthly review failed: Invalid month format: ${monthStr}`,
             );
             return res
@@ -1118,7 +1210,7 @@ initDatabase()
 
           res.json(result);
         } catch (error) {
-          log(`Error getting admin monthly review: ${error}`);
+          logger.error(`Error getting admin monthly review: ${error}`);
           res.status(500).json({ error: "Internal server error" });
         }
       },
@@ -1127,7 +1219,7 @@ initDatabase()
     // Enhanced Employee routes
     app.get(
       "/api/employees",
-      authenticateAdmin(() => dataSource, log),
+      authenticateAdmin(() => dataSource, logger.log),
       async (req, res) => {
         try {
           const { search, role } = req.query;
@@ -1151,7 +1243,7 @@ initDatabase()
 
           res.json(employees);
         } catch (error) {
-          log(`Error getting employees: ${error}`);
+          logger.error(`Error getting employees: ${error}`);
           res.status(500).json({ error: "Internal server error" });
         }
       },
@@ -1159,14 +1251,16 @@ initDatabase()
 
     app.get(
       "/api/employees/:id",
-      authenticateAdmin(() => dataSource, log),
+      authenticateAdmin(() => dataSource, logger.log),
       async (req, res) => {
         try {
           const { id } = req.params;
           const employeeIdNum = parseInt(id as string);
 
           if (isNaN(employeeIdNum)) {
-            log(`Employee retrieval failed: Invalid employee ID: ${id}`);
+            logger.info(
+              `Employee retrieval failed: Invalid employee ID: ${id}`,
+            );
             return res.status(400).json({ error: "Invalid employee ID" });
           }
 
@@ -1176,7 +1270,7 @@ initDatabase()
           });
 
           if (!employee) {
-            log(
+            logger.info(
               `Employee retrieval failed: Employee not found: ${employeeIdNum}`,
             );
             return res.status(404).json({ error: "Employee not found" });
@@ -1184,7 +1278,7 @@ initDatabase()
 
           res.json(employee);
         } catch (error) {
-          log(`Error getting employee: ${error}`);
+          logger.error(`Error getting employee: ${error}`);
           res.status(500).json({ error: "Internal server error" });
         }
       },
@@ -1192,7 +1286,7 @@ initDatabase()
 
     app.post(
       "/api/employees",
-      authenticateAdmin(() => dataSource, log),
+      authenticateAdmin(() => dataSource, logger.log),
       async (req, res) => {
         try {
           const {
@@ -1253,7 +1347,7 @@ initDatabase()
 
           res.status(201).json(response);
         } catch (error) {
-          log(`Error creating employee: ${error}`);
+          logger.error(`Error creating employee: ${error}`);
           res.status(500).json({ error: "Internal server error" });
         }
       },
@@ -1261,14 +1355,14 @@ initDatabase()
 
     app.put(
       "/api/employees/:id",
-      authenticateAdmin(() => dataSource, log),
+      authenticateAdmin(() => dataSource, logger.log),
       async (req, res) => {
         try {
           const { id } = req.params;
           const employeeIdNum = parseInt(id as string);
 
           if (isNaN(employeeIdNum)) {
-            log(`Employee update failed: Invalid employee ID: ${id}`);
+            logger.info(`Employee update failed: Invalid employee ID: ${id}`);
             return res.status(400).json({ error: "Invalid employee ID" });
           }
 
@@ -1287,7 +1381,9 @@ initDatabase()
           });
 
           if (!employee) {
-            log(`Employee update failed: Employee not found: ${employeeIdNum}`);
+            logger.info(
+              `Employee update failed: Employee not found: ${employeeIdNum}`,
+            );
             return res.status(404).json({ error: "Employee not found" });
           }
 
@@ -1338,7 +1434,7 @@ initDatabase()
             employee: serializeEmployee(employee),
           } as EmployeeUpdateResponse);
         } catch (error) {
-          log(`Error updating employee: ${error}`);
+          logger.error(`Error updating employee: ${error}`);
           res.status(500).json({ error: "Internal server error" });
         }
       },
@@ -1346,14 +1442,14 @@ initDatabase()
 
     app.delete(
       "/api/employees/:id",
-      authenticateAdmin(() => dataSource, log),
+      authenticateAdmin(() => dataSource, logger.log),
       async (req, res) => {
         try {
           const { id } = req.params;
           const employeeIdNum = parseInt(id as string);
 
           if (isNaN(employeeIdNum)) {
-            log(`Employee deletion failed: Invalid employee ID: ${id}`);
+            logger.info(`Employee deletion failed: Invalid employee ID: ${id}`);
             return res.status(400).json({ error: "Invalid employee ID" });
           }
 
@@ -1363,7 +1459,7 @@ initDatabase()
           });
 
           if (!employee) {
-            log(
+            logger.info(
               `Employee deletion failed: Employee not found: ${employeeIdNum}`,
             );
             return res.status(404).json({ error: "Employee not found" });
@@ -1373,7 +1469,7 @@ initDatabase()
 
           res.json({ message: "Employee deleted successfully" });
         } catch (error) {
-          log(`Error deleting employee: ${error}`);
+          logger.error(`Error deleting employee: ${error}`);
           res.status(500).json({ error: "Internal server error" });
         }
       },
@@ -1382,14 +1478,14 @@ initDatabase()
     // Admin endpoints for employee data
     app.get(
       "/api/employees/:id/monthly-hours",
-      authenticateAdmin(() => dataSource, log),
+      authenticateAdmin(() => dataSource, logger.log),
       async (req, res) => {
         try {
           const { id } = req.params;
           const employeeIdNum = parseInt(id as string);
 
           if (isNaN(employeeIdNum)) {
-            log(
+            logger.info(
               `Employee monthly hours retrieval failed: Invalid employee ID: ${id}`,
             );
             return res.status(400).json({ error: "Invalid employee ID" });
@@ -1402,7 +1498,7 @@ initDatabase()
             where: { id: employeeIdNum },
           });
           if (!employee) {
-            log(
+            logger.info(
               `Employee monthly hours retrieval failed: Employee not found: ${employeeIdNum}`,
             );
             return res.status(404).json({ error: "Employee not found" });
@@ -1415,7 +1511,7 @@ initDatabase()
 
           res.json(hours);
         } catch (error) {
-          log(`Error getting employee monthly hours: ${error}`);
+          logger.error(`Error getting employee monthly hours: ${error}`);
           res.status(500).json({ error: "Internal server error" });
         }
       },
@@ -1423,14 +1519,14 @@ initDatabase()
 
     app.get(
       "/api/employees/:id/pto-entries",
-      authenticateAdmin(() => dataSource, log),
+      authenticateAdmin(() => dataSource, logger.log),
       async (req, res) => {
         try {
           const { id } = req.params;
           const employeeIdNum = parseInt(id as string);
 
           if (isNaN(employeeIdNum)) {
-            log(
+            logger.info(
               `Employee PTO entries retrieval failed: Invalid employee ID: ${id}`,
             );
             return res.status(400).json({ error: "Invalid employee ID" });
@@ -1443,7 +1539,7 @@ initDatabase()
             where: { id: employeeIdNum },
           });
           if (!employee) {
-            log(
+            logger.info(
               `Employee PTO entries retrieval failed: Employee not found: ${employeeIdNum}`,
             );
             return res.status(404).json({ error: "Employee not found" });
@@ -1456,7 +1552,7 @@ initDatabase()
 
           res.json(ptoEntries);
         } catch (error) {
-          log(`Error getting employee PTO entries: ${error}`);
+          logger.error(`Error getting employee PTO entries: ${error}`);
           res.status(500).json({ error: "Internal server error" });
         }
       },
@@ -1465,7 +1561,7 @@ initDatabase()
     // PTO Management routes
     app.get(
       "/api/pto",
-      authenticate(() => dataSource, log),
+      authenticate(() => dataSource, logger.log),
       async (req, res) => {
         try {
           const { type, startDate, endDate } = req.query;
@@ -1505,7 +1601,7 @@ initDatabase()
 
           res.json(serializedEntries);
         } catch (error) {
-          log(`Error getting PTO entries: ${error}`);
+          logger.error(`Error getting PTO entries: ${error}`);
           res.status(500).json({ error: "Internal server error" });
         }
       },
@@ -1513,7 +1609,7 @@ initDatabase()
 
     app.post(
       "/api/pto",
-      authenticate(() => dataSource, log),
+      authenticate(() => dataSource, logger.log),
       async (req, res) => {
         try {
           const { date, hours, type, requests } = req.body;
@@ -1597,6 +1693,9 @@ initDatabase()
                         message:
                           VALIDATION_MESSAGES[err.messageKey as MessageKey],
                       }));
+                      logger.warn(
+                        `PTO update validation failed for employee ${empIdNum}: ${fieldErrors.map((e) => `${e.field}: ${e.message}`).join(", ")}`,
+                      );
                       return res
                         .status(400)
                         .json({ error: "validation_failed", fieldErrors });
@@ -1614,7 +1713,9 @@ initDatabase()
                 field: err.field,
                 message: VALIDATION_MESSAGES[err.messageKey as MessageKey],
               }));
-              console.log("Returning 400 with field errors:", fieldErrors);
+              logger.warn(
+                `PTO creation validation failed for employee ${empIdNum}: ${fieldErrors.map((e) => `${e.field}: ${e.message}`).join(", ")}`,
+              );
               return res
                 .status(400)
                 .json({ error: "validation_failed", fieldErrors });
@@ -1623,9 +1724,11 @@ initDatabase()
             results.push(result.ptoEntry);
           }
 
-          log(`PTO entries processed successfully: ${results.length} entries`);
+          logger.info(
+            `PTO entries processed successfully: ${results.length} entries`,
+          );
           results.forEach((entry, index) => {
-            log(
+            logger.info(
               `Entry ${index + 1}: Employee ${entry.employee_id}, Date ${entry.date}, Type ${entry.type}, Hours ${entry.hours}`,
             );
           });
@@ -1636,9 +1739,13 @@ initDatabase()
             ptoEntry: serializePTOEntry(lastResult),
           };
 
+          logger.info(
+            `PTO entry created: Employee ${lastResult.employee_id}, Date ${lastResult.date}, Type ${lastResult.type}, Hours ${lastResult.hours}`,
+          );
+
           res.status(201).json(response);
         } catch (error) {
-          log(`Error creating PTO entries: ${error}`);
+          logger.error(`Error creating PTO entries: ${error}`);
           res.status(500).json({ error: "Internal server error" });
         }
       },
@@ -1646,7 +1753,7 @@ initDatabase()
 
     app.put(
       "/api/pto/:id",
-      authenticate(() => dataSource, log),
+      authenticate(() => dataSource, logger.log),
       async (req, res) => {
         try {
           const { id } = req.params;
@@ -1690,6 +1797,9 @@ initDatabase()
               field: err.field,
               message: VALIDATION_MESSAGES[err.messageKey as MessageKey],
             }));
+            logger.warn(
+              `PTO update validation failed for entry ${ptoIdNum}: ${fieldErrors.map((e) => `${e.field}: ${e.message}`).join(", ")}`,
+            );
             return res
               .status(400)
               .json({ error: "validation_failed", fieldErrors });
@@ -1700,7 +1810,7 @@ initDatabase()
             ptoEntry: serializePTOEntry(result.ptoEntry),
           } as PTOUpdateResponse);
         } catch (error) {
-          log(`Error updating PTO entry: ${error}`);
+          logger.error(`Error updating PTO entry: ${error}`);
           res.status(500).json({ error: "Internal server error" });
         }
       },
@@ -1708,7 +1818,7 @@ initDatabase()
 
     app.delete(
       "/api/pto/:id",
-      authenticate(() => dataSource, log),
+      authenticate(() => dataSource, logger.log),
       async (req, res) => {
         try {
           const { id } = req.params;
@@ -1741,7 +1851,7 @@ initDatabase()
 
           res.json({ message: "PTO entry deleted successfully" });
         } catch (error) {
-          log(`Error deleting PTO entry: ${error}`);
+          logger.error(`Error deleting PTO entry: ${error}`);
           res.status(500).json({ error: "Internal server error" });
         }
       },
@@ -1750,7 +1860,7 @@ initDatabase()
     // PTO Year Review endpoint
     app.get(
       "/api/pto/year/:year",
-      authenticate(() => dataSource, log),
+      authenticate(() => dataSource, logger.log),
       async (req, res) => {
         try {
           const { year } = req.params;
@@ -1834,7 +1944,7 @@ initDatabase()
             months,
           });
         } catch (error) {
-          log(`Error getting PTO year review: ${error}`);
+          logger.error(`Error getting PTO year review: ${error}`);
           res.status(500).json({ error: "Internal server error" });
         }
       },
@@ -1843,13 +1953,13 @@ initDatabase()
     // Bulk data import endpoint for migration
     app.post(
       "/api/migrate/bulk",
-      authenticateAdmin(() => dataSource, log),
+      authenticateAdmin(() => dataSource, logger.log),
       async (req, res) => {
         try {
           const result = await performBulkMigration(
             dataSource,
             ptoEntryDAL,
-            log,
+            logger.log,
             today,
             isValidDateString,
             req.body,
@@ -1862,7 +1972,7 @@ initDatabase()
           ) {
             return res.status(400).json({ error: error.message });
           }
-          log(`Error in bulk migration: ${error}`);
+          logger.error(`Error in bulk migration: ${error}`);
           res.status(500).json({ error: "Internal server error" });
         }
       },
@@ -1871,7 +1981,7 @@ initDatabase()
     // File-based bulk data import endpoint for migration
     app.post(
       "/api/migrate/file",
-      authenticateAdmin(() => dataSource, log),
+      authenticateAdmin(() => dataSource, logger.log),
       async (req, res) => {
         try {
           const { employeeEmail, filePath } = req.body;
@@ -1891,14 +2001,14 @@ initDatabase()
           const result = await performFileMigration(
             dataSource,
             ptoEntryDAL,
-            log,
+            logger.log,
             today,
             isValidDateString,
             { employeeEmail, filePath },
           );
           res.json(result);
         } catch (error) {
-          log(`Error in file migration: ${error}`);
+          logger.error(`Error in file migration: ${error}`);
           // Check if it's a validation error
           if (
             error instanceof Error &&
@@ -1912,48 +2022,55 @@ initDatabase()
     );
 
     // Start server
-    log(`Checking if port ${PORT} is available...`);
+    logger.info(`Checking if port ${PORT} is available...`);
     const portInUse = await checkPortInUse(PORT);
     if (portInUse) {
-      log(
+      logger.info(
         `Port ${PORT} is already in use. Please stop the other server or use a different port.`,
       );
       process.exit(1);
     }
 
-    log(`Attempting to start server on port ${PORT}...`);
+    logger.info(`Attempting to start server on port ${PORT}...`);
     const server = app.listen(PORT, "0.0.0.0", () => {
-      log(`Server successfully listening on port ${PORT}`);
-      log(`Server available at:`);
-      log(`  http://localhost:${PORT}`);
-      log(`  http://127.0.0.1:${PORT}`);
-      log(`  http://0.0.0.0:${PORT}`);
+      logger.info(`Server successfully listening on port ${PORT}`);
+      logger.info(`Server available at:`);
+      logger.info(`  http://localhost:${PORT}`);
+      logger.info(`  http://127.0.0.1:${PORT}`);
+      logger.info(`  http://0.0.0.0:${PORT}`);
+
+      // Initialise backup system (request-driven, no scheduler)
+      initBackupSystem();
+
+      // Schedule log cleanup
+      scheduleLogCleanup();
+      logger.info("Log cleanup system started");
     });
 
     server.on("error", (error) => {
-      log(`Server failed to start: ${error.message}`);
+      logger.info(`Server failed to start: ${error.message}`);
       process.exit(1);
     });
 
     // Handle process termination
     process.on("SIGTERM", () => {
-      log("SIGTERM received, shutting down gracefully");
+      logger.info("SIGTERM received, shutting down gracefully");
       server.close(() => {
-        log("Server closed");
+        logger.info("Server closed");
         process.exit(0);
       });
     });
 
     process.on("SIGINT", () => {
-      log("SIGINT received, shutting down gracefully");
+      logger.info("SIGINT received, shutting down gracefully");
       server.close(() => {
-        log("Server closed");
+        logger.info("Server closed");
         process.exit(0);
       });
     });
   })
   .catch((error) => {
-    log(`Database initialization failed: ${error.message}`);
-    log(`Stack trace: ${error.stack}`);
+    logger.info(`Database initialization failed: ${error.message}`);
+    logger.info(`Stack trace: ${error.stack}`);
     process.exit(1);
   });

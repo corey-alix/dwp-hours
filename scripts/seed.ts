@@ -17,7 +17,9 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const DB_PATH = path.join(__dirname, "db", "dwp-hours.db");
+// Database files are in the project root's db/ directory, not scripts/db/
+// This path change was made per deployment-automation.md requirements
+const DB_PATH = path.join(__dirname, "..", "db", "dwp-hours.db");
 
 // Load existing database
 let db: Database;
@@ -30,7 +32,8 @@ try {
   db = new SQL.Database();
 
   // Execute schema to create tables
-  const schemaPath = path.join(__dirname, "db", "schema.sql");
+  // Schema file is in project root's db/ directory per deployment-automation.md
+  const schemaPath = path.join(__dirname, "..", "db", "schema.sql");
   const schema = fs.readFileSync(schemaPath, "utf8");
   db.exec(schema);
 } catch (error) {

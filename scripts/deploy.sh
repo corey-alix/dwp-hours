@@ -17,10 +17,10 @@ NC='\033[0m' # No Color
 # Configuration
 BUILD_DIR="dist"
 DEPLOY_DIR="deploy"
-SERVER_USER="root"
+SERVER_USER="deploy"
 SERVER_HOST="206.189.237.101"
 SERVER_PATH="/var/www/dwp-hours"
-SSH_KEY="$HOME/.ssh/do_dev"
+SSH_KEY="$HOME/.ssh/id_ed25519"
 
 # Function to print colored output
 print_status() {

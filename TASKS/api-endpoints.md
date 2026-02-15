@@ -46,5 +46,14 @@ Complete the API endpoints for monthly hours tracking, acknowledgements, and enh
 - [x] Add comprehensive input validation for all endpoints
 - [x] Implement proper error responses with status codes
 - [x] Add request/response logging
-- [x] Handle database constraint violations gracefully</content>
+- [x] Handle database constraint violations gracefully
+
+### Logging and Monitoring
+
+- [x] Implement structured logging with configurable levels (ERROR, WARN, INFO, DEBUG)
+- [x] Add daily log rotation with automatic cleanup
+- [x] Include request/response logging middleware
+- [x] Add error boundary logging for unhandled exceptions
+- [x] Implement log monitoring and statistics in health check endpoint
+- [x] Add environment-based log level configuration via LOG_LEVEL variable</content>
       <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/TASKS/api-endpoints.md
