@@ -114,9 +114,6 @@ cp pnpm-lock.yaml "$DEPLOY_DIR/" 2>/dev/null || true
 mkdir -p "$DEPLOY_DIR/public"
 cp -r public/* "$DEPLOY_DIR/public/"
 
-# Copy shared utilities
-cp -r shared/ "$DEPLOY_DIR/" 2>/dev/null || true
-
 # Copy database files
 mkdir -p "$DEPLOY_DIR/db"
 cp db/schema.sql "$DEPLOY_DIR/db/" 2>/dev/null || true
