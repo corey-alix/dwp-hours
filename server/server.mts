@@ -64,7 +64,7 @@ import {
   serializeAcknowledgement,
   serializeAdminAcknowledgement,
 } from "../shared/entity-transforms.js";
-import { logger } from "../shared/logger.js";
+import { logger, log } from "../shared/logger.js";
 
 const VERSION = `1.0.0`; // INCREMENT BEFORE EACH CHANGE
 const START_TIME = new Date().toISOString();
@@ -115,8 +115,17 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // Run backup checks after each response is sent (no user latency cost)
 app.use(backupMiddleware);
 
+// Logging middleware for static file access
+app.use((req, res, next) => {
+  if (req.path === "/index.html" || req.path === "/" || req.path === "") {
+    logger.info(`Access to index.html from ${req.ip}`);
+  }
+  next();
+});
+
 // Logout endpoint (doesn't require database)
 app.post("/api/auth/logout", (req, res) => {
+  logger.info(`API access: ${req.method} ${req.path} by unauthenticated user`);
   logger.info(`User logout`);
   res.clearCookie("auth_hash", { path: "/" });
   res.json({ success: true });
@@ -250,6 +259,9 @@ initDatabase()
   .then(async () => {
     // Health check endpoint
     app.get("/api/health", (req, res) => {
+      logger.info(
+        `API access: ${req.method} ${req.path} by unauthenticated user`,
+      );
       res.json({
         status: "healthy",
         timestamp: new Date().toISOString(),
@@ -260,6 +272,9 @@ initDatabase()
 
     // Version endpoint
     app.get("/api/version", (req, res) => {
+      logger.info(
+        `API access: ${req.method} ${req.path} by unauthenticated user`,
+      );
       res.json({
         version: VERSION,
         fileAge: FILE_AGE,
@@ -269,6 +284,9 @@ initDatabase()
 
     // Backup status endpoint
     app.get("/api/backup/status", (req, res) => {
+      logger.info(
+        `API access: ${req.method} ${req.path} by unauthenticated user`,
+      );
       try {
         res.json(getBackupStatus());
       } catch (error) {
@@ -280,7 +298,7 @@ initDatabase()
     // Backup restore endpoint
     app.post(
       "/api/backup/restore",
-      authenticateAdmin(() => dataSource, logger.log),
+      authenticateAdmin(() => dataSource, log),
       async (req, res) => {
         try {
           const backupPath = validateBackupFilename(req.body.filename);
@@ -326,6 +344,9 @@ initDatabase()
     app.post(
       "/api/test/reload-database",
       async (req: Request, res: Response) => {
+        logger.info(
+          `API access: ${req.method} ${req.path} by unauthenticated user`,
+        );
         try {
           // Only allow in test environment or with special header
           if (
@@ -360,6 +381,9 @@ initDatabase()
 
     // Test-only database seed endpoint
     app.post("/api/test/seed", async (req: Request, res: Response) => {
+      logger.info(
+        `API access: ${req.method} ${req.path} by unauthenticated user`,
+      );
       try {
         // Only allow in test/development environment or with special header
         if (
@@ -434,6 +458,9 @@ initDatabase()
           .withMessage("Valid email address required"),
       ],
       async (req: Request, res: Response) => {
+        logger.info(
+          `API access: ${req.method} ${req.path} by unauthenticated user`,
+        );
         try {
           const errors = validationResult(req);
           if (!errors.isEmpty()) {
@@ -534,6 +561,9 @@ initDatabase()
     );
 
     app.get("/api/auth/validate", async (req, res) => {
+      logger.info(
+        `API access: ${req.method} ${req.path} by unauthenticated user`,
+      );
       try {
         const { token, ts } = req.query;
         if (!token || !ts) {
@@ -604,7 +634,7 @@ initDatabase()
     // PTO routes
     app.get(
       "/api/pto/status",
-      authenticate(() => dataSource, logger.log),
+      authenticate(() => dataSource, log),
       async (req, res) => {
         try {
           const authenticatedEmployeeId = req.employee!.id;
@@ -668,7 +698,7 @@ initDatabase()
     // Monthly Hours routes
     app.post(
       "/api/hours",
-      authenticate(() => dataSource, logger.log),
+      authenticate(() => dataSource, log),
       async (req, res) => {
         try {
           const { month, hours } = req.body;
@@ -762,7 +792,7 @@ initDatabase()
 
     app.get(
       "/api/hours",
-      authenticate(() => dataSource, logger.log),
+      authenticate(() => dataSource, log),
       async (req, res) => {
         try {
           const { year } = req.query;
@@ -808,7 +838,7 @@ initDatabase()
     // Acknowledgement routes
     app.post(
       "/api/acknowledgements",
-      authenticate(() => dataSource, logger.log),
+      authenticate(() => dataSource, log),
       async (req, res) => {
         try {
           const { month } = req.body;
@@ -879,7 +909,7 @@ initDatabase()
 
     app.get(
       "/api/acknowledgements",
-      authenticate(() => dataSource, logger.log),
+      authenticate(() => dataSource, log),
       async (req, res) => {
         try {
           const requestedEmployeeId = req.employee!.id;
@@ -913,7 +943,7 @@ initDatabase()
     // Monthly summary for acknowledgements
     app.get(
       "/api/monthly-summary/:month",
-      authenticate(() => dataSource, logger.log),
+      authenticate(() => dataSource, log),
       async (req, res) => {
         try {
           const { month } = req.params;
@@ -996,7 +1026,7 @@ initDatabase()
     // Admin Acknowledgement routes
     app.post(
       "/api/admin-acknowledgements",
-      authenticateAdmin(() => dataSource, logger.log),
+      authenticateAdmin(() => dataSource, log),
       async (req, res) => {
         try {
           const { employeeId, month } = req.body;
@@ -1081,7 +1111,7 @@ initDatabase()
 
     app.get(
       "/api/admin-acknowledgements/:employeeId",
-      authenticateAdmin(() => dataSource, logger.log),
+      authenticateAdmin(() => dataSource, log),
       async (req, res) => {
         try {
           const { employeeId } = req.params;
@@ -1125,7 +1155,7 @@ initDatabase()
     // Admin Monthly Review endpoint
     app.get(
       "/api/admin/monthly-review/:month",
-      authenticateAdmin(() => dataSource, logger.log),
+      authenticateAdmin(() => dataSource, log),
       async (req, res) => {
         try {
           const { month } = req.params;
@@ -1219,7 +1249,7 @@ initDatabase()
     // Enhanced Employee routes
     app.get(
       "/api/employees",
-      authenticateAdmin(() => dataSource, logger.log),
+      authenticateAdmin(() => dataSource, log),
       async (req, res) => {
         try {
           const { search, role } = req.query;
@@ -1251,7 +1281,7 @@ initDatabase()
 
     app.get(
       "/api/employees/:id",
-      authenticateAdmin(() => dataSource, logger.log),
+      authenticateAdmin(() => dataSource, log),
       async (req, res) => {
         try {
           const { id } = req.params;
@@ -1286,7 +1316,7 @@ initDatabase()
 
     app.post(
       "/api/employees",
-      authenticateAdmin(() => dataSource, logger.log),
+      authenticateAdmin(() => dataSource, log),
       async (req, res) => {
         try {
           const {
@@ -1355,7 +1385,7 @@ initDatabase()
 
     app.put(
       "/api/employees/:id",
-      authenticateAdmin(() => dataSource, logger.log),
+      authenticateAdmin(() => dataSource, log),
       async (req, res) => {
         try {
           const { id } = req.params;
@@ -1442,7 +1472,7 @@ initDatabase()
 
     app.delete(
       "/api/employees/:id",
-      authenticateAdmin(() => dataSource, logger.log),
+      authenticateAdmin(() => dataSource, log),
       async (req, res) => {
         try {
           const { id } = req.params;
@@ -1478,7 +1508,7 @@ initDatabase()
     // Admin endpoints for employee data
     app.get(
       "/api/employees/:id/monthly-hours",
-      authenticateAdmin(() => dataSource, logger.log),
+      authenticateAdmin(() => dataSource, log),
       async (req, res) => {
         try {
           const { id } = req.params;
@@ -1519,7 +1549,7 @@ initDatabase()
 
     app.get(
       "/api/employees/:id/pto-entries",
-      authenticateAdmin(() => dataSource, logger.log),
+      authenticateAdmin(() => dataSource, log),
       async (req, res) => {
         try {
           const { id } = req.params;
@@ -1561,7 +1591,7 @@ initDatabase()
     // PTO Management routes
     app.get(
       "/api/pto",
-      authenticate(() => dataSource, logger.log),
+      authenticate(() => dataSource, log),
       async (req, res) => {
         try {
           const { type, startDate, endDate } = req.query;
@@ -1609,7 +1639,7 @@ initDatabase()
 
     app.post(
       "/api/pto",
-      authenticate(() => dataSource, logger.log),
+      authenticate(() => dataSource, log),
       async (req, res) => {
         try {
           const { date, hours, type, requests } = req.body;
@@ -1753,7 +1783,7 @@ initDatabase()
 
     app.put(
       "/api/pto/:id",
-      authenticate(() => dataSource, logger.log),
+      authenticate(() => dataSource, log),
       async (req, res) => {
         try {
           const { id } = req.params;
@@ -1818,7 +1848,7 @@ initDatabase()
 
     app.delete(
       "/api/pto/:id",
-      authenticate(() => dataSource, logger.log),
+      authenticate(() => dataSource, log),
       async (req, res) => {
         try {
           const { id } = req.params;
@@ -1860,7 +1890,7 @@ initDatabase()
     // PTO Year Review endpoint
     app.get(
       "/api/pto/year/:year",
-      authenticate(() => dataSource, logger.log),
+      authenticate(() => dataSource, log),
       async (req, res) => {
         try {
           const { year } = req.params;
@@ -1953,13 +1983,13 @@ initDatabase()
     // Bulk data import endpoint for migration
     app.post(
       "/api/migrate/bulk",
-      authenticateAdmin(() => dataSource, logger.log),
+      authenticateAdmin(() => dataSource, log),
       async (req, res) => {
         try {
           const result = await performBulkMigration(
             dataSource,
             ptoEntryDAL,
-            logger.log,
+            log,
             today,
             isValidDateString,
             req.body,
@@ -1981,7 +2011,7 @@ initDatabase()
     // File-based bulk data import endpoint for migration
     app.post(
       "/api/migrate/file",
-      authenticateAdmin(() => dataSource, logger.log),
+      authenticateAdmin(() => dataSource, log),
       async (req, res) => {
         try {
           const { employeeEmail, filePath } = req.body;
@@ -2001,7 +2031,7 @@ initDatabase()
           const result = await performFileMigration(
             dataSource,
             ptoEntryDAL,
-            logger.log,
+            log,
             today,
             isValidDateString,
             { employeeEmail, filePath },

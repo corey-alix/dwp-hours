@@ -270,6 +270,13 @@ export function dateToString(date: Date): string {
 }
 
 /**
+ * Converts a Date object to ISO timestamp string format
+ */
+export function dateTimeToISOString(date: Date): string {
+  return date.toISOString();
+}
+
+/**
  * Calculate the number of weekdays (Monday-Friday) between two dates, inclusive
  * @param startDateStr - Start date in YYYY-MM-DD format
  * @param endDateStr - End date in YYYY-MM-DD format

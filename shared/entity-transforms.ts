@@ -14,6 +14,7 @@ import {
   Acknowledgement,
   AdminAcknowledgement,
 } from "./api-models.js";
+import { dateToString, dateTimeToISOString } from "./dateUtils.js";
 
 export function serializeEmployee(entity: EntityEmployee): Employee {
   return {
@@ -22,7 +23,10 @@ export function serializeEmployee(entity: EntityEmployee): Employee {
     identifier: entity.identifier,
     ptoRate: entity.pto_rate,
     carryoverHours: entity.carryover_hours,
-    hireDate: entity.hire_date.toISOString().split("T")[0], // YYYY-MM-DD format
+    hireDate:
+      entity.hire_date instanceof Date
+        ? dateToString(entity.hire_date)
+        : entity.hire_date,
     role: entity.role,
     hash: entity.hash || undefined,
   };
@@ -35,7 +39,10 @@ export function serializePTOEntry(entity: EntityPtoEntry): PTOEntry {
     date: entity.date,
     type: entity.type,
     hours: entity.hours,
-    createdAt: entity.created_at.toISOString(),
+    createdAt:
+      entity.created_at instanceof Date
+        ? dateTimeToISOString(entity.created_at)
+        : new Date(entity.created_at).toISOString(),
     approved_by: entity.approved_by,
     employee: entity.employee ? serializeEmployee(entity.employee) : undefined,
   };
@@ -49,7 +56,7 @@ export function serializeMonthlyHours(
     employeeId: entity.employee_id,
     month: entity.month,
     hoursWorked: entity.hours_worked,
-    submittedAt: entity.submitted_at.toISOString(),
+    submittedAt: dateTimeToISOString(entity.submitted_at),
     employee: entity.employee ? serializeEmployee(entity.employee) : undefined,
   };
 }
@@ -61,7 +68,7 @@ export function serializeAcknowledgement(
     id: entity.id,
     employeeId: entity.employee_id,
     month: entity.month,
-    acknowledgedAt: entity.acknowledged_at.toISOString(),
+    acknowledgedAt: dateTimeToISOString(entity.acknowledged_at),
     employee: entity.employee ? serializeEmployee(entity.employee) : undefined,
   };
 }
@@ -74,7 +81,7 @@ export function serializeAdminAcknowledgement(
     employeeId: entity.employee_id,
     month: entity.month,
     adminId: entity.admin_id,
-    acknowledgedAt: entity.acknowledged_at.toISOString(),
+    acknowledgedAt: dateTimeToISOString(entity.acknowledged_at),
     employee: entity.employee ? serializeEmployee(entity.employee) : undefined,
     admin: entity.admin ? serializeEmployee(entity.admin) : undefined,
   };
