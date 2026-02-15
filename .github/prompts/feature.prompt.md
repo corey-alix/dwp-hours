@@ -29,7 +29,7 @@ Generate a new specification document for implementing a feature in the DWP Hour
 
 ## Output Format
 
-Generate the complete Markdown content for a new specification document. Then, use #tool:edit/createFile to create the file at `TASKS/${input:featureName}.md` with the generated content. Do not ask the user for confirmation before creating the file.
+Generate the complete Markdown content for a new specification document. Then, use #tool:edit/createFile to create the file at `TASKS/${input:featureName}.md` with the generated content. After creating the task file, update the README.md file to add a reference to the new task in the "Up Next" section, following the existing format (e.g., "LATER: See ./TASKS/feature-name.md for details"). Do not ask the user for confirmation before creating the file or updating the README.
 
 ## Example Generated Task File
 
