@@ -95,9 +95,14 @@ export function calculatePTOStatus(
 
   // Calculate used hours by type
   const usedPTO = calculateUsedPTO(ptoEntries, "PTO");
-  const usedSick = calculateUsedPTO(ptoEntries, "Sick");
-  const usedBereavement = calculateUsedPTO(ptoEntries, "Bereavement");
-  const usedJuryDuty = calculateUsedPTO(ptoEntries, "Jury Duty");
+  const usedPTOCurrentYear = calculateUsedPTO(ptoEntries, "PTO", currentYear);
+  const usedSick = calculateUsedPTO(ptoEntries, "Sick", currentYear);
+  const usedBereavement = calculateUsedPTO(
+    ptoEntries,
+    "Bereavement",
+    currentYear,
+  );
+  const usedJuryDuty = calculateUsedPTO(ptoEntries, "Jury Duty", currentYear);
 
   const effectiveAnnualAllocation = calculateProratedAllocation(
     employee,
@@ -151,8 +156,8 @@ export function calculatePTOStatus(
     },
     ptoTime: {
       allowed: startingPTOBalance,
-      used: usedPTO,
-      remaining: Math.max(0, startingPTOBalance - usedPTO),
+      used: usedPTOCurrentYear,
+      remaining: Math.max(0, startingPTOBalance - usedPTOCurrentYear),
     },
     bereavementTime: {
       allowed: 40,

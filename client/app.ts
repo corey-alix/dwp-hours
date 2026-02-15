@@ -318,6 +318,50 @@ class UIManager {
     }
   }
 
+  private setupPTOCardEventListeners(): void {
+    try {
+      const accrualCard = querySingle<PtoAccrualCard>("pto-accrual-card");
+      const sickCard = querySingle<PtoSickCard>("pto-sick-card");
+      const bereavementCard = querySingle<PtoBereavementCard>(
+        "pto-bereavement-card",
+      );
+      const juryDutyCard = querySingle<PtoJuryDutyCard>("pto-jury-duty-card");
+      const ptoCard = querySingle<PtoPtoCard>("pto-pto-card");
+
+      // Handle PTO request submission
+      addEventListener(accrualCard, "pto-request-submit", (e: CustomEvent) => {
+        e.stopPropagation();
+        this.handlePtoRequestSubmit(e);
+      });
+
+      // Handle navigation to month from PTO detail cards
+      const handleNavigateToMonth = (e: CustomEvent) => {
+        e.stopPropagation();
+        const { month, year } = e.detail;
+        console.log("App: navigate-to-month event received:", { month, year });
+        accrualCard.navigateToMonth(month, year);
+        // Scroll to the accrual card
+        accrualCard.scrollIntoView({ behavior: "smooth", block: "start" });
+      };
+
+      addEventListener(sickCard, "navigate-to-month", handleNavigateToMonth);
+      addEventListener(
+        bereavementCard,
+        "navigate-to-month",
+        handleNavigateToMonth,
+      );
+      addEventListener(
+        juryDutyCard,
+        "navigate-to-month",
+        handleNavigateToMonth,
+      );
+      addEventListener(ptoCard, "navigate-to-month", handleNavigateToMonth);
+    } catch (error) {
+      // PTO cards don't exist in test environment, skip
+      console.log("PTO cards not available for event listener setup:", error);
+    }
+  }
+
   private handleLogout(): void {
     this.currentUser = null;
     document.cookie =
@@ -375,6 +419,9 @@ class UIManager {
       querySingle("#admin-panel").classList.remove("hidden");
     }
     querySingle("#logout-btn").classList.remove("hidden");
+
+    // Set up event listeners for PTO cards (only once)
+    this.setupPTOCardEventListeners();
 
     // Initialize to current year view
     this.showCurrentYearView();
@@ -526,58 +573,42 @@ class UIManager {
     // Load PTO data
     await this.refreshPTOData();
 
-    // Create loading structure first
-    const statusDiv = querySingle("#pto-status");
-    const hireDate = "Loading..."; // Placeholder
-    const nextRolloverDate = "Loading..."; // Placeholder
-
-    statusDiv.innerHTML = `
-            <h3>Your PTO Status</h3>
-            <div class="pto-summary"></div>
-        `;
-
-    const summaryContainer = querySingle<HTMLElement>(
-      ".pto-summary",
-      statusDiv,
-    );
-
-    // Create cards with loading states
-    const summaryCard = createElement<PtoSummaryCard>("pto-summary-card");
+    // Query existing elements instead of creating them
+    const summaryCard = querySingle<PtoSummaryCard>("pto-summary-card");
     summaryCard.summary = null; // Will show loading
 
-    const accrualCard = createElement<PtoAccrualCard>("pto-accrual-card");
+    const accrualCard = querySingle<PtoAccrualCard>("pto-accrual-card");
     accrualCard.monthlyAccruals = [];
     accrualCard.ptoEntries = [];
     accrualCard.calendarYear = getCurrentYear();
     accrualCard.monthlyUsage = [];
-    accrualCard.setAttribute("request-mode", "true");
-    accrualCard.setAttribute("annual-allocation", "0");
+    // Attributes already set in HTML
 
-    const sickCard = createElement<PtoSickCard>("pto-sick-card");
+    const sickCard = querySingle<PtoSickCard>("pto-sick-card");
     sickCard.bucket = null; // Will show loading
     sickCard.usageEntries = [];
 
-    const bereavementCard = createElement<PtoBereavementCard>(
+    const bereavementCard = querySingle<PtoBereavementCard>(
       "pto-bereavement-card",
     );
     bereavementCard.bucket = null; // Will show loading
     bereavementCard.usageEntries = [];
 
-    const juryDutyCard = createElement<PtoJuryDutyCard>("pto-jury-duty-card");
+    const juryDutyCard = querySingle<PtoJuryDutyCard>("pto-jury-duty-card");
     juryDutyCard.bucket = null; // Will show loading
     juryDutyCard.usageEntries = [];
 
-    const employeeInfoCard = createElement<PtoEmployeeInfoCard>(
+    const employeeInfoCard = querySingle<PtoEmployeeInfoCard>(
       "pto-employee-info-card",
     );
-    employeeInfoCard.info = { hireDate, nextRolloverDate };
+    employeeInfoCard.info = {
+      hireDate: "Loading...",
+      nextRolloverDate: "Loading...",
+    };
 
-    summaryContainer.appendChild(summaryCard);
-    summaryContainer.appendChild(accrualCard);
-    summaryContainer.appendChild(sickCard);
-    summaryContainer.appendChild(bereavementCard);
-    summaryContainer.appendChild(juryDutyCard);
-    summaryContainer.appendChild(employeeInfoCard);
+    const ptoCard = querySingle<PtoPtoCard>("pto-pto-card");
+    ptoCard.bucket = null; // Will show loading
+    ptoCard.usageEntries = [];
 
     try {
       // Fetch data
@@ -649,38 +680,22 @@ class UIManager {
           e.type === "Jury Duty" && parseDate(e.date).year === getCurrentYear(),
       );
 
+      ptoCard.bucket = status.ptoTime;
+      ptoCard.usageEntries = this.buildUsageEntries(
+        entries,
+        getCurrentYear(),
+        "PTO",
+      );
+      ptoCard.fullPtoEntries = entries.filter(
+        (e) => e.type === "PTO" && parseDate(e.date).year === getCurrentYear(),
+      );
+
       employeeInfoCard.info = {
         hireDate: realHireDate,
         nextRolloverDate: realNextRolloverDate,
       };
 
-      // Handle PTO request submission
-      addEventListener(accrualCard, "pto-request-submit", (e: CustomEvent) => {
-        e.stopPropagation();
-        this.handlePtoRequestSubmit(e);
-      });
-
-      // Handle navigation to month from PTO detail cards
-      const handleNavigateToMonth = (e: CustomEvent) => {
-        e.stopPropagation();
-        const { month, year } = e.detail;
-        console.log("App: navigate-to-month event received:", { month, year });
-        accrualCard.navigateToMonth(month, year);
-        // Scroll to the accrual card
-        accrualCard.scrollIntoView({ behavior: "smooth", block: "start" });
-      };
-
-      addEventListener(sickCard, "navigate-to-month", handleNavigateToMonth);
-      addEventListener(
-        bereavementCard,
-        "navigate-to-month",
-        handleNavigateToMonth,
-      );
-      addEventListener(
-        juryDutyCard,
-        "navigate-to-month",
-        handleNavigateToMonth,
-      );
+      // Event listeners are set up once in setupPTOCardEventListeners()
     } catch (error) {
       console.error(UI_ERROR_MESSAGES.failed_to_load_pto_status, error);
       const statusDiv = querySingle("#pto-status");
@@ -725,6 +740,30 @@ class UIManager {
 
       const { year: entryYear } = parseDate(entry.date);
       if (entryYear !== year) {
+        continue;
+      }
+
+      hoursByDate.set(
+        entry.date,
+        (hoursByDate.get(entry.date) ?? 0) + entry.hours,
+      );
+    }
+
+    const result = Array.from(hoursByDate.entries())
+      .map(([date, hours]) => ({ date, hours }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+    return result;
+  }
+
+  private buildAllUsageEntries(
+    entries: ApiTypes.PTOEntry[],
+    type: string,
+  ): { date: string; hours: number }[] {
+    const safeEntries = Array.isArray(entries) ? entries : [];
+    const hoursByDate = new Map<string, number>();
+
+    for (const entry of safeEntries) {
+      if (entry.type !== type) {
         continue;
       }
 
@@ -853,22 +892,8 @@ class UIManager {
     status: ApiTypes.PTOStatusResponse,
     entries: ApiTypes.PTOEntry[],
   ): Promise<void> {
-    // Re-render the entire PTO status section with fresh data
-    const statusDiv = querySingle("#pto-status");
-
-    // Clear existing content
-    statusDiv.innerHTML = "";
-
-    // Recreate the HTML structure
-    statusDiv.innerHTML = `
-            <h3>Your PTO Status</h3>
-            <div class="pto-summary"></div>
-        `;
-
-    // Re-create all PTO components with fresh data
-    const summaryContainer = querySingle(".pto-summary", statusDiv);
-
-    const summaryCard = createElement<PtoSummaryCard>("pto-summary-card");
+    // Update existing PTO components with fresh data instead of recreating
+    const summaryCard = querySingle<PtoSummaryCard>("pto-summary-card");
     summaryCard.summary = {
       annualAllocation: status.annualAllocation,
       availablePTO: status.availablePTO,
@@ -876,7 +901,7 @@ class UIManager {
       carryoverFromPreviousYear: status.carryoverFromPreviousYear,
     };
 
-    const accrualCard = createElement<PtoAccrualCard>("pto-accrual-card");
+    const accrualCard = querySingle<PtoAccrualCard>("pto-accrual-card");
     accrualCard.monthlyAccruals = status.monthlyAccruals;
     accrualCard.ptoEntries = entries;
     accrualCard.calendarYear = getCurrentYear();
@@ -884,13 +909,12 @@ class UIManager {
       entries,
       getCurrentYear(),
     );
-    accrualCard.setAttribute("request-mode", "true");
     accrualCard.setAttribute(
       "annual-allocation",
       status.annualAllocation.toString(),
     );
 
-    const sickCard = createElement<PtoSickCard>("pto-sick-card");
+    const sickCard = querySingle<PtoSickCard>("pto-sick-card");
     sickCard.bucket = status.sickTime;
     sickCard.usageEntries = this.buildUsageEntries(
       entries,
@@ -901,7 +925,7 @@ class UIManager {
       (e) => e.type === "Sick" && parseDate(e.date).year === getCurrentYear(),
     );
 
-    const bereavementCard = createElement<PtoBereavementCard>(
+    const bereavementCard = querySingle<PtoBereavementCard>(
       "pto-bereavement-card",
     );
     bereavementCard.bucket = status.bereavementTime;
@@ -915,7 +939,7 @@ class UIManager {
         e.type === "Bereavement" && parseDate(e.date).year === getCurrentYear(),
     );
 
-    const juryDutyCard = createElement<PtoJuryDutyCard>("pto-jury-duty-card");
+    const juryDutyCard = querySingle<PtoJuryDutyCard>("pto-jury-duty-card");
     juryDutyCard.bucket = status.juryDutyTime;
     juryDutyCard.usageEntries = this.buildUsageEntries(
       entries,
@@ -927,7 +951,7 @@ class UIManager {
         e.type === "Jury Duty" && parseDate(e.date).year === getCurrentYear(),
     );
 
-    const ptoCard = createElement<PtoPtoCard>("pto-pto-card");
+    const ptoCard = querySingle<PtoPtoCard>("pto-pto-card");
     ptoCard.bucket = status.ptoTime;
     ptoCard.usageEntries = this.buildUsageEntries(
       entries,
@@ -938,7 +962,7 @@ class UIManager {
       (e) => e.type === "PTO" && parseDate(e.date).year === getCurrentYear(),
     );
 
-    const employeeInfoCard = createElement<PtoEmployeeInfoCard>(
+    const employeeInfoCard = querySingle<PtoEmployeeInfoCard>(
       "pto-employee-info-card",
     );
     employeeInfoCard.info = {
@@ -950,19 +974,7 @@ class UIManager {
       }),
     };
 
-    summaryContainer.appendChild(summaryCard);
-    summaryContainer.appendChild(accrualCard);
-    summaryContainer.appendChild(sickCard);
-    summaryContainer.appendChild(bereavementCard);
-    summaryContainer.appendChild(juryDutyCard);
-    summaryContainer.appendChild(ptoCard);
-    summaryContainer.appendChild(employeeInfoCard);
-
-    // Re-attach event listeners for the newly created components
-    addEventListener(accrualCard, "pto-request-submit", (e: CustomEvent) => {
-      e.stopPropagation();
-      this.handlePtoRequestSubmit(e);
-    });
+    // Event listeners are set up once in setupPTOCardEventListeners()
   }
 }
 
