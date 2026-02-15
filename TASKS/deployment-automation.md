@@ -1,5 +1,32 @@
 # Deployment Automation
 
+## ⚠️ PRODUCTION READINESS WARNING
+
+**This deployment is currently for TESTING and DEVELOPMENT purposes only.** It is NOT ready for production use until the following critical security and functionality requirements are implemented:
+
+### 🔐 Security Requirements (CRITICAL)
+
+1. **Multi-Factor Authentication (2FA/MFA)**: Implement 2FA via email, SMS, Teams message, or authenticator apps
+2. **Email Delivery**: Enable actual email delivery for magic link authentication (currently returns links directly for testing)
+
+### 👥 User Management Requirements
+
+3. **User Invitations**: Users must be able to receive invitation links via email to join the system
+4. **Administrator Database Access**: Administrators must be able to download the complete database for backup/auditing
+
+### 📊 Data Migration Requirements
+
+5. **Spreadsheet Upload**: Ability to upload and parse legacy Excel spreadsheets for data import
+6. **Legacy System Compatibility**: Download spreadsheets in formats compatible with the "old" system for rollback purposes
+
+### Current Status: DEVELOPMENT/TESTING ONLY
+
+- ✅ HTTPS/SSL working
+- ✅ Magic links functional (test mode only)
+- ✅ Basic user authentication
+- ✅ Database seeded with test data
+- ❌ **NOT PRODUCTION READY** - Missing security and data management features above
+
 ## Description
 
 Implement automated deployment pipeline for the DWP Hours Tracker using DigitalOcean droplet with nginx for traditional server hosting. This will enable continuous deployment on main branch pushes with full server control and file system access for SQLite database.

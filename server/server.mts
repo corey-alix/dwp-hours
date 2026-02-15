@@ -75,7 +75,7 @@ const app = express()
 const PORT = parseInt(process.env.PORT || "3000", 10)
 
 // Trust proxy to properly handle X-Forwarded-Proto header from nginx
-app.set('trust proxy', true)
+app.set("trust proxy", true)
 
 // Helper function to get base URL for magic links
 function getBaseUrl(req: Request): string {

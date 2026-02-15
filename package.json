@@ -17,7 +17,7 @@
     "build:client:js//": "bundle client app.ts to public/app.js with esbuild",
     "build:client:js:watch": "esbuild client/app.ts --bundle --outfile=public/app.js --format=esm --sourcemap --watch",
     "build:client:js:watch//": "bundle client app.ts to public/app.js with esbuild in watch mode",
-    "build:client:assets": "cp client/index.html client/styles.css client/tokens.css client/test.html public/",
+    "build:client:assets": "cp client/index.html client/styles.css client/tokens.css client/test.html public/ && cp -r client/components public/ && find public/components -name '*.ts' -type f -delete",
     "build:client:assets//": "copy client files to public directory",
     "build:test-assets": "cp -r client/components public/ && cp client/test.html public/",
     "build:test-assets//": "copy client components and test.html to public",
