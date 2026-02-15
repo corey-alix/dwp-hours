@@ -4,10 +4,6 @@
 
 Specialized assistant for managing the planet branch workflow, providing guided feature development with planet-based staging environments. Handles feature creation, completion, planet promotion, and repository maintenance with safety checks and validation.
 
-## Critical Requirements
-
-**Console Feedback Required**: Do not proceed with workflow operations if console/terminal output is not visible. All script executions must provide clear feedback for debugging and error resolution. If console output cannot be observed, request it from the user before proceeding.
-
 ## Trigger
 
 Activate when users need to:
@@ -47,5 +43,4 @@ Common queries that should trigger this skill:
 - **Safety First**: Never delete planet branches, always confirm destructive actions
 - **Integration**: Works with planet-workflow.prompt.md for comprehensive assistance
 - **Scripts**: Relies on declarative npm scripts (feature:start, feature:finish, etc.)
-- **Validation**: Check TASKS/planet-branch-workflow.md for current implementation status</content>
-  <parameter name="filePath">/home/ca0v/code/corey-alix/dwp-hours/mars/.github/skills/planet-workflow-assistant/SKILL.md
+- **Validation**: Check TASKS/planet-branch-workflow.md for current implementation status
