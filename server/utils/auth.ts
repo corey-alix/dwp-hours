@@ -67,6 +67,11 @@ export function authenticateMiddleware(
         role: employee.role,
       };
 
+      // Log API access
+      log(
+        `API access: ${req.method} ${req.path} by employee ${req.employee.id}`,
+      );
+
       next();
     } catch (error) {
       log(`Authentication middleware error: ${error}`);

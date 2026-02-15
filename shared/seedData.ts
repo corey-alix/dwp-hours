@@ -232,7 +232,7 @@ export const seedEmployees: SeedEmployee[] = [
     carryover_hours: 40,
     hire_date: "2020-01-15",
     role: "Employee",
-    hash: null,
+    hash: "9a86fd9ae81cfa0e38af38b870df41cb7ecf41c4915880113d905a444fef6380",
   },
   {
     name: "Jane Smith",
@@ -241,7 +241,7 @@ export const seedEmployees: SeedEmployee[] = [
     carryover_hours: 25,
     hire_date: "2021-06-01",
     role: "Employee",
-    hash: null,
+    hash: "eb2cd46a4ad6d9dede35357aa05eb527f89a6bf8e27ce29431ff24d4ffa434eb",
   },
   {
     name: "Admin User",
@@ -250,6 +250,6 @@ export const seedEmployees: SeedEmployee[] = [
     carryover_hours: 0,
     hire_date: "2019-03-10",
     role: "Admin",
-    hash: null,
+    hash: "5a58fb229e76f201805379dedcd976391a7ef34877fdfa278ab07733aff22d81",
   },
 ];
