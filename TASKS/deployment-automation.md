@@ -70,7 +70,7 @@ Implement automated deployment pipeline for the DWP Hours Tracker using DigitalO
 - Use rsync or scp for efficient file transfers during deployment
 - Ensure database migrations are handled safely during deployment
 - Follow the project's existing patterns for environment configuration
-- **Recent Fixes**: PM2 ecosystem config updated to use numeric PORT value (3000) instead of shell expansion; nginx proxy updated to serve all requests from unified port 3000; deployment script interactive prompt removed for automation; database initialization added to deployment process using sql.js
+- **Recent Fixes**: PM2 ecosystem config updated to use numeric PORT value (3000) instead of shell expansion; nginx proxy updated to serve all requests from unified port 3000; deployment script interactive prompt removed for automation; database initialization added to deployment process using sql.js; shared utilities are now bundled in compiled server code (no separate shared/ directory needed); added app.set('trust proxy', true) for proper HTTPS protocol detection behind reverse proxy
 
 ### Deployment Script Features
 
@@ -321,9 +321,8 @@ sudo chmod 755 /var/www/dwp-hours/db
 ```
 /var/www/dwp-hours/
 ├── db/          # SQLite database files
-├── server/      # Compiled server code
+├── server/      # Compiled server code (bundled with shared utilities)
 ├── client/      # Built client assets
-├── shared/      # Shared utilities
 └── ecosystem.config.js  # PM2 configuration
 ```
 
@@ -445,9 +444,11 @@ sudo systemctl status nginx fail2ban --no-pager
 
 ### SSL Certificate Setup
 
+**Status:** ✅ Production SSL certificates installed with Let's Encrypt.
+
 **Problem:** Server was configured for HTTP only, no SSL certificates installed.
 
-**Solution:** Set up SSL with self-signed certificate for testing, prepare for Let's Encrypt production certificate.
+**Solution:** Set up SSL with Let's Encrypt production certificates for secure HTTPS access.
 
 **DNS Configuration:**
 
@@ -463,14 +464,14 @@ nslookup ca0v.us
 # Note: DNS propagation can take 5-30 minutes
 ```
 
-**Self-Signed Certificate Generation:**
+**Let's Encrypt Certificate Setup:**
 
 ```bash
-# Generate self-signed certificate valid for 365 days
-sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout /etc/ssl/private/selfsigned.key \
-  -out /etc/ssl/certs/selfsigned.crt \
-  -subj '/C=US/ST=State/L=City/O=Organization/CN=ca0v.us'
+# Obtain Let's Encrypt certificate
+sudo certbot --nginx -d ca0v.us -d www.ca0v.us --agree-tos --email admin@ca0v.us
+
+# Verify certificate renewal (automatic)
+sudo certbot renew --dry-run
 ```
 
 **Nginx SSL Configuration:**
@@ -488,8 +489,8 @@ server {
     listen 443 ssl http2;
     server_name ca0v.us www.ca0v.us;
 
-    ssl_certificate /etc/ssl/certs/selfsigned.crt;
-    ssl_certificate_key /etc/ssl/private/selfsigned.key;
+    ssl_certificate /etc/letsencrypt/live/ca0v.us/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/ca0v.us/privkey.pem;
 
     # Security headers
     add_header X-Frame-Options "SAMEORIGIN" always;
@@ -534,26 +535,24 @@ sudo nginx -t
 # Reload nginx with new SSL configuration
 sudo systemctl reload nginx
 
-# Verify SSL is working (will show certificate warning - expected for self-signed)
-curl -k https://206.189.237.101
+# Verify SSL certificate is valid
+curl -I https://ca0v.us
 
 # Test HTTP to HTTPS redirect
-curl -I http://206.189.237.101
+curl -I http://ca0v.us
+
+# Check certificate details
+openssl s_client -connect ca0v.us:443 -servername ca0v.us < /dev/null 2>/dev/null | openssl x509 -noout -dates -issuer -subject
 ```
 
-**Future Let's Encrypt Setup:**
-
-Once DNS propagates globally, replace self-signed certificate with Let's Encrypt:
-
-```bash
-# Obtain Let's Encrypt certificate
-sudo certbot --nginx -d ca0v.us -d www.ca0v.us --agree-tos --email admin@ca0v.us
-
 # Test certificate renewal
+
 sudo certbot renew --dry-run
 
 # Update nginx config to use Let's Encrypt certificates
+
 # (certbot does this automatically)
+
 ```
 
 **SSL Configuration Details:**
@@ -638,5 +637,50 @@ sudo certbot renew --dry-run
 - Verify magic link generation uses correct URLs
 - Consider implementing automated DNS health checks
 
-This setup provides a solid foundation for the DWP Hours Tracker deployment with proper security, performance, and maintainability considerations.</content>
+This setup provides a solid foundation for the DWP Hours Tracker deployment with proper security, performance, and maintainability considerations.
+
+### February 14, 2026 (Evening) - Deployment File Organization & Build Optimization
+
+**Deployment File Tracking Issues Identified:**
+
+- ❌ Critical deployment files (`deploy-info.json`, `verify-deployment.sh`, `ecosystem.config.json`) were only in gitignored `deploy/` folder
+- ❌ Important configuration files not tracked in version control
+- ❌ Risk of losing deployment configuration across environments
+
+**Files Moved to Tracked Locations:**
+
+- ✅ **`deploy-info.json`** → Moved to root directory for version control
+- ✅ **`verify-deployment.sh`** → Moved to `scripts/` directory for version control
+- ✅ **`ecosystem.config.json`** → Already tracked in root directory
+- ✅ Updated `.gitignore` to allow specific JSON files: `!ecosystem.config.json` and `!deploy-info.json`
+
+**Build Process Optimization:**
+
+- ✅ **Verified bundling**: Confirmed shared utilities (`dateUtils`, `businessRules`, etc.) are bundled in compiled `dist/server.mjs`
+- ✅ **Removed redundant copying**: Deployment no longer needs to copy `shared/` directory since utilities are inlined
+- ✅ **Deploy folder cleanup**: Removed obsolete `deploy/shared/` directory and redundant file copies
+
+**Git Status:**
+
+- ✅ All deployment files now tracked in version control
+- ✅ Build process optimized for bundled dependencies
+- ✅ Deploy folder contains only essential generated artifacts
+
+**Current Status:**
+
+- 🟢 Server infrastructure: Ready
+- 🟢 SSL certificates: Production-ready
+- 🟢 Application code: Fixed for HTTPS
+- 🟢 Deployment files: Properly tracked
+- 🟢 Build process: Optimized
+- 🟡 DNS propagation: In progress (waiting for global update)
+
+**Next Steps (Morning):**
+
+- Wait for DNS propagation to complete globally
+- Test full HTTPS functionality with production domain
+- Verify magic link generation uses correct HTTPS URLs
+- Test end-to-end deployment process with optimized build
+- Consider implementing automated DNS health checks</content>
 <parameter name="filePath">/home/ca0v/code/ca0v/mercury/TASKS/deployment-automation.md
+```
