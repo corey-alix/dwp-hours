@@ -12,7 +12,7 @@ This document outlines all remaining tasks to complete the DWP Hours Tracker app
 2. ✅ **[authentication.md](authentication.md)** - Implement real authentication
 3. ✅ **[pto-calculations.md](pto-calculations.md)** - PTO status calculations
 4. ✅ **[api-endpoints.md](api-endpoints.md)** - Complete API endpoints
-5. ✅ **[issue-date-handling-regression.md](issue-date-handling-regression.md)** - Fix timezone-related date shifting bugs
+5. # ✅ **[issue-date-handling-regression.md](issue-date-handling-regression.md)** - Fix timezone-related date shifting bugs
 
 ### 🟡 Medium Priority (Backend/API Core Features)
 
@@ -26,8 +26,8 @@ This document outlines all remaining tasks to complete the DWP Hours Tracker app
 ### 🟢 Low Priority (Frontend/UI Features)
 
 11. ✅ **[admin-review-acknowledgment.md](admin-review-acknowledgment.md)** - Admin review acknowledgment
-12. ✅ **[issue-submit-time-off-calendar-regressions.md](issue-submit-time-off-calendar-regressions.md)** - Submit Time Off calendar missing features
-13. ✅ **[issue-test-file-conventions-regression.md](issue-test-file-conventions-regression.md)** - Test files not following web-components-assistant conventions
+12. # ✅ **[issue-submit-time-off-calendar-regressions.md](issue-submit-time-off-calendar-regressions.md)** - Submit Time Off calendar missing features
+13. **[planet-branch-workflow.md](planet-branch-workflow.md)** - Standardized feature development workflow using planet branches
 
 ## Task Dependencies
 
@@ -116,7 +116,11 @@ database-schema.md
 11. ✅ **admin-review-acknowledgment.md** - admin review UI
 12. **planet-branch-workflow.md** - standardized feature development workflow
 13. ✅ **issue-submit-time-off-calendar-regressions.md** - submit time off calendar missing features
-14. ✅ **issue-test-file-conventions-regression.md** - fix test file conventions regression
+14. # ✅ **issue-test-file-conventions-regression.md** - fix test file conventions regression
+15. **issue-date-handling-regression.md** - critical date handling bug fix needed
+16. **design-constraints.md** - code quality improvements needed
+17. Implement **admin-review-acknowledgment.md** - admin review UI
+18. ✅ **issue-test-file-conventions-regression.md** - fix test file conventions regression
 
 Each task file contains detailed checklists for implementation steps.</content>
 <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/TASKS/README.md

@@ -6,7 +6,6 @@ export function playground() {
   console.log("Starting PTO Sick Card test...");
 
   const card = querySingle<PtoSickCard>("pto-sick-card");
-
   // Compute bucket data from seedData
   const approvedSickEntries = seedPTOEntries.filter(
     (e) => e.employee_id === 1 && e.approved_by !== null && e.type === "Sick",
@@ -39,6 +38,11 @@ export function playground() {
       approved_by: seedEntry.approved_by,
     }));
   card.fullPtoEntries = allSickEntries;
+  // Set usage entries for display
+  card.usageEntries = approvedSickEntries.map((e) => ({
+    date: e.date,
+    hours: e.hours,
+  }));
 
   querySingle("#test-output").textContent = "Sick time data set.";
 
@@ -53,6 +57,17 @@ export function playground() {
     // Check expansion state
     const isExpanded = card.getAttribute("expanded") === "true";
     console.log("Card expanded after click:", isExpanded);
+
+    // Test individual date approval indicators
+    const approvedDates = card.shadowRoot?.querySelectorAll(
+      ".usage-date.approved",
+    );
+    const unapprovedDates = card.shadowRoot?.querySelectorAll(
+      ".usage-date:not(.approved)",
+    );
+    console.log(
+      `Found ${approvedDates?.length || 0} approved dates and ${unapprovedDates?.length || 0} unapproved dates`,
+    );
 
     // Test clickable date
     const dateElement = card.shadowRoot?.querySelector(

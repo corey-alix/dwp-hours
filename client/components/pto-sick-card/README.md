@@ -8,6 +8,10 @@ The PTO Sick Card component displays sick leave information in a simple bucket f
 
 - **Bucket Display**: Shows available vs used sick hours
 - **Approval Indicators**: Green checkbox beside "Used" when all sick time is approved
+  <<<<<<< HEAD
+  =======
+- **Individual Date Approval**: Green checkmarks appear beside approved dates in the usage list
+  > > > > > > > mercury
 - **Expandable Details**: Toggle to show/hide detailed entry information
 - **Theme Integration**: Consistent with other PTO card components
 - **Responsive Design**: Adapts to different screen sizes
@@ -61,6 +65,10 @@ type PTOEntry = {
 
 - **Balance Display**: Shows available, used, and remaining hours
 - **Approval Status**: Green checkmark (✓) appears after the word "Used" (displayed as "Used ✓") when all sick time entries are approved. The checkmark is rendered via CSS using the `approved` class.
+  <<<<<<< HEAD
+  =======
+- **Individual Date Approval**: Green checkmarks (✓) appear beside individual approved dates in the usage list when expanded. Approved dates are styled with the `approved` class.
+  > > > > > > > mercury
 - **Entry Details**: Lists individual sick time entries when expanded
 - **Toggle Interface**: Expand/collapse for detailed view
 - **Consistent Styling**: Matches other PTO bucket cards
