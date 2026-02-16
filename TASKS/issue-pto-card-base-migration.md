@@ -4,6 +4,15 @@
 
 The PTO card component hierarchy (`PtoSectionCard` → `SimplePtoBucketCard` → individual cards) extends `HTMLElement` directly and uses imperative DOM construction via `innerHTML` string concatenation in `render()` methods. This pattern is difficult to reason about, leaks event listeners on every re-render, and violates the project's `BaseComponent` architecture and the web-components-assistant specification.
 
+## Design Decisions
+
+These decisions were confirmed by the project owner and drive the migration plan:
+
+1. **Flatten the hierarchy** — Eliminate `PtoSectionCard` and `SimplePtoBucketCard` base classes. Every card extends `BaseComponent` directly. Shared behavior is provided via exported utility functions and CSS constants, not inheritance.
+2. **Shared CSS as TypeScript constants** — Keep card CSS as exported `string` constants in TypeScript files (e.g., `client/components/utils/pto-card-css.ts`). Do not use `.css` file imports or `adoptedStyleSheets`. esbuild bundles the TS constants into `app.js`.
+3. **Named slots over component embedding** — `PtoAccrualCard` must not embed `<pto-calendar>` in its shadow DOM. Use `<slot name="calendar">` and let the consumer compose the calendar in light DOM.
+4. **Approval checkmark unchanged** — The `✓` indicator pattern is fine as-is; no planned changes to account for.
+
 ## Previously Working
 
 Components render correctly, but with these structural deficits:
@@ -13,6 +22,7 @@ Components render correctly, but with these structural deficits:
 - CSS is duplicated across `PTO_CARD_CSS` constant and `renderCard()` inline styles
 - No event delegation — listeners are manually bound to queried DOM nodes after each render
 - Deep nesting of imperative logic (`.map().join("")`, ternary chains, IIFEs inside template strings)
+- Unnecessary two-level inheritance chain (`PtoSectionCard` → `SimplePtoBucketCard`) with shared state that could be flat
 
 ## Current Behavior
 
@@ -20,31 +30,33 @@ Components render correctly, but with these structural deficits:
 - Every `render()` call replaces `innerHTML` without cleaning up prior listeners → memory leaks
 - No use of `requestUpdate()`, event delegation, or the reactive update cycle
 - `this.render()` called directly from setters and `attributeChangedCallback`
+- `PtoAccrualCard` creates `<pto-calendar>` inside its shadow DOM, tightly coupling the two components
 
 ## Expected Behavior
 
 All PTO card components should:
 
-1. Extend `BaseComponent` (not `HTMLElement`)
+1. Extend `BaseComponent` directly (not `PtoSectionCard` or `SimplePtoBucketCard`)
 2. Implement `render()` as a **pure template method** returning a string — no side effects
 3. Use `requestUpdate()` to trigger re-renders — never call `render()` directly
 4. Use `handleDelegatedClick()` / `handleDelegatedKeydown()` for event handling
 5. Prefer **declarative markup** over imperative DOM construction logic
-6. Consolidate shared CSS into a single source (the base class template)
+6. Import shared card CSS from a TypeScript constant module
+7. Use `<slot name="...">` for child component composition (e.g., calendar)
 
 ## Affected Components
 
-| Component             | File                                                | Extends               | Complexity                                               |
-| --------------------- | --------------------------------------------------- | --------------------- | -------------------------------------------------------- |
-| `PtoSectionCard`      | `client/components/utils/pto-card-base.ts`          | `HTMLElement`         | Base class — migrate first                               |
-| `SimplePtoBucketCard` | `client/components/utils/pto-card-base.ts`          | `PtoSectionCard`      | Intermediate base — has toggle/usage section logic       |
-| `PtoEmployeeInfoCard` | `client/components/pto-employee-info-card/index.ts` | `PtoSectionCard`      | Simple — 2 data rows                                     |
-| `PtoSummaryCard`      | `client/components/pto-summary-card/index.ts`       | `PtoSectionCard`      | Moderate — approved status logic                         |
-| `PtoAccrualCard`      | `client/components/pto-accrual-card/index.ts`       | `PtoSectionCard`      | Complex — 12-month grid, embedded calendar, request mode |
-| `PtoBereavementCard`  | `client/components/pto-bereavement-card/index.ts`   | `SimplePtoBucketCard` | Moderate — approval indicators per-entry                 |
-| `PtoSickCard`         | `client/components/pto-sick-card/index.ts`          | `SimplePtoBucketCard` | Moderate — similar to bereavement                        |
-| `PtoJuryDutyCard`     | `client/components/pto-jury-duty-card/index.ts`     | `SimplePtoBucketCard` | Moderate — similar to bereavement                        |
-| `PtoPtoCard`          | `client/components/pto-pto-card/index.ts`           | `SimplePtoBucketCard` | Moderate — similar to bereavement                        |
+| Component             | File                                                | Currently Extends     | Migration Target                           |
+| --------------------- | --------------------------------------------------- | --------------------- | ------------------------------------------ |
+| `PtoSectionCard`      | `client/components/utils/pto-card-base.ts`          | `HTMLElement`         | **Delete** — replace with shared utilities |
+| `SimplePtoBucketCard` | `client/components/utils/pto-card-base.ts`          | `PtoSectionCard`      | **Delete** — replace with shared utilities |
+| `PtoEmployeeInfoCard` | `client/components/pto-employee-info-card/index.ts` | `PtoSectionCard`      | `BaseComponent`                            |
+| `PtoSummaryCard`      | `client/components/pto-summary-card/index.ts`       | `PtoSectionCard`      | `BaseComponent`                            |
+| `PtoAccrualCard`      | `client/components/pto-accrual-card/index.ts`       | `PtoSectionCard`      | `BaseComponent` + named slots              |
+| `PtoBereavementCard`  | `client/components/pto-bereavement-card/index.ts`   | `SimplePtoBucketCard` | `BaseComponent`                            |
+| `PtoSickCard`         | `client/components/pto-sick-card/index.ts`          | `SimplePtoBucketCard` | `BaseComponent`                            |
+| `PtoJuryDutyCard`     | `client/components/pto-jury-duty-card/index.ts`     | `SimplePtoBucketCard` | `BaseComponent`                            |
+| `PtoPtoCard`          | `client/components/pto-pto-card/index.ts`           | `SimplePtoBucketCard` | `BaseComponent`                            |
 
 ## Root Cause Analysis
 
@@ -56,57 +68,65 @@ These components predate `BaseComponent` and were written before the project ado
 
 ## Staged Migration Plan
 
-### Stage 1: Refactor Base Classes (Foundation)
+### Stage 1: Extract Shared Utilities (Foundation)
 
-**Goal**: Migrate `PtoSectionCard` and `SimplePtoBucketCard` to extend `BaseComponent`.
+**Goal**: Create the shared utility module that replaces the base class hierarchy.
 
-- [ ] Create `PtoSectionCard` extending `BaseComponent` instead of `HTMLElement`
-- [ ] Remove manual `attachShadow()` (BaseComponent handles this)
-- [ ] Move shared card CSS into a static constant or method accessible to subclasses
-- [ ] Change `render()` to return a template string (pure, no side effects)
-- [ ] Replace all `this.render()` calls with `this.requestUpdate()`
-- [ ] Migrate `SimplePtoBucketCard.render()` to return a string with declarative toggle/usage markup
-- [ ] Move toggle button and date click handlers to `handleDelegatedClick()` / `handleDelegatedKeydown()`
-- [ ] Add `_customEventsSetup` guard if overriding `setupEventDelegation()`
-- [ ] Validate: `npm run build` passes, existing E2E tests pass
+- [ ] Create `client/components/utils/pto-card-css.ts` exporting `CARD_CSS` constant (consolidated from `PTO_CARD_CSS` + `renderCard()` inline styles — single source of truth)
+- [ ] Create `client/components/utils/pto-card-helpers.ts` exporting shared template helper functions:
+  - `renderCardShell(title: string, body: string): string` — wraps body in card markup with CSS
+  - `renderRow(label: string, value: string, cssClass?: string): string` — single data row
+  - `renderToggleButton(expanded: boolean, hasEntries: boolean): string` — expand/collapse UI
+  - `renderUsageList(entries: UsageEntry[], fullEntries?: PTOEntry[]): string` — date usage section
+- [ ] Validate: `npm run build` passes (no consumers yet — just the utility module)
 
-### Stage 2: Migrate Simple Cards (Low Risk)
+### Stage 2: Migrate Simple Cards (Low Risk, Proof-of-Concept)
 
-**Goal**: Migrate `PtoEmployeeInfoCard` — the simplest subclass — as a proof-of-concept.
+**Goal**: Migrate `PtoEmployeeInfoCard` and `PtoSummaryCard` — flat components that only display data rows.
 
-- [ ] Change `extends PtoSectionCard` to use the migrated base
-- [ ] Convert `render()` to return a template string
-- [ ] Replace `this.render()` in setters with `this.requestUpdate()`
-- [ ] Remove `this.renderCard()` calls (no longer needed — base class handles card wrapper)
+- [ ] `PtoEmployeeInfoCard`: change `extends PtoSectionCard` → `extends BaseComponent`
+- [ ] Import `CARD_CSS` and `renderRow` from shared utilities
+- [ ] Convert `render()` to return a template string using `CARD_CSS` and helpers
+- [ ] Replace `this.render()` in setters/`attributeChangedCallback` with `this.requestUpdate()`
+- [ ] Remove `this.renderCard()` calls
 - [ ] Validate: unit tests pass, E2E screenshot tests match
-- [ ] Migrate `PtoSummaryCard` following the same pattern
+- [ ] `PtoSummaryCard`: same migration pattern
 - [ ] Validate: unit tests pass, E2E screenshot tests match
 
 ### Stage 3: Migrate Bucket Cards (Medium Risk)
 
-**Goal**: Migrate the four `SimplePtoBucketCard` subclasses.
+**Goal**: Migrate the four `SimplePtoBucketCard` subclasses that share toggle/usage-list behavior.
 
-- [ ] Migrate `PtoPtoCard` — closest to the base class behavior
-- [ ] Migrate `PtoBereavementCard` — has per-entry approval indicators
-- [ ] Migrate `PtoSickCard`
-- [ ] Migrate `PtoJuryDutyCard`
-- [ ] For each: convert `render()` to declarative string, move event handlers to delegation
+- [ ] `PtoPtoCard`: change `extends SimplePtoBucketCard` → `extends BaseComponent`
+  - Import shared CSS + helpers (`renderToggleButton`, `renderUsageList`, `renderRow`)
+  - Move own state (data, entries, expanded, fullEntries) into the component
+  - Convert `render()` to return declarative string using helpers
+  - Move toggle/date-click handlers to `handleDelegatedClick()` / `handleDelegatedKeydown()`
+  - Replace `this.render()` with `this.requestUpdate()`
+- [ ] Validate: PTO card E2E tests pass
+- [ ] `PtoBereavementCard`: same pattern (already has per-entry approval indicators — preserve ✓ logic)
+- [ ] `PtoSickCard`: same pattern
+- [ ] `PtoJuryDutyCard`: same pattern
 - [ ] Validate: all bucket card E2E tests pass, screenshot baselines match
 
-### Stage 4: Migrate Accrual Card (High Risk)
+### Stage 4: Migrate Accrual Card + Slot Refactor (High Risk)
 
-**Goal**: Migrate `PtoAccrualCard` — the most complex component with embedded `pto-calendar`.
+**Goal**: Migrate `PtoAccrualCard` and replace embedded `<pto-calendar>` with a named slot.
 
-- [ ] Convert the 12-month grid rendering to declarative template
+- [ ] Change `extends PtoSectionCard` → `extends BaseComponent`
+- [ ] Convert the 12-month grid rendering to declarative template with helpers
+- [ ] Replace embedded `<pto-calendar>` with `<slot name="calendar"></slot>`
 - [ ] Move calendar button and row click handlers to `handleDelegatedClick()`
-- [ ] Handle embedded `pto-calendar` event forwarding via delegation
-- [ ] Convert `handlePtoRequestSubmit` flow to use delegated events
+- [ ] Dispatch a new event (e.g., `month-selected`) when a month is clicked; let the parent/consumer respond by placing or updating a `<pto-calendar slot="calendar">` in light DOM
+- [ ] Replace `this.render()` with `this.requestUpdate()`
+- [ ] Update all consumers of `<pto-accrual-card>` to compose `<pto-calendar>` as slotted child
 - [ ] Validate: accrual card E2E tests pass, calendar integration works
 
-### Stage 5: Cleanup and Documentation
+### Stage 5: Delete Old Base Classes & Cleanup
 
-- [ ] Remove unused `PTO_CARD_CSS` export if fully replaced by base class styles
-- [ ] Remove `renderCard()` helper if no longer used
+- [ ] Remove `PtoSectionCard` and `SimplePtoBucketCard` classes from `pto-card-base.ts`
+- [ ] Remove unused `PTO_CARD_CSS` export and `renderCard()` method
+- [ ] Remove or redirect any remaining imports of `pto-card-base.ts`
 - [ ] Update component README files with new architecture notes
 - [ ] Update web-components-assistant SKILL.md to remove these components from "unmigrated" list
 - [ ] Run full E2E suite: `npx playwright test`
@@ -114,13 +134,15 @@ These components predate `BaseComponent` and were written before the project ado
 
 ## Anti-Patterns to Eliminate
 
-| Anti-Pattern                         | Current Usage                              | Replacement                                                            |
-| ------------------------------------ | ------------------------------------------ | ---------------------------------------------------------------------- |
-| `this.shadow.innerHTML = ...`        | All card `render()` methods                | `render()` returns string; `BaseComponent.renderTemplate()` applies it |
-| `this.render()` direct calls         | Setters, `attributeChangedCallback`        | `this.requestUpdate()`                                                 |
-| `el.addEventListener()` after render | Toggle buttons, date clicks, row clicks    | `handleDelegatedClick()` with `target.matches()`                       |
-| Duplicated CSS constants             | `PTO_CARD_CSS` + `renderCard()` inline CSS | Single CSS source in base class `render()` return                      |
-| IIFEs in template strings            | `(() => { ... })()` in usage section       | Extract to helper methods called from `render()`                       |
+| Anti-Pattern                         | Current Usage                                                   | Replacement                                                            |
+| ------------------------------------ | --------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `this.shadow.innerHTML = ...`        | All card `render()` methods                                     | `render()` returns string; `BaseComponent.renderTemplate()` applies it |
+| `this.render()` direct calls         | Setters, `attributeChangedCallback`                             | `this.requestUpdate()`                                                 |
+| `el.addEventListener()` after render | Toggle buttons, date clicks, row clicks                         | `handleDelegatedClick()` with `target.matches()`                       |
+| Duplicated CSS constants             | `PTO_CARD_CSS` + `renderCard()` inline CSS                      | Single `CARD_CSS` constant in `pto-card-css.ts`                        |
+| IIFEs in template strings            | `(() => { ... })()` in usage section                            | Extract to helper functions in `pto-card-helpers.ts`                   |
+| Deep inheritance                     | `HTMLElement` → `PtoSectionCard` → `SimplePtoBucketCard` → leaf | `BaseComponent` → leaf (flat)                                          |
+| Embedded child components            | `<pto-calendar>` in `PtoAccrualCard` shadow DOM                 | `<slot name="calendar">` with light DOM composition                    |
 
 ## Declarative Rendering Examples
 
@@ -139,30 +161,57 @@ private render() {
 }
 ```
 
-### After (Declarative — BaseComponent)
+### After (Declarative — BaseComponent + shared helpers)
 
 ```typescript
-protected render(): string {
-  if (!this.data) {
-    return `<style>${CARD_CSS}</style><div class="card"><h4>Employee Information</h4><div>Loading...</div></div>`;
+import { BaseComponent } from "../base-component.js";
+import { CARD_CSS } from "../utils/pto-card-css.js";
+import { renderRow } from "../utils/pto-card-helpers.js";
+
+export class PtoEmployeeInfoCard extends BaseComponent {
+  private data: EmployeeInfoData | null = null;
+
+  protected render(): string {
+    if (!this.data) {
+      return `<style>${CARD_CSS}</style><div class="card"><h4>Employee Information</h4><div>Loading...</div></div>`;
+    }
+    return `
+      <style>${CARD_CSS}</style>
+      <div class="card">
+        <h4>Employee Information</h4>
+        ${renderRow("Hire Date", this.data.hireDate)}
+        ${renderRow("Next Rollover", this.data.nextRolloverDate)}
+      </div>
+    `;
   }
-  return `
-    <style>${CARD_CSS}</style>
-    <div class="card">
-      <h4>Employee Information</h4>
-      <div class="row"><span class="label">Hire Date</span><span>${this.data.hireDate}</span></div>
-      <div class="row"><span class="label">Next Rollover</span><span>${this.data.nextRolloverDate}</span></div>
-    </div>
-  `;
+
+  set info(value: EmployeeInfoData) {
+    this.data = value;
+    this.requestUpdate();
+  }
 }
 ```
 
-## Clarifying Questions
+### Slot Composition Example (Accrual Card)
 
-1. Should `PtoSectionCard` remain a concrete class in the hierarchy, or should its behavior be folded directly into `SimplePtoBucketCard` / absorbed by each leaf component?
-2. Should the shared card CSS be kept as an exported constant or moved to an `adoptedStyleSheets` pattern?
-3. The `PtoAccrualCard` embeds `<pto-calendar>` inside its shadow DOM. Should this remain as composed shadow DOM, or should the calendar be slotted or coordinated at a higher parent level?
-4. Are there planned changes to the approval indicator pattern that should be accounted for during migration?
+```typescript
+// PtoAccrualCard render() — declares a slot, does NOT embed <pto-calendar>
+protected render(): string {
+  return `
+    <style>${CARD_CSS}${ACCRUAL_CSS}</style>
+    <div class="card">
+      <h4>${this._requestMode ? "PTO Request - Select Month" : "Monthly Accrual Breakdown"}</h4>
+      ${this.renderMonthGrid()}
+      <slot name="calendar"></slot>
+    </div>
+  `;
+}
+
+// Consumer composes in light DOM:
+// <pto-accrual-card>
+//   <pto-calendar slot="calendar" month="2" year="2026"></pto-calendar>
+// </pto-accrual-card>
+```
 
 ## Impact
 
@@ -174,6 +223,7 @@ protected render(): string {
 
 - [x] Identify all components in the PtoSectionCard hierarchy
 - [x] Review BaseComponent contract and migration steps in SKILL.md
+- [x] Confirm design decisions (flatten hierarchy, TS CSS constants, named slots, checkmark unchanged)
 - [ ] Check existing E2E test coverage for each card component
 - [ ] Verify screenshot baselines exist for visual regression testing
 - [ ] Confirm no other components import `PTO_CARD_CSS` or `renderCard()` directly

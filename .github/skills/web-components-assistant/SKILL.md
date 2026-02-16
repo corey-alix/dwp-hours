@@ -33,18 +33,19 @@ Follow this structured approach when implementing web components:
 1. **Component Analysis**: Assess the component's purpose, props, state, and integration needs
 2. **CRITICAL: Static Imports Only** - Never use `await import()` or dynamic imports. All imports must be static at the top level. The build system uses esbuild to create a single `app.js` bundle loaded by test.html pages.
 3. **CRITICAL: Declarative Markup Priority** - Always prefer declarative template strings returned from `render()` over imperative DOM construction (manual `innerHTML` assignment, `createElement`, `appendChild`, IIFEs inside template literals). The `render()` method should read like a description of what the component displays. Extract complex conditional sections into small helper methods that return partial template strings, keeping `render()` itself a clear, top-level declaration of the component's structure.
-4. **Base Class Selection**: Extend BaseComponent for memory-safe, consistent components
-5. **Custom Element Definition**: Create class extending BaseComponent with proper naming conventions
-6. **Shadow DOM Setup**: Automatic shadow root creation via BaseComponent
-7. **Lifecycle Methods**: Override connectedCallback, disconnectedCallback as needed (BaseComponent handles cleanup)
-8. **Template & Styling**: Define component template and styles following MDN best practices
-9. **Property & Attribute Handling**: Set up observedAttributes and property getters/setters
-10. **Event Handling**: Use event delegation via handleDelegatedClick/handleDelegatedSubmit methods
-11. **Data Flow Architecture**: Use event-driven data flow - components dispatch events for data requests, parent handles API calls and data injection via methods like setPtoData()
-12. **Memory Management**: BaseComponent automatically handles event listener cleanup
-13. **Unit Testing**: Create Vitest tests with happy-dom using seedData for mocking
-14. **Integration Testing**: Test component in the DWP Hours Tracker context with Playwright E2E tests
-15. **Documentation**: Update component usage documentation
+4. **CRITICAL: Named Slots Over Component Embedding** - Never create child web components inside a parent's shadow DOM template string. Instead, use `<slot name="...">` in the parent's template and let the consumer compose children in light DOM. This keeps components loosely coupled, independently testable, and composable. The parent declares _where_ children go; the consumer decides _which_ children to provide.
+5. **Base Class Selection**: Extend BaseComponent for memory-safe, consistent components
+6. **Custom Element Definition**: Create class extending BaseComponent with proper naming conventions
+7. **Shadow DOM Setup**: Automatic shadow root creation via BaseComponent
+8. **Lifecycle Methods**: Override connectedCallback, disconnectedCallback as needed (BaseComponent handles cleanup)
+9. **Template & Styling**: Define component template and styles following MDN best practices
+10. **Property & Attribute Handling**: Set up observedAttributes and property getters/setters
+11. **Event Handling**: Use event delegation via handleDelegatedClick/handleDelegatedSubmit methods
+12. **Data Flow Architecture**: Use event-driven data flow - components dispatch events for data requests, parent handles API calls and data injection via methods like setPtoData()
+13. **Memory Management**: BaseComponent automatically handles event listener cleanup
+14. **Unit Testing**: Create Vitest tests with happy-dom using seedData for mocking
+15. **Integration Testing**: Test component in the DWP Hours Tracker context with Playwright E2E tests
+16. **Documentation**: Update component usage documentation
 
 ## Component Testing Pattern
 
@@ -229,6 +230,40 @@ This pattern maintains separation of concerns and makes components more testable
 - **Parent-to-Child**: Use attributes and properties for configuration, method calls for data injection
 - **Child-to-Parent**: Use custom events with detail objects for data requests and state changes
 - **Sibling Communication**: Route through parent component using event bubbling
+
+### Composition via Named Slots (Preferred)
+
+Components must **never embed other web components by tag name inside their shadow DOM template**. Instead, declare named `<slot>` elements and let consumers compose children in light DOM:
+
+```typescript
+// CORRECT: Parent declares a slot
+protected render(): string {
+  return `
+    <style>/* ... */</style>
+    <div class="card">
+      <h4>Monthly Accrual</h4>
+      <div class="grid"><!-- grid rows --></div>
+      <slot name="calendar"></slot>  <!-- ✅ Consumer provides the calendar -->
+    </div>
+  `;
+}
+
+// Consumer composes in light DOM:
+// <pto-accrual-card>
+//   <pto-calendar slot="calendar" month="3" year="2026"></pto-calendar>
+// </pto-accrual-card>
+
+// WRONG: Embedding child component in shadow DOM template
+protected render(): string {
+  return `
+    <div class="card">
+      <pto-calendar month="3" year="2026"></pto-calendar>  <!-- ❌ Tight coupling -->
+    </div>
+  `;
+}
+```
+
+This pattern keeps components independently testable and avoids tight coupling between parent and child shadow DOMs.
 
 ## Reactive Update Cycle (Lit-Aligned)
 
@@ -426,6 +461,8 @@ Common queries that should trigger this skill:
 - **Memory Management**: All components must extend BaseComponent to prevent memory leaks from event listeners
 - **Consistency**: Use BaseComponent's event delegation and reactive update patterns for all components. Follow the [Lit reactive update cycle](https://lit.dev/docs/components/lifecycle/) — `render()` is a pure template method; `requestUpdate()` is the only way to trigger DOM updates
 - **Declarative First**: Always prefer declarative template strings over imperative DOM construction. `render()` should read as a flat, top-level description of what the component displays. Complex sections should be extracted into helper methods returning template fragments — never use IIFEs, deeply nested ternaries, or manual `innerHTML` assignment in component logic.
+- **Composition Over Embedding**: Never embed child web components by tag name inside a parent's shadow DOM template string. Use named `<slot>` elements so consumers compose children in light DOM. This ensures loose coupling and independent testability.
+- **Flat Inheritance**: Prefer extending `BaseComponent` directly over deep inheritance chains. Share behavior via exported utility functions and CSS constants in TypeScript files rather than intermediate base classes.
 - **Accessibility**: Implement ARIA attributes and keyboard navigation as per MDN accessibility guidelines
 - **Testing**: Components should have both Vitest unit tests (with seedData mocking) and Playwright E2E tests (with screenshot testing)
 - **Dependencies**: Avoid external component libraries; use native web components with BaseComponent for better performance and smaller bundle size
