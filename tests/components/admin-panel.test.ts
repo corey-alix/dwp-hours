@@ -249,6 +249,44 @@ describe("AdminPanel Component", () => {
       ) as HTMLElement;
       expect(employeeList?.getAttribute("editing-employee-id")).toBe("");
     });
+
+    it("should update employee list after inline edit form submission", () => {
+      // Set up initial employee data
+      const initialEmployee = {
+        id: 1,
+        name: "John Doe",
+        identifier: "JD001",
+        ptoRate: 0.71,
+        carryoverHours: 40,
+        hireDate: "2020-01-01",
+        role: "Employee",
+      };
+      component.setEmployees([initialEmployee]);
+      component.currentView = "employees";
+
+      // Simulate starting edit (this should work after Stage 1 fix)
+      (component as any).showEmployeeForm(1);
+
+      // Simulate form submission with updated data
+      const updatedEmployee = {
+        ...initialEmployee,
+        name: "John Smith",
+        identifier: "JS001",
+      };
+
+      // Call handleEmployeeSubmit directly (this is what the employee-submit event does)
+      (component as any).handleEmployeeSubmit(updatedEmployee, true);
+
+      // Verify the employee list was updated
+      expect(component.employees[0].name).toBe("John Smith");
+      expect(component.employees[0].identifier).toBe("JS001");
+
+      // Verify form is hidden
+      const employeeList = component.shadowRoot?.querySelector(
+        "employee-list",
+      ) as HTMLElement;
+      expect(employeeList?.getAttribute("editing-employee-id")).toBe("");
+    });
   });
 
   describe("Phase 7: View Changes and Event Handling", () => {
@@ -292,6 +330,30 @@ describe("AdminPanel Component", () => {
       // The component doesn't handle update-employee internally, but the test harness does
       // This test verifies the event can be dispatched
       expect(component.employees[0].name).toBe("Updated Employee"); // Should not change
+    });
+
+    it("should handle employee-edit event from employee-list", () => {
+      component.currentView = "employees";
+
+      // Spy on showEmployeeForm method
+      const showEmployeeFormSpy = vi.fn();
+      (component as any).showEmployeeForm = showEmployeeFormSpy;
+
+      // Create a mock employee-list element
+      const employeeListElement = document.createElement("employee-list");
+      component.shadowRoot.appendChild(employeeListElement);
+
+      // Dispatch employee-edit event from employee-list
+      employeeListElement.dispatchEvent(
+        new CustomEvent("employee-edit", {
+          detail: { employeeId: 1 },
+          bubbles: true,
+          composed: true,
+        }),
+      );
+
+      // Verify showEmployeeForm was called with the correct employeeId
+      expect(showEmployeeFormSpy).toHaveBeenCalledWith(1);
     });
 
     it("should dispatch events for child component interactions", () => {
