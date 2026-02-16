@@ -129,6 +129,35 @@ export function playground() {
           card.monthlyUsage = monthlyUsage;
           card.calendarYear = 2026;
 
+          // Listen for month-selected events and compose slotted calendar
+          card.addEventListener("month-selected", ((e: CustomEvent) => {
+            const { month, year, entries, requestMode } = e.detail;
+            console.log("month-selected:", {
+              month,
+              year,
+              entries,
+              requestMode,
+            });
+
+            // Create or update slotted calendar in light DOM
+            let calendar = card.querySelector("pto-calendar") as HTMLElement;
+            if (!calendar) {
+              calendar = document.createElement("pto-calendar");
+              calendar.setAttribute("slot", "calendar");
+              card.appendChild(calendar);
+            }
+
+            calendar.setAttribute("month", String(month - 1));
+            calendar.setAttribute("year", String(year));
+            calendar.setAttribute("pto-entries", JSON.stringify(entries));
+            calendar.setAttribute("selected-month", String(month));
+            if (requestMode) {
+              calendar.removeAttribute("readonly");
+            } else {
+              calendar.setAttribute("readonly", "");
+            }
+          }) as EventListener);
+
           querySingle("#test-output").textContent =
             "Accrual data set. Click calendar buttons to view details.";
         } else {

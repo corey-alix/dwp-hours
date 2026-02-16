@@ -1,45 +1,45 @@
-import { PtoSectionCard } from "../utils/pto-card-base.js";
+import { BaseComponent } from "../base-component.js";
+import { CARD_CSS } from "../utils/pto-card-css.js";
+import { renderCardShell, renderRow } from "../utils/pto-card-helpers.js";
 
 type EmployeeInfoData = {
   hireDate: string;
   nextRolloverDate: string;
 };
 
-export class PtoEmployeeInfoCard extends PtoSectionCard {
+export class PtoEmployeeInfoCard extends BaseComponent {
   private data: EmployeeInfoData | null = null;
 
   static get observedAttributes() {
     return ["data"];
   }
 
-  connectedCallback() {
-    this.render();
-  }
-
   attributeChangedCallback(name: string, _oldValue: string, newValue: string) {
     if (name === "data") {
       this.data = JSON.parse(newValue) as EmployeeInfoData;
-      this.render();
+      this.requestUpdate();
     }
   }
 
   set info(value: EmployeeInfoData) {
     this.data = value;
-    this.render();
+    this.requestUpdate();
   }
 
-  private render() {
+  protected render(): string {
     if (!this.data) {
-      this.renderCard("Employee Information", "<div>Loading...</div>");
-      return;
+      return `<style>${CARD_CSS}</style>${renderCardShell("Employee Information", "<div>Loading...</div>")}`;
     }
-
-    const body = `
-            <div class="row"><span class="label">Hire Date</span><span>${this.data.hireDate}</span></div>
-            <div class="row"><span class="label">Next Rollover</span><span>${this.data.nextRolloverDate}</span></div>
-        `;
-
-    this.renderCard("Employee Information", body);
+    return `
+      <style>${CARD_CSS}</style>
+      ${renderCardShell(
+        "Employee Information",
+        `
+        ${renderRow("Hire Date", this.data.hireDate)}
+        ${renderRow("Next Rollover", this.data.nextRolloverDate)}
+      `,
+      )}
+    `;
   }
 }
 

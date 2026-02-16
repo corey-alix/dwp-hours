@@ -437,7 +437,9 @@ Many existing components extend `HTMLElement` directly and define `render()` as 
 6. Remove manual event listener setup/cleanup code
 7. Add `_customEventsSetup` guard if overriding `setupEventDelegation()`
 
-**Unmigrated components** (extending `HTMLElement` with imperative `render()`): `employee-list`, `pto-calendar`, `pto-request-queue`, `data-table`, `confirmation-dialog`, `prior-year-review`, `pto-entry-form`, `report-generator`, `pto-card-base` and all card subclasses. These call `this.render()` directly, which works because their `render()` imperatively sets `innerHTML`. **They will break if migrated to BaseComponent without replacing `this.render()` → `this.requestUpdate()`.**
+**Unmigrated components** (extending `HTMLElement` with imperative `render()`): `employee-list`, `pto-calendar`, `pto-request-queue`, `data-table`, `confirmation-dialog`, `prior-year-review`, `pto-entry-form`, `report-generator`. These call `this.render()` directly, which works because their `render()` imperatively sets `innerHTML`. **They will break if migrated to BaseComponent without replacing `this.render()` → `this.requestUpdate()`.**
+
+**Migrated PTO cards** (now extending `BaseComponent` with declarative `render()`): `pto-employee-info-card`, `pto-summary-card`, `pto-pto-card`, `pto-bereavement-card`, `pto-sick-card`, `pto-jury-duty-card`, `pto-accrual-card`. Shared CSS lives in `utils/pto-card-css.ts` (`CARD_CSS`), shared template helpers in `utils/pto-card-helpers.ts` (`renderCardShell`, `renderRow`, `renderBucketBody`, etc.). The old `PtoSectionCard` and `SimplePtoBucketCard` base classes in `utils/pto-card-base.ts` are deprecated.
 
 ## Examples
 

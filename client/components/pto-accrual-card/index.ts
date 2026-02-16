@@ -1,17 +1,11 @@
-import { PtoSectionCard, monthNames } from "../utils/pto-card-base.js";
-import { PtoCalendar, CalendarEntry } from "../pto-calendar/index.js";
-import { querySingle } from "../test-utils.js";
+import { BaseComponent } from "../base-component.js";
+import { monthNames } from "../utils/pto-card-helpers.js";
+import { CalendarEntry } from "../pto-calendar/index.js";
 import {
   getWorkDays,
   getTotalWorkDaysInYear,
-  getAllocationRate,
 } from "../../../server/workDays.js";
 import { getCurrentYear, today, parseDate } from "../../../shared/dateUtils.js";
-
-type CalendarData = Record<
-  number,
-  Record<number, { type: string; hours: number }>
->;
 
 type AccrualData = {
   month: number;
@@ -33,14 +27,139 @@ type PTOEntry = {
   approved_by?: number | null;
 };
 
-export class PtoAccrualCard extends PtoSectionCard {
+const ACCRUAL_CSS = `
+    :host {
+        display: block;
+    }
+
+    .card {
+        background: var(--color-background);
+        border: var(--border-width) var(--border-style-solid) var(--color-border);
+        border-radius: var(--border-radius-lg);
+        padding: var(--space-lg);
+        box-shadow: var(--shadow-md);
+    }
+
+    h4 {
+        margin: 0 0 var(--space-md) 0;
+        font-size: var(--font-size-lg);
+        color: var(--color-text);
+        font-weight: var(--font-weight-semibold);
+    }
+
+    .accrual-grid {
+        display: grid;
+        grid-template-columns: 1fr auto auto auto;
+        gap: var(--space-sm) var(--space-md);
+    }
+
+    .accrual-row {
+        display: grid;
+        grid-template-columns: subgrid;
+        grid-column: 1 / -1;
+        align-items: center;
+        font-size: var(--font-size-sm);
+        color: var(--color-text-secondary);
+        cursor: pointer;
+    }
+
+    .accrual-row.header {
+        font-size: var(--font-size-xs);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--color-text-muted);
+    }
+
+    .accrual-row.header .label {
+        text-align: right;
+    }
+
+    .accrual-row .month {
+        font-weight: var(--font-weight-semibold);
+    }
+
+    .accrual-row.projected {
+        opacity: 0.7;
+    }
+
+    .accrual-row.projected .hours::before {
+        content: "~";
+        opacity: 0.6;
+    }
+
+    .accrual-grid.wide .data-row.alt {
+        background-color: var(--color-surface);
+    }
+
+    .accrual-row.current {
+        background: var(--color-primary-light);
+        border-radius: var(--border-radius);
+        padding: var(--space-xs) var(--space-sm);
+        margin: 0 calc(-1 * var(--space-sm));
+    }
+
+    .accrual-row:hover {
+        background-color: var(--color-surface-hover) !important;
+    }
+
+    .accrual-row .hours,
+    .accrual-row .used {
+        text-align: right;
+    }
+
+    .calendar-button {
+        border: none;
+        background: var(--color-surface);
+        border-radius: var(--border-radius);
+        padding: var(--space-xs) var(--space-sm);
+        cursor: pointer;
+        color: var(--color-text);
+    }
+
+    .calendar-button.request-mode {
+        background: var(--color-primary);
+        color: var(--color-on-primary);
+    }
+
+    .calendar-button.request-mode:hover {
+        background: var(--color-primary-hover);
+    }
+
+    .empty {
+        color: var(--color-text-muted);
+        font-size: var(--font-size-xs);
+    }
+
+    .submit-button {
+        background: var(--color-primary);
+        color: var(--color-on-primary);
+        border: none;
+        padding: var(--space-sm) var(--space-lg);
+        border-radius: var(--border-radius);
+        font-size: var(--font-size-sm);
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .submit-button:hover {
+        background: var(--color-primary-hover);
+    }
+
+    .submit-button:disabled {
+        background: var(--color-text-muted);
+        cursor: not-allowed;
+    }
+`;
+
+export class PtoAccrualCard extends BaseComponent {
   private accruals: AccrualData[] = [];
   private usage: UsageData[] = [];
   private _ptoEntries: PTOEntry[] = [];
   protected selectedMonth: number | null = null;
   private year: number = getCurrentYear();
   private _requestMode: boolean = false;
-  private _annualAllocation: number = 96; // Default 96 hours annual PTO
+  private _annualAllocation: number = 96;
+  private _ptoRequestEventsSetup = false;
 
   static get observedAttributes() {
     return [
@@ -53,51 +172,42 @@ export class PtoAccrualCard extends PtoSectionCard {
     ];
   }
 
-  connectedCallback() {
-    this.render();
-  }
-
   attributeChangedCallback(name: string, _oldValue: string, newValue: string) {
     if (name === "accruals") {
       this.accruals = JSON.parse(newValue) as AccrualData[];
-    }
-    if (name === "usage") {
+    } else if (name === "usage") {
       this.usage = JSON.parse(newValue) as UsageData[];
-    }
-    if (name === "pto-entries") {
+    } else if (name === "pto-entries") {
       this._ptoEntries = JSON.parse(newValue) as PTOEntry[];
-    }
-    if (name === "year") {
+    } else if (name === "year") {
       this.year = parseInt(newValue, 10) || this.year;
-    }
-    if (name === "request-mode") {
+    } else if (name === "request-mode") {
       this._requestMode = newValue === "true";
-    }
-    if (name === "annual-allocation") {
+    } else if (name === "annual-allocation") {
       this._annualAllocation = parseFloat(newValue) || 96;
     }
-    this.render();
+    this.requestUpdate();
   }
 
   set monthlyAccruals(value: AccrualData[]) {
     this.accruals = value;
-    this.render();
+    this.requestUpdate();
   }
 
   set monthlyUsage(value: UsageData[]) {
     this.usage = value;
-    this.render();
+    this.requestUpdate();
   }
 
   set ptoEntries(value: PTOEntry[]) {
     this._ptoEntries = value;
     console.log("PtoAccrualCard: set ptoEntries:", value);
-    this.render();
+    this.requestUpdate();
   }
 
   set calendarYear(value: number) {
     this.year = value;
-    this.render();
+    this.requestUpdate();
   }
 
   set requestMode(value: boolean) {
@@ -120,14 +230,12 @@ export class PtoAccrualCard extends PtoSectionCard {
     if (year !== undefined) {
       this.year = year;
     }
-    this.render();
+    this.requestUpdate();
   }
 
-  private render() {
-    // Check if component is wide enough for alternating row colors
+  private renderMonthGrid(): string {
     const isWide = this.offsetWidth > 600;
 
-    // Create maps for quick lookup
     const accrualByMonth = new Map(
       this.accruals.map((entry) => [entry.month, entry.hours]),
     );
@@ -135,277 +243,133 @@ export class PtoAccrualCard extends PtoSectionCard {
       this.usage.map((entry) => [entry.month, entry.hours]),
     );
 
-    // Generate rows for all 12 months
     const { month: currentMonth, year: currentYear } = parseDate(today());
-
-    // Calculate PTO rate for projected accruals
     const totalWorkDaysInYear = getTotalWorkDaysInYear(this.year);
     const ptoRate = this._annualAllocation / totalWorkDaysInYear;
 
     const rows = Array.from({ length: 12 }, (_, i) => {
-      const month = i + 1; // 1-based month
+      const month = i + 1;
       const monthName = monthNames[month - 1];
       const accruedHours = accrualByMonth.get(month);
       const usedHours = usageByMonth.get(month);
 
-      // Determine if this is a future month for projected data
       const isFutureMonth =
         this.year > currentYear ||
         (this.year === currentYear && month > currentMonth);
       const isCurrentMonth =
         this.year === currentYear && month === currentMonth;
 
-      // Calculate projected accrual for future months
       let displayAccrued: string;
       if (accruedHours !== undefined) {
         displayAccrued = accruedHours.toFixed(1);
       } else if (isFutureMonth) {
         const workDaysInMonth = getWorkDays(this.year, month);
         const projectedAccrual = ptoRate * workDaysInMonth;
-        displayAccrued = `${projectedAccrual.toFixed(1)}`; // css renders the ~ for future dates
+        displayAccrued = `${projectedAccrual.toFixed(1)}`;
       } else {
         displayAccrued = "0.0";
       }
 
       return `
-                <div class="accrual-row data-row ${i % 2 === 0 ? "alt" : ""} ${isFutureMonth ? "projected" : ""} ${isCurrentMonth ? "current" : ""}">
-                    <span class="month">${monthName}</span>
-                    <span class="hours">${displayAccrued}</span>
-                    <span class="used">${usedHours !== undefined ? usedHours.toFixed(1) : "—"}</span>
-                    <button class="calendar-button ${this._requestMode ? "request-mode" : ""}" data-month="${month}" aria-label="${this._requestMode ? "Request PTO for" : "Show"} ${monthName} calendar">${this._requestMode ? "✏️" : "📅"}</button>
-                </div>
-            `;
+        <div class="accrual-row data-row ${i % 2 === 0 ? "alt" : ""} ${isFutureMonth ? "projected" : ""} ${isCurrentMonth ? "current" : ""}" data-month="${month}">
+          <span class="month">${monthName}</span>
+          <span class="hours">${displayAccrued}</span>
+          <span class="used">${usedHours !== undefined ? usedHours.toFixed(1) : "—"}</span>
+          <button class="calendar-button ${this._requestMode ? "request-mode" : ""}" data-month="${month}" aria-label="${this._requestMode ? "Request PTO for" : "Show"} ${monthName} calendar">${this._requestMode ? "✏️" : "📅"}</button>
+        </div>
+      `;
     }).join("");
 
-    // Filter PTO entries for the selected month
-    const monthPtoEntries: PTOEntry[] = [];
+    return `
+      <div class="accrual-grid${isWide ? " wide" : ""}">
+        <div class="accrual-row header">
+          <span></span>
+          <span class="label">Accrued</span>
+          <span class="label">Used</span>
+          <span></span>
+        </div>
+        ${rows}
+      </div>
+    `;
+  }
+
+  protected render(): string {
+    // Filter PTO entries for the selected month and dispatch event
     if (this.selectedMonth) {
-      monthPtoEntries.push(
-        ...this._ptoEntries.filter((entry) => {
-          const [entryYear, entryMonthStr] = entry.date.split("-");
-          const entryMonth = parseInt(entryMonthStr, 10);
-          const entryYearNum = parseInt(entryYear, 10);
-          const matches =
-            entryMonth === this.selectedMonth && entryYearNum === this.year;
-          if (this.selectedMonth === 3 && entry.date.startsWith("2026-03")) {
-            console.log(
-              "PtoAccrualCard: Filtering entry for March:",
-              entry,
-              "entryMonth:",
-              entryMonth,
-              "entryYearNum:",
-              entryYearNum,
-              "matches:",
-              matches,
-            );
-          }
-          return matches;
-        }),
-      );
-      console.log(
-        "PtoAccrualCard: monthPtoEntries for month",
-        this.selectedMonth,
-        ":",
-        monthPtoEntries,
-      );
-    }
-
-    const body = `
-            <div class="accrual-grid${isWide ? " wide" : ""}">
-                <div class="accrual-row header">
-                    <span></span>
-                    <span class="label">Accrued</span>
-                    <span class="label">Used</span>
-                    <span></span>
-                </div>
-                ${rows}
-            </div>
-            ${
-              this.selectedMonth
-                ? `<pto-calendar month="${this.selectedMonth - 1}" year="${this.year}" pto-entries='${JSON.stringify(monthPtoEntries)}' selected-month="${this.selectedMonth}" readonly="${!this._requestMode}">
-                ${this._requestMode ? '<button slot="submit" class="submit-button">Submit PTO Request</button>' : ""}
-            </pto-calendar>`
-                : ""
-            }
-        `;
-
-    this.shadow.innerHTML = `
-            <style>
-                :host {
-                    display: block;
-                }
-
-                .card {
-                    background: var(--color-background);
-                    border: var(--border-width) var(--border-style-solid) var(--color-border);
-                    border-radius: var(--border-radius-lg);
-                    padding: var(--space-lg);
-                    box-shadow: var(--shadow-md);
-                }
-
-                h4 {
-                    margin: 0 0 var(--space-md) 0;
-                    font-size: var(--font-size-lg);
-                    color: var(--color-text);
-                    font-weight: var(--font-weight-semibold);
-                }
-
-                .accrual-grid {
-                    display: grid;
-                    grid-template-columns: 1fr auto auto auto;
-                    gap: var(--space-sm) var(--space-md);
-                }
-
-                .accrual-row {
-                    display: grid;
-                    grid-template-columns: subgrid;
-                    grid-column: 1 / -1;
-                    align-items: center;
-                    font-size: var(--font-size-sm);
-                    color: var(--color-text-secondary);
-                    cursor: pointer;
-                }
-
-                .accrual-row.header {
-                    font-size: var(--font-size-xs);
-                    text-transform: uppercase;
-                    letter-spacing: 0.04em;
-                    color: var(--color-text-muted);
-                }
-
-                .accrual-row.header .label {
-                    text-align: right;
-                }
-
-                .accrual-row .month {
-                    font-weight: var(--font-weight-semibold);
-                }
-
-                .accrual-row.projected {
-                    opacity: 0.7;
-                }
-
-                .accrual-row.projected .hours::before {
-                    content: "~";
-                    opacity: 0.6;
-                }
-
-                .accrual-grid.wide .data-row.alt {
-                    background-color: var(--color-surface);
-                }
-
-                .accrual-row.current {
-                    background: var(--color-primary-light);
-                    border-radius: var(--border-radius);
-                    padding: var(--space-xs) var(--space-sm);
-                    margin: 0 calc(-1 * var(--space-sm));
-                }
-
-                .accrual-row:hover {
-                    background-color: var(--color-surface-hover) !important;
-                }
-
-                .accrual-row .hours,
-                .accrual-row .used {
-                    text-align: right;
-                }
-
-                .calendar-button {
-                    border: none;
-                    background: var(--color-surface);
-                    border-radius: var(--border-radius);
-                    padding: var(--space-xs) var(--space-sm);
-                    cursor: pointer;
-                    color: var(--color-text);
-                }
-
-                .calendar-button.request-mode {
-                    background: var(--color-primary);
-                    color: var(--color-on-primary);
-                }
-
-                .calendar-button.request-mode:hover {
-                    background: var(--color-primary-hover);
-                }
-
-                .empty {
-                    color: var(--color-text-muted);
-                    font-size: var(--font-size-xs);
-                }
-
-                .submit-button {
-                    background: var(--color-primary);
-                    color: var(--color-on-primary);
-                    border: none;
-                    padding: var(--space-sm) var(--space-lg);
-                    border-radius: var(--border-radius);
-                    font-size: var(--font-size-sm);
-                    cursor: pointer;
-                    transition: background-color 0.2s;
-                }
-
-                .submit-button:hover {
-                    background: var(--color-primary-hover);
-                }
-
-                .submit-button:disabled {
-                    background: var(--color-text-muted);
-                    cursor: not-allowed;
-                }
-            </style>
-            <div class="card">
-                <h4>${this._requestMode ? "PTO Request - Select Month" : "Monthly Accrual Breakdown"}</h4>
-                ${body}
-            </div>
-        `;
-
-    // Scroll calendar into view if it's newly displayed
-    if (this.selectedMonth) {
-      const calendar = this.shadow.querySelector("pto-calendar") as HTMLElement;
-      if (calendar) {
-        calendar.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    }
-
-    this.shadow
-      .querySelectorAll<HTMLButtonElement>(".calendar-button")
-      .forEach((button) => {
-        button.addEventListener("click", (e) => {
-          e.stopPropagation();
-          const month = parseInt(button.dataset.month || "", 10);
-          console.log("PtoAccrualCard: calendar button clicked, month:", month);
-          this.selectedMonth = Number.isFinite(month) ? month : null;
-          console.log(
-            "PtoAccrualCard: set selectedMonth to:",
-            this.selectedMonth,
-          );
-          this.render();
-        });
+      const monthPtoEntries = this._ptoEntries.filter((entry) => {
+        const [entryYear, entryMonthStr] = entry.date.split("-");
+        const entryMonth = parseInt(entryMonthStr, 10);
+        const entryYearNum = parseInt(entryYear, 10);
+        return entryMonth === this.selectedMonth && entryYearNum === this.year;
       });
 
-    // Add row click handlers
-    this.shadow
-      .querySelectorAll<HTMLDivElement>(".accrual-row.data-row")
-      .forEach((row, index) => {
-        row.addEventListener("click", () => {
-          const month = index + 1;
-          console.log("PtoAccrualCard: row clicked, month:", month);
-          this.selectedMonth = month;
-          this.render();
-        });
-      });
-
-    // Handle PTO request submission
-    const calendar = this.shadow.querySelector<PtoCalendar>("pto-calendar");
-    if (calendar) {
-      calendar.addEventListener("pto-request-submit", (e: any) => {
-        console.log(
-          "PtoAccrualCard received pto-request-submit event from calendar:",
-          e.detail,
+      // Dispatch month-selected so the consumer can create/update a slotted calendar
+      // Use queueMicrotask to avoid dispatching during render (side-effect-free render)
+      queueMicrotask(() => {
+        this.dispatchEvent(
+          new CustomEvent("month-selected", {
+            detail: {
+              month: this.selectedMonth,
+              year: this.year,
+              entries: monthPtoEntries,
+              requestMode: this._requestMode,
+            },
+            bubbles: true,
+          }),
         );
-        e.stopPropagation();
-        this.handlePtoRequestSubmit(e.detail.requests);
       });
+    }
+
+    return `
+      <style>${ACCRUAL_CSS}</style>
+      <div class="card">
+        <h4>${this._requestMode ? "PTO Request - Select Month" : "Monthly Accrual Breakdown"}</h4>
+        ${this.renderMonthGrid()}
+        <slot name="calendar"></slot>
+      </div>
+    `;
+  }
+
+  protected setupEventDelegation() {
+    super.setupEventDelegation();
+    if (this._ptoRequestEventsSetup) return;
+    this._ptoRequestEventsSetup = true;
+
+    // Listen for pto-request-submit from slotted calendar
+    this.addEventListener("pto-request-submit", (e: Event) => {
+      const ce = e as CustomEvent;
+      console.log(
+        "PtoAccrualCard received pto-request-submit event from calendar:",
+        ce.detail,
+      );
+      e.stopPropagation();
+      this.handlePtoRequestSubmit(ce.detail.requests);
+    });
+  }
+
+  protected handleDelegatedClick(e: Event): void {
+    const target = e.target as HTMLElement;
+
+    // Calendar button click
+    if (target.matches(".calendar-button")) {
+      e.stopPropagation();
+      const month = parseInt(target.dataset.month || "", 10);
+      console.log("PtoAccrualCard: calendar button clicked, month:", month);
+      this.selectedMonth = Number.isFinite(month) ? month : null;
+      console.log("PtoAccrualCard: set selectedMonth to:", this.selectedMonth);
+      this.requestUpdate();
+      return;
+    }
+
+    // Row click
+    const row = target.closest(".accrual-row.data-row") as HTMLElement;
+    if (row) {
+      const month = parseInt(row.dataset.month || "", 10);
+      if (Number.isFinite(month)) {
+        console.log("PtoAccrualCard: row clicked, month:", month);
+        this.selectedMonth = month;
+        this.requestUpdate();
+      }
     }
   }
 
@@ -415,7 +379,6 @@ export class PtoAccrualCard extends PtoSectionCard {
       requests,
     );
     try {
-      // Dispatch event to parent component for API submission
       const event = new CustomEvent("pto-request-submit", {
         detail: { requests },
         bubbles: true,
@@ -428,7 +391,6 @@ export class PtoAccrualCard extends PtoSectionCard {
       this.dispatchEvent(event);
     } catch (error) {
       console.error("Error submitting PTO request:", error);
-      // Could add error display here
     }
   }
 }

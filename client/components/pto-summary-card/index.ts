@@ -1,4 +1,6 @@
-import { PtoSectionCard } from "../utils/pto-card-base.js";
+import { BaseComponent } from "../base-component.js";
+import { CARD_CSS } from "../utils/pto-card-css.js";
+import { renderCardShell } from "../utils/pto-card-helpers.js";
 import type { PTOEntry } from "../../../shared/api-models.js";
 
 type SummaryData = {
@@ -8,7 +10,7 @@ type SummaryData = {
   carryoverFromPreviousYear: number;
 };
 
-export class PtoSummaryCard extends PtoSectionCard {
+export class PtoSummaryCard extends BaseComponent {
   private data: SummaryData | null = null;
   private fullEntries: PTOEntry[] = [];
 
@@ -16,35 +18,30 @@ export class PtoSummaryCard extends PtoSectionCard {
     return ["data", "full-entries"];
   }
 
-  connectedCallback() {
-    this.render();
-  }
-
   attributeChangedCallback(name: string, _oldValue: string, newValue: string) {
     if (name === "data") {
       this.data = JSON.parse(newValue) as SummaryData;
-      this.render();
+      this.requestUpdate();
     }
     if (name === "full-entries") {
       this.fullEntries = JSON.parse(newValue);
-      this.render();
+      this.requestUpdate();
     }
   }
 
   set summary(value: SummaryData | null) {
     this.data = value;
-    this.render();
+    this.requestUpdate();
   }
 
   set fullPtoEntries(value: PTOEntry[]) {
     this.fullEntries = value;
-    this.render();
+    this.requestUpdate();
   }
 
-  private render() {
+  protected render(): string {
     if (!this.data) {
-      this.renderCard("Regular PTO", "<div>Loading...</div>");
-      return;
+      return `<style>${CARD_CSS}</style>${renderCardShell("Regular PTO", "<div>Loading...</div>")}`;
     }
 
     // Check if all PTO entries are approved
@@ -58,14 +55,14 @@ export class PtoSummaryCard extends PtoSectionCard {
     const getValueClass = (val: number) => (val < 0 ? "negative-balance" : "");
 
     const body = `
-            <div class="row"><span class="label">Carryover</span><span class="${getValueClass(this.data.carryoverFromPreviousYear)}">${formatValue(this.data.carryoverFromPreviousYear)} hours</span></div>
-            <div class="row"><span class="label">Annual Allocated</span><span class="${getValueClass(this.data.annualAllocation)}">${formatValue(this.data.annualAllocation)} hours</span></div>
-            <div class="row"><span class="label${approvedClass}">Used</span><span class="${getValueClass(this.data.usedPTO)}">${formatValue(this.data.usedPTO)} hours</span></div>
-            <hr>
-            <div class="row"><span class="label">Available</span><span class="${getValueClass(this.data.availablePTO)}">${formatValue(this.data.availablePTO)} hours</span></div>
-        `;
+      <div class="row"><span class="label">Carryover</span><span class="${getValueClass(this.data.carryoverFromPreviousYear)}">${formatValue(this.data.carryoverFromPreviousYear)} hours</span></div>
+      <div class="row"><span class="label">Annual Allocated</span><span class="${getValueClass(this.data.annualAllocation)}">${formatValue(this.data.annualAllocation)} hours</span></div>
+      <div class="row"><span class="label${approvedClass}">Used</span><span class="${getValueClass(this.data.usedPTO)}">${formatValue(this.data.usedPTO)} hours</span></div>
+      <hr>
+      <div class="row"><span class="label">Available</span><span class="${getValueClass(this.data.availablePTO)}">${formatValue(this.data.availablePTO)} hours</span></div>
+    `;
 
-    this.renderCard("Regular PTO", body);
+    return `<style>${CARD_CSS}</style>${renderCardShell("Regular PTO", body)}`;
   }
 }
 
