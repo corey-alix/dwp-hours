@@ -63,10 +63,10 @@ database-schema.md
 - Security & production features (helmet, rate limiting, input validation, PM2)
 - Admin panel UI (complete web components implementation with E2E testing)
 - Design constraints compliance (type safety and code quality improvements)
-
-### 🚧 In Progress
-
 - Production deployment
+- Declarative UI elements
+- Tailwind styling for PTO employee info card
+- Planet branch workflow
 
 ## Implementation Guidelines
 
@@ -121,9 +121,6 @@ database-schema.md
 16. **design-constraints.md** - code quality improvements needed
 17. Implement **admin-review-acknowledgment.md** - admin review UI
 18. ✅ **issue-test-file-conventions-regression.md** - fix test file conventions regression
-
-LATER: See ./TASKS/declarative-ui-elements.md for details
-LATER: See ./TASKS/tailwind-styling-pto-employee-info-card.md for details
 
 Each task file contains detailed checklists for implementation steps.</content>
 <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/TASKS/README.md
