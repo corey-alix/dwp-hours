@@ -100,7 +100,9 @@ test.describe("Employee Authentication & Workflow", () => {
     expect(ptoRequest.type).toBe("Sick");
     expect(ptoRequest.hours).toBe(4);
 
-    // Verify success notification appears
-    await expect(page.locator(".notification-toast.success")).toBeVisible();
+    // Verify success notification appears (use .first() since multiple toasts may exist)
+    await expect(
+      page.locator(".notification-toast.success").first(),
+    ).toBeVisible();
   });
 });
