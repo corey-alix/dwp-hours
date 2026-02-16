@@ -71,7 +71,7 @@ Create comprehensive unit tests using Vitest with happy-dom environment:
 - **Data Injection Pattern**: Use component methods (like `setPtoData()`) to inject mock data
 - **DOM Testing**: Verify rendered output, CSS classes, and element interactions
 - **Event Testing**: Assert that components dispatch correct custom events with proper detail objects
-- **Automatic Rendering**: Never manually call `component.render()` in tests - components should manage their own rendering lifecycle
+- **Never call `render()` directly**: `render()` is a pure template method that returns a string — calling it directly is a no-op for BaseComponent subclasses. Use `requestUpdate()` to trigger re-renders, or use data injection methods (like `setData()`) which call `requestUpdate()` internally
 
 Example Vitest test structure:
 
@@ -223,15 +223,108 @@ This pattern maintains separation of concerns and makes components more testable
 - **Child-to-Parent**: Use custom events with detail objects for data requests and state changes
 - **Sibling Communication**: Route through parent component using event bubbling
 
+## Reactive Update Cycle (Lit-Aligned)
+
+BaseComponent follows the [Lit reactive update cycle](https://lit.dev/docs/components/lifecycle/#reactive-update-cycle). Understanding this lifecycle is **mandatory** — violating it causes subtle bugs (silent no-ops, duplicate listeners, stale DOM).
+
+### The Update Cycle
+
+```
+Property change or requestUpdate()
+        │
+        ▼
+    update()          ← Called by the framework. Do NOT call directly.
+        │
+        ├─ render()   ← Pure template function. Returns a string. No side effects.
+        │
+        ▼
+  renderTemplate()    ← Applies the string to shadowRoot.innerHTML.
+        │
+        ├─ cleanupEventListeners()
+        ├─ shadowRoot.innerHTML = template
+        └─ setupEventDelegation()
+```
+
+### `render()` Contract
+
+**`render()` is a pure template method.** It conforms to the Lit specification:
+
+| Rule                       | Detail                                                                      |
+| -------------------------- | --------------------------------------------------------------------------- |
+| **Returns**                | An HTML template string                                                     |
+| **Side effects**           | None. Must not modify DOM, dispatch events, or call external APIs           |
+| **Called by**              | `update()` only — never by application code, test code, or other components |
+| **Calling it directly**    | Returns the string but does NOT apply it to the DOM — a silent no-op        |
+| **To trigger a re-render** | Call `requestUpdate()` — this is the ONLY correct way                       |
+
+```typescript
+// CORRECT: render() returns a template string, requestUpdate() triggers the cycle
+protected render(): string {
+  return `<div>${this._data}</div>`;
+}
+
+setData(data: string) {
+  this._data = data;
+  this.requestUpdate();  // ✅ Triggers: update() → render() → renderTemplate()
+}
+
+// WRONG: Calling render() directly — return value is discarded, DOM unchanged
+component.render();           // ❌ No-op
+el.render();                  // ❌ No-op in evaluate() blocks
+form.render();                // ❌ No-op
+this.render();                // ❌ No-op (inside component methods — use requestUpdate())
+```
+
+### Lifecycle Methods
+
+Following Lit conventions:
+
+| Method                    | Purpose                                  | Call super?                       | Override?                          |
+| ------------------------- | ---------------------------------------- | --------------------------------- | ---------------------------------- |
+| `constructor()`           | Initialize state, attach shadow root     | Yes (automatic via BaseComponent) | Rarely                             |
+| `connectedCallback()`     | Start tasks, set up external listeners   | Yes                               | When needed                        |
+| `disconnectedCallback()`  | Clean up external listeners              | Yes                               | When needed                        |
+| `render()`                | Return template string                   | No                                | **Always** (abstract)              |
+| `requestUpdate()`         | Schedule a re-render                     | No (just call it)                 | Never                              |
+| `update()`                | Orchestrate render cycle                 | —                                 | Never                              |
+| `setupEventDelegation()`  | Register event listeners on shadowRoot   | Yes                               | When adding custom event listeners |
+| `handleDelegatedClick()`  | Handle click events via delegation       | —                                 | When needed                        |
+| `handleDelegatedSubmit()` | Handle form submit events via delegation | —                                 | When needed                        |
+
+### `setupEventDelegation()` Contract
+
+Listeners on `shadowRoot` survive `innerHTML` replacement (they're on the root node, not child elements). Therefore:
+
+- `BaseComponent` guards with `isEventDelegationSetup` to prevent duplicates from its own listeners
+- **Subclass overrides MUST add their own guard** (e.g., `_customEventsSetup`) to prevent listener accumulation across re-renders
+- Without this guard, every `requestUpdate()` adds duplicate listeners → handler called N times per event
+
+```typescript
+private _customEventsSetup = false;
+
+protected setupEventDelegation() {
+  super.setupEventDelegation();
+  if (this._customEventsSetup) return;  // ← REQUIRED guard
+  this._customEventsSetup = true;
+
+  this.shadowRoot.addEventListener("my-event", (e) => {
+    e.stopPropagation();
+    this.handleCustomEvent(e as CustomEvent);
+  });
+}
+```
+
+See the [Happy DOM skill](../happy-dom/SKILL.md) for the confirmed listener accumulation bug this pattern prevents.
+
 ## Base Component Architecture
 
-For consistency and memory leak prevention, all web components should extend the `BaseComponent` class located in `client/components/base-component.ts`. This LitElement-inspired base class provides:
+For consistency and memory leak prevention, all web components should extend the `BaseComponent` class located in `client/components/base-component.ts`.
 
 ### BaseComponent Features
 
 - **Automatic Shadow DOM**: Creates shadow root in constructor
 - **Event Delegation**: Centralized event handling to prevent memory leaks
-- **Reactive Updates**: `requestUpdate()` method for triggering re-renders
+- **Reactive Updates**: `requestUpdate()` method for triggering re-renders (the only correct way to update the DOM)
 - **Memory Management**: Automatic cleanup of event listeners in `disconnectedCallback`
 - **Lifecycle Safety**: Proper connection state tracking
 
@@ -243,6 +336,7 @@ import { BaseComponent } from "../base-component.js";
 export class MyComponent extends BaseComponent {
   private _data: MyData[] = [];
 
+  // render() is a PURE TEMPLATE METHOD — returns string, no side effects
   protected render(): string {
     return `
       <style>
@@ -261,9 +355,10 @@ export class MyComponent extends BaseComponent {
     }
   }
 
+  // Public data injection method — calls requestUpdate(), never render()
   setData(data: MyData[]) {
     this._data = data;
-    this.requestUpdate();
+    this.requestUpdate(); // ✅ Triggers the full update cycle
   }
 }
 ```
@@ -281,14 +376,17 @@ export class MyComponent extends BaseComponent {
 
 ### Migration from HTMLElement
 
-When updating existing components:
+Many existing components extend `HTMLElement` directly and define `render()` as a method that sets `innerHTML`. When migrating:
 
 1. Change `extends HTMLElement` to `extends BaseComponent`
 2. Remove manual `attachShadow()` calls
-3. Replace `render()` method to return string instead of setting `innerHTML`
-4. Implement `handleDelegatedClick()` and `handleDelegatedSubmit()` for events
-5. Use `requestUpdate()` instead of manual render calls
+3. **Change `render()` to return a string** instead of setting `this.shadowRoot.innerHTML` directly
+4. **Replace all `this.render()` calls with `this.requestUpdate()`** — this is the most critical step
+5. Implement `handleDelegatedClick()` and `handleDelegatedSubmit()` for events
 6. Remove manual event listener setup/cleanup code
+7. Add `_customEventsSetup` guard if overriding `setupEventDelegation()`
+
+**Unmigrated components** (extending `HTMLElement` with imperative `render()`): `employee-list`, `pto-calendar`, `pto-request-queue`, `data-table`, `confirmation-dialog`, `prior-year-review`, `pto-entry-form`, `report-generator`, `pto-card-base` and all card subclasses. These call `this.render()` directly, which works because their `render()` imperatively sets `innerHTML`. **They will break if migrated to BaseComponent without replacing `this.render()` → `this.requestUpdate()`.**
 
 ## Examples
 
@@ -310,7 +408,7 @@ Common queries that should trigger this skill:
 - **Browser Support**: Ensure compatibility with the project's target browsers
 - **Performance**: Follow MDN performance guidelines for web components
 - **Memory Management**: All components must extend BaseComponent to prevent memory leaks from event listeners
-- **Consistency**: Use BaseComponent's event delegation and reactive update patterns for all components
+- **Consistency**: Use BaseComponent's event delegation and reactive update patterns for all components. Follow the [Lit reactive update cycle](https://lit.dev/docs/components/lifecycle/) — `render()` is a pure template method; `requestUpdate()` is the only way to trigger DOM updates
 - **Accessibility**: Implement ARIA attributes and keyboard navigation as per MDN accessibility guidelines
 - **Testing**: Components should have both Vitest unit tests (with seedData mocking) and Playwright E2E tests (with screenshot testing)
 - **Dependencies**: Avoid external component libraries; use native web components with BaseComponent for better performance and smaller bundle size

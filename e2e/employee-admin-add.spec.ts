@@ -86,7 +86,7 @@ test.describe("Employee Admin Panel - Add Employee", () => {
     await editForm.evaluate((form: any, emp: any) => {
       form.employee = emp;
       form.isEdit = true;
-      form.render();
+      form.requestUpdate();
     }, employeeData);
 
     // Verify the form is in edit mode (should have "Update Employee" button)
