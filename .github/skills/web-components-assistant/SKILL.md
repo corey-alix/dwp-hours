@@ -32,18 +32,20 @@ Follow this structured approach when implementing web components:
 
 1. **Component Analysis**: Assess the component's purpose, props, state, and integration needs
 2. **CRITICAL: Static Imports Only** - Never use `await import()` or dynamic imports. All imports must be static at the top level. The build system uses esbuild to create a single `app.js` bundle loaded by test.html pages.
-3. **Base Class Selection**: Extend BaseComponent for memory-safe, consistent components
-4. **Custom Element Definition**: Create class extending BaseComponent with proper naming conventions
-5. **Shadow DOM Setup**: Automatic shadow root creation via BaseComponent
-6. **Lifecycle Methods**: Override connectedCallback, disconnectedCallback as needed (BaseComponent handles cleanup)
-7. **Template & Styling**: Define component template and styles following MDN best practices
-8. **Property & Attribute Handling**: Set up observedAttributes and property getters/setters
-9. **Event Handling**: Use event delegation via handleDelegatedClick/handleDelegatedSubmit methods
-10. **Data Flow Architecture**: Use event-driven data flow - components dispatch events for data requests, parent handles API calls and data injection via methods like setPtoData()
-11. **Memory Management**: BaseComponent automatically handles event listener cleanup
-12. **Unit Testing**: Create Vitest tests with happy-dom using seedData for mocking
-13. **Integration Testing**: Test component in the DWP Hours Tracker context with Playwright E2E tests
-14. **Documentation**: Update component usage documentation
+3. **CRITICAL: Declarative Markup Priority** - Always prefer declarative template strings returned from `render()` over imperative DOM construction (manual `innerHTML` assignment, `createElement`, `appendChild`, IIFEs inside template literals). The `render()` method should read like a description of what the component displays. Extract complex conditional sections into small helper methods that return partial template strings, keeping `render()` itself a clear, top-level declaration of the component's structure.
+4. **CRITICAL: Named Slots Over Component Embedding** - Never create child web components inside a parent's shadow DOM template string. Instead, use `<slot name="...">` in the parent's template and let the consumer compose children in light DOM. This keeps components loosely coupled, independently testable, and composable. The parent declares _where_ children go; the consumer decides _which_ children to provide.
+5. **Base Class Selection**: Extend BaseComponent for memory-safe, consistent components
+6. **Custom Element Definition**: Create class extending BaseComponent with proper naming conventions
+7. **Shadow DOM Setup**: Automatic shadow root creation via BaseComponent
+8. **Lifecycle Methods**: Override connectedCallback, disconnectedCallback as needed (BaseComponent handles cleanup)
+9. **Template & Styling**: Define component template and styles following MDN best practices
+10. **Property & Attribute Handling**: Set up observedAttributes and property getters/setters
+11. **Event Handling**: Use event delegation via handleDelegatedClick/handleDelegatedSubmit methods
+12. **Data Flow Architecture**: Use event-driven data flow - components dispatch events for data requests, parent handles API calls and data injection via methods like setPtoData()
+13. **Memory Management**: BaseComponent automatically handles event listener cleanup
+14. **Unit Testing**: Create Vitest tests with happy-dom using seedData for mocking
+15. **Integration Testing**: Test component in the DWP Hours Tracker context with Playwright E2E tests
+16. **Documentation**: Update component usage documentation
 
 ## Component Testing Pattern
 
@@ -229,6 +231,40 @@ This pattern maintains separation of concerns and makes components more testable
 - **Child-to-Parent**: Use custom events with detail objects for data requests and state changes
 - **Sibling Communication**: Route through parent component using event bubbling
 
+### Composition via Named Slots (Preferred)
+
+Components must **never embed other web components by tag name inside their shadow DOM template**. Instead, declare named `<slot>` elements and let consumers compose children in light DOM:
+
+```typescript
+// CORRECT: Parent declares a slot
+protected render(): string {
+  return `
+    <style>/* ... */</style>
+    <div class="card">
+      <h4>Monthly Accrual</h4>
+      <div class="grid"><!-- grid rows --></div>
+      <slot name="calendar"></slot>  <!-- ✅ Consumer provides the calendar -->
+    </div>
+  `;
+}
+
+// Consumer composes in light DOM:
+// <pto-accrual-card>
+//   <pto-calendar slot="calendar" month="3" year="2026"></pto-calendar>
+// </pto-accrual-card>
+
+// WRONG: Embedding child component in shadow DOM template
+protected render(): string {
+  return `
+    <div class="card">
+      <pto-calendar month="3" year="2026"></pto-calendar>  <!-- ❌ Tight coupling -->
+    </div>
+  `;
+}
+```
+
+This pattern keeps components independently testable and avoids tight coupling between parent and child shadow DOMs.
+
 ## Reactive Update Cycle (Lit-Aligned)
 
 BaseComponent follows the [Lit reactive update cycle](https://lit.dev/docs/components/lifecycle/#reactive-update-cycle). Understanding this lifecycle is **mandatory** — violating it causes subtle bugs (silent no-ops, duplicate listeners, stale DOM).
@@ -342,16 +378,25 @@ import { BaseComponent } from "../base-component.js";
 export class MyComponent extends BaseComponent {
   private _data: MyData[] = [];
 
-  // render() is a PURE TEMPLATE METHOD — returns string, no side effects
+  // render() is a PURE TEMPLATE METHOD — returns string, no side effects.
+  // Prefer flat, declarative markup. Extract conditionals into helper methods
+  // that return partial template strings rather than embedding IIFEs or deep
+  // ternary chains.
   protected render(): string {
     return `
       <style>
         /* Component styles */
       </style>
       <div class="my-component">
-        ${this._data.map((item) => `<div>${item.name}</div>`).join("")}
+        ${this.renderItems()}
       </div>
     `;
+  }
+
+  // Helper: returns a declarative template fragment
+  private renderItems(): string {
+    if (!this._data.length) return `<div class="empty">No items</div>`;
+    return this._data.map((item) => `<div>${item.name}</div>`).join("");
   }
 
   protected handleDelegatedClick(e: Event): void {
@@ -392,7 +437,9 @@ Many existing components extend `HTMLElement` directly and define `render()` as 
 6. Remove manual event listener setup/cleanup code
 7. Add `_customEventsSetup` guard if overriding `setupEventDelegation()`
 
-**Unmigrated components** (extending `HTMLElement` with imperative `render()`): `employee-list`, `pto-calendar`, `pto-request-queue`, `data-table`, `confirmation-dialog`, `prior-year-review`, `pto-entry-form`, `report-generator`, `pto-card-base` and all card subclasses. These call `this.render()` directly, which works because their `render()` imperatively sets `innerHTML`. **They will break if migrated to BaseComponent without replacing `this.render()` → `this.requestUpdate()`.**
+**Unmigrated components** (extending `HTMLElement` with imperative `render()`): `employee-list`, `pto-calendar`, `pto-request-queue`, `data-table`, `confirmation-dialog`, `prior-year-review`, `pto-entry-form`, `report-generator`. These call `this.render()` directly, which works because their `render()` imperatively sets `innerHTML`. **They will break if migrated to BaseComponent without replacing `this.render()` → `this.requestUpdate()`.**
+
+**Migrated PTO cards** (now extending `BaseComponent` with declarative `render()`): `pto-employee-info-card`, `pto-summary-card`, `pto-pto-card`, `pto-bereavement-card`, `pto-sick-card`, `pto-jury-duty-card`, `pto-accrual-card`. Shared CSS lives in `utils/pto-card-css.ts` (`CARD_CSS`), shared template helpers in `utils/pto-card-helpers.ts` (`renderCardShell`, `renderRow`, `renderBucketBody`, etc.). The old `PtoSectionCard` and `SimplePtoBucketCard` base classes in `utils/pto-card-base.ts` are deprecated.
 
 ## Examples
 
@@ -415,6 +462,9 @@ Common queries that should trigger this skill:
 - **Performance**: Follow MDN performance guidelines for web components
 - **Memory Management**: All components must extend BaseComponent to prevent memory leaks from event listeners
 - **Consistency**: Use BaseComponent's event delegation and reactive update patterns for all components. Follow the [Lit reactive update cycle](https://lit.dev/docs/components/lifecycle/) — `render()` is a pure template method; `requestUpdate()` is the only way to trigger DOM updates
+- **Declarative First**: Always prefer declarative template strings over imperative DOM construction. `render()` should read as a flat, top-level description of what the component displays. Complex sections should be extracted into helper methods returning template fragments — never use IIFEs, deeply nested ternaries, or manual `innerHTML` assignment in component logic.
+- **Composition Over Embedding**: Never embed child web components by tag name inside a parent's shadow DOM template string. Use named `<slot>` elements so consumers compose children in light DOM. This ensures loose coupling and independent testability.
+- **Flat Inheritance**: Prefer extending `BaseComponent` directly over deep inheritance chains. Share behavior via exported utility functions and CSS constants in TypeScript files rather than intermediate base classes.
 - **Accessibility**: Implement ARIA attributes and keyboard navigation as per MDN accessibility guidelines
 - **Testing**: Components should have both Vitest unit tests (with seedData mocking) and Playwright E2E tests (with screenshot testing)
 - **Dependencies**: Avoid external component libraries; use native web components with BaseComponent for better performance and smaller bundle size

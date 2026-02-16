@@ -335,6 +335,40 @@ class UIManager {
         this.handlePtoRequestSubmit(e);
       });
 
+      // Handle month-selected from accrual card — compose slotted calendar
+      addEventListener(accrualCard, "month-selected", (e: CustomEvent) => {
+        const { month, year, entries, requestMode } = e.detail;
+        // Find or create the slotted pto-calendar
+        let calendar = accrualCard.querySelector("pto-calendar");
+        if (!calendar) {
+          calendar = document.createElement("pto-calendar");
+          calendar.setAttribute("slot", "calendar");
+          accrualCard.appendChild(calendar);
+        }
+        calendar.setAttribute("month", String(month - 1));
+        calendar.setAttribute("year", String(year));
+        calendar.setAttribute("pto-entries", JSON.stringify(entries));
+        calendar.setAttribute("selected-month", String(month));
+        calendar.setAttribute("readonly", String(!requestMode));
+        if (requestMode) {
+          // Ensure submit button exists
+          let submitBtn = calendar.querySelector('button[slot="submit"]');
+          if (!submitBtn) {
+            submitBtn = document.createElement("button");
+            submitBtn.setAttribute("slot", "submit");
+            submitBtn.className = "submit-button";
+            submitBtn.textContent = "Submit PTO Request";
+            calendar.appendChild(submitBtn);
+          }
+        } else {
+          // Remove submit button if not in request mode
+          const submitBtn = calendar.querySelector('button[slot="submit"]');
+          if (submitBtn) submitBtn.remove();
+        }
+        // Scroll into view
+        calendar.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+
       // Handle navigation to month from PTO detail cards
       const handleNavigateToMonth = (e: CustomEvent) => {
         e.stopPropagation();

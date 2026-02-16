@@ -188,6 +188,30 @@ export function playground(): void {
   accrual.setAttribute("request-mode", "true");
   accrual.setAttribute("annual-allocation", "96");
 
+  // Listen for month-selected events and compose slotted calendar
+  accrual.addEventListener("month-selected", ((e: CustomEvent) => {
+    const { month, year, entries, requestMode } = e.detail;
+    console.log("month-selected:", { month, year, entries, requestMode });
+
+    // Create or update slotted calendar in light DOM
+    let calendar = accrual.querySelector("pto-calendar") as HTMLElement;
+    if (!calendar) {
+      calendar = document.createElement("pto-calendar");
+      calendar.setAttribute("slot", "calendar");
+      accrual.appendChild(calendar);
+    }
+
+    calendar.setAttribute("month", String(month - 1));
+    calendar.setAttribute("year", String(year));
+    calendar.setAttribute("pto-entries", JSON.stringify(entries));
+    calendar.setAttribute("selected-month", String(month));
+    if (requestMode) {
+      calendar.removeAttribute("readonly");
+    } else {
+      calendar.setAttribute("readonly", "");
+    }
+  }) as EventListener);
+
   const ptoEntriesFiltered = approvedEntries
     .filter((e) => e.type === "PTO")
     .map((e) => ({
