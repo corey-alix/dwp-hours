@@ -116,3 +116,159 @@ test("admin-panel component test", async ({ page }) => {
   );
   expect(finalErrors).toHaveLength(0);
 });
+
+test("admin-panel seed data loading", async ({ page }) => {
+  // Navigate to the main app first to authenticate
+  await page.goto("/");
+
+  // Fill out login form with admin user email
+  await page.fill("#identifier", "admin@example.com");
+  await page.click('#login-form button[type="submit"]');
+
+  // Wait for magic link to appear
+  await page.waitForSelector("#login-message", { timeout: 10000 });
+  const magicLink = page.locator("#login-message a");
+  await expect(magicLink).toBeVisible();
+
+  // Click the magic link to login
+  await magicLink.click();
+
+  // Wait for dashboard to load
+  await page.waitForSelector("#dashboard", { timeout: 10000 });
+
+  // Check that auth cookie is set
+  const cookies = await page.context().cookies();
+  const authCookie = cookies.find((c) => c.name === "auth_hash");
+  expect(authCookie).toBeTruthy();
+
+  // Navigate to the test page
+  await page.goto("/components/admin-panel/test.html");
+
+  // Wait for the page to load
+  await page.waitForSelector("#test-output");
+
+  // Check that seed data loaded message appears
+  const testOutput = page.locator("#test-output");
+  await expect(testOutput).toContainText("Seed data loaded");
+
+  // Check that admin panel has loaded data
+  const adminPanel = page.locator("admin-panel");
+
+  // Wait a bit for data to be processed
+  await page.waitForTimeout(1000);
+
+  // Check that we can navigate to employees view and see data
+  const employeesLink = adminPanel
+    .locator(".nav-link")
+    .filter({ hasText: "👥 Employees" });
+  await employeesLink.click();
+
+  // Check that employee list is visible (indicating data loaded)
+  const employeeList = adminPanel.locator("employee-list");
+  await expect(employeeList).toBeVisible();
+
+  // Check that PTO requests view has data
+  const ptoRequestsLink = adminPanel
+    .locator(".nav-link")
+    .filter({ hasText: "📋 PTO Requests" });
+  await ptoRequestsLink.click();
+
+  const ptoRequestQueue = adminPanel.locator("pto-request-queue");
+  await expect(ptoRequestQueue).toBeVisible();
+});
+
+test("admin-panel view navigation", async ({ page }) => {
+  // Navigate to the main app first to authenticate
+  await page.goto("/");
+
+  // Fill out login form with admin user email
+  await page.fill("#identifier", "admin@example.com");
+  await page.click('#login-form button[type="submit"]');
+
+  // Wait for magic link to appear
+  await page.waitForSelector("#login-message", { timeout: 10000 });
+  const magicLink = page.locator("#login-message a");
+  await expect(magicLink).toBeVisible();
+
+  // Click the magic link to login
+  await magicLink.click();
+
+  // Wait for dashboard to load
+  await page.waitForSelector("#dashboard", { timeout: 10000 });
+
+  // Navigate to the test page
+  await page.goto("/components/admin-panel/test.html");
+
+  // Wait for the page to load
+  await page.waitForSelector("#test-output");
+
+  const adminPanel = page.locator("admin-panel");
+
+  // Test navigation to different views
+  const views = [
+    { link: "👥 Employees", component: "employee-list" },
+    { link: "📋 PTO Requests", component: "pto-request-queue" },
+    { link: "📊 Reports", component: "report-generator" },
+    { link: "📅 Monthly Review", component: "admin-monthly-review" },
+  ];
+
+  for (const view of views) {
+    const navLink = adminPanel
+      .locator(".nav-link")
+      .filter({ hasText: view.link });
+    await navLink.click();
+
+    // Check that the corresponding component is visible
+    const component = adminPanel.locator(view.component);
+    await expect(component).toBeVisible();
+
+    // Check that header title changes
+    const headerTitle = adminPanel.locator(".header h1");
+    await expect(headerTitle).toBeVisible();
+  }
+});
+
+test("admin-panel monthly review data loading", async ({ page }) => {
+  // Navigate to the main app first to authenticate
+  await page.goto("/");
+
+  // Fill out login form with admin user email
+  await page.fill("#identifier", "admin@example.com");
+  await page.click('#login-form button[type="submit"]');
+
+  // Wait for magic link to appear
+  await page.waitForSelector("#login-message", { timeout: 10000 });
+  const magicLink = page.locator("#login-message a");
+  await expect(magicLink).toBeVisible();
+
+  // Click the magic link to login
+  await magicLink.click();
+
+  // Wait for dashboard to load
+  await page.waitForSelector("#dashboard", { timeout: 10000 });
+
+  // Navigate to the test page
+  await page.goto("/components/admin-panel/test.html");
+
+  // Wait for the page to load
+  await page.waitForSelector("#test-output");
+
+  const adminPanel = page.locator("admin-panel");
+
+  // Navigate to monthly review
+  const monthlyReviewLink = adminPanel
+    .locator(".nav-link")
+    .filter({ hasText: "📅 Monthly Review" });
+  await monthlyReviewLink.click();
+
+  // Check that monthly review component is visible
+  const monthlyReview = adminPanel.locator("admin-monthly-review");
+  await expect(monthlyReview).toBeVisible();
+
+  // Wait for data to load (the component should trigger admin-monthly-review-request)
+  await page.waitForTimeout(2000);
+
+  // Check that test output shows data loaded
+  const testOutput = page.locator("#test-output");
+  await expect(testOutput).toContainText("Loaded monthly review data");
+});

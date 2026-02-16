@@ -9,24 +9,12 @@ import {
 
 // Admin Panel Test Data Integration:
 // This test harness integrates seed data from shared/seedData.ts to provide
-// realistic test data for the admin panel. Supports two modes:
-// 1. Empty state: No seed data loaded
-// 2. Seeded state: Full seed data loaded
-// Data is injected via component methods following event-driven architecture.
+// realistic test data for the admin panel.
 export function playground() {
   console.log("Starting Admin Panel playground test...");
 
   const adminPanel = querySingle<AdminPanel>("admin-panel");
   const testOutput = querySingle<HTMLElement>("#test-output");
-
-  // Create toggle button programmatically
-  const toggleButton = document.createElement("button");
-  toggleButton.id = "toggle-seed-data";
-  toggleButton.textContent = "Toggle Seed Data";
-  toggleButton.style.margin = "10px 0";
-  document.body.insertBefore(toggleButton, adminPanel);
-
-  let seedDataLoaded = false;
 
   const setOutput = (message: string) => {
     testOutput.textContent = message;
@@ -92,43 +80,11 @@ export function playground() {
       }
     }
 
-    seedDataLoaded = true;
     setOutput("Seed data loaded");
-    toggleButton.textContent = "Unload Seed Data";
   };
 
-  const unloadSeedData = () => {
-    adminPanel.setEmployees([]);
-    adminPanel.setPTORequests([]);
-
-    // Clear admin acknowledgment data
-    const shadowRoot = adminPanel.shadowRoot;
-    if (shadowRoot) {
-      const monthlyReview = shadowRoot.querySelector("admin-monthly-review");
-      if (
-        monthlyReview &&
-        typeof (monthlyReview as any).setAcknowledgmentData === "function"
-      ) {
-        (monthlyReview as any).setAcknowledgmentData([]);
-      }
-    }
-
-    seedDataLoaded = false;
-    setOutput("Seed data unloaded (empty state)");
-    toggleButton.textContent = "Load Seed Data";
-  };
-
-  // Initially load seed data
+  // Load seed data
   loadSeedData();
-
-  // Toggle button
-  addEventListener(toggleButton, "click", () => {
-    if (seedDataLoaded) {
-      unloadSeedData();
-    } else {
-      loadSeedData();
-    }
-  });
 
   // Handle admin monthly review data requests
   addEventListener(
@@ -212,132 +168,6 @@ export function playground() {
       );
     },
   );
-
-  addEventListener(adminPanel, "update-employee", (e: CustomEvent) => {
-    console.log("Update employee:", e.detail);
-    setOutput(`Update Employee: ${e.detail.employee.name}`);
-    // In a real app, this would update in database and refresh the list
-    // For testing, update the local list
-    const updatedEmployee = e.detail.employee;
-    const currentEmployees = adminPanel.employees || [];
-    const index = currentEmployees.findIndex(
-      (emp) => emp.id === updatedEmployee.id,
-    );
-    if (index !== -1) {
-      currentEmployees[index] = updatedEmployee;
-      adminPanel.setEmployees(currentEmployees);
-    }
-  });
-
-  const attachChildListeners = () => {
-    const shadowRoot = adminPanel.shadowRoot;
-    if (!shadowRoot) {
-      return;
-    }
-
-    const employeeList = shadowRoot.querySelector("employee-list");
-    if (employeeList instanceof HTMLElement) {
-      addEventListener(employeeList, "add-employee", () => {
-        setOutput("Add Employee clicked");
-      });
-
-      addEventListener(employeeList, "employee-edit", (e: CustomEvent) => {
-        setOutput(`Edit Employee: ${e.detail?.employeeId ?? "unknown"}`);
-      });
-
-      addEventListener(employeeList, "employee-delete", (e: CustomEvent) => {
-        setOutput(`Delete Employee: ${e.detail?.employeeId ?? "unknown"}`);
-      });
-
-      addEventListener(
-        employeeList,
-        "employee-acknowledge",
-        (e: CustomEvent) => {
-          setOutput(
-            `Acknowledge Employee: ${e.detail?.employeeId ?? "unknown"}`,
-          );
-        },
-      );
-    }
-
-    // Handle admin acknowledgment events from monthly review component
-    const monthlyReview = shadowRoot.querySelector("admin-monthly-review");
-    if (monthlyReview instanceof HTMLElement) {
-      addEventListener(monthlyReview, "admin-acknowledge", (e: CustomEvent) => {
-        const { employeeId, employeeName, month } = e.detail || {};
-        setOutput(
-          `Admin Acknowledge: ${employeeName || "Unknown"} (${employeeId || "unknown"}) for ${month || "unknown month"}`,
-        );
-      });
-    }
-
-    const requestQueue = shadowRoot.querySelector("pto-request-queue");
-    if (requestQueue instanceof HTMLElement) {
-      addEventListener(requestQueue, "request-approve", (e: CustomEvent) => {
-        setOutput(`Approve Request: ${e.detail?.requestId ?? "unknown"}`);
-      });
-
-      addEventListener(requestQueue, "request-reject", (e: CustomEvent) => {
-        setOutput(`Reject Request: ${e.detail?.requestId ?? "unknown"}`);
-      });
-    }
-
-    const reportGenerator = shadowRoot.querySelector("report-generator");
-    if (reportGenerator instanceof HTMLElement) {
-      addEventListener(reportGenerator, "generate-report", (e: CustomEvent) => {
-        const reportType = e.detail?.reportType ?? "unknown";
-        setOutput(`Generate Report: ${reportType}`);
-      });
-
-      addEventListener(reportGenerator, "report-exported", (e: CustomEvent) => {
-        setOutput(`Report Exported: ${e.detail?.filename ?? "csv"}`);
-      });
-
-      addEventListener(
-        reportGenerator,
-        "report-type-change",
-        (e: CustomEvent) => {
-          setOutput(`Report Type: ${e.detail?.reportType ?? "unknown"}`);
-        },
-      );
-
-      addEventListener(
-        reportGenerator,
-        "date-range-change",
-        (e: CustomEvent) => {
-          const range = e.detail?.dateRange;
-          if (range?.start && range?.end) {
-            setOutput(`Date Range: ${range.start} to ${range.end}`);
-          }
-        },
-      );
-    }
-  };
-
-  // Test view changes
-  addEventListener(adminPanel, "view-change", (e: CustomEvent) => {
-    console.log("View changed to:", e.detail.view);
-    setOutput(`Current view: ${e.detail.view}`);
-    attachChildListeners();
-  });
-
-  attachChildListeners();
-
-  // Test programmatic view changes
-  setTimeout(() => {
-    console.log("Testing programmatic view change to PTO requests...");
-    adminPanel.currentView = "pto-requests";
-  }, 2000);
-
-  setTimeout(() => {
-    console.log("Testing programmatic view change to reports...");
-    adminPanel.currentView = "reports";
-  }, 4000);
-
-  setTimeout(() => {
-    console.log("Testing programmatic view change back to employees...");
-    adminPanel.currentView = "employees";
-  }, 6000);
 
   console.log("Admin Panel playground test initialized");
 }
