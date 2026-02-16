@@ -334,7 +334,12 @@ export function formatDateForDisplay(
 ): string {
   const { year, month, day } = parseDate(dateStr);
   const date = new Date(year, month - 1, day);
-  return date.toLocaleDateString("en-US", options);
+  const defaultOptions: Intl.DateTimeFormatOptions = {
+    month: "2-digit",
+    day: "2-digit",
+    year: "numeric",
+  };
+  return date.toLocaleDateString("en-US", options || defaultOptions);
 }
 
 /**

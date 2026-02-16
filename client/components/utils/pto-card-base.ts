@@ -54,12 +54,6 @@ export const PTO_CARD_CSS = `
             font-weight: var(--font-weight-semibold);
         }
 
-        .card .label.approved::after {
-            content: " ✓";
-            color: var(--color-success);
-            font-weight: var(--font-weight-semibold);
-        }
-
         .card .negative-balance {
             color: var(--color-error);
             font-weight: var(--font-weight-semibold);
