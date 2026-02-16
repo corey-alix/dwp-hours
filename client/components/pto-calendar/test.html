@@ -6,13 +6,17 @@
     <title>PTO Calendar Component Test</title>
     <link rel="stylesheet" href="../../styles.css" />
   </head>
+
   <body>
     <h1>PTO Calendar Component Test</h1>
     <div id="test-output"></div>
 
+    <pto-calendar id="pto-calendar"></pto-calendar>
+    <debug-console></debug-console>
+
     <script type="module">
       import { ptoCalendar } from "/app.js";
-      document.body.appendChild(ptoCalendar());
+      ptoCalendar();
     </script>
   </body>
 </html>

@@ -138,10 +138,11 @@ test("component displays correctly in admin panel", async ({ page }) => {
     ></div>
 
     <component-name id="component-id"></component-name>
+    <debug-console></debug-console>
 
     <script type="module">
-      import { employeeList } from "/app.js";
-      employeeList();
+      import { componentPlayground } from "/app.js";
+      componentPlayground();
     </script>
   </body>
 </html>
@@ -150,11 +151,16 @@ test("component displays correctly in admin panel", async ({ page }) => {
 **Design Constraints**:
 
 - HTML test files must import `/app.js` to ensure all components are loaded and registered
-- HTML test files must import and call the `playground` function from the corresponding `test.ts` file
-- HTML test files must NOT contain inline attributes on web components
-- HTML test files must NOT contain test logic or code beyond the minimal imports and function call
-- All data configuration, test scenarios, and component manipulation must be in the corresponding test.ts file
-- This ensures clean separation of concerns and consistent testing patterns
+- HTML test files should import and call the `playground` function from the corresponding `test.ts` file when complex test scenarios are needed
+- For simple component display testing, HTML test files may directly import and instantiate components in the script tag
+- HTML test files must NOT contain inline attributes on web components (use script for configuration)
+- HTML test files must NOT contain test logic or code beyond minimal imports and component instantiation
+- All complex data configuration, test scenarios, and component manipulation should be in the corresponding test.ts file
+- This ensures clean separation of concerns while allowing flexibility for simple component testing
+- **No extra logic goes into test.html pages** - keep them simple with just component tags and minimal script for playground functions
+- **Debug console can be included directly in markup** - add `<debug-console></debug-console>` to the HTML for debugging output during manual testing
+
+**Note on Playground Functions**: The `componentPlayground` function imported from `/app.js` is an alias defined in `client/components/test.ts`. Each component's `test.ts` file exports a `playground` function that is imported and re-exported with a component-specific name (e.g., `ptoCalendar`, `employeeList`) in the main test.ts file. This allows the test.html to call the appropriate playground function for interactive testing.
 
 ### test.ts Pattern
 

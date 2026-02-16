@@ -31,6 +31,7 @@ import {
   PtoSummaryCard,
   PriorYearReview,
   AdminMonthlyReview,
+  DebugConsole,
 } from "./components/index.js";
 import type { CalendarEntry } from "./components/pto-calendar/index.js";
 import {
