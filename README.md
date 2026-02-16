@@ -1144,6 +1144,10 @@ Here are some similar open-source projects and commercial solutions that can ser
 
 These projects demonstrate various approaches to time off tracking, from simple spreadsheets to full HR suites.
 
+## Up Next
+
+LATER: See ./TASKS/debug-console-component.md for details
+
 ## Contributing
 
 1. Fork the repository
