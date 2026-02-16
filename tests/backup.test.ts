@@ -74,6 +74,7 @@ describe("Backup System", () => {
 
     it("should not create backup when database hasn't changed", () => {
       // Create initial backup
+      fs.writeFileSync(testDbPath, "modified content");
       createDatabaseBackupIfNeeded();
 
       // Try again without changing DB

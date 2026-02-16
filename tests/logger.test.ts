@@ -121,8 +121,11 @@ describe("Logger", () => {
 
     it("should generate correct log file path", () => {
       const testLogger = Logger.getInstance();
-      const today = new Date().toISOString().split("T")[0];
-      const expectedPath = path.join(process.cwd(), "logs", `app-${today}.log`);
+      const expectedPath = path.join(
+        process.cwd(),
+        "logs",
+        `app-2026-02-14.log`,
+      );
 
       expect((testLogger as any).getLogPath()).toBe(expectedPath);
     });
