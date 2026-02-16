@@ -89,33 +89,6 @@ function playground() {
   const monthlyReview = querySingle<AdminMonthlyReview>("admin-monthly-review");
   const testOutput = querySingle<HTMLElement>("#test-output");
 
-  // Create test controls
-  const controlsDiv = document.createElement("div");
-  controlsDiv.style.margin = "20px 0";
-  controlsDiv.style.padding = "20px";
-  controlsDiv.style.border = "1px solid #ddd";
-  controlsDiv.style.borderRadius = "8px";
-  controlsDiv.style.background = "#f9f9f9";
-
-  controlsDiv.innerHTML = `
-    <h3>Test Controls</h3>
-    <p>This component displays employee monthly data for admin review and acknowledgment.</p>
-    <div style="margin-top: 10px;">
-      <strong>Current Features:</strong>
-      <ul>
-        <li>Month selector to view different months</li>
-        <li>Employee cards showing hours breakdown</li>
-        <li>Acknowledgment status indicators</li>
-        <li>Acknowledge buttons for pending reviews</li>
-      </ul>
-    </div>
-    <div style="margin-top: 10px;">
-      <strong>Test Data:</strong> Uses seed data from shared/seedData.ts for development testing.
-    </div>
-  `;
-
-  document.body.insertBefore(controlsDiv, monthlyReview);
-
   const setOutput = (message: string) => {
     testOutput.textContent = message;
   };
