@@ -445,6 +445,10 @@ export class AdminPanel extends BaseComponent {
       e.stopPropagation();
       this.handleCustomEvent(e as CustomEvent);
     });
+    sr.addEventListener("employee-edit", (e) => {
+      e.stopPropagation();
+      this.handleCustomEvent(e as CustomEvent);
+    });
     sr.addEventListener("employee-acknowledge", (e) => {
       e.stopPropagation();
       this.handleCustomEvent(e as CustomEvent);
@@ -458,6 +462,14 @@ export class AdminPanel extends BaseComponent {
       this.handleCustomEvent(e as CustomEvent);
     });
     sr.addEventListener("request-reject", (e) => {
+      e.stopPropagation();
+      this.handleCustomEvent(e as CustomEvent);
+    });
+    sr.addEventListener("update-employee", (e) => {
+      e.stopPropagation();
+      this.handleCustomEvent(e as CustomEvent);
+    });
+    sr.addEventListener("create-employee", (e) => {
       e.stopPropagation();
       this.handleCustomEvent(e as CustomEvent);
     });
@@ -576,7 +588,7 @@ export class AdminPanel extends BaseComponent {
     this.dispatchEvent(
       new CustomEvent(eventType, {
         detail: { employee, isEdit },
-        bubbles: false,
+        bubbles: true,
         composed: true,
       }),
     );
@@ -586,8 +598,12 @@ export class AdminPanel extends BaseComponent {
     this.hideEmployeeForm();
     this.requestUpdate();
 
-    // Update local state for immediate UI feedback (only for edits)
-    // Note: Removed direct call to handleEmployeeUpdate since the event will handle it
+    // Update local state for immediate UI feedback
+    if (isEdit) {
+      this.handleEmployeeUpdate(employee);
+    } else {
+      this.handleEmployeeCreate(employee);
+    }
 
     // Return focus to the Edit button after save
     if (employeeId) {
