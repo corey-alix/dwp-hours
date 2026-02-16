@@ -78,7 +78,7 @@ These components predate `BaseComponent` and were written before the project ado
   - `renderRow(label: string, value: string, cssClass?: string): string` — single data row
   - `renderToggleButton(expanded: boolean, hasEntries: boolean): string` — expand/collapse UI
   - `renderUsageList(entries: UsageEntry[], fullEntries?: PTOEntry[]): string` — date usage section
-- [ ] Validate: `npm run build` passes (no consumers yet — just the utility module)
+- [ ] Validate: `pnpm run build` passes (no consumers yet — just the utility module)
 
 ### Stage 2: Migrate Simple Cards (Low Risk, Proof-of-Concept)
 
@@ -219,11 +219,98 @@ protected render(): string {
 - **Affected Users**: Developers maintaining PTO dashboard components
 - **Risk if Unaddressed**: Event listener leaks accumulate during user sessions; adding new features to card components becomes increasingly error-prone
 
+## Oversights, Difficulties, and Agent Guidance
+
+### 1. `this.shadow` → `this.shadowRoot` Rename (All Components)
+
+All existing cards store the shadow root in a property called `this.shadow` (declared by `PtoSectionCard`). `BaseComponent` exposes it as `this.shadowRoot`. When migrating, **every** reference to `this.shadow` in a card component must become `this.shadowRoot`. However, since migrated components use a pure `render()` that returns a string (never touches the DOM directly), most `this.shadow.innerHTML` and `this.shadow.querySelector` calls will simply disappear. The only place `this.shadowRoot` might still be needed is inside `handleDelegatedClick()` if you need to query an element, but prefer `(e.target as HTMLElement)` via delegation instead.
+
+### 2. The Four Bucket Cards Are Nearly Identical — Extract, Don't Copy-Paste
+
+`PtoPtoCard`, `PtoBereavementCard`, `PtoSickCard`, and `PtoJuryDutyCard` have almost identical `render()` bodies (~150 lines each). The only differences are:
+
+- The card title string (`"PTO"`, `"Sick Time"`, `"Bereavement"`, `"Jury Duty"`)
+- The `e.type` filter string used for approval checking (`"PTO"`, `"Sick"`, `"Bereavement"`, `"Jury Duty"`)
+- `PtoJuryDutyCard` does NOT render negative-balance formatting on the remaining row (the others do)
+
+When creating `renderUsageList()` and `renderToggleButton()` in `pto-card-helpers.ts`, parameterize by `entryType: string` so each card's `render()` becomes a short, readable composition of helpers. Do not copy 150 lines into each component.
+
+### 3. `monthNames` Export Must Move Too
+
+`PtoAccrualCard` imports `monthNames` from `pto-card-base.ts`. When the base classes are deleted in Stage 5, this import will break. Move `monthNames` to a shared location (e.g., `pto-card-helpers.ts` or `shared/dateUtils.ts`) **in Stage 1**, not Stage 5. Note that `pto-calendar` and `prior-year-review` each have their own local `monthNames` constant — consider deduplicating all three into a single export.
+
+### 4. `bucket` / `usageEntries` / `isExpanded` Setters Are Part of the Public API
+
+`app.ts` (the main application controller) calls these property setters directly:
+
+```typescript
+sickCard.bucket = status.sickTime;
+sickCard.usageEntries = this.buildUsageEntries(...);
+sickCard.fullPtoEntries = entries.filter(...);
+```
+
+The migrated components **must preserve these exact setter names** and their calling conventions. The agent must not rename these to `setData()` or use `setAttribute()` — the callers expect property setters.
+
+Similarly, `PtoAccrualCard` exposes:
+
+- `monthlyAccruals`, `monthlyUsage`, `ptoEntries`, `calendarYear`, `requestMode`, `annualAllocation`, `navigateToMonth(month, year)`
+
+All of these are called from `app.ts` and must remain unchanged.
+
+### 5. `navigate-to-month` Event Contract Must Be Preserved
+
+All four bucket cards dispatch `navigate-to-month` with `{ month, year }` detail. `app.ts` listens for this and calls `accrualCard.navigateToMonth(month, year)`. This event contract must be preserved exactly. The event handler in `handleDelegatedClick()` must check for `.usage-date` clicks, read `data-date`, parse it, and dispatch the same event.
+
+### 6. Accrual Card Slot Refactor Is the Hardest Part — E2E Tests Will Break
+
+The E2E test (`component-pto-accrual-card.spec.ts`) clicks a calendar button and then expects `page.locator("pto-calendar")` to be visible. Currently the calendar lives inside the accrual card's shadow DOM. After the slot refactor:
+
+- The `<pto-calendar>` will be in light DOM as a slotted child
+- The E2E locator `page.locator("pto-calendar")` will likely still work (Playwright pierces shadow DOM by default for locators, and light DOM elements are always visible)
+- However, the **test page (`pto-accrual-card/test.html` and `test.ts`)** must be updated to compose the calendar as a slotted child, and the `test.ts` playground must listen for `month-selected` and create/update the slotted calendar element dynamically
+- The `pto-dashboard/test.html` and `pto-dashboard/test.ts` must also be updated
+
+### 7. `PtoAccrualCard` Currently Filters PTO Entries Per-Month Internally
+
+When a month is clicked, `PtoAccrualCard.render()` filters `this._ptoEntries` for the selected month and passes the filtered list to the embedded `<pto-calendar>` as a `pto-entries` attribute. After the slot refactor, this filtering logic must move to the consumer (the entity that creates the slotted `<pto-calendar>`), or the accrual card must include the filtered entries in the `month-selected` event detail so the consumer can configure the calendar.
+
+Recommended: dispatch `month-selected` with `{ month, year, entries: filteredEntries }` detail.
+
+### 8. No Unit Tests Exist for Any Card Component
+
+There are no Vitest unit tests in `tests/components/` for any PTO card — only E2E Playwright tests exist. The migration plan's "Validate: unit tests pass" steps are aspirational. The agent should:
+
+- Not create new unit tests during migration (keep scope focused)
+- Rely on E2E tests and `pnpm run build` for validation
+- Note in each stage's completion that unit tests are still TODO
+
+### 9. `connectedCallback` Behavior Change
+
+`PtoSectionCard` and `SimplePtoBucketCard` override `connectedCallback` to call `this.render()`. `BaseComponent.connectedCallback()` automatically calls `this.update()` → `this.render()` → `this.renderTemplate()`. The migrated cards **must not** override `connectedCallback` to call `render()` or `requestUpdate()` — just calling `super.connectedCallback()` (or omitting the override entirely) is sufficient. Calling `requestUpdate()` in `connectedCallback` would cause a double render.
+
+### 10. `attributeChangedCallback` and `observedAttributes`
+
+The existing cards use `attributeChangedCallback` to parse JSON from attributes and call `this.render()`. After migration:
+
+- Keep `observedAttributes` and `attributeChangedCallback` but call `this.requestUpdate()` instead of `this.render()`
+- Consider whether attribute-based data injection is even needed — `app.ts` exclusively uses property setters, never `setAttribute` for data. The only attributes set in HTML are `request-mode` and `annual-allocation` on the accrual card (see `client/index.html`). The agent may simplify by removing attribute handling for complex data (JSON) and keeping it only for simple string/boolean config.
+
+### 11. Build and Validate After Each Stage — Not Just at the End
+
+Run `pnpm run build` after each stage before proceeding. The TypeScript compiler will catch import errors from deleted base classes early. Do not defer all validation to Stage 5.
+
+### 12. `pto-dashboard/index.ts` Re-exports Must Be Preserved
+
+`client/components/pto-dashboard/index.ts` re-exports all card classes. After migration, these imports/exports must be updated if import paths change, but the public exports must remain the same for backward compatibility.
+
 ## Investigation Checklist
 
 - [x] Identify all components in the PtoSectionCard hierarchy
 - [x] Review BaseComponent contract and migration steps in SKILL.md
 - [x] Confirm design decisions (flatten hierarchy, TS CSS constants, named slots, checkmark unchanged)
-- [ ] Check existing E2E test coverage for each card component
-- [ ] Verify screenshot baselines exist for visual regression testing
-- [ ] Confirm no other components import `PTO_CARD_CSS` or `renderCard()` directly
+- [x] Check existing E2E test coverage for each card component (all 7 cards have E2E specs)
+- [x] Verify screenshot baselines exist for visual regression testing (no screenshot baselines — tests use functional assertions only)
+- [x] Confirm no other components import `PTO_CARD_CSS` or `renderCard()` directly (only the card components themselves do)
+- [x] Audit `app.ts` for property setter / event contracts that must be preserved
+- [x] Identify `monthNames` export dependency from `pto-card-base.ts`
+- [x] Confirm no unit tests exist (only E2E)
