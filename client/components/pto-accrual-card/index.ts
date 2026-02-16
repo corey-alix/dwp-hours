@@ -326,6 +326,7 @@ export class PtoAccrualCard extends BaseComponent {
         <h4>${this._requestMode ? "PTO Request - Select Month" : "Monthly Accrual Breakdown"}</h4>
         ${this.renderMonthGrid()}
         <slot name="calendar"></slot>
+        <slot name="balance-summary"></slot>
       </div>
     `;
   }

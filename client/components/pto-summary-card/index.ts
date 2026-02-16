@@ -62,7 +62,8 @@ export class PtoSummaryCard extends BaseComponent {
       <div class="row"><span class="label">Available</span><span class="${getValueClass(this.data.availablePTO)}">${formatValue(this.data.availablePTO)} hours</span></div>
     `;
 
-    return `<style>${CARD_CSS}</style>${renderCardShell("Regular PTO", body)}`;
+    return `<style>${CARD_CSS}</style>${renderCardShell("Regular PTO", body)}
+      <slot name="balance-summary"></slot>`;
   }
 }
 

@@ -8,7 +8,7 @@ import {
   PtoSickCard,
   PtoSummaryCard,
 } from "./index.js";
-import { today } from "../../../shared/dateUtils.js";
+import { today, formatDateForDisplay } from "../../../shared/dateUtils.js";
 import { seedPTOEntries, seedEmployees } from "../../../shared/seedData.js";
 
 // Get employee data
@@ -153,11 +153,7 @@ const juryEntries = ptoEntries
     hours: e.hours,
   }));
 
-// Helper function to format YYYY-MM-DD to MM/DD/YYYY
-function formatDateForDisplay(dateStr: string): string {
-  const [year, month, day] = dateStr.split("-");
-  return `${parseInt(month)}/${parseInt(day)}/${year}`;
-}
+// formatDateForDisplay imported from shared/dateUtils.js
 
 export function playground(): void {
   console.log("Starting PTO dashboard playground test with API data...");

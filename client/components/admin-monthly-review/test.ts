@@ -7,6 +7,8 @@ import {
   seedAdminAcknowledgments,
 } from "../../../shared/seedData.js";
 import type { AdminMonthlyReviewItem } from "../../../shared/api-models.js";
+import type { PtoBalanceSummary } from "../pto-balance-summary/index.js";
+import type { PtoBalanceData } from "../../../shared/api-models.js";
 
 // Admin Monthly Review Test Architecture:
 // This test harness implements the "seed data integration" testing pattern:
@@ -123,6 +125,24 @@ function playground() {
   const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
   const initialData = generateMonthlyData(currentMonth);
   monthlyReview.setEmployeeData(initialData);
+
+  // Set up balance summary data
+  const balanceSummary = monthlyReview.querySelector(
+    "pto-balance-summary",
+  ) as PtoBalanceSummary;
+  if (balanceSummary) {
+    const mockBalanceData: PtoBalanceData = {
+      employeeId: 0, // Summary for all
+      employeeName: "All Employees",
+      categories: [
+        { category: "PTO", remaining: 45 },
+        { category: "Sick", remaining: 12 },
+        { category: "Bereavement", remaining: 30 },
+        { category: "Jury Duty", remaining: -8 }, // exceeded
+      ],
+    };
+    balanceSummary.setBalanceData(mockBalanceData);
+  }
 
   setOutput(
     `Admin Monthly Review component loaded with data for ${initialData.length} employees. Select a month and test acknowledgment functionality.`,

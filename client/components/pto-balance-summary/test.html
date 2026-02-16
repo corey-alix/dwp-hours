@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PTO Balance Summary Test</title>
+    <link rel="stylesheet" href="../../styles.css" />
+  </head>
+
+  <body>
+    <h1>PTO Balance Summary Component Test</h1>
+    <div id="test-output"></div>
+
+    <h2>Employee 1 (seed-computed)</h2>
+    <pto-balance-summary id="balance-emp-1"></pto-balance-summary>
+
+    <h2>Employee 2 (seed-computed)</h2>
+    <pto-balance-summary id="balance-emp-2"></pto-balance-summary>
+
+    <h2>Employee 3 (seed-computed)</h2>
+    <pto-balance-summary id="balance-emp-3"></pto-balance-summary>
+
+    <h2>Empty state (no data set)</h2>
+    <pto-balance-summary id="balance-empty"></pto-balance-summary>
+
+    <debug-console></debug-console>
+    <script type="module">
+      import { ptoBalanceSummary } from "/app.js";
+      ptoBalanceSummary();
+    </script>
+  </body>
+</html>

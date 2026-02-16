@@ -239,3 +239,17 @@ export interface ErrorResponse {
   error: string;
   details?: any[];
 }
+
+// PTO Balance Summary types
+import type { PTOType } from "./businessRules.js";
+
+export interface PtoBalanceCategoryItem {
+  category: PTOType; // "PTO" | "Sick" | "Bereavement" | "Jury Duty"
+  remaining: number; // positive = available, negative = exceeded
+}
+
+export interface PtoBalanceData {
+  employeeId: number;
+  employeeName: string;
+  categories: PtoBalanceCategoryItem[];
+}

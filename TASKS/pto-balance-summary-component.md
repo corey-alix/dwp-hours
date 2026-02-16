@@ -29,11 +29,11 @@ Before implementing, read these skill files for binding project conventions:
 
 The `employee-list` component currently extends raw `HTMLElement` with imperative rendering (`this.shadow.innerHTML = ...`) and manual event listener setup. It must be migrated to `BaseComponent` before per-employee rendering can work cleanly.
 
-- [ ] Refactor `EmployeeList` to extend `BaseComponent` instead of `HTMLElement`
-- [ ] Remove manual `this.shadow = this.attachShadow(...)` (handled by `BaseComponent` constructor)
-- [ ] Convert `render()` from imperative `this.shadow.innerHTML = ...` to declarative `return templateString` pattern
-- [ ] Replace manual `setupEventListeners()` with `handleDelegatedClick()` override for action button clicks
-- [ ] Override `setupEventDelegation()` with a `_customEventsSetup` guard to add the `input` event listener for search filtering (click and submit are handled by BaseComponent, but `input` is not):
+- [x] Refactor `EmployeeList` to extend `BaseComponent` instead of `HTMLElement`
+- [x] Remove manual `this.shadow = this.attachShadow(...)` (handled by `BaseComponent` constructor)
+- [x] Convert `render()` from imperative `this.shadow.innerHTML = ...` to declarative `return templateString` pattern
+- [x] Replace manual `setupEventListeners()` with `handleDelegatedClick()` override for action button clicks
+- [x] Override `setupEventDelegation()` with a `_customEventsSetup` guard to add the `input` event listener for search filtering (click and submit are handled by BaseComponent, but `input` is not):
   ```typescript
   private _customEventsSetup = false;
   protected setupEventDelegation() {
@@ -49,18 +49,18 @@ The `employee-list` component currently extends raw `HTMLElement` with imperativ
     });
   }
   ```
-- [ ] Convert `filterEmployees()` from imperative DOM-query toggling (`.classList.add("hidden")`) to a reactive pattern: filter `_employees` by `_searchTerm` in `render()` and let the template reflect the filtered list. Remove all `querySelectorAll(".employee-card")` usage.
-- [ ] Replace all `this.render()` calls with `this.requestUpdate()`
-- [ ] Replace all `this.shadow` references with `this.shadowRoot`
-- [ ] Verify existing `<slot name="top-content">` still works after migration
-- [ ] Run existing E2E tests to confirm no regressions: `pnpm run test:e2e`
-- [ ] Run build and lint: `pnpm run build && pnpm run lint`
+- [x] Convert `filterEmployees()` from imperative DOM-query toggling (`.classList.add("hidden")`) to a reactive pattern: filter `_employees` by `_searchTerm` in `render()` and let the template reflect the filtered list. Remove all `querySelectorAll(".employee-card")` usage.
+- [x] Replace all `this.render()` calls with `this.requestUpdate()`
+- [x] Replace all `this.shadow` references with `this.shadowRoot`
+- [x] Verify existing `<slot name="top-content">` still works after migration
+- [x] Run existing E2E tests to confirm no regressions: `pnpm run test:e2e`
+- [x] Run build and lint: `pnpm run build && pnpm run lint`
 
 **Validation**: `pnpm run build` passes, `pnpm run lint` passes, all existing E2E tests pass, employee list renders and search works in browser.
 
 ### Phase 1: Component Design and Planning
 
-- [ ] Define bespoke `PtoBalanceData` model in `shared/api-models.ts`:
+- [x] Define bespoke `PtoBalanceData` model in `shared/api-models.ts`:
 
   ```typescript
   import type { PTOType } from "./businessRules.js";
@@ -76,11 +76,11 @@ The `employee-list` component currently extends raw `HTMLElement` with imperativ
   }
   ```
 
-- [ ] Define component API:
+- [x] Define component API:
   - **Properties**: `PtoBalanceData` (set via `setBalanceData()` method)
   - **Events**: none (display-only component)
   - **Slots**: none (leaf component — no children)
-- [ ] Design compact at-a-glance layout: horizontal row of category badges, each showing category name and remaining hours value
+- [x] Design compact at-a-glance layout: horizontal row of category badges, each showing category name and remaining hours value
 
 **Validation**: Interfaces compile without errors (`pnpm run build`).
 
@@ -96,11 +96,14 @@ client/components/pto-balance-summary/
 └── README.md     # Usage documentation
 ```
 
-- [ ] Create `client/components/pto-balance-summary/index.ts` with this skeleton:
+- [x] Create `client/components/pto-balance-summary/index.ts` with this skeleton:
 
   ```typescript
   import { BaseComponent } from "../base-component.js";
-  import type { PtoBalanceData } from "../../../shared/api-models.js";
+  import type {
+    PtoBalanceData,
+    PtoBalanceCategoryItem,
+  } from "../../../shared/api-models.js";
 
   export class PtoBalanceSummary extends BaseComponent {
     private _data: PtoBalanceData | null = null;
@@ -137,13 +140,13 @@ client/components/pto-balance-summary/
   customElements.define("pto-balance-summary", PtoBalanceSummary);
   ```
 
-- [ ] Define `STYLES` constant with CSS using only `var()` token references — no hardcoded colors:
+- [x] Define `STYLES` constant with CSS using only `var()` token references — no hardcoded colors:
   - `.balance-available` → `color: var(--color-success)`
   - `.balance-exceeded` → `color: var(--color-error)`
   - `.balance-badge` → `padding: var(--space-xs) var(--space-sm)`, `border-radius: var(--border-radius)`, `font-size: var(--font-size-xs)`
   - `.balance-row` → `display: flex; gap: var(--space-sm); flex-wrap: wrap`
-- [ ] Add ARIA attributes for accessibility: `role="status"` on container, `aria-label` on each badge
-- [ ] Create `test.html` following project pattern:
+- [x] Add ARIA attributes for accessibility: `role="status"` on container, `aria-label` on each badge
+- [x] Create `test.html` following project pattern:
   ```html
   <!doctype html>
   <html lang="en">
@@ -165,7 +168,7 @@ client/components/pto-balance-summary/
     </body>
   </html>
   ```
-- [ ] Create `test.ts` playground using `seedData.ts` to compute mock `PtoBalanceData`:
+- [x] Create `test.ts` playground using `seedData.ts` to compute mock `PtoBalanceData`:
 
   ```typescript
   import { querySingle } from "../test-utils.js";
@@ -199,18 +202,18 @@ client/components/pto-balance-summary/
 
 The component does NOT compute balances — it receives pre-computed `PtoBalanceData` via `setBalanceData()`. The parent/orchestrator is responsible for computing remaining values using business rules and API data.
 
-- [ ] Ensure `setBalanceData()` calls `this.requestUpdate()` (already in skeleton)
-- [ ] Handle all four PTO categories: PTO, Sick, Bereavement, Jury Duty
-- [ ] Display only remaining/exceeded value per category (no annual limits or breakdowns — at-a-glance only)
-- [ ] Handle edge cases in `render()`: null data (loading state), empty categories array, zero remaining
+- [x] Ensure `setBalanceData()` calls `this.requestUpdate()` (already in skeleton)
+- [x] Handle all four PTO categories: PTO, Sick, Bereavement, Jury Duty
+- [x] Display only remaining/exceeded value per category (no annual limits or breakdowns — at-a-glance only)
+- [x] Handle edge cases in `render()`: null data (loading state), empty categories array, zero remaining
 
 **Validation**: Component gracefully handles null data, empty arrays, zero values, and negative values.
 
 ### Phase 4: Integration with Admin Monthly Review
 
-- [ ] Add `<slot name="balance-summary">` to the `admin-monthly-review` component's `render()` method, positioned after the `.employee-grid` section
-- [ ] In the parent that composes `admin-monthly-review`, provide `<pto-balance-summary slot="balance-summary">` in light DOM and inject data via `setBalanceData()`
-- [ ] Test rendering within admin monthly review context on its `test.html`
+- [x] Add `<slot name="balance-summary">` to the `admin-monthly-review` component's `render()` method, positioned after the `.employee-grid` section
+- [x] In the parent that composes `admin-monthly-review`, provide `<pto-balance-summary slot="balance-summary">` in light DOM and inject data via `setBalanceData()`
+- [x] Test rendering within admin monthly review context on its `test.html`
 
 **Validation**: Balance summary renders at the bottom of admin monthly review. Data updates when month selector changes.
 
@@ -218,16 +221,16 @@ The component does NOT compute balances — it receives pre-computed `PtoBalance
 
 **Slot-based integration** (parent declares slot, consumer composes in light DOM):
 
-- [ ] `pto-calendar`: Add `<slot name="balance-summary"></slot>` to its `render()` template
-- [ ] `employee-form`: Add `<slot name="balance-summary"></slot>` to its `render()` template
-- [ ] `pto-employee-info-card`: Add `<slot name="balance-summary"></slot>` to its `render()` template
-- [ ] `pto-request-queue`: Add `<slot name="balance-summary"></slot>` to its `render()` template
-- [ ] `pto-summary-card`: Add `<slot name="balance-summary"></slot>` to its `render()` template
-- [ ] `pto-accrual-card`: Add `<slot name="balance-summary"></slot>` to its `render()` template
+- [x] `pto-calendar`: Add `<slot name="balance-summary"></slot>` to its `render()` template
+- [x] `employee-form`: Add `<slot name="balance-summary"></slot>` to its `render()` template
+- [x] `pto-employee-info-card`: Add `<slot name="balance-summary"></slot>` to its `render()` template
+- [x] `pto-request-queue`: Add `<slot name="balance-summary"></slot>` to its `render()` template
+- [x] `pto-summary-card`: Add `<slot name="balance-summary"></slot>` to its `render()` template
+- [x] `pto-accrual-card`: Add `<slot name="balance-summary"></slot>` to its `render()` template
 
 **Per-employee embedding in `employee-list`** (exception to "Named Slots Over Component Embedding" rule):
 
-- [ ] Render `<pto-balance-summary>` inside each `renderEmployeeCard()` template in `employee-list`. This is an intentional exception: slots cannot repeat per-item inside a rendered list. The parent component must imperatively call `setBalanceData()` on each instance after render via `shadowRoot.querySelectorAll("pto-balance-summary")`.
+- [x] Render `<pto-balance-summary>` inside each `renderEmployeeCard()` template in `employee-list`. This is an intentional exception: slots cannot repeat per-item inside a rendered list. The parent component must imperatively call `setBalanceData()` on each instance after render via `shadowRoot.querySelectorAll("pto-balance-summary")`.
   ```typescript
   // Inside renderEmployeeCard():
   private renderEmployeeCard(employee: Employee): string {
@@ -248,32 +251,32 @@ The component does NOT compute balances — it receives pre-computed `PtoBalance
 
 **Unit tests** — create `tests/components/pto-balance-summary.test.ts`:
 
-- [ ] Use `// @vitest-environment happy-dom` directive
-- [ ] Import component and `seedData.ts` for mock data
-- [ ] Test: renders empty state when no data is set
-- [ ] Test: renders all four category badges when `setBalanceData()` is called
-- [ ] Test: applies `balance-available` class when `remaining >= 0`
-- [ ] Test: applies `balance-exceeded` class when `remaining < 0`
-- [ ] Test: displays correct hours value in badge text
-- [ ] Test: handles zero remaining gracefully (should show `balance-available`)
-- [ ] **Never call `render()` directly** — always use `setBalanceData()` which calls `requestUpdate()`
+- [x] Use `// @vitest-environment happy-dom` directive
+- [x] Import component and `seedData.ts` for mock data
+- [x] Test: renders empty state when no data is set
+- [x] Test: renders all four category badges when `setBalanceData()` is called
+- [x] Test: applies `balance-available` class when `remaining >= 0`
+- [x] Test: applies `balance-exceeded` class when `remaining < 0`
+- [x] Test: displays correct hours value in badge text
+- [x] Test: handles zero remaining gracefully (should show `balance-available`)
+- [x] **Never call `render()` directly** — always use `setBalanceData()` which calls `requestUpdate()`
 
 **E2E tests** — create `e2e/component-pto-balance-summary.spec.ts`:
 
-- [ ] Test: component renders on its own `test.html` page
-- [ ] Test: visual appearance with mixed positive/negative values (screenshot test)
-- [ ] Use `test.step()` for logical grouping of actions
+- [x] Test: component renders on its own `test.html` page
+- [x] Test: visual appearance with mixed positive/negative values (screenshot test)
+- [x] Use `test.step()` for logical grouping of actions
 
 **Validation**: `pnpm run test:unit` passes, `pnpm run test:e2e` passes.
 
 ### Phase 7: Registration and Integration
 
-- [ ] `customElements.define('pto-balance-summary', PtoBalanceSummary)` — place at the bottom of `index.ts` (already in skeleton)
-- [ ] Add to `client/components/index.ts`:
+- [x] `customElements.define('pto-balance-summary', PtoBalanceSummary)` — place at the bottom of `index.ts` (already in skeleton)
+- [x] Add to `client/components/index.ts`:
   ```typescript
   export { PtoBalanceSummary } from "./pto-balance-summary/index.js";
   ```
-- [ ] Add to `client/components/test.ts`:
+- [x] Add to `client/components/test.ts`:
   ```typescript
   // At top with other imports:
   import { playground as ptoBalanceSummary } from "./pto-balance-summary/test.js";
@@ -285,9 +288,9 @@ The component does NOT compute balances — it receives pre-computed `PtoBalance
 
 ### Phase 8: Documentation and Quality Gates
 
-- [ ] Create `client/components/pto-balance-summary/README.md` with usage examples showing both slot-based and embedded usage patterns
-- [ ] Ensure `pnpm run build` passes
-- [ ] Ensure `pnpm run lint` passes
+- [x] Create `client/components/pto-balance-summary/README.md` with usage examples showing both slot-based and embedded usage patterns
+- [x] Ensure `pnpm run build` passes
+- [x] Ensure `pnpm run lint` passes
 - [ ] Manual testing across all integrated components in their `test.html` pages
 - [ ] Code review for adherence to project standards
 
@@ -305,6 +308,7 @@ The component does NOT compute balances — it receives pre-computed `PtoBalance
 - **Accessibility**: Add `role="status"` on the container, `aria-label` on badges describing the value and category.
 - **Test data**: Use `shared/seedData.ts` for all test mocking — never hardcode test data.
 - **TypeScript strict mode**: No `as any` casts. Use the `PtoBalanceSummary` type for DOM queries via `querySingle<PtoBalanceSummary>()`.
+- **Date formatting in tests**: Tests should use `shared/dateUtils.ts` functions for date formatting instead of hard-coded date strings to ensure consistency with application formatting.
 
 ## Questions and Concerns
 
@@ -315,3 +319,12 @@ _Resolved:_
 3. ✅ Bespoke `PtoBalanceData` model with pre-computed remaining values per category.
 4. ✅ At-a-glance only — show remaining/exceeded value, no annual limits or "used / limit" breakdown.
 5. ✅ `employee-list` per-item embedding is an intentional exception to the "Named Slots Over Component Embedding" rule — slots cannot repeat per-item in dynamic lists.
+
+_Discovered during implementation:_
+
+6. ✅ **`api-models` is a `.d.ts` file, not `.ts`** — The shared model file is `shared/api-models.d.ts` (declaration file), not `shared/api-models.ts`. The `PtoBalanceData` interfaces will be added there. Import paths in component code use `../../../shared/api-models.js` which resolves correctly for both `.ts` and `.d.ts`.
+7. ✅ **Phase 0 unit tests must be updated** — The existing `tests/components/employee-list.test.ts` tests the imperative `.hidden` class toggling pattern. After reactive migration (filtering in `render()`), filtered-out cards won't exist in DOM at all, so tests asserting `employeeCards?.length === 3` and `.classList.contains("hidden")` will break. Unit tests will be rewritten to match the reactive pattern (card count = filtered count, no `.hidden` class usage).
+8. ✅ **Phase 0 must preserve `employee-submit` and `form-cancel` event forwarding** — The current `setupEventListeners()` forwards these custom events from the inline `<employee-form>` editor. These must be preserved in `setupEventDelegation()` with the `_customEventsSetup` guard pattern since they are custom events, not click/submit.
+9. ✅ **`test.ts` playground imports `seedPTOEntries` but doesn't use it** — The skeleton in Phase 2 imports `seedPTOEntries` from seedData but only uses hardcoded mock values. Will remove the unused import and keep seedEmployees for `employeeName`.
+10. ✅ **`test.ts` must compute `PtoBalanceData` from seed data, not inline mocks** — All playground `test.ts` files must derive their data from `seedData.ts` rather than hardcoding values. The `test.ts` should import `seedPTOEntries`, `seedEmployees`, and `BUSINESS_RULES_CONSTANTS`, then compute remaining hours per category per employee (annual limit minus used hours from seed entries). If the seed data does not naturally produce negative (exceeded) values, augment the computed result after retrieval rather than modifying `seedData.ts` (to avoid breaking other tests).
+11. ✅ **`test.html` should declare multiple `<pto-balance-summary>` instances** — To visually verify various states (all positive, mixed, all exceeded, empty), `test.html` should include one element per seed employee plus an empty-state element. The `test.ts` playground populates each instance from computed seed data, ensuring at least one shows negative values.

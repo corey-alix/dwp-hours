@@ -97,6 +97,7 @@ export class EmployeeForm extends BaseComponent {
                     ${this.renderFormFields()}
                     ${this.renderFormActions()}
                 </form>
+                <slot name="balance-summary"></slot>
             </div>
         `;
   }

@@ -156,6 +156,9 @@ export function playground() {
             } else {
               calendar.setAttribute("readonly", "");
             }
+
+            // Scroll the calendar into view
+            calendar.scrollIntoView({ behavior: "smooth", block: "nearest" });
           }) as EventListener);
 
           querySingle("#test-output").textContent =

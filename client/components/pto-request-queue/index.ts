@@ -297,6 +297,7 @@ export class PtoRequestQueue extends HTMLElement {
                             .join("")
                     }
                 </div>
+                <slot name="balance-summary"></slot>
             </div>
         `;
   }

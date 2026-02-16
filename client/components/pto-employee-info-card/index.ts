@@ -39,6 +39,7 @@ export class PtoEmployeeInfoCard extends BaseComponent {
         ${renderRow("Next Rollover", this.data.nextRolloverDate)}
       `,
       )}
+      <slot name="balance-summary"></slot>
     `;
   }
 }

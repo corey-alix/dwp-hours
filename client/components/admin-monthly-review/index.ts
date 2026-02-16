@@ -364,6 +364,7 @@ export class AdminMonthlyReview extends BaseComponent {
         </div>
       `
       }
+      <slot name="balance-summary"></slot>
     `;
   }
 

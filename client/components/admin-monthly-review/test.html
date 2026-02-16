@@ -11,7 +11,9 @@
     <h1>Admin Monthly Review Component Test</h1>
     <div id="test-output"></div>
 
-    <admin-monthly-review id="monthly-review"></admin-monthly-review>
+    <admin-monthly-review id="monthly-review">
+      <pto-balance-summary slot="balance-summary"></pto-balance-summary>
+    </admin-monthly-review>
 
     <script type="module">
       import { adminMonthlyReview } from "/app.js";

@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { formatDateForDisplay } from "../shared/dateUtils.js";
 
 test("pto-dashboard component test", async ({ page }) => {
   const consoleMessages: { type: string; text: string }[] = [];
@@ -172,9 +173,15 @@ test("pto-dashboard component test", async ({ page }) => {
       return label?.className;
     });
     expect(sickUsedLabel).toBe("label approved");
-    expect(sickData.entries[0]).toBe("2/16/2026 8.0 hours");
-    expect(sickData.entries[1]).toBe("2/14/2026 8.0 hours");
-    expect(sickData.entries[2]).toBe("2/12/2026 8.0 hours");
+    expect(sickData.entries[0]).toBe(
+      `${formatDateForDisplay("2026-02-16")} 8.0 hours`,
+    );
+    expect(sickData.entries[1]).toBe(
+      `${formatDateForDisplay("2026-02-14")} 8.0 hours`,
+    );
+    expect(sickData.entries[2]).toBe(
+      `${formatDateForDisplay("2026-02-12")} 8.0 hours`,
+    );
 
     // Check individual date approval indicators
     const sickDateClasses = await page.evaluate(() => {
@@ -228,7 +235,9 @@ test("pto-dashboard component test", async ({ page }) => {
     });
     expect(bereavementUsedLabel).toBe("label approved");
     // Check usage entries
-    expect(bereavementData.entries[0]).toBe("6/12/2026 8.0 hours");
+    expect(bereavementData.entries[0]).toBe(
+      `${formatDateForDisplay("2026-06-12")} 8.0 hours`,
+    );
 
     // Check individual date approval indicators
     const bereavementDateClasses = await page.evaluate(() => {
@@ -276,7 +285,9 @@ test("pto-dashboard component test", async ({ page }) => {
     expect(usedLabel).toBe("label approved");
     // Check that there are jury duty entries
     expect(juryData.entries.length).toBeGreaterThan(0);
-    expect(juryData.entries[0]).toBe("6/15/2026 8.0 hours");
+    expect(juryData.entries[0]).toBe(
+      `${formatDateForDisplay("2026-06-15")} 8.0 hours`,
+    );
 
     // Check individual date approval indicators
     const juryDateClasses = await page.evaluate(() => {
@@ -326,7 +337,9 @@ test("pto-dashboard component test", async ({ page }) => {
     expect(ptoUsedLabel).toBe("label approved");
     // Check that there are PTO entries
     expect(ptoData.entries.length).toBeGreaterThan(0);
-    expect(ptoData.entries[0]).toBe("2/20/2026 8.0 hours");
+    expect(ptoData.entries[0]).toBe(
+      `${formatDateForDisplay("2026-02-20")} 8.0 hours`,
+    );
 
     // Check individual date approval indicators
     const ptoDateClasses = await page.evaluate(() => {
@@ -353,8 +366,10 @@ test("pto-dashboard component test", async ({ page }) => {
       const rows = shadow.querySelectorAll(".row");
       return Array.from(rows).map((row) => row.textContent.trim());
     });
-    expect(infoRows[0]).toBe("Hire Date1/15/2020");
-    expect(infoRows[1]).toBe("Next Rollover1/1/2027");
+    expect(infoRows[0]).toBe(`Hire Date${formatDateForDisplay("2020-01-15")}`);
+    expect(infoRows[1]).toBe(
+      `Next Rollover${formatDateForDisplay("2027-01-01")}`,
+    );
   });
 
   // Test calendar colorings for February (month 2)

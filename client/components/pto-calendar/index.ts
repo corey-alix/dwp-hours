@@ -342,6 +342,7 @@ export class PtoCalendar extends HTMLElement {
                       )
                       .join("")}
                 </div>
+                <slot name="balance-summary"></slot>
                 ${this.readonly ? "" : '<div class="submit-slot"><slot name="submit"></slot></div>'}
             </div>
         `;
