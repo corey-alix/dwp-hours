@@ -1,5 +1,6 @@
 /* Import design tokens */
 @import url("tokens.css");
+@import url("atomic.css");
 
 /* Reset and base styles */
 * {

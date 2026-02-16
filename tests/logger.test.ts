@@ -8,6 +8,10 @@ describe("Logger", () => {
   const originalCwd = process.cwd();
 
   beforeEach(() => {
+    // Set fake date to ensure consistent test results
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-02-15T00:00:00Z"));
+
     // Create test logs directory
     if (!fs.existsSync(testLogsDir)) {
       fs.mkdirSync(testLogsDir, { recursive: true });
@@ -23,6 +27,9 @@ describe("Logger", () => {
   });
 
   afterEach(() => {
+    // Restore real timers
+    vi.useRealTimers();
+
     // Restore original directory
     process.chdir(originalCwd);
 

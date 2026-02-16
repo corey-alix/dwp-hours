@@ -48,10 +48,11 @@
           <button id="toggle-pto-request-mode">Submit PTO Requests</button>
         </div>
         <div id="pto-status">
-          <h3>Your PTO Status</h3>
+          <pto-employee-info-card
+            class="bg-color-surface border-color-primary rounded-lg p-4"
+          ></pto-employee-info-card>
           <div class="pto-summary">
             <pto-summary-card></pto-summary-card>
-            <pto-employee-info-card></pto-employee-info-card>
             <pto-pto-card></pto-pto-card>
             <pto-sick-card></pto-sick-card>
             <pto-bereavement-card></pto-bereavement-card>

@@ -1,0 +1,24 @@
+/* 
+ Atomic CSS Utilities - DWP Hours Tracker
+ Low-level, reusable utility classes following atomic CSS principles 
+*/
+
+/* Background utilities */
+.bg-color-surface {
+  background-color: var(--color-surface);
+}
+
+/* Border utilities */
+.border-color-primary {
+  border: 1px solid var(--color-primary);
+}
+
+/* Border radius utilities */
+.rounded-lg {
+  border-radius: 8px;
+}
+
+/* Padding utilities */
+.p-4 {
+  padding: 16px;
+}
