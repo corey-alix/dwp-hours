@@ -188,5 +188,35 @@ export function playground() {
     setOutput(`Rejected PTO request ID: ${e.detail.requestId}`);
   });
 
+  // Handle employee proxy events
+  addEventListener(adminPanel, "employee-acknowledge", (e: CustomEvent) => {
+    console.log("Employee acknowledge event:", e.detail);
+    setOutput(
+      `Acknowledged employee ID: ${e.detail.employeeId}, acknowledged: ${e.detail.acknowledged}`,
+    );
+  });
+
+  addEventListener(adminPanel, "employee-delete", (e: CustomEvent) => {
+    console.log("Employee delete event:", e.detail);
+    setOutput(`Deleted employee ID: ${e.detail.employeeId}`);
+  });
+
+  addEventListener(adminPanel, "admin-acknowledge", (e: CustomEvent) => {
+    console.log("Admin acknowledge event:", e.detail);
+    setOutput(
+      `Admin acknowledged employee: ${e.detail.employeeName} for ${e.detail.month}`,
+    );
+  });
+
+  addEventListener(adminPanel, "create-employee", (e: CustomEvent) => {
+    console.log("Create employee event:", e.detail);
+    setOutput(`Created employee: ${e.detail.employee.name}`);
+  });
+
+  addEventListener(adminPanel, "update-employee", (e: CustomEvent) => {
+    console.log("Update employee event:", e.detail);
+    setOutput(`Updated employee: ${e.detail.employee.name}`);
+  });
+
   console.log("Admin Panel playground test initialized");
 }

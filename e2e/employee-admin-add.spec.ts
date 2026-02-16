@@ -75,8 +75,7 @@ test.describe("Employee Admin Panel - Add Employee", () => {
     await adminPanel.evaluate((el: any, emp: any) => {
       el._editingEmployee = emp;
       el._showEmployeeForm = true;
-      el.render();
-      el.setupEventDelegation();
+      el.requestUpdate();
     }, employeeData);
 
     // Wait for employee form to appear

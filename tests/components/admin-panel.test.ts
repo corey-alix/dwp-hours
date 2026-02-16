@@ -368,6 +368,99 @@ describe("AdminPanel Component", () => {
       );
     });
 
+    it("should proxy employee-acknowledge from shadowRoot to host exactly once", () => {
+      // Track calls to handleCustomEvent to detect duplicate listeners
+      let callCount = 0;
+      const originalMethod = (component as any).handleCustomEvent.bind(
+        component,
+      );
+      vi.spyOn(component as any, "handleCustomEvent").mockImplementation(
+        (...args: unknown[]) => {
+          callCount++;
+          return originalMethod(args[0]);
+        },
+      );
+
+      // Track what events the host element dispatches outward
+      const hostEvents: string[] = [];
+      component.addEventListener("employee-acknowledge", () => {
+        hostEvents.push("employee-acknowledge");
+      });
+
+      // Simulate a child component dispatching inside the shadow DOM
+      component.shadowRoot.dispatchEvent(
+        new CustomEvent("employee-acknowledge", {
+          detail: { employeeId: 1, acknowledged: true },
+          bubbles: true,
+          composed: true,
+        }),
+      );
+
+      // Handler must be called exactly once — no duplicate listeners, no re-entrancy
+      expect(callCount).toBe(1);
+
+      // The proxy should have re-dispatched exactly one event on the host
+      expect(hostEvents).toHaveLength(1);
+    });
+
+    it("should proxy employee-delete from shadowRoot to host exactly once", () => {
+      let callCount = 0;
+      const originalMethod = (component as any).handleCustomEvent.bind(
+        component,
+      );
+      vi.spyOn(component as any, "handleCustomEvent").mockImplementation(
+        (...args: unknown[]) => {
+          callCount++;
+          return originalMethod(args[0]);
+        },
+      );
+
+      const hostEvents: string[] = [];
+      component.addEventListener("employee-delete", () => {
+        hostEvents.push("employee-delete");
+      });
+
+      component.shadowRoot.dispatchEvent(
+        new CustomEvent("employee-delete", {
+          detail: { employeeId: 1 },
+          bubbles: true,
+          composed: true,
+        }),
+      );
+
+      expect(callCount).toBe(1);
+      expect(hostEvents).toHaveLength(1);
+    });
+
+    it("should proxy admin-acknowledge from shadowRoot to host exactly once", () => {
+      let callCount = 0;
+      const originalMethod = (component as any).handleCustomEvent.bind(
+        component,
+      );
+      vi.spyOn(component as any, "handleCustomEvent").mockImplementation(
+        (...args: unknown[]) => {
+          callCount++;
+          return originalMethod(args[0]);
+        },
+      );
+
+      const hostEvents: string[] = [];
+      component.addEventListener("admin-acknowledge", () => {
+        hostEvents.push("admin-acknowledge");
+      });
+
+      component.shadowRoot.dispatchEvent(
+        new CustomEvent("admin-acknowledge", {
+          detail: { employeeId: 1, employeeName: "John", month: "2026-01" },
+          bubbles: true,
+          composed: true,
+        }),
+      );
+
+      expect(callCount).toBe(1);
+      expect(hostEvents).toHaveLength(1);
+    });
+
     it("should change view to pto-requests programmatically", () => {
       component.currentView = "pto-requests";
       expect(component.currentView).toBe("pto-requests");

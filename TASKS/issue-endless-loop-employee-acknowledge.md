@@ -48,18 +48,25 @@ The `AdminPanel` component in `client/components/admin-panel/index.ts` is creati
 
 ## Resolution Summary
 
-**Root Cause Identified**: The `setupEventDelegation` method adds an event listener for "employee-acknowledge", and when the event is handled, it dispatches a new event of the same type with `bubbles: true`, causing the listener to catch the dispatched event again, creating an infinite loop.
+**Root Cause Identified**: The `setupEventDelegation` method added event listeners on `this` (the host element) for events like `"employee-acknowledge"`. When `handleCustomEvent` re-dispatched a new event of the same type on `this` with `bubbles: true`, the same listener caught the new event, creating an infinite loop. The same pattern affected `"employee-delete"` and `"admin-acknowledge"`.
 
-**Fix Applied**: Added `e.stopPropagation()` to the "employee-acknowledge" event listener in `setupEventDelegation`. This stops the incoming event from continuing to bubble, while the dispatched event (with `bubbles: true`) bubbles to parent components without re-triggering the handler.
+**Why `stopPropagation()` alone was insufficient**: `e.stopPropagation()` only prevents the _original_ event from propagating further. The _newly dispatched_ event on `this` is a separate event that still triggers the `addEventListener` on the same element.
+
+**Fix Applied (two-layer defense)**:
+
+1. **Moved listeners from `this` to `this.shadowRoot`**: Child component events bubble through the shadow DOM and reach `shadowRoot`. Listening there means the re-dispatched event (on `this`, the host) does not re-enter the shadow tree in spec-compliant browsers.
+2. **Added re-entrancy guard (`_handlingEvent` flag)**: Some test environments (e.g., happy-dom) propagate host-dispatched events back into the shadow tree. A boolean flag in `handleCustomEvent` short-circuits re-entrant calls, providing defense-in-depth.
+
+**Proxy/facade pattern preserved**: AdminPanel still intercepts all child component events, stops their propagation, and re-dispatches them on the host element. Parent components (app.ts, test.ts) continue to listen on the AdminPanel element and receive clean, proxied events.
+
+**Affected events**: `"employee-acknowledge"`, `"employee-delete"`, `"admin-acknowledge"` (all pass-through proxy events that dispatch the same event type).
 
 **Validation**:
 
+- 22 unit tests pass (3 new cycle-detection tests added)
 - Build and lint pass
-- E2E tests for admin monthly review pass
-- No regressions in unit tests
-- Event handling now works without loops
-
-**Note on "admin-acknowledge"**: This event does not have a listener in AdminPanel, so it bubbles directly to the parent (app.ts) without issues. The case in `handleCustomEvent` is unused and can be considered dead code.
+- Proxy pattern verified: events dispatched from shadowRoot are re-emitted on host
+- No infinite loops detected under either real shadow DOM or happy-dom semantics
 
 ## Investigation Checklist
 
@@ -110,7 +117,10 @@ The `AdminPanel` component in `client/components/admin-panel/index.ts` is creati
 
 ## Related Files
 
-- `client/components/admin-panel/index.ts` - Main component file
-- Any parent components that listen for these events
-- E2E test files for admin panel functionality</content>
+- `client/components/admin-panel/index.ts` - Main component file (fix applied here)
+- `client/components/employee-list/index.ts` - Dispatches `employee-acknowledge` and `employee-delete` via `data-action` buttons
+- `client/components/admin-monthly-review/index.ts` - Dispatches `admin-acknowledge`
+- `client/app.ts` - Parent that listens for proxied events on admin-panel
+- `client/components/admin-panel/test.ts` - Playground test harness
+- `tests/components/admin-panel.test.ts` - Unit tests (3 new cycle-detection tests added)</content>
   <parameter name="filePath">/home/ca0v/code/corey-alix/dwp-hours/mars/TASKS/issue-endless-loop-employee-acknowledge.md
