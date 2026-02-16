@@ -357,6 +357,8 @@ export class PtoRequestQueue extends HTMLElement {
           this.dispatchEvent(
             new CustomEvent(`request-${action}`, {
               detail: { requestId: parseInt(requestId) },
+              bubbles: true,
+              composed: true,
             }),
           );
         }

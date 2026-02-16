@@ -157,6 +157,14 @@ All components follow MDN web component best practices and are ready for integra
 - [ ] Create component documentation and usage examples
 - [ ] Validate component compatibility across browsers
 
+### PTO Request Event Handling
+
+- [x] Add event listeners in AdminPanel for `request-approve` and `request-reject` events from pto-request-queue
+- [x] Dispatch bubbled `pto-approve` and `pto-reject` events from AdminPanel to parent controllers
+- [x] Update test.ts playground to listen for `pto-approve` and `pto-reject` events and update test-output
+- [x] Test clicking Approve/Reject buttons in test.html and verify test-output updates
+- [x] Ensure events bubble correctly through the component hierarchy (Fixed: Added `bubbles: true, composed: true` to pto-request-queue events)
+
 ## Implementation Guidelines
 
 ### Component File Structure
