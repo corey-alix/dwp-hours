@@ -10,6 +10,14 @@ import {
 // Admin Panel Test Data Integration:
 // This test harness integrates seed data from shared/seedData.ts to provide
 // realistic test data for the admin panel.
+//
+// ROLE: This playground test is ONLY for:
+// 1. Seeding test data into components
+// 2. Hooking into component events to report them to the user via #test-output
+// 3. Demonstrating component functionality in the browser
+//
+// Component interaction testing (button clicks, form validation) should be done in Vitest unit tests.
+// E2E Playwright tests are for API interactions and visual snapshots only.
 export function playground() {
   console.log("Starting Admin Panel playground test...");
 
@@ -168,6 +176,17 @@ export function playground() {
       );
     },
   );
+
+  // Handle PTO request approve/reject events
+  addEventListener(adminPanel, "pto-approve", (e: CustomEvent) => {
+    console.log("PTO approve event:", e.detail);
+    setOutput(`Approved PTO request ID: ${e.detail.requestId}`);
+  });
+
+  addEventListener(adminPanel, "pto-reject", (e: CustomEvent) => {
+    console.log("PTO reject event:", e.detail);
+    setOutput(`Rejected PTO request ID: ${e.detail.requestId}`);
+  });
 
   console.log("Admin Panel playground test initialized");
 }

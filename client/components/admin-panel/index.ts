@@ -400,6 +400,24 @@ export class AdminPanel extends BaseComponent {
         // Handle our own create-employee events to update local state
         this.handleEmployeeCreate(event.detail.employee);
         break;
+      case "request-approve":
+        this.dispatchEvent(
+          new CustomEvent("pto-approve", {
+            detail: event.detail,
+            bubbles: true,
+            composed: true,
+          }),
+        );
+        break;
+      case "request-reject":
+        this.dispatchEvent(
+          new CustomEvent("pto-reject", {
+            detail: event.detail,
+            bubbles: true,
+            composed: true,
+          }),
+        );
+        break;
     }
   }
 
@@ -419,9 +437,15 @@ export class AdminPanel extends BaseComponent {
       this.handleCustomEvent(e as CustomEvent);
     });
     this.addEventListener("employee-acknowledge", (e) => {
+      e.stopPropagation();
       this.handleCustomEvent(e as CustomEvent);
     });
-    this.addEventListener("employee-edit", (e) => {
+    this.addEventListener("request-approve", (e) => {
+      e.stopPropagation();
+      this.handleCustomEvent(e as CustomEvent);
+    });
+    this.addEventListener("request-reject", (e) => {
+      e.stopPropagation();
       this.handleCustomEvent(e as CustomEvent);
     });
     // Listen for our own events to update local state

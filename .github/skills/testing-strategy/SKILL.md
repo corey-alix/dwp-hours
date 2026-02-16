@@ -38,6 +38,7 @@ Ensure test files follow web-components-assistant guidelines:
 - **HTML Files**: Must NOT contain inline attributes on web components
 - **TypeScript Files**: Handle all data and configuration programmatically
 - **Data Sources**: Use seedData.ts for consistent test data
+- **Strong Typing**: Unit tests should NOT cast components to `any`, but instead rely on proper TypeScript interfaces and component APIs
 - **Validation**: Run build + lint + tests after refactoring
 
 **Pattern**: HTML defines structure, TypeScript sets properties via `setAttribute()` or direct assignment.

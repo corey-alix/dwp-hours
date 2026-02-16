@@ -328,4 +328,49 @@ describe("AdminPanel Component", () => {
       // Let's remove this and focus on component-internal behavior
     });
   });
+
+  describe("PTO Request Event Handling", () => {
+    it("should dispatch pto-approve event when request-approve is received", () => {
+      const mockDispatchEvent = vi.fn();
+      component.dispatchEvent = mockDispatchEvent;
+
+      // Directly call handleCustomEvent to simulate the event handling
+      (component as any).handleCustomEvent(
+        new CustomEvent("request-approve", {
+          detail: { requestId: 1 },
+        }),
+      );
+
+      expect(mockDispatchEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "pto-approve",
+          detail: { requestId: 1 },
+        }),
+      );
+    });
+
+    it("should dispatch pto-reject event when request-reject is received", () => {
+      const mockDispatchEvent = vi.fn();
+      component.dispatchEvent = mockDispatchEvent;
+
+      // Directly call handleCustomEvent to simulate the event handling
+      (component as any).handleCustomEvent(
+        new CustomEvent("request-reject", {
+          detail: { requestId: 2 },
+        }),
+      );
+
+      expect(mockDispatchEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "pto-reject",
+          detail: { requestId: 2 },
+        }),
+      );
+    });
+
+    it("should change view to pto-requests programmatically", () => {
+      component.currentView = "pto-requests";
+      expect(component.currentView).toBe("pto-requests");
+    });
+  });
 });

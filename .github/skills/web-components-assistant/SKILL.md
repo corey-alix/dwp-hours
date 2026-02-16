@@ -31,18 +31,19 @@ Activate when users need to:
 Follow this structured approach when implementing web components:
 
 1. **Component Analysis**: Assess the component's purpose, props, state, and integration needs
-2. **Base Class Selection**: Extend BaseComponent for memory-safe, consistent components
-3. **Custom Element Definition**: Create class extending BaseComponent with proper naming conventions
-4. **Shadow DOM Setup**: Automatic shadow root creation via BaseComponent
-5. **Lifecycle Methods**: Override connectedCallback, disconnectedCallback as needed (BaseComponent handles cleanup)
-6. **Template & Styling**: Define component template and styles following MDN best practices
-7. **Property & Attribute Handling**: Set up observedAttributes and property getters/setters
-8. **Event Handling**: Use event delegation via handleDelegatedClick/handleDelegatedSubmit methods
-9. **Data Flow Architecture**: Use event-driven data flow - components dispatch events for data requests, parent handles API calls and data injection via methods like setPtoData()
-10. **Memory Management**: BaseComponent automatically handles event listener cleanup
-11. **Unit Testing**: Create Vitest tests with happy-dom using seedData for mocking
-12. **Integration Testing**: Test component in the DWP Hours Tracker context with Playwright E2E tests
-13. **Documentation**: Update component usage documentation
+2. **CRITICAL: Static Imports Only** - Never use `await import()` or dynamic imports. All imports must be static at the top level. The build system uses esbuild to create a single `app.js` bundle loaded by test.html pages.
+3. **Base Class Selection**: Extend BaseComponent for memory-safe, consistent components
+4. **Custom Element Definition**: Create class extending BaseComponent with proper naming conventions
+5. **Shadow DOM Setup**: Automatic shadow root creation via BaseComponent
+6. **Lifecycle Methods**: Override connectedCallback, disconnectedCallback as needed (BaseComponent handles cleanup)
+7. **Template & Styling**: Define component template and styles following MDN best practices
+8. **Property & Attribute Handling**: Set up observedAttributes and property getters/setters
+9. **Event Handling**: Use event delegation via handleDelegatedClick/handleDelegatedSubmit methods
+10. **Data Flow Architecture**: Use event-driven data flow - components dispatch events for data requests, parent handles API calls and data injection via methods like setPtoData()
+11. **Memory Management**: BaseComponent automatically handles event listener cleanup
+12. **Unit Testing**: Create Vitest tests with happy-dom using seedData for mocking
+13. **Integration Testing**: Test component in the DWP Hours Tracker context with Playwright E2E tests
+14. **Documentation**: Update component usage documentation
 
 ## Component Testing Pattern
 
@@ -70,6 +71,7 @@ Create comprehensive unit tests using Vitest with happy-dom environment:
 - **Data Injection Pattern**: Use component methods (like `setPtoData()`) to inject mock data
 - **DOM Testing**: Verify rendered output, CSS classes, and element interactions
 - **Event Testing**: Assert that components dispatch correct custom events with proper detail objects
+- **Automatic Rendering**: Never manually call `component.render()` in tests - components should manage their own rendering lifecycle
 
 Example Vitest test structure:
 
@@ -149,6 +151,7 @@ test("component displays correctly in admin panel", async ({ page }) => {
 
 **Design Constraints**:
 
+- **CRITICAL: Static Imports Only** - `await import()` is strictly forbidden. All imports must be static at the top level of files. The project uses esbuild to create a single `app.js` artifact loaded by `test.html` pages. Dynamic imports break the build system and will cause runtime errors.
 - HTML test files must import `/app.js` to ensure all components are loaded and registered
 - HTML test files must import and call the `playground` function from the corresponding `test.ts` file
 - HTML test files must NOT contain inline attributes on web components

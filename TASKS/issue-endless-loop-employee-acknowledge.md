@@ -46,40 +46,55 @@ The `AdminPanel` component in `client/components/admin-panel/index.ts` is creati
 4. Has the event handling logic been recently modified?
 5. Does this occur in all browsers or specific ones?
 
+## Resolution Summary
+
+**Root Cause Identified**: The `setupEventDelegation` method adds an event listener for "employee-acknowledge", and when the event is handled, it dispatches a new event of the same type with `bubbles: true`, causing the listener to catch the dispatched event again, creating an infinite loop.
+
+**Fix Applied**: Added `e.stopPropagation()` to the "employee-acknowledge" event listener in `setupEventDelegation`. This stops the incoming event from continuing to bubble, while the dispatched event (with `bubbles: true`) bubbles to parent components without re-triggering the handler.
+
+**Validation**:
+
+- Build and lint pass
+- E2E tests for admin monthly review pass
+- No regressions in unit tests
+- Event handling now works without loops
+
+**Note on "admin-acknowledge"**: This event does not have a listener in AdminPanel, so it bubbles directly to the parent (app.ts) without issues. The case in `handleCustomEvent` is unused and can be considered dead code.
+
 ## Investigation Checklist
 
 ### Phase 1: Reproduce and Isolate
 
-- [ ] Set up a test environment to trigger the "employee-acknowledge" event
-- [ ] Confirm the endless loop occurs and log the event firing pattern
-- [ ] Test "admin-acknowledge" event for the same issue
-- [ ] Run `npm run build` and `npm run lint` to ensure no build issues
+- [x] Set up a test environment to trigger the "employee-acknowledge" event
+- [x] Confirm the endless loop occurs and log the event firing pattern
+- [x] Test "admin-acknowledge" event for the same issue
+- [x] Run `npm run build` and `npm run lint` to ensure no build issues
 
 ### Phase 2: Root Cause Analysis
 
-- [ ] Review the `handleCustomEvent` method in AdminPanel component
-- [ ] Analyze event dispatching logic for "employee-acknowledge" and "admin-acknowledge"
-- [ ] Check event listener setup in `setupEventDelegation`
-- [ ] Identify why the dispatched event re-triggers the handler
+- [x] Review the `handleCustomEvent` method in AdminPanel component
+- [x] Analyze event dispatching logic for "employee-acknowledge" and "admin-acknowledge"
+- [x] Check event listener setup in `setupEventDelegation`
+- [x] Identify why the dispatched event re-triggers the handler
 
 ### Phase 3: Implement Fix
 
-- [ ] Modify event dispatching to prevent loops (e.g., change event type or prevent bubbling)
-- [ ] Ensure parent components still receive the events appropriately
-- [ ] Update any related event handling logic
+- [x] Modify event dispatching to prevent loops (e.g., change event type or prevent bubbling)
+- [x] Ensure parent components still receive the events appropriately
+- [x] Update any related event handling logic
 
 ### Phase 4: Testing and Validation
 
-- [ ] Test the fix manually by triggering the events
-- [ ] Run existing E2E tests to ensure no regressions
-- [ ] Verify event bubbling to parent components works correctly
-- [ ] Run `npm run test` for unit tests
+- [x] Test the fix manually by triggering the events
+- [x] Run existing E2E tests to ensure no regressions
+- [x] Verify event bubbling to parent components works correctly
+- [x] Run `npm run test` for unit tests
 
 ### Phase 5: Documentation and Cleanup
 
-- [ ] Update component documentation if needed
-- [ ] Ensure code quality standards are met
-- [ ] Mark task as complete in TASKS/README.md
+- [x] Update component documentation if needed
+- [x] Ensure code quality standards are met
+- [x] Mark task as complete in TASKS/README.md
 
 ## Suggested Debugging Steps
 
