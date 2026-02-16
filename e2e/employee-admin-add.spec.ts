@@ -75,8 +75,7 @@ test.describe("Employee Admin Panel - Add Employee", () => {
     await adminPanel.evaluate((el: any, emp: any) => {
       el._editingEmployee = emp;
       el._showEmployeeForm = true;
-      el.render();
-      el.setupEventDelegation();
+      el.requestUpdate();
     }, employeeData);
 
     // Wait for employee form to appear
@@ -87,7 +86,7 @@ test.describe("Employee Admin Panel - Add Employee", () => {
     await editForm.evaluate((form: any, emp: any) => {
       form.employee = emp;
       form.isEdit = true;
-      form.render();
+      form.requestUpdate();
     }, employeeData);
 
     // Verify the form is in edit mode (should have "Update Employee" button)

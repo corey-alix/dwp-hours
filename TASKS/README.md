@@ -13,6 +13,7 @@ This document outlines all remaining tasks to complete the DWP Hours Tracker app
 3. ✅ **[pto-calculations.md](pto-calculations.md)** - PTO status calculations
 4. ✅ **[api-endpoints.md](api-endpoints.md)** - Complete API endpoints
 5. # ✅ **[issue-date-handling-regression.md](issue-date-handling-regression.md)** - Fix timezone-related date shifting bugs
+6. ✅ **[issue-endless-loop-employee-acknowledge.md](issue-endless-loop-employee-acknowledge.md)** - Fix endless loop in AdminPanel event handling
 
 ### 🟡 Medium Priority (Backend/API Core Features)
 
@@ -40,7 +41,7 @@ database-schema.md
     ├── testing-suite.md
     ├── data-migration.md
     ├── security-production.md
-    ├── admin-panel.md ✅
+    ├── admin-panel.md (incomplete)
     └── admin-review-acknowledgment.md
 ```
 
@@ -110,7 +111,7 @@ database-schema.md
 5. ✅ **testing-suite.md** - comprehensive testing suite implemented
 6. ✅ **data-migration.md** - legacy data migration completed
 7. ✅ **security-production.md** - production readiness completed
-8. ✅ **admin-panel.md** - admin UI features completed
+8. **admin-panel.md** - admin UI features (incomplete - missing event handling for PTO request approve/reject)
 9. ✅ **issue-date-handling-regression.md** - critical date handling bug fix needed
 10. ✅ **design-constraints.md** - code quality improvements needed
 11. ✅ **admin-review-acknowledgment.md** - admin review UI
@@ -121,6 +122,7 @@ database-schema.md
 16. **design-constraints.md** - code quality improvements needed
 17. Implement **admin-review-acknowledgment.md** - admin review UI
 18. ✅ **issue-test-file-conventions-regression.md** - fix test file conventions regression
+19. ✅ **issue-endless-loop-employee-acknowledge.md** - fix endless loop in AdminPanel event handling
 
 Each task file contains detailed checklists for implementation steps.</content>
 <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/TASKS/README.md

@@ -31,6 +31,7 @@ export class AdminPanel extends BaseComponent {
   private _editingEmployee: Employee | null = null;
   private _editingEmployeeId: number | null = null;
   private _isSubmitting = false;
+  private _customEventsSetup = false;
 
   static get observedAttributes() {
     return ["current-view"];
@@ -350,7 +351,7 @@ export class AdminPanel extends BaseComponent {
     }
   }
 
-  // Override to handle custom events from child components
+  // Handle custom events from child components (proxy/facade pattern)
   protected handleCustomEvent(event: CustomEvent): void {
     switch (event.type) {
       case "employee-submit":
@@ -400,6 +401,24 @@ export class AdminPanel extends BaseComponent {
         // Handle our own create-employee events to update local state
         this.handleEmployeeCreate(event.detail.employee);
         break;
+      case "request-approve":
+        this.dispatchEvent(
+          new CustomEvent("pto-approve", {
+            detail: event.detail,
+            bubbles: true,
+            composed: true,
+          }),
+        );
+        break;
+      case "request-reject":
+        this.dispatchEvent(
+          new CustomEvent("pto-reject", {
+            detail: event.detail,
+            bubbles: true,
+            composed: true,
+          }),
+        );
+        break;
     }
   }
 
@@ -407,27 +426,41 @@ export class AdminPanel extends BaseComponent {
   protected setupEventDelegation() {
     super.setupEventDelegation();
 
-    // Listen for custom events from child components
-    this.addEventListener("employee-submit", (e) => {
+    // Guard: listeners on shadowRoot survive innerHTML replacement in
+    // renderTemplate(), so they must only be added once to prevent
+    // duplicate handler invocations on every re-render.
+    if (this._customEventsSetup) return;
+    this._customEventsSetup = true;
+
+    const sr = this.shadowRoot;
+    sr.addEventListener("employee-submit", (e) => {
       e.stopPropagation();
       this.handleCustomEvent(e as CustomEvent);
     });
-    this.addEventListener("form-cancel", (e) => {
+    sr.addEventListener("form-cancel", (e) => {
+      e.stopPropagation();
       this.handleCustomEvent(e as CustomEvent);
     });
-    this.addEventListener("employee-delete", (e) => {
+    sr.addEventListener("employee-delete", (e) => {
+      e.stopPropagation();
       this.handleCustomEvent(e as CustomEvent);
     });
-    this.addEventListener("employee-acknowledge", (e) => {
+    sr.addEventListener("employee-acknowledge", (e) => {
+      e.stopPropagation();
       this.handleCustomEvent(e as CustomEvent);
     });
-    this.addEventListener("employee-edit", (e) => {
+    sr.addEventListener("admin-acknowledge", (e) => {
+      e.stopPropagation();
       this.handleCustomEvent(e as CustomEvent);
     });
-    // Listen for our own events to update local state
-    // this.addEventListener("update-employee", (e) => {
-    //   this.handleCustomEvent(e as CustomEvent);
-    // });
+    sr.addEventListener("request-approve", (e) => {
+      e.stopPropagation();
+      this.handleCustomEvent(e as CustomEvent);
+    });
+    sr.addEventListener("request-reject", (e) => {
+      e.stopPropagation();
+      this.handleCustomEvent(e as CustomEvent);
+    });
   }
 
   private handleFormCancel() {

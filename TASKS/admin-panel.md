@@ -157,6 +157,112 @@ All components follow MDN web component best practices and are ready for integra
 - [ ] Create component documentation and usage examples
 - [ ] Validate component compatibility across browsers
 
+### PTO Request Event Handling
+
+- [x] Add event listeners in AdminPanel for `request-approve` and `request-reject` events from pto-request-queue
+- [x] Dispatch bubbled `pto-approve` and `pto-reject` events from AdminPanel to parent controllers
+- [x] Update test.ts playground to listen for `pto-approve` and `pto-reject` events and update test-output
+- [x] Test clicking Approve/Reject buttons in test.html and verify test-output updates
+- [x] Ensure events bubble correctly through the component hierarchy (Fixed: Added `bubbles: true, composed: true` to pto-request-queue events)
+
+### Employee Search Filtering
+
+- [x] Implement search input with real-time filtering by name, identifier, and role
+- [x] Fix event listener persistence across re-renders (use event delegation instead of direct attachment)
+- [x] Test search functionality in browser test harness
+- [x] Fix search filtering defect with CSS-based approach instead of re-rendering
+- [x] Update unit tests to verify CSS class application and DOM stability
+- [x] Preserve input value during filtering operations
+
+#### Defect: Search Filtering Not Working
+
+**Steps to Reproduce:**
+
+1. Open test.html
+2. Click on "Employees"
+3. Type "John" into the search input
+4. Observe that all employees are still listed
+
+**Expected Behavior:** Only "John Doe" should show
+
+**Actual Behavior:** Pressing the "J" key triggers the component to redraw and "John Doe" and "Jane Smith" are shown.
+
+**Root Cause Analysis:**
+The EmployeeList component re-renders itself when the search input changes, but the search input's `value` attribute is not being set in the template. The search term is stored in `this._searchTerm` but not reflected back to the input element during re-rendering, causing the input to lose its value and appear to "clear" immediately.
+
+**Proposed Solution:**
+Instead of re-rendering the entire component on each keystroke (which destroys and recreates the input element), implement a CSS-based filtering approach:
+
+1. As the user types, filter the employee list but do not re-render the component
+2. Decorate non-matching employee cards with a `no-match` CSS class that has `display: none`
+3. Preserve the input element's value by not re-rendering it
+4. Update the employee count display to show filtered count
+
+This approach maintains input state while providing visual filtering without DOM recreation.
+
+**Testing Strategy:**
+Update `tests/components/employee-list.test.ts` to verify the CSS-based filtering:
+
+1. **Input Preservation Test**: Verify the search input retains its value after filtering occurs
+2. **CSS Class Application Test**: Check that non-matching employee cards receive the `no-match` class
+3. **Visibility Test**: Confirm that cards with `no-match` class are hidden (`display: none`)
+4. **Count Update Test**: Ensure the employee count display shows the filtered count
+5. **DOM Stability Test**: Verify that the same DOM elements persist across filtering operations
+6. **Performance Test**: Confirm no component re-rendering occurs during typing
+
+**Test Implementation:**
+
+```typescript
+it("should preserve input value during filtering", () => {
+  const searchInput = component.shadowRoot?.querySelector(
+    "#search-input",
+  ) as HTMLInputElement;
+  searchInput.value = "John";
+  searchInput.dispatchEvent(new Event("input", { bubbles: true }));
+
+  // Input value should be preserved
+  expect(searchInput.value).toBe("John");
+
+  // Check CSS classes are applied instead of DOM changes
+  const cards = component.shadowRoot?.querySelectorAll(".employee-card");
+  // Verify same number of DOM elements exist
+  // Verify appropriate cards have no-match class
+});
+```
+
+**Status:** Resolved
+
+## Implementation
+
+The search filtering defect has been fixed by implementing CSS-based filtering instead of component re-rendering:
+
+### Changes Made
+
+1. **Removed `_filteredEmployees` array** - No longer needed since all employees are always rendered
+2. **Added `hidden` CSS class** - Applied to non-matching employee cards with `display: none`
+3. **Modified `filterEmployees()` method** - Now applies/removes CSS classes instead of filtering arrays
+4. **Updated count display** - Dynamically updates visible count without re-rendering
+5. **Preserved input value** - Search input now maintains its value across filtering operations
+6. **Updated unit tests** - Tests now verify CSS class application instead of DOM element counts
+
+### Key Benefits
+
+- **Input preservation**: Search input value is maintained during typing
+- **Performance**: No DOM recreation on each keystroke
+- **Stability**: Same DOM elements persist across filtering operations
+- **Maintainability**: Cleaner separation between data filtering and UI updates
+
+### Test Coverage
+
+Added comprehensive test cases:
+
+- Input value preservation during filtering
+- CSS class application to hidden employees
+- Dynamic count display updates
+- DOM element stability verification
+
+All tests pass and the search functionality now works correctly in the browser test harness.
+
 ## Implementation Guidelines
 
 ### Component File Structure

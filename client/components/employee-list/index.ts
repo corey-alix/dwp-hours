@@ -13,7 +13,6 @@ import { querySingle } from "../test-utils";
 export class EmployeeList extends HTMLElement {
   private shadow: ShadowRoot;
   private _employees: Employee[] = [];
-  private _filteredEmployees: Employee[] = [];
   private _searchTerm = "";
   private _editingEmployeeId: number | null = null;
 
@@ -35,14 +34,16 @@ export class EmployeeList extends HTMLElement {
     if (oldValue !== newValue && name === "employees") {
       try {
         this._employees = JSON.parse(newValue);
-        this.filterEmployees();
+        this._searchTerm = ""; // Reset search when employees change
         this.render();
+        this.filterEmployees(); // Apply initial filtering (show all)
       } catch (e) {
         console.error("Invalid employees JSON:", e);
       }
     } else if (oldValue !== newValue && name === "editing-employee-id") {
       this._editingEmployeeId = newValue ? parseInt(newValue) : null;
       this.render();
+      this.filterEmployees(); // Re-apply filtering after render
     }
   }
 
@@ -63,16 +64,43 @@ export class EmployeeList extends HTMLElement {
   }
 
   private filterEmployees() {
+    const employeeCards = this.shadow.querySelectorAll(".employee-card");
+    const countSpan = this.shadow.querySelector(".search-container span");
+    let visibleCount = 0;
+
     if (!this._searchTerm) {
-      this._filteredEmployees = [...this._employees];
+      // Show all employees
+      employeeCards.forEach((card) => {
+        card.classList.remove("hidden");
+        visibleCount++;
+      });
     } else {
       const term = this._searchTerm.toLowerCase();
-      this._filteredEmployees = this._employees.filter(
-        (emp) =>
-          emp.name.toLowerCase().includes(term) ||
-          emp.identifier.toLowerCase().includes(term) ||
-          emp.role.toLowerCase().includes(term),
-      );
+      employeeCards.forEach((card) => {
+        const employeeId = card.getAttribute("data-employee-id");
+        if (employeeId) {
+          const employee = this._employees.find(
+            (emp) => emp.id === parseInt(employeeId),
+          );
+          if (employee) {
+            const matches =
+              employee.name.toLowerCase().includes(term) ||
+              employee.identifier.toLowerCase().includes(term) ||
+              employee.role.toLowerCase().includes(term);
+            if (matches) {
+              card.classList.remove("hidden");
+              visibleCount++;
+            } else {
+              card.classList.add("hidden");
+            }
+          }
+        }
+      });
+    }
+
+    // Update count display
+    if (countSpan) {
+      countSpan.textContent = `📊 ${visibleCount} employees`;
     }
   }
 
@@ -163,6 +191,10 @@ export class EmployeeList extends HTMLElement {
                     box-shadow: 0 2px 4px var(--color-shadow);
                     border: 1px solid var(--color-border);
                     transition: box-shadow 0.3s ease;
+                }
+
+                .employee-card.hidden {
+                    display: none;
                 }
 
                 .employee-card:hover {
@@ -291,16 +323,16 @@ export class EmployeeList extends HTMLElement {
                 <slot name="top-content"></slot>
                 <div class="toolbar">
                     <div class="search-container">
-                        <input type="text" class="search-input" placeholder="Search employees..." id="search-input">
-                        <span>📊 ${this._filteredEmployees.length} employees</span>
+                        <input type="text" class="search-input" placeholder="Search employees..." id="search-input" value="${this._searchTerm}">
+                        <span>📊 ${this._employees.length} employees</span>
                     </div>
                 </div>
 
                 <div class="employee-grid">
                     ${
-                      this._filteredEmployees.length === 0
+                      this._employees.length === 0
                         ? '<div class="empty-state"><h3>No employees found</h3><p>Try adjusting your search or add a new employee.</p></div>'
-                        : this._filteredEmployees
+                        : this._employees
                             .map((emp) =>
                               this._editingEmployeeId === emp.id
                                 ? this.renderInlineEditor(emp)
@@ -353,15 +385,13 @@ export class EmployeeList extends HTMLElement {
   }
 
   private setupEventListeners() {
-    const searchInput = querySingle<HTMLInputElement>(
-      "#search-input",
-      this.shadow,
-    );
-
-    searchInput?.addEventListener("input", (e) => {
-      this._searchTerm = (e.target as HTMLInputElement).value;
-      this.filterEmployees();
-      this.render();
+    // Event delegation for search input
+    this.shadow.addEventListener("input", (e) => {
+      const target = e.target as HTMLElement;
+      if (target.id === "search-input") {
+        this._searchTerm = (target as HTMLInputElement).value;
+        this.filterEmployees();
+      }
     });
 
     // Event delegation for action buttons
