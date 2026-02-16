@@ -32,18 +32,19 @@ Follow this structured approach when implementing web components:
 
 1. **Component Analysis**: Assess the component's purpose, props, state, and integration needs
 2. **CRITICAL: Static Imports Only** - Never use `await import()` or dynamic imports. All imports must be static at the top level. The build system uses esbuild to create a single `app.js` bundle loaded by test.html pages.
-3. **Base Class Selection**: Extend BaseComponent for memory-safe, consistent components
-4. **Custom Element Definition**: Create class extending BaseComponent with proper naming conventions
-5. **Shadow DOM Setup**: Automatic shadow root creation via BaseComponent
-6. **Lifecycle Methods**: Override connectedCallback, disconnectedCallback as needed (BaseComponent handles cleanup)
-7. **Template & Styling**: Define component template and styles following MDN best practices
-8. **Property & Attribute Handling**: Set up observedAttributes and property getters/setters
-9. **Event Handling**: Use event delegation via handleDelegatedClick/handleDelegatedSubmit methods
-10. **Data Flow Architecture**: Use event-driven data flow - components dispatch events for data requests, parent handles API calls and data injection via methods like setPtoData()
-11. **Memory Management**: BaseComponent automatically handles event listener cleanup
-12. **Unit Testing**: Create Vitest tests with happy-dom using seedData for mocking
-13. **Integration Testing**: Test component in the DWP Hours Tracker context with Playwright E2E tests
-14. **Documentation**: Update component usage documentation
+3. **CRITICAL: Declarative Markup Priority** - Always prefer declarative template strings returned from `render()` over imperative DOM construction (manual `innerHTML` assignment, `createElement`, `appendChild`, IIFEs inside template literals). The `render()` method should read like a description of what the component displays. Extract complex conditional sections into small helper methods that return partial template strings, keeping `render()` itself a clear, top-level declaration of the component's structure.
+4. **Base Class Selection**: Extend BaseComponent for memory-safe, consistent components
+5. **Custom Element Definition**: Create class extending BaseComponent with proper naming conventions
+6. **Shadow DOM Setup**: Automatic shadow root creation via BaseComponent
+7. **Lifecycle Methods**: Override connectedCallback, disconnectedCallback as needed (BaseComponent handles cleanup)
+8. **Template & Styling**: Define component template and styles following MDN best practices
+9. **Property & Attribute Handling**: Set up observedAttributes and property getters/setters
+10. **Event Handling**: Use event delegation via handleDelegatedClick/handleDelegatedSubmit methods
+11. **Data Flow Architecture**: Use event-driven data flow - components dispatch events for data requests, parent handles API calls and data injection via methods like setPtoData()
+12. **Memory Management**: BaseComponent automatically handles event listener cleanup
+13. **Unit Testing**: Create Vitest tests with happy-dom using seedData for mocking
+14. **Integration Testing**: Test component in the DWP Hours Tracker context with Playwright E2E tests
+15. **Documentation**: Update component usage documentation
 
 ## Component Testing Pattern
 
@@ -342,16 +343,25 @@ import { BaseComponent } from "../base-component.js";
 export class MyComponent extends BaseComponent {
   private _data: MyData[] = [];
 
-  // render() is a PURE TEMPLATE METHOD — returns string, no side effects
+  // render() is a PURE TEMPLATE METHOD — returns string, no side effects.
+  // Prefer flat, declarative markup. Extract conditionals into helper methods
+  // that return partial template strings rather than embedding IIFEs or deep
+  // ternary chains.
   protected render(): string {
     return `
       <style>
         /* Component styles */
       </style>
       <div class="my-component">
-        ${this._data.map((item) => `<div>${item.name}</div>`).join("")}
+        ${this.renderItems()}
       </div>
     `;
+  }
+
+  // Helper: returns a declarative template fragment
+  private renderItems(): string {
+    if (!this._data.length) return `<div class="empty">No items</div>`;
+    return this._data.map((item) => `<div>${item.name}</div>`).join("");
   }
 
   protected handleDelegatedClick(e: Event): void {
@@ -415,6 +425,7 @@ Common queries that should trigger this skill:
 - **Performance**: Follow MDN performance guidelines for web components
 - **Memory Management**: All components must extend BaseComponent to prevent memory leaks from event listeners
 - **Consistency**: Use BaseComponent's event delegation and reactive update patterns for all components. Follow the [Lit reactive update cycle](https://lit.dev/docs/components/lifecycle/) — `render()` is a pure template method; `requestUpdate()` is the only way to trigger DOM updates
+- **Declarative First**: Always prefer declarative template strings over imperative DOM construction. `render()` should read as a flat, top-level description of what the component displays. Complex sections should be extracted into helper methods returning template fragments — never use IIFEs, deeply nested ternaries, or manual `innerHTML` assignment in component logic.
 - **Accessibility**: Implement ARIA attributes and keyboard navigation as per MDN accessibility guidelines
 - **Testing**: Components should have both Vitest unit tests (with seedData mocking) and Playwright E2E tests (with screenshot testing)
 - **Dependencies**: Avoid external component libraries; use native web components with BaseComponent for better performance and smaller bundle size
