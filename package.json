@@ -8,6 +8,8 @@
     "pnpm-run": "./scripts/pnpm-run.sh"
   },
   "scripts": {
+    "postinstall": "mkdir -p node_modules/.bin && ln -sf ../../scripts/pnpm-run.sh node_modules/.bin/pnpm-run",
+    "postinstall//": "create pnpm-run symlink in node_modules/.bin",
     "prepare": "husky",
     "prepare//": "install husky git hooks",
     "worktree:port": "./scripts/get-worktree-port.sh",
