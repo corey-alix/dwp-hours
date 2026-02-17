@@ -1,4 +1,5 @@
 import { getDayOfWeek } from "./dateUtils.js";
+import type { PtoBalanceData } from "./api-models.d.ts";
 
 export type PTOType = "Sick" | "PTO" | "Bereavement" | "Jury Duty";
 
@@ -179,4 +180,44 @@ export function validateMonthEditable(
     return { field: "month", messageKey: "month.acknowledged" };
   }
   return null;
+}
+
+/**
+ * Computes PTO balance data for an employee based on used hours from PTO entries
+ */
+export function computeEmployeeBalanceData(
+  employeeId: number,
+  employeeName: string,
+  ptoEntries: Array<{ employee_id: number; type: PTOType; hours: number }>,
+): PtoBalanceData {
+  const categories: PTOType[] = ["PTO", "Sick", "Bereavement", "Jury Duty"];
+  const limits: Record<PTOType, number> = {
+    PTO: 80, // Standard PTO annual limit
+    Sick: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.SICK,
+    Bereavement: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.OTHER,
+    "Jury Duty": BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.OTHER,
+  };
+
+  const used = categories.reduce(
+    (acc, cat) => {
+      acc[cat] = ptoEntries
+        .filter(
+          (entry) => entry.employee_id === employeeId && entry.type === cat,
+        )
+        .reduce((sum, entry) => sum + entry.hours, 0);
+      return acc;
+    },
+    {} as Record<PTOType, number>,
+  );
+
+  const categoryItems = categories.map((cat) => ({
+    category: cat,
+    remaining: limits[cat] - used[cat],
+  }));
+
+  return {
+    employeeId,
+    employeeName,
+    categories: categoryItems,
+  };
 }

@@ -1,6 +1,14 @@
 import { querySingle } from "../test-utils.js";
 import { BaseComponent } from "../base-component.js";
-import type { AdminMonthlyReviewItem } from "../../../shared/api-models.js";
+import type {
+  AdminMonthlyReviewItem,
+  PtoBalanceData,
+} from "../../../shared/api-models.js";
+import type { PtoBalanceSummary } from "../pto-balance-summary/index.js";
+import {
+  computeEmployeeBalanceData,
+  type PTOType,
+} from "../../../shared/businessRules.js";
 
 // Admin Monthly Review Component Architecture:
 // This component implements the event-driven data flow pattern:
@@ -15,6 +23,11 @@ export class AdminMonthlyReview extends BaseComponent {
   private _selectedMonth: string = new Date().toISOString().slice(0, 7); // YYYY-MM format
   private _isLoading = false;
   private _acknowledgmentData: any[] = [];
+  private _ptoEntries: Array<{
+    employee_id: number;
+    type: PTOType;
+    hours: number;
+  }> = [];
 
   static get observedAttributes() {
     return ["employee-data", "selected-month", "acknowledgment-data"];
@@ -81,6 +94,19 @@ export class AdminMonthlyReview extends BaseComponent {
     this._employeeData = data;
     this._isLoading = false;
     this.update();
+    // Set balance data after DOM update
+    setTimeout(() => this.updateBalanceSummaries(), 0);
+  }
+
+  // Method for parent to inject PTO entries data
+  // Used for balance calculations in test scenarios
+  setPtoEntries(
+    data: Array<{ employee_id: number; type: PTOType; hours: number }>,
+  ): void {
+    this._ptoEntries = data;
+    this.update();
+    // Update balance summaries when PTO data changes
+    setTimeout(() => this.updateBalanceSummaries(), 0);
   }
 
   private isAcknowledged(employeeId: number, month: string): boolean {
@@ -136,6 +162,49 @@ export class AdminMonthlyReview extends BaseComponent {
   setAcknowledgmentData(data: any[]): void {
     this._acknowledgmentData = data;
     this.setAttribute("acknowledgment-data", JSON.stringify(data));
+  }
+
+  private computeEmployeeBalanceData(employeeId: number): PtoBalanceData {
+    // Find employee data to get name
+    const employee = this._employeeData.find(
+      (emp) => emp.employeeId === employeeId,
+    );
+    if (!employee) {
+      throw new Error(`Employee not found: ${employeeId}`);
+    }
+
+    // Use injected PTO entries for balance calculations
+    return computeEmployeeBalanceData(
+      employeeId,
+      employee.employeeName,
+      this._ptoEntries,
+    );
+  }
+
+  private updateBalanceSummaries(): void {
+    // Find all pto-balance-summary elements in the shadow DOM
+    const balanceSummaries = this.shadowRoot?.querySelectorAll(
+      "pto-balance-summary",
+    );
+    if (!balanceSummaries) return;
+
+    // Set balance data for each summary based on its data-employee-id
+    balanceSummaries.forEach((summary) => {
+      const employeeId = parseInt(
+        (summary as HTMLElement).getAttribute("data-employee-id") || "0",
+      );
+      if (employeeId > 0) {
+        try {
+          const balanceData = this.computeEmployeeBalanceData(employeeId);
+          (summary as PtoBalanceSummary).setBalanceData(balanceData);
+        } catch (error) {
+          console.error(
+            `Failed to compute balance data for employee ${employeeId}:`,
+            error,
+          );
+        }
+      }
+    });
   }
 
   private async handleAcknowledgeEmployee(employeeId: number): Promise<void> {
@@ -234,7 +303,6 @@ export class AdminMonthlyReview extends BaseComponent {
         .employee-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-          gap: 20px;
         }
 
         .employee-card {
@@ -372,7 +440,7 @@ export class AdminMonthlyReview extends BaseComponent {
     const isAcknowledged = employee.acknowledgedByAdmin;
 
     return `
-      <div class="employee-card">
+      <div class="employee-card" data-employee-id="${employee.employeeId}">
         <div class="employee-header">
           <h3 class="employee-name">${employee.employeeName}</h3>
           <div class="acknowledgment-status">
@@ -380,6 +448,8 @@ export class AdminMonthlyReview extends BaseComponent {
             <span>${isAcknowledged ? "Acknowledged" : "Pending"}</span>
           </div>
         </div>
+
+        <pto-balance-summary data-employee-id="${employee.employeeId}"></pto-balance-summary>
 
         <div class="hours-breakdown">
           <div class="hours-row">

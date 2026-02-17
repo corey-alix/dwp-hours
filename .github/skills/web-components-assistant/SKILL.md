@@ -93,7 +93,7 @@ describe("ComponentName Component", () => {
 });
 ```
 
-**Mocking with Seed Data**: Always use `shared/seedData.ts` for realistic test data. Transform seed data into component-specific formats using data injection methods rather than simulating API calls.
+**Mocking with Seed Data**: Always use `shared/seedData.ts` for realistic test data. Transform seed data into component-specific formats using data injection methods rather than simulating API calls. See [testing-strategy/SKILL.md](../testing-strategy/SKILL.md) for detailed guidelines on seed data usage - only "test.ts" files should import seedData.ts directly.
 
 ### Playwright E2E Tests
 

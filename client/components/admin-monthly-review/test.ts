@@ -105,6 +105,7 @@ function playground() {
 
       const data = generateMonthlyData(month);
       monthlyReview.setEmployeeData(data);
+      monthlyReview.setPtoEntries(seedPTOEntries);
 
       setOutput(`Loaded data for ${data.length} employees in ${month}`);
     },
@@ -125,6 +126,7 @@ function playground() {
   const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
   const initialData = generateMonthlyData(currentMonth);
   monthlyReview.setEmployeeData(initialData);
+  monthlyReview.setPtoEntries(seedPTOEntries);
 
   // Set up balance summary data
   const balanceSummary = monthlyReview.querySelector(

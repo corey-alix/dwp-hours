@@ -346,6 +346,7 @@ The following features are planned for upcoming development:
 40. LATER: See [TASKS/testing-suite.md](TASKS/testing-suite.md) for details
 41. LATER: See [TASKS/backup.md](TASKS/backup.md) for details
 42. LATER: See [TASKS/discussions/migrating-e2e-tests-to-client-tests.md](TASKS/discussions/migrating-e2e-tests-to-client-tests.md) for details
+43. LATER: See [TASKS/admin-monthly-review-per-employee-balances.md](TASKS/admin-monthly-review-per-employee-balances.md) for details
 
 ### 🚨 PRODUCTION READINESS REQUIREMENTS
 

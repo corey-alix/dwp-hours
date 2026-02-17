@@ -2,10 +2,7 @@ import { querySingle } from "../test-utils.js";
 import { addEventListener } from "../test-utils.js";
 import { EmployeeList, type Employee } from "./index.js";
 import { seedEmployees, seedPTOEntries } from "../../../shared/seedData.js";
-import {
-  BUSINESS_RULES_CONSTANTS,
-  PTOType,
-} from "../../../shared/businessRules.js";
+import { computeEmployeeBalanceData } from "../../../shared/businessRules.js";
 import type { PtoBalanceData } from "../../../shared/api-models.js";
 
 export function playground() {
@@ -15,33 +12,7 @@ export function playground() {
     employeeId: number,
     employeeName: string,
   ): PtoBalanceData {
-    const categories: PTOType[] = ["PTO", "Sick", "Bereavement", "Jury Duty"];
-    const limits: Record<PTOType, number> = {
-      PTO: 80,
-      Sick: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.SICK,
-      Bereavement: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.OTHER,
-      "Jury Duty": BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.OTHER,
-    };
-    const used = categories.reduce(
-      (acc, cat) => {
-        acc[cat] = seedPTOEntries
-          .filter(
-            (entry) => entry.employee_id === employeeId && entry.type === cat,
-          )
-          .reduce((sum, entry) => sum + entry.hours, 0);
-        return acc;
-      },
-      {} as Record<PTOType, number>,
-    );
-    const categoryItems = categories.map((cat) => ({
-      category: cat,
-      remaining: limits[cat] - used[cat],
-    }));
-    return {
-      employeeId,
-      employeeName,
-      categories: categoryItems,
-    };
+    return computeEmployeeBalanceData(employeeId, employeeName, seedPTOEntries);
   }
 
   function setBalanceSummaries(employees: typeof sampleEmployees) {
