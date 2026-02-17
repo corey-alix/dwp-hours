@@ -161,7 +161,7 @@ const ACCRUAL_CSS = `
         grid-column: 1 / -1;
         display: grid;
         grid-template-rows: 0fr;
-        transition: grid-template-rows 250ms ease-out;
+        transition: grid-template-rows 0ms ease-out;
     }
 
     .calendar-slot-row.open {
