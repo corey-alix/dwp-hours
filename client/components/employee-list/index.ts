@@ -275,7 +275,7 @@ const STYLES = `
         padding: 20px;
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-        gap: 20px;
+        gap: var(--space-md);
     }
 
     .employee-card {

@@ -164,6 +164,15 @@ const input = querySingle<HTMLInputElement>("#input-id", ptoForm.shadowRoot); //
 - Extend `shared/dateUtils.ts` with new utility functions as needed rather than using native Date APIs
 - Use string comparisons and manipulations for date logic to ensure consistency and avoid timezone problems
 
+### CSS Formatting Rules
+
+- **Empty lines**: Include an empty line before each CSS rule for better readability
+- **Color functions**: Use modern `rgb()` notation with alpha percentages instead of `rgba()` (e.g., `rgb(0 0 0 / 10%)` instead of `rgba(0, 0, 0, 0.1)`)
+- **Alpha values**: Express alpha values as percentages (e.g., `10%` instead of `0.1`)
+- **Atomic CSS**: Follow atomic design principles with single-purpose utility classes
+- **Custom properties**: Use CSS custom properties from `tokens.css` for colors, spacing, and other design tokens
+- **Linting**: Run `pnpm lint:css` to check for stylelint violations and use `--fix` to auto-correct fixable issues
+
 ## Quality Gates
 
 Before marking any implementation complete:

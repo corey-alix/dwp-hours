@@ -6,6 +6,7 @@ import {
   seedPTOEntries,
   seedAdminAcknowledgments,
 } from "../../../shared/seedData.js";
+import { computeEmployeeBalanceData } from "../../../shared/businessRules.js";
 import type { AdminMonthlyReviewItem } from "../../../shared/api-models.js";
 import type { PtoBalanceSummary } from "../pto-balance-summary/index.js";
 import type { PtoBalanceData } from "../../../shared/api-models.js";
@@ -133,17 +134,27 @@ function playground() {
     "pto-balance-summary",
   ) as PtoBalanceSummary;
   if (balanceSummary) {
-    const mockBalanceData: PtoBalanceData = {
-      employeeId: 0, // Summary for all
+    // Compute aggregate balance data for all employees from seed data
+    const allBalances = seedEmployees.map((emp, idx) =>
+      computeEmployeeBalanceData(idx + 1, emp.name, seedPTOEntries),
+    );
+    const aggregateCategories = (
+      ["PTO", "Sick", "Bereavement", "Jury Duty"] as const
+    ).map((cat) => {
+      const totalRemaining = allBalances.reduce(
+        (sum, bal) =>
+          sum +
+          (bal.categories.find((c) => c.category === cat)?.remaining || 0),
+        0,
+      );
+      return { category: cat, remaining: totalRemaining };
+    });
+    const aggregateBalanceData: PtoBalanceData = {
+      employeeId: 0,
       employeeName: "All Employees",
-      categories: [
-        { category: "PTO", remaining: 45 },
-        { category: "Sick", remaining: 12 },
-        { category: "Bereavement", remaining: 30 },
-        { category: "Jury Duty", remaining: -8 }, // exceeded
-      ],
+      categories: aggregateCategories,
     };
-    balanceSummary.setBalanceData(mockBalanceData);
+    balanceSummary.setBalanceData(aggregateBalanceData);
   }
 
   setOutput(

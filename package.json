@@ -124,7 +124,7 @@
     "lint:e2e//": "type check e2e code",
     "lint:script": "tsc --noEmit --project tsconfig-scripts.json",
     "lint:script//": "type check script code",
-    "lint:css": "stylelint 'client/**/*.css'",
+    "lint:css": "stylelint 'client/**/*.css' --fix",
     "lint:yaml": "prettier --write **/*.yml **/*.yaml",
     "lint:yaml//": "check YAML file formatting",
     "lint:json": "prettier --write **/*.json",

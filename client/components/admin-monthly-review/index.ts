@@ -302,7 +302,8 @@ export class AdminMonthlyReview extends BaseComponent {
 
         .employee-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(24em, 1fr));
+          gap: var(--space-md);
         }
 
         .employee-card {
