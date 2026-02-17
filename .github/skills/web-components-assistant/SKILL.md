@@ -1,8 +1,6 @@
 ---
 name: web-components-assistant
 description: Specialized assistant for implementing and maintaining web components in the DWP Hours Tracker frontend
-category: implementation
-version: 1.0
 ---
 
 # Web Components Assistant
@@ -39,13 +37,47 @@ Follow this structured approach when implementing web components:
 7. **Shadow DOM Setup**: Automatic shadow root creation via BaseComponent
 8. **Lifecycle Methods**: Override connectedCallback, disconnectedCallback as needed (BaseComponent handles cleanup)
 9. **Template & Styling**: Define component template and styles following MDN best practices
-10. **Property & Attribute Handling**: Set up observedAttributes and property getters/setters
-11. **Event Handling**: Use event delegation via handleDelegatedClick/handleDelegatedSubmit methods
-12. **Data Flow Architecture**: Use event-driven data flow - components dispatch events for data requests, parent handles API calls and data injection via methods like setPtoData()
-13. **Memory Management**: BaseComponent automatically handles event listener cleanup
-14. **Unit Testing**: Create Vitest tests with happy-dom using seedData for mocking
-15. **Integration Testing**: Test component in the DWP Hours Tracker context with Playwright E2E tests
-16. **Documentation**: Update component usage documentation
+10. **CRITICAL: Strongly-Typed Getter/Setter Properties with Attribute Backing** - Use ES property getters/setters backed by the `attributes` collection for **primitive values only** (string, number, boolean). The setter writes to `setAttribute()`, and `attributeChangedCallback` is the single point that calls `requestUpdate()` — preventing double renders. The getter reads from `getAttribute()` and parses to the correct type. Guard `attributeChangedCallback` with `oldValue === newValue` to prevent cycles — this works reliably because primitives serialize to deterministic strings.
+
+    **Complex values (arrays, objects) must NOT use attributes.** Use private fields with `get`/`set` accessors that call `requestUpdate()` directly. Reasons:
+    - `oldValue === newValue` string comparison fails for JSON — semantically identical objects can produce different serializations (key ordering, whitespace)
+    - Serializing/deserializing on every access is wasteful
+    - Loses type safety (everything becomes `string | null`)
+
+    ```typescript
+    // ── Primitives: attribute-backed ──
+    // oldValue === newValue works because primitives serialize deterministically.
+    static get observedAttributes() { return ["month", "year", "readonly"]; }
+
+    get month(): number { return parseInt(this.getAttribute("month") || "1", 10); }
+    set month(value: number) { this.setAttribute("month", value.toString()); }
+
+    get readonly(): boolean { return this.getAttribute("readonly") === "true"; }
+    set readonly(value: boolean) { this.setAttribute("readonly", value.toString()); }
+
+    // Single render trigger for all attribute changes — no cycles
+    attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null) {
+      if (oldValue === newValue) return; // ✅ Safe — primitives only
+      this.requestUpdate();
+    }
+
+    // ── Complex values: private field, bypasses attributes entirely ──
+    // No JSON serialization, no attribute equality issues.
+    private _ptoEntries: PTOEntry[] = [];
+    get ptoEntries(): PTOEntry[] { return this._ptoEntries; }
+    set ptoEntries(value: PTOEntry[]) {
+      this._ptoEntries = value;
+      this.requestUpdate(); // ✅ Direct — no attributeChangedCallback involved
+    }
+    ```
+
+11. **CRITICAL: View-Model Rendering with Focus Preservation** - Component state fields form a view-model. `render()` is a pure function of this view-model. After each `render()` / `requestUpdate()` cycle, focus and input element state (cursor position, selection) must be restored. `BaseComponent.renderTemplate()` handles focus restore for elements with stable `id` attributes automatically. For elements identified by `data-*` attributes (e.g., calendar days), override `update()` to restore focus from the view-model after `super.update()`. Without focus preservation, re-rendering completely breaks UX (lost cursor position, dropped keyboard navigation).
+12. **Event Handling**: Use event delegation via handleDelegatedClick/handleDelegatedSubmit methods
+13. **Data Flow Architecture**: Use event-driven data flow - components dispatch events for data requests, parent handles API calls and data injection via methods like setPtoData()
+14. **Memory Management**: BaseComponent automatically handles event listener cleanup
+15. **Unit Testing**: Create Vitest tests with happy-dom using seedData for mocking
+16. **Integration Testing**: Test component in the DWP Hours Tracker context with Playwright E2E tests
+17. **Documentation**: Update component usage documentation
 
 ## Component Testing Pattern
 
@@ -227,7 +259,7 @@ This pattern maintains separation of concerns and makes components more testable
 
 ### Component Communication Patterns
 
-- **Parent-to-Child**: Use attributes and properties for configuration, method calls for data injection
+- **Parent-to-Child**: Use strongly-typed ES `get`/`set` property accessors. Primitives are backed by attributes (`getAttribute`/`setAttribute`); complex values use private fields. Both provide type-safe APIs to callers (e.g., `calendar.month = 3`, `calendar.ptoEntries = [...]`)
 - **Child-to-Parent**: Use custom events with detail objects for data requests and state changes
 - **Sibling Communication**: Route through parent component using event bubbling
 
@@ -406,9 +438,13 @@ export class MyComponent extends BaseComponent {
     }
   }
 
-  // Public data injection method — calls requestUpdate(), never render()
-  setData(data: MyData[]) {
-    this._data = data;
+  // Complex data: private field with typed accessor
+  private _data: MyData[] = [];
+  get data(): MyData[] {
+    return this._data;
+  }
+  set data(value: MyData[]) {
+    this._data = value;
     this.requestUpdate(); // ✅ Triggers the full update cycle
   }
 }
@@ -433,11 +469,13 @@ Many existing components extend `HTMLElement` directly and define `render()` as 
 2. Remove manual `attachShadow()` calls
 3. **Change `render()` to return a string** instead of setting `this.shadowRoot.innerHTML` directly
 4. **Replace all `this.render()` calls with `this.requestUpdate()`** — this is the most critical step
-5. Implement `handleDelegatedClick()` and `handleDelegatedSubmit()` for events
-6. Remove manual event listener setup/cleanup code
-7. Add `_customEventsSetup` guard if overriding `setupEventDelegation()`
+5. **Refactor to attribute-backed getter/setter pattern** — for primitive properties, use ES `get`/`set` accessors backed by `getAttribute()`/`setAttribute()`, with `attributeChangedCallback` as the single `requestUpdate()` trigger (guarded by `oldValue === newValue`). For complex properties (arrays, objects), use private fields with `get`/`set` accessors that call `requestUpdate()` directly. Remove any `setFoo()` methods that duplicate this pattern.
+6. Implement `handleDelegatedClick()` and `handleDelegatedSubmit()` for events
+7. Remove manual event listener setup/cleanup code
+8. Add `_customEventsSetup` guard if overriding `setupEventDelegation()`
+9. **Ensure focus/input preservation** — `BaseComponent.renderTemplate()` handles `id`-based focus restore. For `data-*` based focus (e.g., grids, lists), override `update()` to restore focus from view-model state after `super.update()`
 
-**Unmigrated components** (extending `HTMLElement` with imperative `render()`): `employee-list`, `pto-calendar`, `pto-request-queue`, `data-table`, `confirmation-dialog`, `prior-year-review`, `pto-entry-form`, `report-generator`. These call `this.render()` directly, which works because their `render()` imperatively sets `innerHTML`. **They will break if migrated to BaseComponent without replacing `this.render()` → `this.requestUpdate()`.**
+**Unmigrated components** (extending `HTMLElement` with imperative `render()`): `pto-calendar`, `pto-request-queue`, `data-table`, `confirmation-dialog`, `prior-year-review`, `pto-entry-form`, `report-generator`. These call `this.render()` directly, which works because their `render()` imperatively sets `innerHTML`. **They will break if migrated to BaseComponent without replacing `this.render()` → `this.requestUpdate()`.** They also typically use `observedAttributes` / `attributeChangedCallback` which should be replaced with setter methods during migration.
 
 **Migrated PTO cards** (now extending `BaseComponent` with declarative `render()`): `pto-employee-info-card`, `pto-summary-card`, `pto-pto-card`, `pto-bereavement-card`, `pto-sick-card`, `pto-jury-duty-card`, `pto-accrual-card`. Shared CSS lives in `utils/pto-card-css.ts` (`CARD_CSS`), shared template helpers in `utils/pto-card-helpers.ts` (`renderCardShell`, `renderRow`, `renderBucketBody`, etc.). The old `PtoSectionCard` and `SimplePtoBucketCard` base classes in `utils/pto-card-base.ts` are deprecated.
 

@@ -27,10 +27,10 @@ export function playground(): void {
   let currentYear = 2026;
 
   function updateCalendar() {
-    calendar.setYear(currentYear);
-    calendar.setMonth(currentMonth);
+    calendar.year = currentYear;
+    calendar.month = currentMonth;
     calendar.setReadonly(!isEditMode);
-    calendar.setPtoEntries(sampleEntries);
+    calendar.ptoEntries = sampleEntries;
   }
 
   function updateModeDisplay() {
