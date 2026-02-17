@@ -40,7 +40,7 @@ describe("PtoCalendar Component - Approval Indicators", () => {
       ];
 
       component.setYear(2024);
-      component.setMonth(1); // February
+      component.setMonth(2); // February
       component.setPtoEntries(approvedEntries);
 
       // Wait for render
@@ -67,7 +67,7 @@ describe("PtoCalendar Component - Approval Indicators", () => {
       ];
 
       component.setYear(2024);
-      component.setMonth(1); // February
+      component.setMonth(2); // February
       component.setPtoEntries(unapprovedEntries);
 
       // Wait for render
@@ -81,7 +81,7 @@ describe("PtoCalendar Component - Approval Indicators", () => {
 
     it("should not display checkmark for days with no PTO entries", () => {
       component.setYear(2024);
-      component.setMonth(1); // February
+      component.setMonth(2); // February
       component.setPtoEntries([]);
 
       // Wait for render
@@ -107,7 +107,7 @@ describe("PtoCalendar Component - Approval Indicators", () => {
       ];
 
       component.setYear(2024);
-      component.setMonth(1); // February
+      component.setMonth(2); // February
       component.setPtoEntries(juryDutyApproved);
 
       const dayCell = component.shadowRoot?.querySelector(
@@ -133,7 +133,7 @@ describe("PtoCalendar Component - Approval Indicators", () => {
       ];
 
       component.setYear(2024);
-      component.setMonth(1); // February
+      component.setMonth(2); // February
       component.setPtoEntries(juryDutyUnapproved);
 
       const dayCell = component.shadowRoot?.querySelector(
@@ -167,7 +167,7 @@ describe("PtoCalendar Component - Approval Indicators", () => {
       ];
 
       component.setYear(2024);
-      component.setMonth(1); // February
+      component.setMonth(2); // February
       component.setPtoEntries(mixedApprovedEntries);
 
       const dayCell = component.shadowRoot?.querySelector(
@@ -194,7 +194,7 @@ describe("PtoCalendar Component - Approval Indicators", () => {
       ];
 
       component.setYear(2024);
-      component.setMonth(1); // February
+      component.setMonth(2); // February
       component.setPtoEntries(juryDutyOnlyUnapproved);
 
       const dayCell = component.shadowRoot?.querySelector(
@@ -219,7 +219,7 @@ describe("PtoCalendar Component - Approval Indicators", () => {
       ];
 
       component.setYear(2024);
-      component.setMonth(1); // February
+      component.setMonth(2); // February
       component.setPtoEntries(approvedEntries);
 
       const checkmark = component.shadowRoot?.querySelector(
@@ -255,7 +255,7 @@ describe("PtoCalendar Component - Approval Indicators", () => {
       ];
 
       component.setYear(2024);
-      component.setMonth(1); // February
+      component.setMonth(2); // February
       component.setPtoEntries(approvedEntries);
 
       const checkmark = component.shadowRoot?.querySelector(
@@ -278,7 +278,7 @@ describe("PtoCalendar Component - Approval Indicators", () => {
       const febApprovedEntries: PTOEntry[] = seedPTOEntries
         .filter(
           (entry) =>
-            entry.date.startsWith("2025-02") && entry.approved_by !== null,
+            entry.date.startsWith("2026-02") && entry.approved_by !== null,
         )
         .map((entry) => ({
           id: entry.employee_id, // Use employee_id as id for test
@@ -290,13 +290,193 @@ describe("PtoCalendar Component - Approval Indicators", () => {
           approved_by: entry.approved_by,
         }));
 
-      component.setYear(2025);
-      component.setMonth(1); // February
+      component.setYear(2026);
+      component.setMonth(2); // February
       component.setPtoEntries(febApprovedEntries);
 
       // Should have checkmarks for approved days
       const checkmarks = component.shadowRoot?.querySelectorAll(".checkmark");
       expect(checkmarks?.length).toBeGreaterThan(0);
     });
+  });
+});
+
+describe("PtoCalendar Component - Keyboard Navigation", () => {
+  let component: PtoCalendar;
+  let container: HTMLElement;
+
+  beforeEach(async () => {
+    // Create a container for the component
+    container = document.createElement("div");
+    document.body.appendChild(container);
+
+    // Create the component
+    component = new PtoCalendar();
+    container.appendChild(component);
+
+    // Set to edit mode
+    component.setReadonly(false);
+    component.setYear(2024);
+    component.setMonth(2); // February
+    component.setPtoEntries([]);
+  });
+
+  afterEach(() => {
+    // Clean up
+    document.body.removeChild(container);
+  });
+
+  it("should only make weekdays clickable in edit mode", () => {
+    // Get all clickable days (weekdays only in current month)
+    const clickableDays = component.shadowRoot?.querySelectorAll(
+      ".day.clickable",
+    ) as NodeListOf<HTMLElement>;
+    // February 2024 has 21 weekdays (29 days - 8 weekend days)
+    expect(clickableDays.length).toBe(21);
+  });
+
+  it("should navigate right with arrow keys between weekday cells", () => {
+    const clickableDays = component.shadowRoot?.querySelectorAll(
+      ".day.clickable",
+    ) as NodeListOf<HTMLElement>;
+
+    // Focus on the first clickable day
+    const firstDay = clickableDays[0];
+    firstDay.focus();
+    expect(component.shadowRoot?.activeElement).toBe(firstDay);
+
+    // Simulate ArrowRight key press
+    const arrowRight = new KeyboardEvent("keydown", {
+      key: "ArrowRight",
+      bubbles: true,
+    });
+    firstDay.dispatchEvent(arrowRight);
+
+    // Should move to next clickable day
+    const secondDay = clickableDays[1];
+    expect(component.shadowRoot?.activeElement).toBe(secondDay);
+  });
+
+  it("should stop at last day instead of wrapping when navigating right", () => {
+    const clickableDays = component.shadowRoot?.querySelectorAll(
+      ".day.clickable",
+    ) as NodeListOf<HTMLElement>;
+
+    // Focus on the last clickable day
+    const lastDay = clickableDays[clickableDays.length - 1];
+    lastDay.focus();
+    expect(component.shadowRoot?.activeElement).toBe(lastDay);
+
+    // Simulate ArrowRight key press
+    const arrowRight = new KeyboardEvent("keydown", {
+      key: "ArrowRight",
+      bubbles: true,
+    });
+    lastDay.dispatchEvent(arrowRight);
+
+    // Should stay on last day (no wrap)
+    expect(component.shadowRoot?.activeElement).toBe(lastDay);
+  });
+
+  it("should navigate left with arrow keys", () => {
+    const clickableDays = component.shadowRoot?.querySelectorAll(
+      ".day.clickable",
+    ) as NodeListOf<HTMLElement>;
+
+    // Focus on the second clickable day
+    const secondDay = clickableDays[1];
+    secondDay.focus();
+    expect(component.shadowRoot?.activeElement).toBe(secondDay);
+
+    // Simulate ArrowLeft key press
+    const arrowLeft = new KeyboardEvent("keydown", {
+      key: "ArrowLeft",
+      bubbles: true,
+    });
+    secondDay.dispatchEvent(arrowLeft);
+
+    // Should move to previous day
+    const firstDay = clickableDays[0];
+    expect(component.shadowRoot?.activeElement).toBe(firstDay);
+  });
+
+  it("should stop at first day instead of wrapping when navigating left", () => {
+    const clickableDays = component.shadowRoot?.querySelectorAll(
+      ".day.clickable",
+    ) as NodeListOf<HTMLElement>;
+
+    // Focus on the first clickable day
+    const firstDay = clickableDays[0];
+    firstDay.focus();
+    expect(component.shadowRoot?.activeElement).toBe(firstDay);
+
+    // Simulate ArrowLeft key press
+    const arrowLeft = new KeyboardEvent("keydown", {
+      key: "ArrowLeft",
+      bubbles: true,
+    });
+    firstDay.dispatchEvent(arrowLeft);
+
+    // Should stay on first day (no wrap)
+    expect(component.shadowRoot?.activeElement).toBe(firstDay);
+  });
+
+  it("should not handle tab key in readonly mode", () => {
+    // Set to readonly
+    component.setReadonly(true);
+
+    const clickableDays = component.shadowRoot?.querySelectorAll(
+      ".day.clickable",
+    ) as NodeListOf<HTMLElement>;
+    expect(clickableDays.length).toBe(0); // No clickable days in readonly
+
+    // Even if we try to dispatch, should not affect
+    const tabEvent = new KeyboardEvent("keydown", {
+      key: "Tab",
+      bubbles: true,
+    });
+    component.dispatchEvent(tabEvent);
+
+    // No active element expected
+    expect(component.shadowRoot?.activeElement).toBe(null);
+  });
+
+  it("should enable keyboard navigation after entering edit mode", () => {
+    // Start in readonly mode
+    component.setReadonly(true);
+    component.setYear(2024);
+    component.setMonth(2); // February
+    component.setPtoEntries([]);
+
+    // Verify no clickable days in readonly mode
+    let clickableDays = component.shadowRoot?.querySelectorAll(
+      ".day.clickable",
+    ) as NodeListOf<HTMLElement>;
+    expect(clickableDays.length).toBe(0);
+
+    // Enter edit mode
+    component.setReadonly(false);
+
+    // Now should have clickable days (weekdays only)
+    clickableDays = component.shadowRoot?.querySelectorAll(
+      ".day.clickable",
+    ) as NodeListOf<HTMLElement>;
+    expect(clickableDays.length).toBe(21); // Weekdays in February
+
+    // Focus on first day and navigate with arrow key
+    const firstDay = clickableDays[0];
+    firstDay.focus();
+    expect(component.shadowRoot?.activeElement).toBe(firstDay);
+
+    // Simulate ArrowRight key press
+    const arrowRight = new KeyboardEvent("keydown", {
+      key: "ArrowRight",
+      bubbles: true,
+    });
+    firstDay.dispatchEvent(arrowRight);
+
+    // Should move to next day
+    const secondDay = clickableDays[1];
+    expect(component.shadowRoot?.activeElement).toBe(secondDay);
   });
 });

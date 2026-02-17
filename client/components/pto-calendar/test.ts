@@ -28,7 +28,7 @@ export function playground(): HTMLElement {
     }));
 
   calendar.setYear(2026);
-  calendar.setMonth(1); // February (0-indexed)
+  calendar.setMonth(2); // February
   calendar.setPtoEntries(sampleEntries);
   calendar.setReadonly(false); // Start in editable mode for testing
 

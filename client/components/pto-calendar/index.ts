@@ -62,12 +62,15 @@ export class PtoCalendar extends HTMLElement {
   private readonly: boolean;
   private selectedPtoType: string | null;
   private selectedCells: Map<string, number>;
+  private focusedDate: string | null = null;
+  private focusedLegendIndex: number = 0;
+  private lastFocusArea: "legend" | "grid" | null = null;
 
   constructor() {
     super();
     this.shadow = this.attachShadow({ mode: "open" });
-    this.month = 0; // January
-    this.year = 2024; // Default year for valid date components
+    this.month = 1;
+    this.year = 2024;
     this.ptoEntries = [];
     this.selectedMonth = null;
     this.readonly = true;
@@ -81,6 +84,9 @@ export class PtoCalendar extends HTMLElement {
 
   connectedCallback() {
     this.render();
+    this.shadow.addEventListener("keydown", (e) =>
+      this.handleKeyDown(e as KeyboardEvent),
+    );
   }
 
   attributeChangedCallback(name: string, oldValue: string, newValue: string) {
@@ -89,9 +95,11 @@ export class PtoCalendar extends HTMLElement {
     switch (name) {
       case "month":
         this.month = parseInt(newValue, 10);
+        this.focusedDate = null;
         break;
       case "year":
         this.year = parseInt(newValue, 10);
+        this.focusedDate = null;
         break;
       case "pto-entries":
         try {
@@ -233,7 +241,7 @@ export class PtoCalendar extends HTMLElement {
       this.ptoEntries,
     );
 
-    const calendarDates = getCalendarDates(this.year, this.month + 1);
+    const calendarDates = getCalendarDates(this.year, this.month);
     const calendarDays: {
       dateStr: string;
       isCurrentMonth: boolean;
@@ -265,7 +273,7 @@ export class PtoCalendar extends HTMLElement {
       }
       calendarDays.push({
         dateStr,
-        isCurrentMonth: isInMonth(dateStr, this.year, this.month + 1),
+        isCurrentMonth: isInMonth(dateStr, this.year, this.month),
         entry: entry ?? undefined,
         totalHours,
         hasApprovedEntry,
@@ -277,7 +285,7 @@ export class PtoCalendar extends HTMLElement {
     return `
             <div class="calendar">
                 <div class="calendar-header">
-                    ${monthNames[this.month]} ${this.year}
+                    ${monthNames[this.month - 1]} ${this.year}
                 </div>
                 <div class="calendar-grid">
                     ${weekdays.map((day) => `<div class="weekday">${day}</div>`).join("")}
@@ -294,6 +302,7 @@ export class PtoCalendar extends HTMLElement {
                           const selectedHours =
                             this.selectedCells.get(dateStr) || 8;
                           const isWeekendDate = isWeekend(dateStr);
+                          const isNav = isCurrentMonth && !isWeekendDate;
                           const dayClass = entry
                             ? `day has-pto type-${entry.type.replace(/\s+/g, "-")}`
                             : isSelected && this.selectedPtoType
@@ -302,39 +311,36 @@ export class PtoCalendar extends HTMLElement {
                           const emptyClass = isCurrentMonth ? "" : "empty";
                           const selectedClass = isSelected ? "selected" : "";
                           const clickableClass =
-                            !this.readonly && isCurrentMonth && !isWeekendDate
-                              ? "clickable"
-                              : "";
+                            !this.readonly && isNav ? "clickable" : "";
+                          const tabindexAttr = clickableClass
+                            ? `tabindex="${dateStr === this.focusedDate ? "0" : "-1"}"`
+                            : "";
                           const hoursDisplay =
                             totalHours > 0
                               ? totalHours.toFixed(0)
                               : isSelected
                                 ? selectedHours.toFixed(0)
                                 : "";
-                          const hoursElement =
-                            !this.readonly && isSelected
-                              ? `<input type="number" class="hours-input" value="${selectedHours}" min="0" max="8" step="4" data-date="${dateStr}">`
-                              : `<div class="hours">${hoursDisplay}</div>`;
                           const checkmarkElement = hasApprovedEntry
                             ? '<div class="checkmark">✓</div>'
                             : "";
                           const { day } = parseDate(dateStr);
                           return `
-                            <div class="${dayClass} ${emptyClass} ${selectedClass} ${clickableClass}" data-date="${dateStr}">
+                            <div class="${dayClass} ${emptyClass} ${selectedClass} ${clickableClass}" data-date="${dateStr}" ${tabindexAttr} role="gridcell">
                                 ${checkmarkElement}
                                 <div class="date">${day}</div>
-                                ${hoursElement}
+                                <div class="hours">${hoursDisplay}</div>
                             </div>
                         `;
                         },
                       )
                       .join("")}
                 </div>
-                <div class="legend">
+                <div class="legend" role="listbox" aria-label="PTO type selection">
                     ${Object.entries(PTO_TYPE_COLORS)
                       .map(
-                        ([type, color]) => `
-                        <div class="legend-item ${this.selectedPtoType === type ? "selected" : ""} ${this.readonly ? "" : "clickable"}" data-type="${type}">
+                        ([type, color], index) => `
+                        <div class="legend-item ${this.selectedPtoType === type ? "selected" : ""} ${this.readonly ? "" : "clickable"}" data-type="${type}" ${!this.readonly ? `tabindex="${index === this.focusedLegendIndex ? "0" : "-1"}" role="option" aria-selected="${this.selectedPtoType === type}"` : ""}>
                             <div class="legend-swatch" style="background: ${color}"></div>
                             <span>${type}</span>
                         </div>
@@ -349,6 +355,28 @@ export class PtoCalendar extends HTMLElement {
   }
 
   private render() {
+    // Save focus area if not already set by caller
+    const activeEl = this.shadow.activeElement as HTMLElement;
+    if (activeEl && !this.lastFocusArea) {
+      if (activeEl.closest(".legend")) {
+        this.lastFocusArea = "legend";
+      } else if (
+        activeEl.classList.contains("day") &&
+        activeEl.classList.contains("clickable")
+      ) {
+        this.lastFocusArea = "grid";
+        this.focusedDate = activeEl.dataset.date || this.focusedDate;
+      }
+    }
+
+    // Initialize focusedDate for first navigable day
+    if (
+      !this.readonly &&
+      (!this.focusedDate || !this.isNavigable(this.focusedDate))
+    ) {
+      this.focusedDate = this.getFirstNavigableDate();
+    }
+
     this.shadow.innerHTML = `
             <style>
                 :host {
@@ -395,12 +423,18 @@ export class PtoCalendar extends HTMLElement {
                 .day.clickable {
                     cursor: pointer;
                     transition: all 0.2s ease;
-                    tabindex: 0;
                 }
 
                 .day.clickable:hover {
                     transform: scale(1.05);
                     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                }
+
+                .day.clickable:focus-visible {
+                    outline: 2px solid var(--color-primary);
+                    outline-offset: -2px;
+                    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+                    z-index: 1;
                 }
 
                 .day.selected {
@@ -431,27 +465,6 @@ export class PtoCalendar extends HTMLElement {
                     color: var(--color-text-secondary);
                 }
 
-                .day .hours-input {
-                    position: absolute;
-                    bottom: 2px;
-                    right: 2px;
-                    width: 32px;
-                    height: 14px;
-                    font-size: 10px;
-                    text-align: center;
-                    border: 1px solid var(--color-border);
-                    border-radius: 2px;
-                    background: var(--color-surface);
-                    color: var(--color-text);
-                    font-weight: 600;
-                }
-
-                .day .hours-input.invalid {
-                    border-color: var(--color-error);
-                    background: var(--color-error-light);
-                    color: var(--color-text);
-                }
-
                 .type-PTO { background: ${PTO_TYPE_COLORS.PTO}; }
                 .type-Sick { background: ${PTO_TYPE_COLORS.Sick}; }
                 .type-Bereavement { background: ${PTO_TYPE_COLORS.Bereavement}; }
@@ -471,15 +484,6 @@ export class PtoCalendar extends HTMLElement {
                 .type-Planned-PTO .date,
                 .type-Planned-PTO .hours {
                     color: white;
-                }
-
-                /* Keep input text dark for better contrast with surface background */
-                .type-PTO .hours-input,
-                .type-Sick .hours-input,
-                .type-Bereavement .hours-input,
-                .type-Jury-Duty .hours-input,
-                .type-Planned-PTO .hours-input {
-                    color: var(--color-text);
                 }
 
                 .legend {
@@ -502,12 +506,16 @@ export class PtoCalendar extends HTMLElement {
                     padding: 4px 8px;
                     border-radius: 4px;
                     transition: all 0.2s ease;
-                    tabindex: 0;
                 }
 
                 .legend-item.clickable:hover {
                     background: var(--color-surface-hover);
                     transform: scale(1.05);
+                }
+
+                .legend-item.clickable:focus-visible {
+                    outline: 2px solid var(--color-primary);
+                    outline-offset: 2px;
                 }
 
                 .legend-item.selected {
@@ -531,6 +539,7 @@ export class PtoCalendar extends HTMLElement {
             ${this.renderCalendar()}
         `;
     this.attachEventListeners();
+    this.restoreFocus();
   }
 
   private attachEventListeners() {
@@ -551,185 +560,258 @@ export class PtoCalendar extends HTMLElement {
       });
     }
 
-    // Legend item clicks and keyboard navigation
+    // Legend item clicks
     const legendItems = this.shadow.querySelectorAll(".legend-item.clickable");
     legendItems.forEach((item) => {
       item.addEventListener("click", (e) => {
         e.preventDefault();
         const type = (e.currentTarget as HTMLElement).dataset.type;
         if (type) {
+          const items = Array.from(legendItems);
+          this.focusedLegendIndex = items.indexOf(e.currentTarget as Element);
           this.selectedPtoType = this.selectedPtoType === type ? null : type;
+          this.lastFocusArea = "legend";
           this.render();
         }
       });
-      item.addEventListener("keydown", (e) => {
-        const keyboardEvent = e as KeyboardEvent;
-        if (keyboardEvent.key === "Enter" || keyboardEvent.key === " ") {
-          e.preventDefault();
-          const type = (e.currentTarget as HTMLElement).dataset.type;
-          if (type) {
-            this.selectedPtoType = this.selectedPtoType === type ? null : type;
-            this.render();
-          }
-        }
-      });
     });
 
-    // Calendar cell clicks and keyboard navigation
+    // Calendar cell clicks
     const calendarCells = this.shadow.querySelectorAll(".day.clickable");
     calendarCells.forEach((cell) => {
       cell.addEventListener("click", (e) => {
-        // Ignore clicks on input fields to prevent toggling when editing hours
-        if ((e.target as HTMLElement).tagName === "INPUT") {
-          return;
-        }
         e.preventDefault();
         const date = (e.currentTarget as HTMLElement).dataset.date;
-        if (date && this.selectedPtoType) {
-          // PTO request creation mode
-          if (this.selectedPtoType === "Work Day") {
-            // Clear operation - remove any existing entry for this date
-            const existingEntryIndex = this.ptoEntries.findIndex(
-              (entry) => entry.date === date,
-            );
-            if (existingEntryIndex >= 0) {
-              this.ptoEntries.splice(existingEntryIndex, 1);
-              this.setAttribute("pto-entries", JSON.stringify(this.ptoEntries));
-            }
-            // Also clear from selected cells if it was selected
-            this.selectedCells.delete(date);
-            this.render();
-          } else {
-            // Normal PTO type selection
-            if (this.selectedCells.has(date)) {
-              this.selectedCells.delete(date);
-            } else {
-              // Check if there's an existing entry for this date and use its hours
-              const existingEntry = this.ptoEntries.find(
-                (entry) => entry.date === date,
-              );
-              const defaultHours = existingEntry ? existingEntry.hours : 8;
-              this.selectedCells.set(date, defaultHours);
-            }
-            this.render();
-          }
-        } else if (date && !this.readonly) {
-          // Hours editing mode - only allow editing existing entries
-          const existingEntry = this.ptoEntries.find(
-            (entry) => entry.date === date,
-          );
-          if (existingEntry) {
-            // Allow editing existing entries
-            if (this.selectedCells.has(date)) {
-              this.selectedCells.delete(date);
-            } else {
-              this.selectedCells.set(date, existingEntry.hours);
-              // Set the PTO type for this selection
-              this.selectedPtoType = existingEntry.type;
-            }
-            this.render();
-          }
-          // Empty cells without PTO type selected do nothing (no notification needed)
-        }
-      });
-      cell.addEventListener("keydown", (e) => {
-        const keyboardEvent = e as KeyboardEvent;
-        if (keyboardEvent.key === "Enter" || keyboardEvent.key === " ") {
-          e.preventDefault();
-          const date = (e.currentTarget as HTMLElement).dataset.date;
-          if (date && this.selectedPtoType) {
-            // Same logic as click
-            if (this.selectedPtoType === "Work Day") {
-              const existingEntryIndex = this.ptoEntries.findIndex(
-                (entry) => entry.date === date,
-              );
-              if (existingEntryIndex >= 0) {
-                this.ptoEntries.splice(existingEntryIndex, 1);
-                this.setAttribute(
-                  "pto-entries",
-                  JSON.stringify(this.ptoEntries),
-                );
-              }
-              this.selectedCells.delete(date);
-              this.render();
-            } else {
-              if (this.selectedCells.has(date)) {
-                this.selectedCells.delete(date);
-              } else {
-                const existingEntry = this.ptoEntries.find(
-                  (entry) => entry.date === date,
-                );
-                const defaultHours = existingEntry ? existingEntry.hours : 8;
-                this.selectedCells.set(date, defaultHours);
-              }
-              this.render();
-            }
-          }
+        if (date) {
+          this.focusedDate = date;
+          this.toggleDaySelection(date);
         }
       });
     });
+  }
 
-    // Hours input changes
-    const hoursInputs = this.shadow.querySelectorAll(".hours-input");
-    hoursInputs.forEach((input) => {
-      input.addEventListener("change", (e) => {
-        const target = e.target as HTMLInputElement;
-        const date = target.dataset.date;
-        const value = parseFloat(target.value);
-        if (
-          date &&
-          !isNaN(value) &&
-          (value === 0 || value === 4 || value === 8)
-        ) {
-          if (value === 0) {
-            // Clear operation - remove the entry
-            const existingEntryIndex = this.ptoEntries.findIndex(
-              (entry) => entry.date === date,
-            );
-            if (existingEntryIndex >= 0) {
-              this.ptoEntries.splice(existingEntryIndex, 1);
-              this.setAttribute("pto-entries", JSON.stringify(this.ptoEntries));
-            }
-            // Also clear from selected cells
+  private handleKeyDown(event: KeyboardEvent) {
+    if (this.readonly) return;
+
+    const target = event.target as HTMLElement;
+    const isLegendItem = target.classList.contains("legend-item");
+    const isDayCell =
+      target.classList.contains("day") &&
+      target.classList.contains("clickable");
+
+    if (isLegendItem) {
+      this.handleLegendKeyDown(event, target);
+    } else if (isDayCell) {
+      this.handleGridKeyDown(event, target);
+    }
+  }
+
+  private handleLegendKeyDown(event: KeyboardEvent, target: HTMLElement) {
+    const legendItems = Array.from(
+      this.shadow.querySelectorAll(".legend-item.clickable"),
+    ) as HTMLElement[];
+    const currentIndex = legendItems.indexOf(target);
+    if (currentIndex === -1) return;
+
+    switch (event.key) {
+      case "ArrowRight":
+      case "ArrowDown": {
+        event.preventDefault();
+        const nextIndex = (currentIndex + 1) % legendItems.length;
+        this.focusLegendItem(legendItems, nextIndex);
+        break;
+      }
+      case "ArrowLeft":
+      case "ArrowUp": {
+        event.preventDefault();
+        const prevIndex =
+          (currentIndex - 1 + legendItems.length) % legendItems.length;
+        this.focusLegendItem(legendItems, prevIndex);
+        break;
+      }
+      case "Enter":
+      case " ": {
+        event.preventDefault();
+        const type = target.dataset.type;
+        if (type) {
+          this.focusedLegendIndex = currentIndex;
+          this.selectedPtoType = this.selectedPtoType === type ? null : type;
+          this.lastFocusArea = "legend";
+          this.render();
+        }
+        break;
+      }
+    }
+  }
+
+  private handleGridKeyDown(event: KeyboardEvent, target: HTMLElement) {
+    const date = target.dataset.date;
+    if (!date) return;
+
+    const calendarDates = getCalendarDates(this.year, this.month);
+    const currentIndex = calendarDates.indexOf(date);
+    if (currentIndex === -1) return;
+
+    let nextDate: string | null = null;
+
+    switch (event.key) {
+      case "ArrowRight":
+        nextDate = this.findNextNavigableDate(calendarDates, currentIndex, 1);
+        break;
+      case "ArrowLeft":
+        nextDate = this.findNextNavigableDate(calendarDates, currentIndex, -1);
+        break;
+      case "ArrowDown":
+        nextDate = this.findNavigableDateAt(calendarDates, currentIndex + 7);
+        break;
+      case "ArrowUp":
+        nextDate = this.findNavigableDateAt(calendarDates, currentIndex - 7);
+        break;
+      case "Enter":
+      case " ":
+        event.preventDefault();
+        this.focusedDate = date;
+        this.toggleDaySelection(date);
+        return;
+      default:
+        return;
+    }
+
+    if (nextDate) {
+      event.preventDefault();
+      this.focusedDate = nextDate;
+      this.focusDate(nextDate);
+    }
+  }
+
+  private cycleHours(current: number): number {
+    // 8 -> 4 -> 0 -> 8
+    if (current === 8) return 4;
+    if (current === 4) return 0;
+    return 8;
+  }
+
+  private toggleDaySelection(date: string) {
+    if (this.selectedPtoType) {
+      if (this.selectedPtoType === "Work Day") {
+        // Clear operation - remove any existing entry for this date
+        const existingEntryIndex = this.ptoEntries.findIndex(
+          (entry) => entry.date === date,
+        );
+        if (existingEntryIndex >= 0) {
+          this.ptoEntries.splice(existingEntryIndex, 1);
+          this.setAttribute("pto-entries", JSON.stringify(this.ptoEntries));
+        }
+        this.selectedCells.delete(date);
+        this.lastFocusArea = "grid";
+        this.render();
+      } else {
+        // Cycle hours: first click sets 8, then 4, then 0 (removes)
+        const currentHours = this.selectedCells.get(date);
+        if (currentHours !== undefined) {
+          const nextHours = this.cycleHours(currentHours);
+          if (nextHours === 0) {
             this.selectedCells.delete(date);
-            this.render();
           } else {
-            // Check if this is an existing entry
-            const existingEntryIndex = this.ptoEntries.findIndex(
-              (entry) => entry.date === date,
-            );
-            if (existingEntryIndex >= 0) {
-              // Update existing entry
-              this.ptoEntries[existingEntryIndex].hours = value;
-              this.setAttribute("pto-entries", JSON.stringify(this.ptoEntries));
-              // Also mark as selected for submission
-              this.selectedCells.set(date, value);
-            } else {
-              // Update selected cell
-              this.selectedCells.set(date, value);
-            }
+            this.selectedCells.set(date, nextHours);
           }
         } else {
-          // Reset to previous value if invalid
-          const existingEntry = this.ptoEntries.find(
-            (entry) => entry.date === date!,
-          );
-          const currentValue = existingEntry
-            ? existingEntry.hours
-            : this.selectedCells.get(date!);
-          target.value = currentValue?.toString() || "8";
+          // First click - select with 8 hours
+          this.selectedCells.set(date, 8);
         }
-      });
-      input.addEventListener("input", (e) => {
-        const target = e.target as HTMLInputElement;
-        const value = parseFloat(target.value);
-        if (isNaN(value) || (value !== 0 && value !== 4 && value !== 8)) {
-          target.classList.add("invalid");
+        this.lastFocusArea = "grid";
+        this.render();
+      }
+    } else {
+      // No PTO type selected - can edit existing entries
+      const existingEntry = this.ptoEntries.find(
+        (entry) => entry.date === date,
+      );
+      if (existingEntry) {
+        const currentHours = this.selectedCells.get(date);
+        if (currentHours !== undefined) {
+          const nextHours = this.cycleHours(currentHours);
+          if (nextHours === 0) {
+            this.selectedCells.delete(date);
+          } else {
+            this.selectedCells.set(date, nextHours);
+            this.selectedPtoType = existingEntry.type;
+          }
         } else {
-          target.classList.remove("invalid");
+          this.selectedCells.set(date, existingEntry.hours);
+          this.selectedPtoType = existingEntry.type;
         }
-      });
-    });
+        this.lastFocusArea = "grid";
+        this.render();
+      }
+    }
+  }
+
+  private isNavigable(dateStr: string): boolean {
+    return isInMonth(dateStr, this.year, this.month) && !isWeekend(dateStr);
+  }
+
+  private getFirstNavigableDate(): string | null {
+    const calendarDates = getCalendarDates(this.year, this.month);
+    return calendarDates.find((d) => this.isNavigable(d)) || null;
+  }
+
+  private findNextNavigableDate(
+    dates: string[],
+    fromIndex: number,
+    direction: number,
+  ): string | null {
+    let i = fromIndex + direction;
+    while (i >= 0 && i < dates.length) {
+      if (this.isNavigable(dates[i])) return dates[i];
+      i += direction;
+    }
+    return null;
+  }
+
+  private findNavigableDateAt(dates: string[], index: number): string | null {
+    if (index < 0 || index >= dates.length) return null;
+    return this.isNavigable(dates[index]) ? dates[index] : null;
+  }
+
+  private focusDate(date: string) {
+    const cell = this.shadow.querySelector(
+      `.day[data-date="${date}"]`,
+    ) as HTMLElement;
+    if (cell) {
+      this.shadow
+        .querySelectorAll('.day[tabindex="0"]')
+        .forEach((el) => el.setAttribute("tabindex", "-1"));
+      cell.setAttribute("tabindex", "0");
+      cell.focus();
+    }
+  }
+
+  private focusLegendItem(items: HTMLElement[], index: number) {
+    items.forEach((el) => el.setAttribute("tabindex", "-1"));
+    items[index].setAttribute("tabindex", "0");
+    items[index].focus();
+    this.focusedLegendIndex = index;
+  }
+
+  private restoreFocus() {
+    if (!this.lastFocusArea) return;
+
+    if (this.lastFocusArea === "legend") {
+      const legendItems = Array.from(
+        this.shadow.querySelectorAll(".legend-item.clickable"),
+      ) as HTMLElement[];
+      if (legendItems.length > 0) {
+        const index = Math.min(this.focusedLegendIndex, legendItems.length - 1);
+        legendItems[index].focus();
+      }
+    } else if (this.lastFocusArea === "grid" && this.focusedDate) {
+      const cell = this.shadow.querySelector(
+        `.day[data-date="${this.focusedDate}"]`,
+      ) as HTMLElement;
+      if (cell) cell.focus();
+    }
+    this.lastFocusArea = null;
   }
 }
 

@@ -32,6 +32,7 @@ This document outlines all remaining tasks to complete the DWP Hours Tracker app
 12. # ✅ **[issue-submit-time-off-calendar-regressions.md](issue-submit-time-off-calendar-regressions.md)** - Submit Time Off calendar missing features
 13. **[planet-branch-workflow.md](planet-branch-workflow.md)** - Standardized feature development workflow using planet branches
 14. **[issue-pto-card-base-migration.md](issue-pto-card-base-migration.md)** - Migrate PTO card hierarchy from HTMLElement to BaseComponent with declarative rendering
+15. LATER: See ./TASKS/pto-calendar-keyboard-navigation.md for details
 
 ## Task Dependencies
 
