@@ -273,17 +273,18 @@ const STYLES = `
         flex: 1;
         overflow-y: auto;
         padding: 20px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 20px;
     }
 
     .employee-card {
         background: var(--color-surface);
         border-radius: 8px;
         padding: 16px;
-        margin-bottom: 12px;
         box-shadow: 0 2px 4px var(--color-shadow);
         border: 1px solid var(--color-border);
         transition: box-shadow 0.3s ease;
-        max-width: 32em;
     }
 
     .employee-card:hover {
@@ -391,6 +392,7 @@ const STYLES = `
         text-align: center;
         padding: 40px;
         color: var(--color-text-secondary);
+        grid-column: 1 / -1;
     }
 
     .empty-state h3 {
@@ -404,7 +406,7 @@ const STYLES = `
         border-radius: 8px;
         box-shadow: 0 2px 4px var(--color-shadow);
         border: 1px solid var(--color-border);
-        margin-bottom: 12px;
+        grid-column: 1 / -1;
     }
 `;
 
