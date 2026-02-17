@@ -1,16 +1,11 @@
 import { PtoCalendar, CalendarEntry, PTOEntry } from "./index.js";
 import { seedPTOEntries } from "../../../shared/seedData.js";
 import { today } from "../../../shared/dateUtils.js";
+import { querySingle } from "../test-utils.js";
 
-export function playground(): HTMLElement {
-  const container = document.createElement("div");
-  container.innerHTML = `
-        <h2>PTO Calendar Component Test</h2>
-        <p>This demonstrates the extracted calendar component that can be tested independently.</p>
-    `;
-
-  // Create calendar component
-  const calendar = document.createElement("pto-calendar") as PtoCalendar;
+export function playground(): void {
+  // Get existing calendar component
+  const calendar = querySingle<PtoCalendar>("pto-calendar");
 
   // Use seed data for February 2026
   const sampleEntries: PTOEntry[] = seedPTOEntries
@@ -27,42 +22,65 @@ export function playground(): HTMLElement {
       approved_by: entry.approved_by,
     }));
 
-  calendar.setYear(2026);
-  calendar.setMonth(2); // February
-  calendar.setPtoEntries(sampleEntries);
-  calendar.setReadonly(false); // Start in editable mode for testing
+  let isEditMode = true;
+  let currentMonth = 2; // February (1-indexed)
+  let currentYear = 2026;
+
+  function updateCalendar() {
+    calendar.setYear(currentYear);
+    calendar.setMonth(currentMonth);
+    calendar.setReadonly(!isEditMode);
+    calendar.setPtoEntries(sampleEntries);
+  }
+
+  function updateModeDisplay() {
+    const modeDisplay = querySingle<HTMLSpanElement>("#mode-display");
+    modeDisplay.textContent = `Mode: ${isEditMode ? "Edit" : "View"}`;
+  }
+
+  // Add event listeners for controls
+  const prevBtn = querySingle<HTMLButtonElement>("#prev-month");
+  const nextBtn = querySingle<HTMLButtonElement>("#next-month");
+  const toggleBtn = querySingle<HTMLButtonElement>("#toggle-mode");
+
+  prevBtn.addEventListener("click", () => {
+    currentMonth--;
+    if (currentMonth < 1) {
+      currentMonth = 12;
+      currentYear--;
+    }
+    updateCalendar();
+  });
+
+  nextBtn.addEventListener("click", () => {
+    currentMonth++;
+    if (currentMonth > 12) {
+      currentMonth = 1;
+      currentYear++;
+    }
+    updateCalendar();
+  });
+
+  toggleBtn.addEventListener("click", () => {
+    isEditMode = !isEditMode;
+    updateCalendar();
+    updateModeDisplay();
+  });
+
+  // Initialize with seed data
+  updateCalendar();
+  updateModeDisplay();
 
   // Add event listener for PTO request submission
   calendar.addEventListener("pto-request-submit", (event: any) => {
     console.log("PTO Request Submitted:", event.detail);
   });
 
-  container.appendChild(calendar);
-
-  // Add some test controls
-  const controls = document.createElement("div");
-  controls.innerHTML = `
-        <h3>Test Controls</h3>
-        <button id="test-colors">Test Color Coding</button>
-        <button id="test-legend">Test Legend</button>
-        <button id="test-checkmarks">Test Checkmarks</button>
-        <div id="test-results"></div>
-    `;
-  container.appendChild(controls);
-
   // Add event listeners for testing
-  const testColorsBtn = container.querySelector(
-    "#test-colors",
-  ) as HTMLButtonElement;
-  const testLegendBtn = container.querySelector(
-    "#test-legend",
-  ) as HTMLButtonElement;
-  const testCheckmarksBtn = container.querySelector(
-    "#test-checkmarks",
-  ) as HTMLButtonElement;
-  const testResults = container.querySelector(
-    "#test-results",
-  ) as HTMLDivElement;
+  const testColorsBtn = querySingle<HTMLButtonElement>("#test-colors");
+  const testLegendBtn = querySingle<HTMLButtonElement>("#test-legend");
+  const testCheckmarksBtn = querySingle<HTMLButtonElement>("#test-checkmarks");
+  const testResults = querySingle<HTMLDivElement>("#test-results");
 
   testColorsBtn.addEventListener("click", () => {
     const sickDays = calendar.shadowRoot?.querySelectorAll(".type-Sick");
@@ -86,6 +104,4 @@ export function playground(): HTMLElement {
             <p>Checkmarks found: ${checkmarks?.length || 0}</p>
         `;
   });
-
-  return container;
 }

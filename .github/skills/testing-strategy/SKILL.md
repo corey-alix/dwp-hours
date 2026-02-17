@@ -43,6 +43,11 @@ Ensure test files follow web-components-assistant guidelines:
 
 **Pattern**: HTML defines structure, TypeScript sets properties via `setAttribute()` or direct assignment.
 
+**Test File Design Constraints**:
+
+- **test.html**: Contains declarative HTML structure only. Imports from `/app.js` and calls aliased playground functions. No inline JavaScript for component setup.
+- **test.ts**: Acts as component controller. Does NOT inject HTML markup. All DOM manipulation is programmatic using component APIs. Follows web component patterns where HTML is declarative and TypeScript handles behavior.
+
 ## Response Pattern
 
 1. Suggest appropriate testing level (unit/integration/E2E) based on the feature

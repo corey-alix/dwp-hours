@@ -13,125 +13,23 @@
       <button id="prev-month">Previous Month</button>
       <button id="next-month">Next Month</button>
       <button id="toggle-mode">Toggle Edit/View Mode</button>
-      <span id="mode-display">Mode: View</span>
+      <span id="mode-display">Mode: Edit</span>
     </div>
     <div id="test-output"></div>
 
     <pto-calendar id="pto-calendar"></pto-calendar>
+
+    <h3>Test Controls</h3>
+    <button id="test-colors">Test Color Coding</button>
+    <button id="test-legend">Test Legend</button>
+    <button id="test-checkmarks">Test Checkmarks</button>
+    <div id="test-results"></div>
+
     <debug-console></debug-console>
 
     <script type="module">
       import { ptoCalendar } from "/app.js";
-
-      // Initialize component registration
       ptoCalendar();
-
-      const calendar = document.getElementById("pto-calendar");
-      const prevBtn = document.getElementById("prev-month");
-      const nextBtn = document.getElementById("next-month");
-      const toggleBtn = document.getElementById("toggle-mode");
-      const modeDisplay = document.getElementById("mode-display");
-
-      let isEditMode = true;
-      let currentMonth = 2; // February (1-indexed)
-      let currentYear = 2026;
-
-      // Seed data for February 2026
-      const sampleEntries = [
-        {
-          id: 1,
-          employeeId: 1,
-          date: "2026-02-12",
-          type: "Sick",
-          hours: 8,
-          createdAt: "2026-02-12",
-          approved_by: 3,
-        },
-        {
-          id: 2,
-          employeeId: 1,
-          date: "2026-02-13",
-          type: "Sick",
-          hours: 8,
-          createdAt: "2026-02-13",
-          approved_by: 3,
-        },
-        {
-          id: 3,
-          employeeId: 1,
-          date: "2026-02-17",
-          type: "PTO",
-          hours: 8,
-          createdAt: "2026-02-17",
-          approved_by: null,
-        },
-        {
-          id: 4,
-          employeeId: 1,
-          date: "2026-02-20",
-          type: "PTO",
-          hours: 8,
-          createdAt: "2026-02-20",
-          approved_by: 3,
-        },
-        {
-          id: 5,
-          employeeId: 1,
-          date: "2026-02-23",
-          type: "PTO",
-          hours: 8,
-          createdAt: "2026-02-23",
-          approved_by: 3,
-        },
-        {
-          id: 6,
-          employeeId: 1,
-          date: "2026-02-25",
-          type: "PTO",
-          hours: 8,
-          createdAt: "2026-02-25",
-          approved_by: 3,
-        },
-      ];
-
-      function updateCalendar() {
-        calendar.setAttribute("month", currentMonth.toString());
-        calendar.setAttribute("year", currentYear.toString());
-        calendar.setAttribute("readonly", (!isEditMode).toString());
-        calendar.setAttribute("pto-entries", JSON.stringify(sampleEntries));
-      }
-
-      function updateModeDisplay() {
-        modeDisplay.textContent = `Mode: ${isEditMode ? "Edit" : "View"}`;
-      }
-
-      prevBtn.addEventListener("click", () => {
-        currentMonth--;
-        if (currentMonth < 1) {
-          currentMonth = 12;
-          currentYear--;
-        }
-        updateCalendar();
-      });
-
-      nextBtn.addEventListener("click", () => {
-        currentMonth++;
-        if (currentMonth > 12) {
-          currentMonth = 1;
-          currentYear++;
-        }
-        updateCalendar();
-      });
-
-      toggleBtn.addEventListener("click", () => {
-        isEditMode = !isEditMode;
-        updateCalendar();
-        updateModeDisplay();
-      });
-
-      // Initialize with seed data
-      updateCalendar();
-      updateModeDisplay();
     </script>
   </body>
 </html>
