@@ -14,7 +14,7 @@ test.beforeEach(async () => {
   }
 });
 
-test("index PTO calendar edit existing entry from 80 to 8 hours", async ({
+test("index PTO calendar edit existing entry submits 8 hours", async ({
   page,
 }) => {
   test.setTimeout(15000);
@@ -60,25 +60,25 @@ test("index PTO calendar edit existing entry from 80 to 8 hours", async ({
   // Wait for calendar to load and show July 2026
   await page.waitForTimeout(2000);
 
-  // Manually set PTO entries on the calendar for testing
+  // Manually set PTO entries on the calendar for testing and ensure July is displayed
   await page.evaluate(() => {
     const form = document.querySelector("pto-entry-form") as any;
     if (form && form.shadowRoot) {
       const calendar = form.shadowRoot.querySelector("pto-calendar") as any;
       if (calendar) {
-        calendar.setAttribute(
-          "pto-entries",
-          JSON.stringify([
-            {
-              id: 1,
-              employeeId: 1,
-              date: "2026-07-01",
-              type: "PTO",
-              hours: 80,
-              createdAt: "2026-01-01T00:00:00.000Z",
-            },
-          ]),
-        );
+        calendar.setAttribute("month", "7");
+        calendar.setAttribute("year", "2026");
+        calendar.setAttribute("readonly", "false");
+        calendar.ptoEntries = [
+          {
+            id: 1,
+            employeeId: 1,
+            date: "2026-07-01",
+            type: "PTO",
+            hours: 8,
+            createdAt: "2026-01-01T00:00:00.000Z",
+          },
+        ];
       }
     }
   });
@@ -91,22 +91,25 @@ test("index PTO calendar edit existing entry from 80 to 8 hours", async ({
   await expect(july1stCell).toBeVisible();
   await expect(july1stCell).toHaveClass(/has-pto/);
 
-  // Click the cell to enter editing mode
-  await july1stCell.click();
+  // Click the cell to select it for editing (click-to-cycle: sets to existing hours first)
+  await page.evaluate(() => {
+    const form = document.querySelector("pto-entry-form") as any;
+    const calendar = form.shadowRoot.querySelector("pto-calendar") as any;
+    const cell = calendar.shadowRoot.querySelector(
+      '.day[data-date="2026-07-01"]',
+    ) as HTMLElement;
+    cell.click();
+  });
 
   // Wait for the render to complete
   await page.waitForTimeout(500);
 
-  // Now the hours input should be visible
-  const hoursInput = july1stCell.locator(".hours-input");
-  await expect(hoursInput).toBeVisible();
-  await expect(hoursInput).toHaveValue("80");
+  // Cell should now be selected
+  await expect(july1stCell).toHaveClass(/selected/);
+  // Full day indicator (8 hours = ●)
+  await expect(july1stCell.locator(".hours")).toContainText("●");
 
-  // Change the hours from 80 to 8
-  await hoursInput.fill("8");
-  await hoursInput.blur();
-
-  // Click the submit button
+  // Click the submit button to submit the selected entry
   const [ptoResponse] = await Promise.all([
     page.waitForResponse(
       (response) =>

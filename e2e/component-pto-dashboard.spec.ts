@@ -383,28 +383,28 @@ test("pto-dashboard component test", async ({ page }) => {
     // Check that February sick days are correctly colored (based on actual rendering)
     const day12 = calendar.locator('.day[data-date="2026-02-12"]');
     await expect(day12).toHaveClass(/type-Sick/);
-    await expect(day12).toContainText("8");
+    await expect(day12).toContainText("●"); // 8 hours = full day indicator
 
     const day13 = calendar.locator('.day[data-date="2026-02-13"]');
     await expect(day13).toHaveClass(/type-Sick/);
-    await expect(day13).toContainText("8");
+    await expect(day13).toContainText("●");
 
     const day17 = calendar.locator('.day[data-date="2026-02-17"]');
     await expect(day17).toHaveClass(/type-Sick/);
-    await expect(day17).toContainText("8");
+    await expect(day17).toContainText("●");
 
     // Check that February PTO days are correctly colored
     const day20 = calendar.locator('.day[data-date="2026-02-20"]');
     await expect(day20).toHaveClass(/type-PTO/);
-    await expect(day20).toContainText("8");
+    await expect(day20).toContainText("●");
 
     const day23 = calendar.locator('.day[data-date="2026-02-23"]');
     await expect(day23).toHaveClass(/type-PTO/);
-    await expect(day23).toContainText("8");
+    await expect(day23).toContainText("●");
 
     const day25 = calendar.locator('.day[data-date="2026-02-25"]');
     await expect(day25).toHaveClass(/type-PTO/);
-    await expect(day25).toContainText("8");
+    await expect(day25).toContainText("●");
 
     // Check that other days in February are not colored
     const day1 = calendar.locator('.day[data-date="2026-02-01"]');
@@ -432,15 +432,15 @@ test("pto-dashboard component test", async ({ page }) => {
     // Check that January bereavement days are correctly colored
     const day21 = janCalendar.locator('.day[data-date="2026-01-21"]');
     await expect(day21).toHaveClass(/type-Bereavement/);
-    await expect(day21).toContainText("8");
+    await expect(day21).toContainText("●");
 
     const day22 = janCalendar.locator('.day[data-date="2026-01-22"]');
     await expect(day22).toHaveClass(/type-Bereavement/);
-    await expect(day22).toContainText("8");
+    await expect(day22).toContainText("●");
 
     const day23 = janCalendar.locator('.day[data-date="2026-01-23"]');
     await expect(day23).toHaveClass(/type-Bereavement/);
-    await expect(day23).toContainText("8");
+    await expect(day23).toContainText("●");
 
     // Check that other days in January are not colored
     const day1 = janCalendar.locator('.day[data-date="2026-01-01"]');
@@ -461,13 +461,10 @@ test("pto-dashboard component test", async ({ page }) => {
     const marchCalendar = page.locator("pto-calendar");
     await expect(marchCalendar).toBeVisible();
 
-    // Check the pto-entries attribute
-    const ptoEntriesAttr = await marchCalendar.getAttribute("pto-entries");
-
     // Check that March day 10 is correctly colored with PTO
     const marchDay10 = marchCalendar.locator('.day[data-date="2026-03-10"]');
     await expect(marchDay10).toHaveClass(/type-PTO/);
-    await expect(marchDay10).toContainText("8");
+    await expect(marchDay10).toContainText("●");
 
     // Check that March 1st and other days are not colored
     const marchDay1 = marchCalendar.locator('.day[data-date="2026-03-01"]');
@@ -486,13 +483,10 @@ test("pto-dashboard component test", async ({ page }) => {
     const juneCalendar = page.locator("pto-calendar");
     await expect(juneCalendar).toBeVisible();
 
-    // Check the pto-entries attribute
-    const ptoEntriesAttr = await juneCalendar.getAttribute("pto-entries");
-
     // Check that approved jury duty days show checkmarks
     const juryDay15 = juneCalendar.locator('.day[data-date="2026-06-15"]');
     await expect(juryDay15).toHaveClass(/type-Jury-Duty/);
-    await expect(juryDay15).toContainText("8");
+    await expect(juryDay15).toContainText("●");
     // Check for checkmark
     const checkmark15 = juryDay15.locator(".checkmark");
     await expect(checkmark15).toBeVisible();
@@ -500,7 +494,7 @@ test("pto-dashboard component test", async ({ page }) => {
 
     const juryDay16 = juneCalendar.locator('.day[data-date="2026-06-16"]');
     await expect(juryDay16).toHaveClass(/type-Jury-Duty/);
-    await expect(juryDay16).toContainText("8");
+    await expect(juryDay16).toContainText("●");
     const checkmark16 = juryDay16.locator(".checkmark");
     await expect(checkmark16).toBeVisible();
     await expect(checkmark16).toHaveText("✓");

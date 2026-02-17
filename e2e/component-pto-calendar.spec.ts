@@ -100,26 +100,42 @@ test("pto-calendar component test", async ({ page }) => {
     cell.click();
   });
 
-  // Cell should now be selected
+  // Cell should now be selected with 8 hours (shows ● indicator)
   await expect(firstCell).toHaveClass(/selected/);
+  const hoursIndicator = firstCell.locator(".hours");
+  await expect(hoursIndicator).toContainText("●"); // 8 hours = full day
 
-  // Check that hours input appears for selected cell
-  const hoursInput = await page.locator("pto-calendar").locator(".hours-input");
-  await expect(hoursInput).toBeVisible();
+  // Test hours cycling - click again to cycle to 4 hours
+  await page.evaluate(() => {
+    const calendar = document.querySelector("pto-calendar") as any;
+    const cell = calendar.shadowRoot.querySelector(
+      ".day.selected",
+    ) as HTMLElement;
+    cell.click();
+  });
+  // After second click: 8 → 4 hours (shows ○ indicator for partial day)
+  await expect(hoursIndicator).toContainText("○");
 
-  // Test hours editing
-  await hoursInput.fill("4");
-  await hoursInput.press("Tab"); // Trigger change event
+  // Click again to cycle to 0 hours (removes selection)
+  await page.evaluate(() => {
+    const calendar = document.querySelector("pto-calendar") as any;
+    const cell = calendar.shadowRoot.querySelector(
+      ".day.clickable",
+    ) as HTMLElement;
+    cell.click();
+  });
+  // After third click: 4 → 0 hours, cell is deselected (removed from selections)
+  await expect(firstCell).not.toHaveClass(/selected/);
 
-  // Verify the value was set
-  await expect(hoursInput).toHaveValue("4");
-
-  // Test invalid hours (should show error styling) - value not 0, 4 or 8
-  await hoursInput.fill("6"); // Invalid - not 0, 4 or 8
-  await hoursInput.press("Tab");
-
-  // Should have invalid class
-  await expect(hoursInput).toHaveClass(/invalid/);
+  // Re-select the cell with PTO (click = new selection at 8 hours)
+  await page.evaluate(() => {
+    const calendar = document.querySelector("pto-calendar") as any;
+    const cell = calendar.shadowRoot.querySelector(
+      ".day.clickable",
+    ) as HTMLElement;
+    cell.click();
+  });
+  await expect(firstCell).toHaveClass(/selected/);
 
   // Test Work Day clear functionality
   await page.evaluate(() => {
@@ -135,7 +151,7 @@ test("pto-calendar component test", async ({ page }) => {
     .filter({ hasText: "Work Day" });
   await expect(workDayLegendItem).toHaveClass(/selected/);
 
-  // Click on a cell with existing PTO to clear it
+  // Click on the selected cell — Work Day clears entries
   await page.evaluate(() => {
     const calendar = document.querySelector("pto-calendar") as any;
     const cell = calendar.shadowRoot.querySelector(
@@ -143,11 +159,11 @@ test("pto-calendar component test", async ({ page }) => {
     ) as HTMLElement;
     if (cell) cell.click();
   });
-  // Cell should not be selected (cleared)
+  // Cell should not be selected (cleared by Work Day)
   await expect(firstCell).not.toHaveClass(/selected/);
 
-  // Test 0 hours clear functionality
-  // First select PTO again
+  // Test clear selection via API
+  // First select PTO again and click a cell
   await page.evaluate(() => {
     const calendar = document.querySelector("pto-calendar") as any;
     const legendItem = calendar.shadowRoot.querySelector(
@@ -163,13 +179,6 @@ test("pto-calendar component test", async ({ page }) => {
     cell.click();
   });
   await expect(firstCell).toHaveClass(/selected/);
-
-  // Enter 0 hours to clear
-  await hoursInput.fill("0");
-  await hoursInput.press("Tab");
-
-  // Cell should no longer be selected (cleared)
-  await expect(firstCell).not.toHaveClass(/selected/);
 
   // Test clear selection
   await page.evaluate(() => {

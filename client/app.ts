@@ -23,6 +23,7 @@ import {
   AdminPanel,
   PtoAccrualCard,
   PtoBereavementCard,
+  PtoCalendar,
   PtoEmployeeInfoCard,
   PtoEntryForm,
   PtoJuryDutyCard,
@@ -45,7 +46,7 @@ import * as testFunctions from "./components/test.js";
 
 // Re-export playground for testing
 export * from "./components/test.js";
-export { TestWorkflow } from "./test.js";
+export { TestWorkflow, initTestPage } from "./test.js";
 
 // Ensure AdminPanel is included in bundle
 export { AdminPanel };
@@ -57,12 +58,7 @@ const _adminMonthlyReviewRef = AdminMonthlyReview;
 const api = new APIClient();
 
 // Export the API client for use in components
-export {
-  api,
-
-  // Make API client available globally for components
-};
-(window as any).api = api;
+export { api };
 
 // Notification/Toast System
 class NotificationManager {
@@ -339,15 +335,15 @@ class UIManager {
       addEventListener(accrualCard, "month-selected", (e: CustomEvent) => {
         const { month, year, entries, requestMode } = e.detail;
         // Find or create the slotted pto-calendar
-        let calendar = accrualCard.querySelector("pto-calendar");
+        let calendar = accrualCard.querySelector("pto-calendar") as PtoCalendar;
         if (!calendar) {
-          calendar = document.createElement("pto-calendar");
+          calendar = document.createElement("pto-calendar") as PtoCalendar;
           calendar.setAttribute("slot", "calendar");
           accrualCard.appendChild(calendar);
         }
         calendar.setAttribute("month", String(month));
         calendar.setAttribute("year", String(year));
-        calendar.setAttribute("pto-entries", JSON.stringify(entries));
+        calendar.ptoEntries = entries;
         calendar.setAttribute("selected-month", String(month));
         calendar.setAttribute("readonly", String(!requestMode));
         if (requestMode) {
@@ -1015,7 +1011,12 @@ class UIManager {
 
 export { UIManager };
 
-const loginForm = document.getElementById("login-form");
-if (loginForm) {
-  (window as any).app = new UIManager();
+/**
+ * Application entry point.
+ * Call `App.run()` after the DOM is fully parsed to bootstrap the UI.
+ */
+export class App {
+  static run(): UIManager {
+    return new UIManager();
+  }
 }

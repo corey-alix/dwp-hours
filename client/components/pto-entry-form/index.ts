@@ -1174,7 +1174,7 @@ export class PtoEntryForm extends HTMLElement {
   setPtoData(ptoEntries: any[]) {
     const calendar = this.getCalendar();
     if (calendar) {
-      calendar.setAttribute("pto-entries", JSON.stringify(ptoEntries));
+      calendar.ptoEntries = ptoEntries;
     }
   }
 

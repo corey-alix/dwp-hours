@@ -1,5 +1,6 @@
 import { querySingle } from "../test-utils.js";
 import { PtoAccrualCard } from "./index.js";
+import { PtoCalendar } from "../pto-calendar/index.js";
 import { parseDate, today } from "../../../shared/dateUtils.js";
 import { seedPTOEntries, seedEmployees } from "../../../shared/seedData.js";
 import {
@@ -156,16 +157,16 @@ export function playground() {
             });
 
             // Create or update slotted calendar in light DOM
-            let calendar = card.querySelector("pto-calendar") as HTMLElement;
+            let calendar = card.querySelector("pto-calendar") as PtoCalendar;
             if (!calendar) {
-              calendar = document.createElement("pto-calendar");
+              calendar = document.createElement("pto-calendar") as PtoCalendar;
               calendar.setAttribute("slot", "calendar");
               card.appendChild(calendar);
             }
 
             calendar.setAttribute("month", String(month));
             calendar.setAttribute("year", String(year));
-            calendar.setAttribute("pto-entries", JSON.stringify(entries));
+            calendar.ptoEntries = entries;
             calendar.setAttribute("selected-month", String(month));
             // Always allow interaction (edit mode by default)
             calendar.setAttribute("readonly", "false");

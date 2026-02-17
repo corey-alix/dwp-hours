@@ -1,17 +1,143 @@
 /**
- * Test workflow class for test.html - handles automated testing of the employee workflow
+ * Test workflow class for test.html - handles automated testing of the employee workflow.
+ * All logic lives here; test.html is declarative HTML only.
  */
 
-// Extend Window interface for test mode
-declare global {
-  interface Window {
-    testMode?: boolean;
-    api?: any;
-    app?: any;
+export interface TestApi {
+  post(endpoint: string, data: any): Promise<any>;
+  get(endpoint: string): Promise<any>;
+}
+
+/** Create a mock API that returns canned responses for the test workflow. */
+function createMockApi(): TestApi {
+  return {
+    post: async (endpoint: string, data: any) => {
+      console.log("Mock API POST:", endpoint, data);
+      if (endpoint === "/api/auth/request-link") {
+        return {
+          message: "Magic link generated for testing",
+          magicLink:
+            "http://localhost:3000/test.html?token=mocktoken123&ts=1640995200000",
+        };
+      }
+      if (endpoint === "/api/pto") return { success: true, id: 1 };
+      if (endpoint === "/api/hours") return { success: true, id: 1 };
+      if (endpoint === "/api/acknowledgements") return { success: true, id: 1 };
+      return { success: true };
+    },
+    get: async (endpoint: string) => {
+      console.log("Mock API GET:", endpoint);
+      if (endpoint.startsWith("/api/auth/validate")) {
+        return {
+          authToken: "mockauthtoken123",
+          expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
+          employee: { id: 1, name: "Test Employee", role: "Employee" },
+        };
+      }
+      if (endpoint.startsWith("/api/pto/status/")) {
+        return {
+          annualAllocation: 120,
+          availablePTO: 95.64,
+          usedPTO: 24.36,
+          carryoverFromPreviousYear: 0,
+          monthlyAccruals: [
+            { month: 1, hours: 8.0 },
+            { month: 2, hours: 8.0 },
+          ],
+          hireDate: "2023-02-13T00:00:00.000Z",
+          nextRolloverDate: "2025-01-01T00:00:00.000Z",
+        };
+      }
+      return {};
+    },
+  };
+}
+
+/** Theme toggling utilities for the test page. */
+class ThemeTester {
+  private toggleBtn: HTMLElement | null;
+  private showColorsBtn: HTMLElement | null;
+  private colorPalette: HTMLElement | null;
+  private currentThemeSpan: HTMLElement | null;
+  private systemPreferenceSpan: HTMLElement | null;
+
+  constructor() {
+    this.toggleBtn = document.getElementById("toggle-theme-btn");
+    this.showColorsBtn = document.getElementById("show-colors-btn");
+    this.colorPalette = document.getElementById("color-palette");
+    this.currentThemeSpan = document.getElementById("current-theme");
+    this.systemPreferenceSpan = document.getElementById("system-preference");
+
+    this.toggleBtn?.addEventListener("click", () => this.toggleTheme());
+    this.showColorsBtn?.addEventListener("click", () =>
+      this.toggleColorPalette(),
+    );
+
+    this.updateThemeInfo();
+    this.detectSystemPreference();
+  }
+
+  private toggleTheme(): void {
+    const html = document.documentElement;
+    const currentTheme = html.getAttribute("data-theme") || "light";
+    const newTheme = currentTheme === "light" ? "dark" : "light";
+
+    html.setAttribute("data-theme", newTheme);
+    this.updateThemeInfo();
+
+    document.body.classList.toggle("theme-transition");
+    setTimeout(() => {
+      document.body.classList.toggle("theme-transition");
+    }, 100);
+  }
+
+  private toggleColorPalette(): void {
+    this.colorPalette?.classList.toggle("hidden");
+  }
+
+  private updateThemeInfo(): void {
+    const html = document.documentElement;
+    const currentTheme = html.getAttribute("data-theme") || "auto";
+    if (this.currentThemeSpan) {
+      this.currentThemeSpan.textContent =
+        currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1);
+    }
+  }
+
+  private detectSystemPreference(): void {
+    if (window.matchMedia) {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      if (this.systemPreferenceSpan) {
+        this.systemPreferenceSpan.textContent = mediaQuery.matches
+          ? "Dark"
+          : "Light";
+      }
+
+      mediaQuery.addEventListener("change", (e) => {
+        if (this.systemPreferenceSpan) {
+          this.systemPreferenceSpan.textContent = e.matches ? "Dark" : "Light";
+        }
+      });
+    } else if (this.systemPreferenceSpan) {
+      this.systemPreferenceSpan.textContent = "Not supported";
+    }
   }
 }
 
+/**
+ * Entry point for test.html — call from a minimal inline script.
+ * Creates the mock API, starts the workflow test, and initialises the theme tester.
+ */
+export function initTestPage(): void {
+  console.log("Employee Workflow Test: App loaded successfully");
+
+  const mockAPI = createMockApi();
+  new TestWorkflow(mockAPI);
+  new ThemeTester();
+}
+
 export class TestWorkflow {
+  private api: TestApi;
   private currentStep = 0;
   private testSteps = [
     "Initialize test environment",
@@ -29,70 +155,8 @@ export class TestWorkflow {
     "Complete workflow test",
   ];
 
-  constructor() {
-    this.initialize();
-  }
-
-  private initialize(): void {
-    // Mock API for testing - set this up before importing the app
-    window.testMode = true;
-
-    // Mock API responses
-    const mockAPI = {
-      post: async (endpoint: string, data: any) => {
-        console.log("Mock API POST:", endpoint, data);
-        if (endpoint === "/api/auth/request-link") {
-          return {
-            message: "Magic link generated for testing",
-            magicLink:
-              "http://localhost:3000/test.html?token=mocktoken123&ts=1640995200000",
-          };
-        }
-        if (endpoint === "/api/pto") {
-          return { success: true, id: 1 };
-        }
-        if (endpoint === "/api/hours") {
-          return { success: true, id: 1 };
-        }
-        if (endpoint === "/api/acknowledgements") {
-          return { success: true, id: 1 };
-        }
-        return { success: true };
-      },
-      get: async (endpoint: string) => {
-        console.log("Mock API GET:", endpoint);
-        if (endpoint.startsWith("/api/auth/validate")) {
-          return {
-            authToken: "mockauthtoken123",
-            expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
-            employee: {
-              id: 1,
-              name: "Test Employee",
-              role: "Employee",
-            },
-          };
-        }
-        if (endpoint.startsWith("/api/pto/status/")) {
-          return {
-            annualAllocation: 120,
-            availablePTO: 95.64,
-            usedPTO: 24.36,
-            carryoverFromPreviousYear: 0,
-            monthlyAccruals: [
-              { month: 1, hours: 8.0 },
-              { month: 2, hours: 8.0 },
-            ],
-            hireDate: "2023-02-13T00:00:00.000Z",
-            nextRolloverDate: "2025-01-01T00:00:00.000Z",
-          };
-        }
-        return {};
-      },
-    };
-
-    // Set the mock API before the app loads
-    (window as any).api = mockAPI;
-
+  constructor(api: TestApi) {
+    this.api = api;
     this.setupEventHandlers();
     this.initializeProgressDisplay();
     this.runWorkflowTest();
@@ -149,7 +213,7 @@ export class TestWorkflow {
         };
 
         try {
-          const response = await (window as any).api.post("/api/hours", data);
+          const response = await this.api.post("/api/hours", data);
           console.log("Monthly hours submitted:", response);
           alert("Monthly hours submitted successfully!");
         } catch (error) {
@@ -169,10 +233,7 @@ export class TestWorkflow {
         };
 
         try {
-          const response = await (window as any).api.post(
-            "/api/acknowledgements",
-            data,
-          );
+          const response = await this.api.post("/api/acknowledgements", data);
           console.log("Acknowledgement submitted:", response);
           alert("Monthly review acknowledged successfully!");
         } catch (error) {
@@ -223,7 +284,7 @@ export class TestWorkflow {
         try {
           // Submit each request
           for (const request of requests) {
-            await (window as any).api.post("/api/pto", request);
+            await this.api.post("/api/pto", request);
           }
 
           alert(
@@ -278,10 +339,7 @@ export class TestWorkflow {
       this.updateProgress(4, "in-progress");
       // Simulate clicking the magic link by setting the URL parameter
       window.history.pushState({}, "", "?token=mocktoken123&ts=1640995200000");
-      // Trigger token validation
-      if ((window as any).app && (window as any).app.handleTokenValidation) {
-        await (window as any).app.handleTokenValidation();
-      }
+      // Token validation is handled by UIManager internally
       await new Promise((resolve) => setTimeout(resolve, 1000));
       this.markStepCompleted(4);
 
@@ -301,9 +359,7 @@ export class TestWorkflow {
 
       // Step 7: Load PTO status
       this.updateProgress(7, "in-progress");
-      if ((window as any).app && (window as any).app.loadPTOStatus) {
-        await (window as any).app.loadPTOStatus();
-      }
+      // PTO status loading is handled by UIManager internally
       await new Promise((resolve) => setTimeout(resolve, 1000));
       this.markStepCompleted(7);
 
