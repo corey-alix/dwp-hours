@@ -141,5 +141,5 @@ test("index PTO calendar edit existing entry submits 8 hours", async ({
   expect(july1stEntry.hours).toBe(8);
 
   // Should show success notification
-  await expect(page.locator(".notification-toast.success")).toBeVisible();
+  await expect(page.locator("pto-notification .toast.success")).toBeVisible();
 });

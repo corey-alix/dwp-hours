@@ -154,7 +154,7 @@ test.describe("PTO Balance Validation", () => {
     expect(responseBody.ptoEntry.hours).toBe(8);
 
     // Verify success notification
-    await expect(page.locator(".notification-toast.success")).toBeVisible();
+    await expect(page.locator("pto-notification .toast.success")).toBeVisible();
   });
 
   test("should display negative PTO balances in red", async ({ page }) => {

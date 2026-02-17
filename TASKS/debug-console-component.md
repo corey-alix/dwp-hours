@@ -37,33 +37,92 @@ Create a comprehensive logging and notification system for the DWP Hours Tracker
   - Integrate with project's theming system
   - Add expand/collapse functionality
   - Validation: Component looks good in light/dark themes
-- [ ] **Stage 5: Integration and Testing** - Add to forms and comprehensive testing
+- [x] **Stage 5: Integration and Testing** - Add to forms and comprehensive testing
   - Integrate into test.html pages, starting with `components/pto-calendar/test.html` ✅ **DONE**
-  - Write unit tests for component functionality
+  - Write unit tests for component functionality ✅ **DONE** — 18 tests in `tests/components/debug-console.test.ts`
   - ~~Add E2E tests for console output display~~ **E2E tests will not be necessary**
   - Manual testing across browsers
   - Validation: `pnpm run build` passes ✅, `pnpm run lint` passes ✅, manual testing successful
 
+### Unit Test Plan
+
+Tests live in `tests/components/debug-console.test.ts` (Vitest + happy-dom).
+
+#### 1. Unhandled exceptions are reported
+
+**File under test:** `DebugConsoleController` + `<debug-console>`
+
+- Set `window.location.search = "?debug=1"` before constructing the controller
+- Dispatch a `new ErrorEvent("error", { message: "boom", filename: "test.ts", lineno: 42 })` on `window`
+- Assert `<debug-console>` shadow DOM contains text matching `Unhandled error: boom`
+- Dispatch a `new PromiseRejectionEvent("unhandledrejection", { reason: new Error("rejected"), promise: ... })` on `window`
+- Assert shadow DOM contains `Unhandled rejection: rejected`
+- Call `controller.destroy()` in `afterEach` to restore console
+
+#### 2. console.log / warn / error are intercepted
+
+**File under test:** `DebugConsoleController`
+
+- Set `?debug=1`, construct controller
+- Save reference to the pre-interception `console.log`
+- Call `console.log("hello")`, `console.warn("caution")`, `console.error("fail")`
+- Assert each message appears in `<debug-console>` shadow DOM with correct level prefix (`LOG:`, `WARN:`, `ERROR:`)
+- Assert the **original** console methods were still called (spy on the stored originals)
+- Call `controller.destroy()` and verify `console.log` is restored to the original
+
+#### 3. `<debug-console>` contains expected content
+
+**File under test:** `DebugConsole` component directly
+
+- Create `<debug-console>`, append to document, trigger `connectedCallback`
+- Call `component.log("info", "Test message")`
+- Assert shadow DOM `.log-entry` count is `1` and text includes `INFO: Test message`
+- Call `component.log("error", "Bad thing")` — assert 2 entries, newest first
+- Call `component.clear()` — assert 0 entries
+- Verify max-message cap: log 101 messages, assert only 100 `.log-entry` elements
+
+#### 4. `<pto-notification>` reports success / error / info / warning
+
+**File under test:** `PtoNotification` component directly
+
+- Create `<pto-notification>`, append to document
+- Call `component.show("ok", "success")` — assert shadow DOM has `.toast.success` with text `ok`
+- Call `component.show("fail", "error")` — assert `.toast.error` with text `fail`
+- Call `component.show("note", "info")` — assert `.toast.info` with text `note`
+- Call `component.show("heads up", "warning")` — assert `.toast.warning` with text `heads up`
+- Verify dismiss removes the toast: call `component.dismiss(id)`, advance timers, assert toast is gone
+
+#### 5. No cycles when logging throws
+
+**File under test:** `TraceListener` + `DebugConsoleController`
+
+- Register a handler whose `onTrace` throws an `Error`
+- Register a second handler (spy) to verify it still receives the message
+- Call `traceListener.error("test")` — assert first handler threw, second handler was called, no infinite loop
+- Construct `DebugConsoleController` with `?debug=1` and a `<debug-console>` whose `log()` method is stubbed to throw
+- Call `console.log("trigger")` — assert no unhandled exception escapes (the controller swallows the error), and the original `console.log` still fires
+- Call `controller.destroy()` to restore console
+
 ## Additional Requirements
 
 - ~~**Message-Oriented API**~~ **Scratched** — the TraceListener's existing `success()`, `error()`, `info()`, `warning()` API is sufficient. No separate message-oriented API is needed.
-- [ ] **TraceListener and Controller Architecture** - Replace NotificationManager with a TraceListener and register output-channel controllers
+- [x] **TraceListener and Controller Architecture** - Replace NotificationManager with a TraceListener and register output-channel controllers
   - Remove `NotificationManager` class entirely from `app.ts`
   - Introduce `TraceListener` class with `success()`, `error()`, `info()`, `warning()` API (backward-compatible with existing `notifications.*` call sites)
   - Extract UI rendering logic from `NotificationManager` into a standalone `<pto-notification>` web component (following SKILL.md / `BaseComponent` conventions)
   - Implement a `PtoNotificationController` that detects `<pto-notification>` in the DOM and registers as a TraceListener listener
   - Implement a `DebugConsoleController` that detects (or injects) `<debug-console>` in the DOM and registers as a TraceListener listener
   - The overall pattern: `traceListener.addListener(new PtoNotificationController()); traceListener.addListener(new DebugConsoleController());`
-- [ ] **Debug Mode Activation (`debug=1`)** - Gate debug-specific behaviors behind query string
+- [x] **Debug Mode Activation (`debug=1`)** - Gate debug-specific behaviors behind query string
   - `DebugConsoleController` checks for `debug=1` on startup
   - If `debug=1` and `<debug-console>` is absent from the DOM, dynamically inject it into `document.body`
   - If `debug=1`, hook `console.log` / `console.warn` / `console.error` interception (moved out of the component into the controller)
   - If `debug=1`, register `window.onerror` and `window.onunhandledrejection` handlers that forward to TraceListener
   - If `debug != 1`, none of the above hooks are installed, even if `<debug-console>` is already present in the DOM
-- [ ] **`<debug-console>` Refactor to Pure Component** - Remove all side effects from the component
+- [x] **`<debug-console>` Refactor to Pure Component** - Remove all side effects from the component
   - Strip console interception out of the constructor; `<debug-console>` only exposes a `log(level, message)` method (or equivalent) for the controller to call
   - Component remains dormant / invisible until it receives its first message or is explicitly activated
-- [ ] **`<pto-notification>` Web Component** - Full shadow DOM component per SKILL.md guidelines
+- [x] **`<pto-notification>` Web Component** - Full shadow DOM component per SKILL.md guidelines
   - Extend `BaseComponent`; place in `client/components/pto-notification/index.ts`
   - Declarative `render()` method; no imperative `createElement` / `appendChild` in template
   - Expose the same visual behavior currently in `NotificationManager.show()`
@@ -118,6 +177,6 @@ Create a comprehensive logging and notification system for the DWP Hours Tracker
     - `PtoNotificationController`: `client/controller/PtoNotificationController.ts`
     - `DebugConsoleController`: `client/controller/DebugConsoleController.ts`
     - `<pto-notification>` component: `client/components/pto-notification/index.ts`
-13. **[TIMING — controller DOM scan]** The current `index.html` loads `app.js` as a bare `<script type="module">` with no guaranteed DOM-ready entry point. This will be addressed by the `App.run()` refactor (see [app-run-entry-point.md](app-run-entry-point.md)): `index.html` will be changed to `import { App } from '/app.js'; App.run();`, giving a defined, post-DOM entry point. Controllers should be instantiated inside `App.run()` (or `UIManager.init()`), not at module load time.
+13. **[TIMING — controller DOM scan]** `index.html` now uses `import { App } from '/app.js'; App.run();`, providing a defined, post-DOM entry point. **Status: DONE (Stages 1–4 complete).** See [app-run-entry-point.md](app-run-entry-point.md). Controllers should be instantiated inside `App.run()` (or `UIManager.init()`), not at module load time. The TraceListener/controller stages of this task are **no longer blocked**.
 14. **[TIMING — custom element upgrade]** `debug-console` is registered as a custom element via its static import in `app.ts`, which is bundled into `app.js`. Since the bundle loads before the controllers are constructed, the element will always be upgraded before `DebugConsoleController` tries to use it. No additional guards needed.
 15. **[DORMANT meaning]** "Dormant" for `<debug-console>` when `debug != 1`: the element has `display:none` so it has no visual presence, and the controller makes no `log()` calls to it. No message accumulation, no layout impact.

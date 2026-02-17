@@ -102,7 +102,7 @@ test.describe("Employee Authentication & Workflow", () => {
 
     // Verify success notification appears (use .first() since multiple toasts may exist)
     await expect(
-      page.locator(".notification-toast.success").first(),
+      page.locator("pto-notification .toast.success").first(),
     ).toBeVisible();
   });
 });

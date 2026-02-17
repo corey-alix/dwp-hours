@@ -20,3 +20,4 @@ export { PtoEmployeeInfoCard } from "./pto-employee-info-card/index.js";
 export { PriorYearReview } from "./prior-year-review/index.js";
 export { PtoBalanceSummary } from "./pto-balance-summary/index.js";
 export { DebugConsole } from "./debug-console/index.js";
+export { PtoNotification } from "./pto-notification/index.js";

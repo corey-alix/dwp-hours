@@ -27,22 +27,22 @@ Target pattern:
 
 ## Checklist
 
-- [ ] **Stage 1: Define `App` class in `app.ts`**
+- [x] **Stage 1: Define `App` class in `app.ts`**
   - Create an `App` class (or namespace) with a static `run()` method
   - Move the current `UIManager` instantiation logic (currently guarded by `document.getElementById('login-form')`) into `App.run()`
   - Export `App` from `app.ts`
   - Validation: `pnpm run build` passes, `pnpm run lint` passes
 
-- [ ] **Stage 2: Update `index.html`**
+- [x] **Stage 2: Update `index.html`**
   - Replace `<script type="module" src="app.js"></script>` with the inline `import { App } from '/app.js'; App.run();` pattern
   - Validation: Application loads and functions correctly in the browser
 
-- [ ] **Stage 3: Update all other HTML pages**
+- [x] **Stage 3: Update all other HTML pages**
   - Audit all HTML files under `client/` and `public/` that load `app.js`
   - Apply the same inline import pattern to each (or leave test pages using their own entry points if appropriate)
   - Validation: All test pages load correctly
 
-- [ ] **Stage 4: Remove legacy guard**
+- [x] **Stage 4: Remove legacy guard**
   - Remove the `const loginForm = document.getElementById('login-form'); if (loginForm) { ... }` guard at the bottom of `app.ts` — it is no longer needed
   - Validation: `pnpm run build` passes, `pnpm run lint` passes, no duplicate instantiation
 

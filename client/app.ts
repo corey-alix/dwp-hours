@@ -10,8 +10,6 @@ import {
   formatDateForDisplay,
   getWorkdaysBetween,
   parseDate,
-  formatDate,
-  getCurrentMonth,
 } from "../shared/dateUtils.js";
 
 // Import business rules
@@ -31,9 +29,12 @@ import {
   PtoSickCard,
   PtoSummaryCard,
   PriorYearReview,
-  AdminMonthlyReview,
-  DebugConsole,
 } from "./components/index.js";
+
+// Import controller architecture
+import { TraceListener } from "./controller/TraceListener.js";
+import { PtoNotificationController } from "./controller/PtoNotificationController.js";
+import { DebugConsoleController } from "./controller/DebugConsoleController.js";
 import type { CalendarEntry } from "./components/pto-calendar/index.js";
 import {
   addEventListener,
@@ -51,100 +52,14 @@ export { TestWorkflow, initTestPage } from "./test.js";
 // Ensure AdminPanel is included in bundle
 export { AdminPanel };
 
-// Dummy reference to prevent tree-shaking
-const _adminPanelRef = AdminPanel;
-const _adminMonthlyReviewRef = AdminMonthlyReview;
-
 const api = new APIClient();
 
 // Export the API client for use in components
 export { api };
 
-// Notification/Toast System
-class NotificationManager {
-  private container: HTMLElement | null = null;
-
-  constructor() {
-    this.createContainer();
-  }
-
-  private createContainer(): void {
-    this.container = document.createElement("div");
-    this.container.className = "notifications-container";
-    document.body.appendChild(this.container);
-  }
-
-  show(
-    message: string,
-    type: "success" | "error" | "info" | "warning" = "info",
-    title?: string,
-    duration: number = 5000,
-  ): void {
-    const toast = document.createElement("div");
-    toast.className = `notification-toast ${type}`;
-
-    const content = document.createElement("div");
-    content.className = "notification-content";
-
-    if (title) {
-      const titleElement = document.createElement("div");
-      titleElement.className = "notification-title";
-      titleElement.textContent = title;
-      content.appendChild(titleElement);
-    }
-
-    const messageElement = document.createElement("div");
-    messageElement.className = "notification-message";
-    messageElement.textContent = message;
-    content.appendChild(messageElement);
-
-    const closeButton = document.createElement("button");
-    closeButton.className = "notification-close";
-    closeButton.innerHTML = "×";
-    closeButton.onclick = () => this.removeToast(toast);
-
-    toast.appendChild(content);
-    toast.appendChild(closeButton);
-    if (this.container) {
-      this.container.appendChild(toast);
-    }
-
-    // Trigger animation
-    setTimeout(() => toast.classList.add("show"), 10);
-
-    // Auto-dismiss
-    if (duration > 0) {
-      setTimeout(() => this.removeToast(toast), duration);
-    }
-  }
-
-  success(message: string, title?: string, duration?: number): void {
-    this.show(message, "success", title, duration);
-  }
-
-  error(message: string, title?: string, duration?: number): void {
-    this.show(message, "error", title, duration);
-  }
-
-  info(message: string, title?: string, duration?: number): void {
-    this.show(message, "info", title, duration);
-  }
-
-  warning(message: string, title?: string, duration?: number): void {
-    this.show(message, "warning", title, duration);
-  }
-
-  private removeToast(toast: HTMLElement): void {
-    toast.classList.add("fade-out");
-    setTimeout(() => {
-      if (toast.parentNode) {
-        toast.parentNode.removeChild(toast);
-      }
-    }, 300);
-  }
-}
-
-const notifications = new NotificationManager();
+// Notification system — TraceListener replaces the old NotificationManager.
+// The variable name `notifications` is retained for call-site compatibility.
+const notifications = new TraceListener();
 
 // UI Manager
 class UIManager {
@@ -1017,6 +932,10 @@ export { UIManager };
  */
 export class App {
   static run(): UIManager {
+    // Register output-channel controllers
+    notifications.addListener(new PtoNotificationController());
+    notifications.addListener(new DebugConsoleController());
+
     return new UIManager();
   }
 }

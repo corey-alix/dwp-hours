@@ -68,7 +68,7 @@ test("index PTO form submission persists entry", async ({ page }) => {
   expect(responseBody.ptoEntry.type).toBe("PTO");
   expect(responseBody.ptoEntry.hours).toBe(8);
 
-  await expect(page.locator(".notification-toast.success")).toBeVisible();
+  await expect(page.locator("pto-notification .toast.success")).toBeVisible();
 
   const entries = await page.evaluate(async () => {
     const response = await fetch("/api/pto");
@@ -163,7 +163,7 @@ test("index PTO calendar submission persists entry", async ({ page }) => {
   expect(responseBody.ptoEntry.type).toBe("PTO");
   expect(responseBody.ptoEntry.hours).toBe(4);
 
-  await expect(page.locator(".notification-toast.success")).toBeVisible();
+  await expect(page.locator("pto-notification .toast.success")).toBeVisible();
 
   const entries = await page.evaluate(async () => {
     const response = await fetch("/api/pto");
