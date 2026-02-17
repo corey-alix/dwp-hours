@@ -22,6 +22,15 @@ Address four issues in the `pto-accrual-card` component and its test harness rel
 
 8. **Toggle calendar visibility** — Activating a row that already has its calendar open should hide the calendar (toggle behavior). Currently once the calendar is shown it cannot be hidden.
 
+9. **Animate calendar slot expand/collapse** — When a calendar is open for month N and the user tabs past it to month N+2 and activates that row, the old calendar collapses instantly (rows shift up) and the new calendar appears below the new row. Because the collapse and expand happen in the same render, rows above the new selection jump upward while the calendar pops in below — this is visually jarring. A slide-open animation on `.calendar-slot-row` would give the user a clear visual cue that content was inserted, keeping them oriented.
+
+   **Suggested approach — CSS `grid-template-rows` transition**:
+   - Wrap the `<slot name="calendar">` in `.calendar-slot-row` and use `display: grid; grid-template-rows: 0fr;` (collapsed) transitioning to `grid-template-rows: 1fr;` (expanded) with `transition: grid-template-rows 250ms ease-out`.
+   - The inner child gets `overflow: hidden; min-height: 0;` so it collapses to zero height.
+   - On render, add a `.open` class to `.calendar-slot-row` after a microtask or `requestAnimationFrame` so the transition triggers.
+   - Optionally also `scrollIntoView({ behavior: "smooth", block: "nearest" })` the activated row after the calendar opens, so the row + calendar are both in view.
+   - This approach is pure CSS (no JS height measurement), works with unknown calendar heights, and is `prefers-reduced-motion` friendly (`@media (prefers-reduced-motion: reduce) { .calendar-slot-row { transition: none; } }`).
+
 ## Priority
 
 🟢 Low Priority (Frontend/UI polish)
@@ -79,7 +88,17 @@ Address four issues in the `pto-accrual-card` component and its test harness rel
 - [ ] Manual testing of focus restoration
 - [ ] `pnpm run build` passes
 
-### Phase 6: Final Validation
+### Phase 6: Animate Calendar Expand/Collapse
+
+- [x] Add `grid-template-rows` transition to `.calendar-slot-row` (`0fr` → `1fr`, ~250ms ease-out)
+- [x] Inner child of `.calendar-slot-row` gets `overflow: hidden; min-height: 0` (via `::slotted(*)`)
+- [x] After render, add `.open` class via `requestAnimationFrame` to trigger the CSS transition
+- [x] Add `@media (prefers-reduced-motion: reduce)` override to disable animation
+- [x] Call `scrollIntoView({ behavior: "smooth", block: "nearest" })` on the activated row after focus restore
+- [ ] Manual testing: open month, tab past calendar, open a later month — verify smooth animation
+- [x] `pnpm run build` passes
+
+### Phase 7: Final Validation
 
 - [ ] `pnpm run build` passes
 - [ ] `pnpm run lint` passes

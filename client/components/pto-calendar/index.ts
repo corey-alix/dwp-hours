@@ -312,12 +312,7 @@ export class PtoCalendar extends BaseComponent {
 
                 .day.clickable:focus-visible,
                 .day.clickable:focus {
-                    outline: 3px solid var(--color-primary);
-                    outline-offset: -1px;
-                    box-shadow: 0 0 0 4px rgb(59 130 246 / 40%);
-                    z-index: 1;
-                    transform: scale(1.08);
-                    background: rgb(59 130 246 / 10%);
+                    box-shadow: 0 0 0 1px var(--color-focus);
                 }
 
                 .day.selected {

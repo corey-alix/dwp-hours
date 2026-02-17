@@ -159,6 +159,25 @@ const ACCRUAL_CSS = `
 
     .calendar-slot-row {
         grid-column: 1 / -1;
+        display: grid;
+        grid-template-rows: 0fr;
+        transition: grid-template-rows 250ms ease-out;
+    }
+
+    .calendar-slot-row.open {
+        grid-template-rows: 1fr;
+    }
+
+    .calendar-slot-row > ::slotted(*) {
+        overflow: hidden;
+        min-height: 0;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+        .calendar-slot-row {
+            transition: none;
+        }
     }
 `;
 
@@ -356,6 +375,17 @@ export class PtoAccrualCard extends BaseComponent {
 
   protected update() {
     super.update();
+
+    // Animate calendar slot open
+    const slotRow = this.shadowRoot.querySelector(
+      ".calendar-slot-row",
+    ) as HTMLElement;
+    if (slotRow) {
+      requestAnimationFrame(() => {
+        slotRow.classList.add("open");
+      });
+    }
+
     // Restore focus after re-render
     if (this._pendingFocusMonth !== null) {
       const month = this._pendingFocusMonth;
@@ -366,6 +396,7 @@ export class PtoAccrualCard extends BaseComponent {
         ) as HTMLElement;
         if (row) {
           row.focus();
+          row.scrollIntoView({ behavior: "smooth", block: "nearest" });
         }
       });
     }
