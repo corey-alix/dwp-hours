@@ -345,7 +345,7 @@ class UIManager {
           calendar.setAttribute("slot", "calendar");
           accrualCard.appendChild(calendar);
         }
-        calendar.setAttribute("month", String(month - 1));
+        calendar.setAttribute("month", String(month));
         calendar.setAttribute("year", String(year));
         calendar.setAttribute("pto-entries", JSON.stringify(entries));
         calendar.setAttribute("selected-month", String(month));

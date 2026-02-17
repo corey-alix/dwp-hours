@@ -61,6 +61,13 @@ const ACCRUAL_CSS = `
         font-size: var(--font-size-sm);
         color: var(--color-text-secondary);
         cursor: pointer;
+        outline: none;
+    }
+
+    .accrual-row:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: -1px;
+        border-radius: var(--border-radius);
     }
 
     .accrual-row.header {
@@ -91,11 +98,11 @@ const ACCRUAL_CSS = `
         background-color: var(--color-surface);
     }
 
-    .accrual-row.current {
-        background: var(--color-primary-light);
-        border-radius: var(--border-radius);
-        padding: var(--space-xs) var(--space-sm);
-        margin: 0 calc(-1 * var(--space-sm));
+    .accrual-row.current > .month::before {
+      content: "✓";
+      margin-right: var(--space-sm);
+      color: var(--color-success);
+      font-weight: var(--font-weight-semibold);
     }
 
     .accrual-row:hover {
@@ -149,6 +156,10 @@ const ACCRUAL_CSS = `
         background: var(--color-text-muted);
         cursor: not-allowed;
     }
+
+    .calendar-slot-row {
+        grid-column: 1 / -1;
+    }
 `;
 
 export class PtoAccrualCard extends BaseComponent {
@@ -160,6 +171,8 @@ export class PtoAccrualCard extends BaseComponent {
   private _requestMode: boolean = false;
   private _annualAllocation: number = 96;
   private _ptoRequestEventsSetup = false;
+  private _focusedRowIndex: number = 0;
+  private _pendingFocusMonth: number | null = null;
 
   static get observedAttributes() {
     return [
@@ -270,19 +283,30 @@ export class PtoAccrualCard extends BaseComponent {
         displayAccrued = "0.0";
       }
 
+      const isEntryBookend = this.selectedMonth === month;
+      const isExitBookend =
+        this.selectedMonth !== null && this.selectedMonth === month - 1;
+      const buttonTabindex = isEntryBookend || isExitBookend ? "0" : "-1";
+
+      const calendarSlot =
+        this.selectedMonth === month
+          ? `<div class="calendar-slot-row"><slot name="calendar"></slot></div>`
+          : "";
+
       return `
-        <div class="accrual-row data-row ${i % 2 === 0 ? "alt" : ""} ${isFutureMonth ? "projected" : ""} ${isCurrentMonth ? "current" : ""}" data-month="${month}">
+        <div class="accrual-row data-row ${i % 2 === 0 ? "alt" : ""} ${isFutureMonth ? "projected" : ""} ${isCurrentMonth ? "current" : ""}" data-month="${month}" role="option" tabindex="${i === this._focusedRowIndex ? "0" : "-1"}" aria-selected="${this.selectedMonth === month}">
           <span class="month">${monthName}</span>
           <span class="hours">${displayAccrued}</span>
           <span class="used">${usedHours !== undefined ? usedHours.toFixed(1) : "—"}</span>
-          <button class="calendar-button ${this._requestMode ? "request-mode" : ""}" data-month="${month}" aria-label="${this._requestMode ? "Request PTO for" : "Show"} ${monthName} calendar">${this._requestMode ? "✏️" : "📅"}</button>
+          <button class="calendar-button ${this._requestMode ? "request-mode" : ""}" data-month="${month}" tabindex="${buttonTabindex}" aria-label="${this._requestMode ? "Request PTO for" : "Show"} ${monthName} calendar">${this._requestMode ? "✏️" : "📅"}</button>
         </div>
+        ${calendarSlot}
       `;
     }).join("");
 
     return `
-      <div class="accrual-grid${isWide ? " wide" : ""}">
-        <div class="accrual-row header">
+      <div class="accrual-grid${isWide ? " wide" : ""}" role="listbox" aria-label="Monthly accrual breakdown">
+        <div class="accrual-row header" aria-hidden="true">
           <span></span>
           <span class="label">Accrued</span>
           <span class="label">Used</span>
@@ -325,10 +349,26 @@ export class PtoAccrualCard extends BaseComponent {
       <div class="card">
         <h4>${this._requestMode ? "PTO Request - Select Month" : "Monthly Accrual Breakdown"}</h4>
         ${this.renderMonthGrid()}
-        <slot name="calendar"></slot>
         <slot name="balance-summary"></slot>
       </div>
     `;
+  }
+
+  protected update() {
+    super.update();
+    // Restore focus after re-render
+    if (this._pendingFocusMonth !== null) {
+      const month = this._pendingFocusMonth;
+      this._pendingFocusMonth = null;
+      queueMicrotask(() => {
+        const row = this.shadowRoot.querySelector(
+          `.accrual-row[data-month="${month}"]`,
+        ) as HTMLElement;
+        if (row) {
+          row.focus();
+        }
+      });
+    }
   }
 
   protected setupEventDelegation() {
@@ -348,6 +388,73 @@ export class PtoAccrualCard extends BaseComponent {
     });
   }
 
+  protected handleDelegatedKeydown(e: KeyboardEvent): void {
+    const target = e.target as HTMLElement;
+    const row = target.closest(".accrual-row.data-row") as HTMLElement;
+    if (!row) return;
+
+    const rows = Array.from(
+      this.shadowRoot.querySelectorAll(".accrual-row.data-row"),
+    ) as HTMLElement[];
+    const currentIndex = rows.indexOf(row);
+    if (currentIndex === -1) return;
+
+    let nextIndex: number | null = null;
+
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        nextIndex = (currentIndex + 1) % rows.length; // wrap around
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        nextIndex = (currentIndex - 1 + rows.length) % rows.length; // wrap around
+        break;
+      case "Home":
+        e.preventDefault();
+        nextIndex = 0;
+        break;
+      case "End":
+        e.preventDefault();
+        nextIndex = rows.length - 1;
+        break;
+      case "Enter":
+      case " ":
+        e.preventDefault();
+        this.activateRow(row);
+        return;
+      default:
+        return;
+    }
+
+    if (nextIndex !== null) {
+      this._focusedRowIndex = nextIndex;
+      // Update tabindex without full re-render
+      rows.forEach((r, i) => {
+        r.setAttribute("tabindex", i === nextIndex ? "0" : "-1");
+      });
+      rows[nextIndex].focus();
+    }
+  }
+
+  private activateRow(row: HTMLElement): void {
+    const month = parseInt(row.dataset.month || "", 10);
+    if (Number.isFinite(month)) {
+      // Toggle: if already selected, hide the calendar
+      if (this.selectedMonth === month) {
+        this.selectedMonth = null;
+        this._pendingFocusMonth = month;
+        this.requestUpdate();
+        return;
+      }
+      this.selectedMonth = month;
+      // Track the current activated row (not the next)
+      this._focusedRowIndex = month - 1;
+      this._pendingFocusMonth = month;
+      this.requestUpdate();
+    }
+  }
+
   protected handleDelegatedClick(e: Event): void {
     const target = e.target as HTMLElement;
 
@@ -356,7 +463,20 @@ export class PtoAccrualCard extends BaseComponent {
       e.stopPropagation();
       const month = parseInt(target.dataset.month || "", 10);
       console.log("PtoAccrualCard: calendar button clicked, month:", month);
-      this.selectedMonth = Number.isFinite(month) ? month : null;
+      if (Number.isFinite(month)) {
+        // Toggle: if already selected, hide the calendar
+        if (this.selectedMonth === month) {
+          this.selectedMonth = null;
+          this._pendingFocusMonth = month;
+          this.requestUpdate();
+          return;
+        }
+        this.selectedMonth = month;
+        this._focusedRowIndex = month - 1;
+        this._pendingFocusMonth = month;
+      } else {
+        this.selectedMonth = null;
+      }
       console.log("PtoAccrualCard: set selectedMonth to:", this.selectedMonth);
       this.requestUpdate();
       return;
@@ -368,7 +488,16 @@ export class PtoAccrualCard extends BaseComponent {
       const month = parseInt(row.dataset.month || "", 10);
       if (Number.isFinite(month)) {
         console.log("PtoAccrualCard: row clicked, month:", month);
+        // Toggle: if already selected, hide the calendar
+        if (this.selectedMonth === month) {
+          this.selectedMonth = null;
+          this._pendingFocusMonth = month;
+          this.requestUpdate();
+          return;
+        }
         this.selectedMonth = month;
+        this._focusedRowIndex = month - 1;
+        this._pendingFocusMonth = month;
         this.requestUpdate();
       }
     }

@@ -2,13 +2,17 @@ import { querySingle } from "../test-utils.js";
 import { PtoAccrualCard } from "./index.js";
 import { parseDate, today } from "../../../shared/dateUtils.js";
 import { seedPTOEntries, seedEmployees } from "../../../shared/seedData.js";
+import {
+  computeEmployeeBalanceData,
+  BUSINESS_RULES_CONSTANTS,
+} from "../../../shared/businessRules.js";
 
 // Compute data from seedData
 const employee = seedEmployees.find(
   (e) => e.identifier === "john.doe@gmail.com",
 )!;
 
-// Get approved entries for computing bucket usage
+// Get approved entries for computing bucket usage via businessRules
 const approvedSeedEntries = seedPTOEntries.filter(
   (entry) =>
     entry.employee_id === 1 &&
@@ -16,19 +20,31 @@ const approvedSeedEntries = seedPTOEntries.filter(
     entry.approved_by !== null,
 );
 
-// Compute used hours by type
-const ptoUsed = approvedSeedEntries
-  .filter((e) => e.type === "PTO")
-  .reduce((sum, e) => sum + e.hours, 0);
-const sickUsed = approvedSeedEntries
-  .filter((e) => e.type === "Sick")
-  .reduce((sum, e) => sum + e.hours, 0);
-const bereavementUsed = approvedSeedEntries
-  .filter((e) => e.type === "Bereavement")
-  .reduce((sum, e) => sum + e.hours, 0);
-const juryUsed = approvedSeedEntries
-  .filter((e) => e.type === "Jury Duty")
-  .reduce((sum, e) => sum + e.hours, 0);
+// Use computeEmployeeBalanceData from businessRules.ts for balance computation
+const balanceData = computeEmployeeBalanceData(
+  1,
+  employee.name,
+  approvedSeedEntries,
+);
+
+// Extract used hours from balanceData (remaining = limit - used, so used = limit - remaining)
+const sickLimit = BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.SICK;
+const otherLimit = BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.OTHER;
+const sickCategory = balanceData.categories.find((c) => c.category === "Sick")!;
+const ptoCategory = balanceData.categories.find((c) => c.category === "PTO")!;
+const bereavementCategory = balanceData.categories.find(
+  (c) => c.category === "Bereavement",
+)!;
+const juryCategory = balanceData.categories.find(
+  (c) => c.category === "Jury Duty",
+)!;
+
+const sickUsed = sickLimit - sickCategory.remaining;
+const bereavementUsed = otherLimit - bereavementCategory.remaining;
+const juryUsed = otherLimit - juryCategory.remaining;
+// PTO limit in computeEmployeeBalanceData is hardcoded to 80; derive used from remaining
+const ptoLimitInBusinessRules = 80;
+const ptoUsed = ptoLimitInBusinessRules - ptoCategory.remaining;
 
 // Work days in 2026 per month (Mon-Fri)
 const workDaysPerMonth = [21, 20, 21, 22, 22, 21, 24, 22, 22, 23, 21, 23];
@@ -41,20 +57,20 @@ const monthlyAccruals = workDaysPerMonth.map((workDays, i) => ({
   hours: workDays * employee.pto_rate,
 }));
 
-// API response data - computed from seed data
+// API response data - computed from seed data using business rules constants
 const ptoStatus = {
   employeeId: 1,
   hireDate: employee.hire_date,
   annualAllocation,
-  availablePTO: annualAllocation + employee.carryover_hours - ptoUsed, // allocation + carryover - used
+  availablePTO: annualAllocation + employee.carryover_hours - ptoUsed,
   usedPTO: ptoUsed,
   carryoverFromPreviousYear: employee.carryover_hours,
   monthlyAccruals,
   nextRolloverDate: "2027-01-01",
   sickTime: {
-    allowed: 24,
+    allowed: sickLimit,
     used: sickUsed,
-    remaining: 24 - sickUsed,
+    remaining: sickLimit - sickUsed,
   },
   ptoTime: {
     allowed: annualAllocation + employee.carryover_hours,
@@ -62,14 +78,14 @@ const ptoStatus = {
     remaining: annualAllocation + employee.carryover_hours - ptoUsed,
   },
   bereavementTime: {
-    allowed: 40,
+    allowed: otherLimit,
     used: bereavementUsed,
-    remaining: 40 - bereavementUsed,
+    remaining: otherLimit - bereavementUsed,
   },
   juryDutyTime: {
-    allowed: 40,
+    allowed: otherLimit,
     used: juryUsed,
-    remaining: 40 - juryUsed,
+    remaining: otherLimit - juryUsed,
   },
 };
 
@@ -147,15 +163,12 @@ export function playground() {
               card.appendChild(calendar);
             }
 
-            calendar.setAttribute("month", String(month - 1));
+            calendar.setAttribute("month", String(month));
             calendar.setAttribute("year", String(year));
             calendar.setAttribute("pto-entries", JSON.stringify(entries));
             calendar.setAttribute("selected-month", String(month));
-            if (requestMode) {
-              calendar.removeAttribute("readonly");
-            } else {
-              calendar.setAttribute("readonly", "");
-            }
+            // Always allow interaction (edit mode by default)
+            calendar.setAttribute("readonly", "false");
 
             // Scroll the calendar into view
             calendar.scrollIntoView({ behavior: "smooth", block: "nearest" });
