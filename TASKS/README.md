@@ -14,7 +14,8 @@ This document outlines all remaining tasks to complete the DWP Hours Tracker app
 4. ✅ **[api-endpoints.md](api-endpoints.md)** - Complete API endpoints
 5. # ✅ **[issue-date-handling-regression.md](issue-date-handling-regression.md)** - Fix timezone-related date shifting bugs
 6. ✅ **[issue-endless-loop-employee-acknowledge.md](issue-endless-loop-employee-acknowledge.md)** - Fix endless loop in AdminPanel event handling
-7. **[admin-panel.md](admin-panel.md)** - Defect: Edit button does not open employee form (missing `employee-edit` event listener)
+7. **[issue-search-input-focus-regression.md](issue-search-input-focus-regression.md)** - Search input loses focus on type in employee-list component
+8. **[admin-panel.md](admin-panel.md)** - Defect: Edit button does not open employee form (missing `employee-edit` event listener)
 
 ### 🟡 Medium Priority (Backend/API Core Features)
 

@@ -1,10 +1,10 @@
-interface Employee {
+export interface Employee {
   id: number;
   name: string;
   identifier: string;
   ptoRate: number;
   carryoverHours: number;
-  role: string;
+  role: "Employee" | "Admin";
   hash: string;
 }
 
@@ -98,6 +98,7 @@ export class EmployeeList extends BaseComponent {
             <div class="employee-card" data-employee-id="${employee.id}">
                 <div class="employee-header">
                     <div>
+                        <pto-balance-summary data-employee-id="${employee.id}"></pto-balance-summary>
                         <h3 class="employee-name">${employee.name}</h3>
                         <p class="employee-identifier">${employee.identifier}</p>
                     </div>
@@ -115,13 +116,12 @@ export class EmployeeList extends BaseComponent {
                     </div>
                 </div>
 
-                <pto-balance-summary data-employee-id="${employee.id}"></pto-balance-summary>
-
                 <div class="employee-actions">
                     <button class="action-btn acknowledge" data-action="acknowledge" data-employee-id="${employee.id}">Acknowledge</button>
                     <button class="action-btn edit" data-action="edit" data-employee-id="${employee.id}">Edit</button>
                     <button class="action-btn delete" data-action="delete" data-employee-id="${employee.id}">Delete</button>
                 </div>
+
             </div>
         `;
   }
@@ -194,6 +194,14 @@ const STYLES = `
     :host {
         display: block;
         height: 100%;
+    }
+
+    pto-balance-summary {
+        margin: 0 0 var(--space-md) 0;
+    }
+
+    pto-balance-summary .balance-row {
+        justify-content: center;
     }
 
     .employee-list {
@@ -275,6 +283,7 @@ const STYLES = `
         box-shadow: 0 2px 4px var(--color-shadow);
         border: 1px solid var(--color-border);
         transition: box-shadow 0.3s ease;
+        max-width: 32em;
     }
 
     .employee-card:hover {

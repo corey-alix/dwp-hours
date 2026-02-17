@@ -1,15 +1,80 @@
 import { querySingle } from "../test-utils.js";
 import { addEventListener } from "../test-utils.js";
-import { EmployeeList } from "./index.js";
-import { seedEmployees } from "../../../shared/seedData.js";
+import { EmployeeList, type Employee } from "./index.js";
+import { seedEmployees, seedPTOEntries } from "../../../shared/seedData.js";
+import {
+  BUSINESS_RULES_CONSTANTS,
+  PTOType,
+} from "../../../shared/businessRules.js";
+import type { PtoBalanceData } from "../../../shared/api-models.js";
 
 export function playground() {
   console.log("Starting Employee List playground test...");
 
+  function computeBalanceData(
+    employeeId: number,
+    employeeName: string,
+  ): PtoBalanceData {
+    const categories: PTOType[] = ["PTO", "Sick", "Bereavement", "Jury Duty"];
+    const limits: Record<PTOType, number> = {
+      PTO: 80,
+      Sick: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.SICK,
+      Bereavement: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.OTHER,
+      "Jury Duty": BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.OTHER,
+    };
+    const used = categories.reduce(
+      (acc, cat) => {
+        acc[cat] = seedPTOEntries
+          .filter(
+            (entry) => entry.employee_id === employeeId && entry.type === cat,
+          )
+          .reduce((sum, entry) => sum + entry.hours, 0);
+        return acc;
+      },
+      {} as Record<PTOType, number>,
+    );
+    const categoryItems = categories.map((cat) => ({
+      category: cat,
+      remaining: limits[cat] - used[cat],
+    }));
+    return {
+      employeeId,
+      employeeName,
+      categories: categoryItems,
+    };
+  }
+
+  function setBalanceSummaries(employees: typeof sampleEmployees) {
+    setTimeout(() => {
+      const balanceSummaries = employeeList.shadowRoot?.querySelectorAll(
+        "pto-balance-summary",
+      );
+      if (balanceSummaries) {
+        balanceSummaries.forEach((summary) => {
+          const employeeId = parseInt(
+            (summary as HTMLElement).getAttribute("data-employee-id") || "0",
+          );
+          const employee = employees.find((e) => e.id === employeeId);
+          if (employee) {
+            let balanceData = computeBalanceData(employeeId, employee.name);
+            // Ensure at least one employee shows negative values
+            if (
+              employeeId === employees.length &&
+              balanceData.categories.every((c) => c.remaining >= 0)
+            ) {
+              balanceData.categories[3].remaining = -4; // Make Jury Duty negative for last employee
+            }
+            (summary as any).setBalanceData(balanceData);
+          }
+        });
+      }
+    }, 100);
+  }
+
   const employeeList = querySingle<EmployeeList>("employee-list");
 
   // Sample employee data from seedEmployees
-  const sampleEmployees = seedEmployees.map((emp, index) => ({
+  const sampleEmployees: Employee[] = seedEmployees.map((emp, index) => ({
     id: index + 1,
     name: emp.name,
     identifier: emp.identifier,
@@ -21,6 +86,7 @@ export function playground() {
 
   // Set initial data
   employeeList.employees = sampleEmployees;
+  setBalanceSummaries(sampleEmployees);
 
   // Test event listeners
   addEventListener(employeeList, "add-employee", () => {
@@ -40,10 +106,16 @@ export function playground() {
       `Delete employee ID: ${e.detail.employeeId}`;
   });
 
+  addEventListener(employeeList, "employee-acknowledge", (e: CustomEvent) => {
+    console.log("Acknowledge employee:", e.detail.employeeId);
+    querySingle("#test-output").textContent =
+      `Acknowledge employee ID: ${e.detail.employeeId}`;
+  });
+
   // Test data updates
   setTimeout(() => {
     console.log("Testing data update...");
-    const updatedEmployees = [
+    const updatedEmployees: Employee[] = [
       ...sampleEmployees,
       {
         id: 4,
@@ -56,6 +128,7 @@ export function playground() {
       },
     ];
     employeeList.employees = updatedEmployees;
+    setBalanceSummaries(updatedEmployees);
     querySingle("#test-output").textContent =
       "Employee data updated - added Alice Wilson";
   }, 3000);

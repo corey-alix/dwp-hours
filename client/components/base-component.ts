@@ -95,9 +95,41 @@ export abstract class BaseComponent extends HTMLElement {
 
   // Template rendering with automatic cleanup
   protected renderTemplate(template: string): void {
+    // Preserve focus and cursor position before re-rendering
+    const activeElement = this.shadowRoot.activeElement as HTMLElement;
+    let focusedElementId: string | null = null;
+    let cursorPosition = 0;
+
+    if (activeElement && activeElement.id) {
+      focusedElementId = activeElement.id;
+      if (
+        activeElement instanceof HTMLInputElement ||
+        activeElement instanceof HTMLTextAreaElement
+      ) {
+        cursorPosition = activeElement.selectionStart || 0;
+      }
+    }
+
     // Clean up listeners before re-rendering
     this.cleanupEventListeners();
     this.shadowRoot.innerHTML = template;
+
+    // Restore focus and cursor position after re-rendering
+    if (focusedElementId) {
+      const elementToFocus = this.shadowRoot.getElementById(
+        focusedElementId,
+      ) as HTMLElement;
+      if (elementToFocus) {
+        elementToFocus.focus();
+        if (
+          elementToFocus instanceof HTMLInputElement ||
+          elementToFocus instanceof HTMLTextAreaElement
+        ) {
+          elementToFocus.setSelectionRange(cursorPosition, cursorPosition);
+        }
+      }
+    }
+
     // Re-setup delegation after render
     this.setupEventDelegation();
   }

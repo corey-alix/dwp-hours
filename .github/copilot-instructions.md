@@ -11,6 +11,7 @@ You are assisting with the DWP Hours Tracker, a Node.js/TypeScript application f
 - **Build**: TypeScript compilation, pnpm scripts
 - **Testing**: Vitest (unit), Playwright (E2E)
 - **Development**: http-serve for dev server
+- **Browser Support**: Chrome only (primary target browser)
 
 ## Development Workflow
 

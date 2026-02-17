@@ -242,10 +242,11 @@ The component does NOT compute balances — it receives pre-computed `PtoBalance
     `;
   }
   ```
+- [x] Modify `client/components/employee-list/test.ts` to compute and set `PtoBalanceData` for each employee's `<pto-balance-summary>` instance on the `test.html` page. Use `seedPTOEntries`, `seedEmployees`, and `BUSINESS_RULES_CONSTANTS` to calculate remaining hours per category (annual limit minus used hours from seed entries). After setting `employeeList.employees`, query `shadowRoot.querySelectorAll("pto-balance-summary")` and call `setBalanceData()` on each with computed data for that employee. Ensure at least one employee shows negative (exceeded) values by augmenting computed results if needed.
 
 > **Design note**: For list components that render N repeated items, there is no clean slot-based way to inject per-item child components. Embedding `<pto-balance-summary>` in the card template is the pragmatic approach. The component remains independently testable via its `setBalanceData()` API.
 
-**Validation**: Each target component renders the balance summary in the expected position. Per-employee cards in `employee-list` each show their own balance data.
+**Validation**: Each target component renders the balance summary in the expected position. Per-employee cards in `employee-list` each show their own balance data. Verify on `client/components/employee-list/test.html` that each employee card displays a `<pto-balance-summary>` with computed balance data (including at least one with negative values).
 
 ### Phase 6: Testing and Validation
 
@@ -328,3 +329,4 @@ _Discovered during implementation:_
 9. ✅ **`test.ts` playground imports `seedPTOEntries` but doesn't use it** — The skeleton in Phase 2 imports `seedPTOEntries` from seedData but only uses hardcoded mock values. Will remove the unused import and keep seedEmployees for `employeeName`.
 10. ✅ **`test.ts` must compute `PtoBalanceData` from seed data, not inline mocks** — All playground `test.ts` files must derive their data from `seedData.ts` rather than hardcoding values. The `test.ts` should import `seedPTOEntries`, `seedEmployees`, and `BUSINESS_RULES_CONSTANTS`, then compute remaining hours per category per employee (annual limit minus used hours from seed entries). If the seed data does not naturally produce negative (exceeded) values, augment the computed result after retrieval rather than modifying `seedData.ts` (to avoid breaking other tests).
 11. ✅ **`test.html` should declare multiple `<pto-balance-summary>` instances** — To visually verify various states (all positive, mixed, all exceeded, empty), `test.html` should include one element per seed employee plus an empty-state element. The `test.ts` playground populates each instance from computed seed data, ensuring at least one shows negative values.
+12. ✅ **BUSINESS_RULES_CONSTANTS does not define PTO_ANNUAL_HOURS** — The constants only define ANNUAL_LIMITS.SICK (24) and ANNUAL_LIMITS.OTHER (40 for Bereavement/Jury Duty). For PTO balance calculation, assumed 80 hours annually (common standard). Used PTO: 80, Sick: 24, Bereavement: 40, Jury Duty: 40.
