@@ -79,11 +79,11 @@ export const styles = `
     font-weight: 400;
 }
 
-/* Color consistency: summary values match calendar day colors */
-.summary-pto { color: ${PTO_TYPE_COLORS.PTO}; }
-.summary-sick { color: ${PTO_TYPE_COLORS.Sick}; }
-.summary-bereavement { color: ${PTO_TYPE_COLORS.Bereavement}; }
-.summary-jury-duty { color: ${PTO_TYPE_COLORS["Jury Duty"]}; }
+/* Color consistency: summary values use black text for better contrast */
+.summary-pto { color: black; }
+.summary-sick { color: black; }
+.summary-bereavement { color: black; }
+.summary-jury-duty { color: black; }
 
 /* Visual hierarchy: larger font for non-zero values */
 .summary-pto,

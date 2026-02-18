@@ -104,27 +104,29 @@ export const styles = `
     color: var(--color-text-secondary);
 }
 
-.type-PTO { background: ${PTO_TYPE_COLORS.PTO}; }
+.type-PTO { /* No background - type indicated by hours color */ }
 
-.type-Sick { background: ${PTO_TYPE_COLORS.Sick}; }
+.type-Sick { /* No background - type indicated by hours color */ }
 
-.type-Bereavement { background: ${PTO_TYPE_COLORS.Bereavement}; }
+.type-Bereavement { /* No background - type indicated by hours color */ }
 
-.type-Jury-Duty { background: ${PTO_TYPE_COLORS["Jury Duty"]}; }
+.type-Jury-Duty { /* No background - type indicated by hours color */ }
 
 .type-Work-Day { background: ${PTO_TYPE_COLORS["Work Day"]}; border: 1px solid var(--color-border); }
 
-/* Make text white on colored backgrounds for better contrast */
+/* Make text adapt to theme for better contrast */
 .type-PTO .date,
-.type-PTO .hours,
 .type-Sick .date,
-.type-Sick .hours,
 .type-Bereavement .date,
-.type-Bereavement .hours,
-.type-Jury-Duty .date,
-.type-Jury-Duty .hours {
-    color: white;
+.type-Jury-Duty .date {
+    color: var(--color-text);
 }
+
+/* Make hours text indicate PTO type with color */
+.type-PTO .hours { color: ${PTO_TYPE_COLORS.PTO}; }
+.type-Sick .hours { color: ${PTO_TYPE_COLORS.Sick}; }
+.type-Bereavement .hours { color: ${PTO_TYPE_COLORS.Bereavement}; }
+.type-Jury-Duty .hours { color: ${PTO_TYPE_COLORS["Jury Duty"]}; }
 
 .legend {
     display: flex;

@@ -397,7 +397,7 @@ export class PtoEntryForm extends HTMLElement {
     const enterX = direction > 0 ? "100%" : "-100%";
 
     const transitionValue =
-      "transform 0.3s ease-in-out, opacity 0.3s ease-in-out";
+      "transform 0.2s ease-in-out, opacity 0.2s ease-in-out";
 
     // Accessibility: skip animation for reduced-motion preference
     if (this.prefersReducedMotion()) {

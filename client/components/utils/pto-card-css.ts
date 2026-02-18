@@ -70,7 +70,7 @@ export const CARD_CSS = `
 
     .toggle-button {
         background: var(--color-primary);
-        color: var(--color-primary-contrast);
+        color: black;
         border: none;
         border-radius: var(--border-radius-md);
         padding: var(--space-sm) var(--space-md);

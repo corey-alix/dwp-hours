@@ -34,7 +34,6 @@ header {
   z-index: 1;
   background-color: var(--color-surface);
   color: var(--color-text);
-  padding: var(--space-lg);
   box-shadow: var(--shadow-md);
   border-bottom: var(--border-width) var(--border-style-solid)
     var(--color-border);
@@ -42,6 +41,8 @@ header {
 
 header h1 {
   margin-bottom: var(--space-sm);
+  font-size: clamp(0.5rem, 5vw, 2.5rem);
+  white-space: nowrap;
 }
 
 nav {
