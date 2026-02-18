@@ -37,6 +37,7 @@ This document outlines all remaining tasks to complete the DWP Hours Tracker app
 17. LATER: See ./TASKS/pto-accrual-card-fixes.md for details
 18. DONE (Stages 1–4 complete, Stage 5 pending): See ./TASKS/app-run-entry-point.md for details — explicit App.run() entry point (prerequisite for TraceListener controller architecture)
 19. DONE (TraceListener, controllers, pto-notification, debug-console refactor complete; Stage 5 integration testing remains): See ./TASKS/debug-console-component.md for details
+20. LATER: See ./TASKS/migrate-prior-year-review-to-base-component.md for details
 
 ## Task Dependencies
 

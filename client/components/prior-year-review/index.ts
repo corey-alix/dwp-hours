@@ -1,4 +1,5 @@
 import type { PTOYearReviewResponse } from "../../../shared/api-models.js";
+import { BaseComponent } from "../base-component.js";
 import {
   parseDate,
   addDays,
@@ -30,14 +31,8 @@ const PTO_TYPE_COLORS: Record<string, string> = {
   "Work Day": "var(--color-surface)",
 };
 
-export class PriorYearReview extends HTMLElement {
-  private shadow: ShadowRoot;
+export class PriorYearReview extends BaseComponent {
   private _data: PTOYearReviewResponse | null = null;
-
-  constructor() {
-    super();
-    this.shadow = this.attachShadow({ mode: "open" });
-  }
 
   get data(): PTOYearReviewResponse | null {
     return this._data;
@@ -45,11 +40,7 @@ export class PriorYearReview extends HTMLElement {
 
   set data(value: PTOYearReviewResponse | null) {
     this._data = value;
-    this.render();
-  }
-
-  connectedCallback() {
-    this.render();
+    this.requestUpdate();
   }
 
   private renderMonth(monthData: PTOYearReviewResponse["months"][0]): string {
@@ -140,8 +131,8 @@ export class PriorYearReview extends HTMLElement {
         `;
   }
 
-  private render(): void {
-    this.shadow.innerHTML = `
+  protected render(): string {
+    return `
             <style>
                 .container {
                     padding: 16px;
@@ -315,12 +306,6 @@ export class PriorYearReview extends HTMLElement {
                 }
             </div>
         `;
-
-    this.attachEventListeners();
-  }
-
-  private attachEventListeners(): void {
-    // No event listeners needed for this component
   }
 }
 
