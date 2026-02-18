@@ -173,7 +173,99 @@ const input = querySingle<HTMLInputElement>("#input-id", ptoForm.shadowRoot); //
 - **Custom properties**: Use CSS custom properties from `tokens.css` for colors, spacing, and other design tokens
 - **Linting**: Run `pnpm lint:css` to check for stylelint violations and use `--fix` to auto-correct fixable issues
 
-## Quality Gates
+## CSS Animation Policy
+
+This policy outlines mandatory and recommended practices for implementing CSS animations in the DWP Hours Tracker project, adapted from general best practices to align with our web components architecture, design token system, and testing framework.
+
+### Purpose
+
+Ensure animations are performant, accessible, maintainable, and enhance user experience without technical debt.
+
+### Scope
+
+Applies to all CSS animations in web components, including transitions, keyframes, and GPU-accelerated effects.
+
+### Core Principles
+
+- **Performance First**: Maintain 60 FPS on mid-range devices
+- **Accessibility**: Respect `prefers-reduced-motion`, WCAG guidelines
+- **Maintainability**: Modular code using `css.ts` files and design tokens
+- **Efficiency**: Hardware acceleration, no reflows
+
+### Best Practices
+
+#### 1. Property Selection
+
+- **Must**: Animate only `transform`, `opacity`, `filter` properties
+- **Should**: Use `transform: translate3d(0,0,0)` for GPU compositing
+- **Integration**: Define in component's `css.ts` file using design tokens from `tokens.css`
+
+#### 2. Duration and Timing
+
+- **Must**: 100-400ms durations for UI interactions
+- **Should**: Use easing functions; define easings in `tokens.css` as custom properties
+- **Must Not**: Exceed 1s without user control
+
+#### 3. Keyframes and Complexity
+
+- **Must**: Define `@keyframes` in `css.ts` files as template strings
+- **Should**: Limit to essential steps; use semantic naming
+- **Example**:
+  ```typescript
+  export const styles = `
+    @keyframes slideIn {
+      from { transform: translateX(-100%); }
+      to { transform: translateX(0); }
+    }
+    .calendar { animation: slideIn 0.3s ease-out; }
+  `;
+  ```
+
+#### 4. Performance Optimization
+
+- **Must**: Use `will-change` strategically, remove after animation
+- **Should**: Test with Chrome DevTools Performance panel
+- **Must**: Use `requestAnimationFrame` for JS animations
+- **Avoid**: Overlapping animations on same element
+
+#### 5. Accessibility
+
+- **Must**: Honor `@media (prefers-reduced-motion: reduce)` with static fallbacks
+- **Should**: Avoid vestibular issues (no rapid/large movements)
+- **Must**: ARIA for dynamic content changes
+
+#### 6. Maintainability and Code Structure
+
+- **Must**: Use CSS custom properties from `tokens.css` for durations/easings (extend `tokens.css` as needed)
+- **Should**: Utility classes in `css.ts` for reuse
+- **Must**: Document purpose, performance impact, accessibility in comments
+- **Avoid**: Inline styles or hardcoded values
+
+#### 7. Testing and Monitoring
+
+- **Must**: Unit tests with Vitest (happy-dom) for animation triggers and states
+- **Should**: Playwright E2E for visual regression of animations
+- **Must Not**: Deploy without cross-browser testing (Chrome primary)
+- **Monitoring**: Lighthouse for production performance
+
+#### 8. Fallbacks and Graceful Degradation
+
+- **Must**: Non-animated fallbacks for no-CSS/legacy browsers
+- **Should**: Progressive enhancement
+
+### Enforcement
+
+- Reference this policy in PRs with animations
+- Code reviews flag violations
+- Annual audits
+
+### References
+
+- MDN CSS Animations
+- WCAG 2.1 Animation guidelines
+- Google Web Fundamentals High-Performance Animations
+
+Last Updated: February 18, 2026
 
 Before marking any implementation complete:
 

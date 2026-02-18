@@ -159,6 +159,50 @@ export class PtoEntryForm extends HTMLElement {
 
                 .calendar-view {
                     margin-top: var(--space-md);
+                    position: relative;
+                    overflow: hidden;
+                }
+
+                .calendar-container {
+                    /* Performance: Use will-change for GPU acceleration during swipe animations */
+                    will-change: transform, opacity;
+                    /* Smooth transitions for month navigation with hardware acceleration */
+                    transition: transform var(--animation-duration-fast, 0.3s) var(--animation-easing, ease-in-out),
+                                opacity var(--animation-duration-fast, 0.3s) var(--animation-easing, ease-in-out);
+                }
+
+                /* Swipe animation states - slide out directions */
+                .calendar-container.slide-left {
+                    transform: translateX(-100%);
+                    opacity: 0;
+                }
+
+                .calendar-container.slide-right {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+
+                /* Swipe animation state - slide in */
+                .calendar-container.slide-in {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+
+                /* Accessibility: Respect reduced motion preferences */
+                @media (prefers-reduced-motion: reduce) {
+                    .calendar-container {
+                        /* Disable animations for users who prefer reduced motion */
+                        transition: none;
+                        will-change: auto;
+                    }
+
+                    .calendar-container.slide-left,
+                    .calendar-container.slide-right,
+                    .calendar-container.slide-in {
+                        /* Static positioning for reduced motion */
+                        transform: none;
+                        opacity: 1;
+                    }
                 }
 
                 .calendar-toolbar {
@@ -241,7 +285,7 @@ export class PtoEntryForm extends HTMLElement {
                 </div>
 
                 <div class="calendar-view" id="calendar-view">
-                    <div id="calendar-container"></div>
+                    <div id="calendar-container" class="calendar-container"></div>
                 </div>
 
                 <div class="submit-errors hidden" id="submit-errors" role="alert" aria-live="polite"></div>
@@ -291,14 +335,14 @@ export class PtoEntryForm extends HTMLElement {
     prevMonthBtn?.addEventListener("click", () => {
       const calendar = this.getCalendar();
       if (calendar) {
-        this.navigateMonth(calendar, -1); // Previous month
+        this.navigateMonthWithAnimation(calendar, -1); // Previous month
       }
     });
 
     nextMonthBtn?.addEventListener("click", () => {
       const calendar = this.getCalendar();
       if (calendar) {
-        this.navigateMonth(calendar, 1); // Next month
+        this.navigateMonthWithAnimation(calendar, 1); // Next month
       }
     });
 
@@ -319,6 +363,10 @@ export class PtoEntryForm extends HTMLElement {
     let startX: number | null = null;
     let startY: number | null = null;
 
+    // Touch event listeners for swipe gesture detection
+    // Purpose: Enable intuitive month navigation on touch devices
+    // Performance: Minimal event listeners, hardware-accelerated animations
+    // Accessibility: Works with screen readers, respects reduced motion preferences
     calendarContainer?.addEventListener("touchstart", (e) => {
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
@@ -333,10 +381,10 @@ export class PtoEntryForm extends HTMLElement {
       const deltaX = endX - startX;
       const deltaY = endY - startY;
 
-      // Minimum swipe distance
+      // Minimum swipe distance threshold (50px) to prevent accidental navigation
       const minSwipeDistance = 50;
 
-      // Check if horizontal swipe is dominant
+      // Ensure horizontal swipe is dominant over vertical scrolling
       if (
         Math.abs(deltaX) > Math.abs(deltaY) &&
         Math.abs(deltaX) > minSwipeDistance
@@ -344,35 +392,63 @@ export class PtoEntryForm extends HTMLElement {
         const calendar = this.getCalendar();
         if (!calendar) return;
 
-        if (deltaX > 0) {
-          // Swipe right - previous month
-          this.navigateMonth(calendar, -1);
-        } else {
-          // Swipe left - next month
-          this.navigateMonth(calendar, 1);
-        }
+        // Trigger smooth month navigation with visual feedback
+        // Direction: positive = next month, negative = previous month
+        this.navigateMonthWithAnimation(calendar, deltaX > 0 ? -1 : 1);
       }
 
+      // Reset touch coordinates
       startX = null;
       startY = null;
     });
   }
 
-  private navigateMonth(calendar: PtoCalendar, direction: number) {
-    let newMonth = calendar.month + direction;
-    let newYear = calendar.year;
+  private navigateMonthWithAnimation(calendar: PtoCalendar, direction: number) {
+    const calendarContainer = querySingle<HTMLDivElement>(
+      "#calendar-container",
+      this.shadow,
+    );
 
-    if (newMonth < 1) {
-      newMonth = 12; // Wrap to December of the same year
-      // newYear stays the same for fiscal year constraint
-    } else if (newMonth > 12) {
-      newMonth = 1; // Wrap to January of the same year
-      // newYear stays the same for fiscal year constraint
-    }
+    // Performance optimization: Force GPU compositing during animation
+    calendarContainer.style.willChange = "transform, opacity";
 
-    calendar.setAttribute("month", newMonth.toString());
-    calendar.setAttribute("year", newYear.toString());
-    calendar.setAttribute("selected-month", newMonth.toString());
+    // Apply slide-out animation class
+    const slideClass = direction > 0 ? "slide-left" : "slide-right";
+    calendarContainer.classList.add(slideClass);
+
+    // Use requestAnimationFrame for better timing control
+    requestAnimationFrame(() => {
+      // Change month after animation starts (half the transition duration)
+      setTimeout(() => {
+        let newMonth = calendar.month + direction;
+        let newYear = calendar.year;
+
+        // Constrain to fiscal year (January-December) with wrap-around
+        if (newMonth < 1) {
+          newMonth = 12; // Wrap to December of the same year
+          // newYear stays the same for fiscal year constraint
+        } else if (newMonth > 12) {
+          newMonth = 1; // Wrap to January of the same year
+          // newYear stays the same for fiscal year constraint
+        }
+
+        // Update calendar attributes
+        calendar.setAttribute("month", newMonth.toString());
+        calendar.setAttribute("year", newYear.toString());
+        calendar.setAttribute("selected-month", newMonth.toString());
+
+        // Apply slide-in animation
+        calendarContainer.classList.remove(slideClass);
+        calendarContainer.classList.add("slide-in");
+
+        // Clean up animation classes and performance hints after transition completes
+        setTimeout(() => {
+          calendarContainer.classList.remove("slide-in");
+          // Remove will-change to free up GPU resources
+          calendarContainer.style.willChange = "auto";
+        }, 300); // Match CSS transition duration
+      }, 150); // Half the transition duration for smooth overlap
+    });
   }
 
   private handleCalendarSubmit(): void {
