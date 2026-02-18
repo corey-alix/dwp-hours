@@ -26,6 +26,7 @@ This document outlines all remaining tasks to complete the DWP Hours Tracker app
 9. ✅ **[design-constraints.md](design-constraints.md)** - Code quality improvements and design constraint compliance
 10. ✅ **[database-reset-reload-service.md](database-reset-reload-service.md)** - Deterministic DB reload for consistent E2E
 11. REVISIT **[planet-branch-workflow.md](planet-branch-workflow.md)** - Standardized feature development workflow using planet branches
+12. LATER: See ./TASKS/current-year-pto-scheduler.md for details
 
 ### 🟢 Low Priority (Frontend/UI Features)
 
