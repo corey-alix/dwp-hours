@@ -27,6 +27,23 @@ Follow this step-by-step approach when implementing CSS animations:
 7. **Testing & Validation**: Test across devices, validate with performance tools, and ensure graceful degradation
 8. **Documentation**: Add code comments explaining animation purpose, performance impact, and accessibility features
 
+## Lessons Learned
+
+Hard-won patterns from real implementations in this project:
+
+### Multi-phase animations (carousel, slide-in/out)
+
+- **Use inline styles, not CSS classes** for sequenced animation phases. Class-based approaches suffer from specificity conflicts and unreliable style flushing between phases.
+- **Force synchronous reflow** with `void element.offsetHeight` between phases to guarantee the browser commits an intermediate position before re-enabling transitions. Double `requestAnimationFrame` is not reliable for this.
+- **Filter `transitionend` by `e.propertyName`** (e.g., `=== "transform"`) to prevent double-firing when animating multiple properties (`transform` + `opacity`).
+- **Guard against overlapping animations** with an `isAnimating` flag checked at entry and cleared on completion.
+- **Clean up inline styles** after animation completes — remove `willChange`, `transition`, `transform`, and `opacity` to avoid stale state.
+
+### Accessibility
+
+- **Always provide a `prefersReducedMotion()` check** that skips animation entirely (instant state change) rather than just shortening duration.
+- Query `window.matchMedia("(prefers-reduced-motion: reduce)")` at animation time, not at component init, so runtime preference changes are respected.
+
 ## Examples
 
 Common user queries that should trigger this skill:
