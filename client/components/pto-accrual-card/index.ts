@@ -201,7 +201,6 @@ export class PtoAccrualCard extends BaseComponent {
   private year: number = getCurrentYear();
   private _requestMode: boolean = false;
   private _annualAllocation: number = 96;
-  private _ptoRequestEventsSetup = false;
   private _focusedRowIndex: number = 0;
   private _pendingFocusMonth: number | null = null;
 
@@ -416,19 +415,6 @@ export class PtoAccrualCard extends BaseComponent {
 
   protected setupEventDelegation() {
     super.setupEventDelegation();
-    if (this._ptoRequestEventsSetup) return;
-    this._ptoRequestEventsSetup = true;
-
-    // Listen for pto-request-submit from slotted calendar
-    this.addEventListener("pto-request-submit", (e: Event) => {
-      const ce = e as CustomEvent;
-      console.log(
-        "PtoAccrualCard received pto-request-submit event from calendar:",
-        ce.detail,
-      );
-      e.stopPropagation();
-      this.handlePtoRequestSubmit(ce.detail.requests);
-    });
   }
 
   protected handleDelegatedKeydown(e: KeyboardEvent): void {
@@ -543,27 +529,6 @@ export class PtoAccrualCard extends BaseComponent {
         this._pendingFocusMonth = month;
         this.requestUpdate();
       }
-    }
-  }
-
-  private async handlePtoRequestSubmit(requests: CalendarEntry[]) {
-    console.log(
-      "PtoAccrualCard.handlePtoRequestSubmit called with requests:",
-      requests,
-    );
-    try {
-      const event = new CustomEvent("pto-request-submit", {
-        detail: { requests },
-        bubbles: true,
-        composed: true,
-      });
-      console.log(
-        "PtoAccrualCard dispatching pto-request-submit event:",
-        event,
-      );
-      this.dispatchEvent(event);
-    } catch (error) {
-      console.error("Error submitting PTO request:", error);
     }
   }
 }

@@ -15,7 +15,8 @@ This document outlines all remaining tasks to complete the DWP Hours Tracker app
 5. # ✅ **[issue-date-handling-regression.md](issue-date-handling-regression.md)** - Fix timezone-related date shifting bugs
 6. ✅ **[issue-endless-loop-employee-acknowledge.md](issue-endless-loop-employee-acknowledge.md)** - Fix endless loop in AdminPanel event handling
 7. ✅ **[issue-search-input-focus-regression.md](issue-search-input-focus-regression.md)** - Search input loses focus on type in employee-list component
-8. **[admin-panel.md](admin-panel.md)** - Defect: Edit button does not open employee form (missing `employee-edit` event listener)
+8. ✅ **[issue-maximum-call-stack-regression.md](issue-maximum-call-stack-regression.md)** - Fix maximum call stack exceeded error in employee-workflow test
+9. **[admin-panel.md](admin-panel.md)** - Defect: Edit button does not open employee form (missing `employee-edit` event listener)
 
 ### 🟡 Medium Priority (Backend/API Core Features)
 
