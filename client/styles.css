@@ -44,12 +44,6 @@ nav {
   gap: var(--space-lg);
 }
 
-/* Main content */
-main {
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
 /* Forms */
 form {
   background: var(--color-surface);

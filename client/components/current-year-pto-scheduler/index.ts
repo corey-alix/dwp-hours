@@ -85,6 +85,7 @@ export class CurrentYearPtoScheduler extends BaseComponent {
           month="${monthData.month}"
           year="${year}"
           readonly="false"
+          hide-legend="true"
         ></pto-calendar>
         <div class="month-summary">
           <div class="summary-item">
@@ -116,7 +117,7 @@ export class CurrentYearPtoScheduler extends BaseComponent {
 
       <div class="container">
         ${
-          this.data
+          this.data && this.data.months
             ? this.data.months.some((m) => m.ptoEntries.length > 0)
               ? `
                 <div class="months-grid">
@@ -127,7 +128,7 @@ export class CurrentYearPtoScheduler extends BaseComponent {
                 <div class="no-data">No data available</div>
             `
             : `
-        <div class="no-data">No data available</div>
+        <div class="no-data">Loading...</div>
     `
         }
         <div class="submit-section">

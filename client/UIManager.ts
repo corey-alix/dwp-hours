@@ -22,6 +22,7 @@ import {
   PtoSummaryCard,
   PtoEmployeeInfoCard,
   PriorYearReview,
+  CurrentYearPtoScheduler,
   ConfirmationDialog,
 } from "./components";
 import type { CalendarEntry } from "./components/pto-calendar";
@@ -122,6 +123,18 @@ export class UIManager {
     addEventListener(ptoForm, "pto-data-request", () =>
       this.handlePtoDataRequest(ptoForm),
     );
+
+    // Current year PTO scheduler
+    try {
+      const scheduler = querySingle<CurrentYearPtoScheduler>(
+        "current-year-pto-scheduler",
+      );
+      addEventListener(scheduler, "pto-submit", (e: CustomEvent) =>
+        this.handlePtoRequestSubmit(e),
+      );
+    } catch (error) {
+      // Scheduler element doesn't exist in test environment, skip
+    }
 
     // Logout
     const logoutBtn = querySingle<HTMLButtonElement>("#logout-btn");
@@ -385,13 +398,25 @@ export class UIManager {
 
   private togglePTORequestMode(): void {
     try {
-      const accrualCard = querySingle<PtoAccrualCard>("pto-accrual-card");
-      const currentMode = accrualCard.getAttribute("request-mode") === "true";
-      accrualCard.setAttribute("request-mode", (!currentMode).toString());
+      const ptoStatus = querySingle("#pto-status");
+      const scheduler = querySingle("#current-year-scheduler");
+      const isSchedulerVisible = !scheduler.classList.contains("hidden");
+
+      if (isSchedulerVisible) {
+        // Switch back to PTO status view
+        scheduler.classList.add("hidden");
+        ptoStatus.classList.remove("hidden");
+      } else {
+        // Switch to scheduler view
+        ptoStatus.classList.add("hidden");
+        scheduler.classList.remove("hidden");
+        // Load data for the scheduler
+        this.loadCurrentYearScheduler();
+      }
 
       // Update button text
       const button = querySingle("#toggle-pto-request-mode");
-      button.textContent = currentMode
+      button.textContent = isSchedulerVisible
         ? "Submit PTO Requests"
         : "View PTO Status";
     } catch (error) {
@@ -645,6 +670,23 @@ export class UIManager {
     }
   }
 
+  private async loadCurrentYearScheduler(): Promise<void> {
+    if (!this.currentUser) return;
+
+    try {
+      const currentYear = getCurrentYear();
+      const schedulerData = await this.api.getPTOYearReview(currentYear);
+
+      const scheduler = querySingle<CurrentYearPtoScheduler>(
+        "current-year-pto-scheduler",
+      );
+      scheduler.data = schedulerData;
+    } catch (error) {
+      console.error("Failed to load current year scheduler data:", error);
+      notifications.error("Failed to load PTO scheduling data");
+    }
+  }
+
   private buildUsageEntries(
     entries: ApiTypes.PTOEntry[],
     year: number,
@@ -771,9 +813,17 @@ export class UIManager {
       await this.api.createPTOEntry({ requests });
       notifications.success("PTO request submitted successfully!");
       await this.refreshPTOData();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting PTO request:", error);
-      notifications.error("Failed to submit PTO request. Please try again.");
+      // Check for structured error response
+      if (error.responseData?.fieldErrors) {
+        const messages = error.responseData.fieldErrors.map(
+          (err: any) => `${err.field}: ${err.message}`,
+        );
+        notifications.error(`PTO request failed: ${messages.join("; ")}`);
+      } else {
+        notifications.error("Failed to submit PTO request. Please try again.");
+      }
     }
   }
 

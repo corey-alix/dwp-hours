@@ -31,6 +31,7 @@ Implement a web component that allows employees to review the entire current fis
 - [x] Implement validation using `shared/businessRules.ts` for PTO requests
 - [x] Add visual feedback for selected PTO dates across all months
 - [x] Handle date conflicts and business rule violations
+- [x] Hide the PTO type legend in each calendar since only PTO can be selected
 - [x] **Validation**: PTO can be scheduled and edited, validation errors display, E2E tests for editing flow, manual testing of date selection
 
 ### Stage 4: Submission Integration
@@ -39,6 +40,8 @@ Implement a web component that allows employees to review the entire current fis
 - [x] Create API endpoint integration for submitting all scheduled PTO
 - [x] Add confirmation dialog before submission
 - [x] Handle submission success/failure with appropriate user feedback
+- [x] Add `<current-year-pto-scheduler>` element to `index.html`
+- [x] Integrate component management in `UIManager.ts` to populate current year data for active employee
 - [x] **Validation**: Submission works end-to-end, API integration tested, E2E tests for submission flow, manual testing of submit functionality
 
 ### Stage 5: Testing and Polish
@@ -60,6 +63,7 @@ Implement a web component that allows employees to review the entire current fis
 - Use atomic CSS classes from `tokens.css` for styling
 - Follow error handling patterns with try/catch and logging
 - **Uses existing `pto-calendar` component** for individual month calendars
+- **Only "PTO" PTO type is scheduled** - hide the PTO type legend in each calendar since only PTO can be selected
 - **Balance summary positioning**: Render balance summary outside the `pto-calendar` component and dock it to the bottom of each monthly grid cell to ensure consistent alignment across all months, preventing jagged rows caused by varying calendar heights
 
 ## Layout Issue Resolution Plan
@@ -87,3 +91,5 @@ Implement a web component that allows employees to review the entire current fis
 1.
 2.
 3.
+4. ✅ Error messages should be registered with `shared/businessRules.ts` to ensure consistency between server validation and client display. - Already implemented.
+5. ✅ The API handlers need to be aware of the 400 error response format with `fieldErrors` array for proper error parsing and user feedback. - Client updated to parse fieldErrors from server responses.

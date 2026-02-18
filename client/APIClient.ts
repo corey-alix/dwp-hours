@@ -8,6 +8,16 @@ export class APIClient {
     const response = await fetch(`${this.baseURL}${endpoint}`, {
       credentials: "include",
     });
+    if (!response.ok) {
+      const errorData = await response
+        .json()
+        .catch(() => ({ error: "Unknown error" }));
+      const error = new Error(
+        errorData.error || `HTTP ${response.status}: ${response.statusText}`,
+      );
+      (error as any).responseData = errorData;
+      throw error;
+    }
     return response.json();
   }
 
@@ -20,6 +30,16 @@ export class APIClient {
       body: JSON.stringify(data),
       credentials: "include",
     });
+    if (!response.ok) {
+      const errorData = await response
+        .json()
+        .catch(() => ({ error: "Unknown error" }));
+      const error = new Error(
+        errorData.error || `HTTP ${response.status}: ${response.statusText}`,
+      );
+      (error as any).responseData = errorData;
+      throw error;
+    }
     return response.json();
   }
 
@@ -32,6 +52,16 @@ export class APIClient {
       body: JSON.stringify(data),
       credentials: "include",
     });
+    if (!response.ok) {
+      const errorData = await response
+        .json()
+        .catch(() => ({ error: "Unknown error" }));
+      const error = new Error(
+        errorData.error || `HTTP ${response.status}: ${response.statusText}`,
+      );
+      (error as any).responseData = errorData;
+      throw error;
+    }
     return response.json();
   }
 
@@ -87,6 +117,16 @@ export class APIClient {
       method: "DELETE",
       credentials: "include",
     });
+    if (!response.ok) {
+      const errorData = await response
+        .json()
+        .catch(() => ({ error: "Unknown error" }));
+      const error = new Error(
+        errorData.error || `HTTP ${response.status}: ${response.statusText}`,
+      );
+      (error as any).responseData = errorData;
+      throw error;
+    }
     return response.json();
   }
 

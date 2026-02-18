@@ -1996,14 +1996,14 @@ initDatabase()
           if (
             isNaN(yearNum) ||
             yearNum < currentYear - 10 ||
-            yearNum >= currentYear
+            yearNum > currentYear
           ) {
             return res.status(400).json({
               error:
                 "Invalid year parameter. Year must be between " +
                 (currentYear - 10) +
                 " and " +
-                (currentYear - 1),
+                currentYear,
             });
           }
 

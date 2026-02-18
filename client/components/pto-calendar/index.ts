@@ -59,7 +59,7 @@ export class PtoCalendar extends BaseComponent {
 
   // ── Primitives: attribute-backed get/set ──
   static get observedAttributes() {
-    return ["month", "year", "selected-month", "readonly"];
+    return ["month", "year", "selected-month", "readonly", "hide-legend"];
   }
 
   get month(): number {
@@ -96,6 +96,14 @@ export class PtoCalendar extends BaseComponent {
 
   set isReadonly(value: boolean) {
     this.setAttribute("readonly", value.toString());
+  }
+
+  get hideLegend(): boolean {
+    return this.getAttribute("hide-legend") === "true";
+  }
+
+  set hideLegend(value: boolean) {
+    this.setAttribute("hide-legend", value.toString());
   }
 
   // ── Complex value accessors ──
@@ -336,7 +344,10 @@ export class PtoCalendar extends BaseComponent {
                     ${weekdays.map((day) => `<div class="weekday">${day}</div>`).join("")}
                     ${calendarDates.map((dateStr) => this.renderDayCell(dateStr)).join("")}
                 </div>
-                <div class="legend" role="listbox" aria-label="PTO type selection">
+                ${
+                  this.hideLegend
+                    ? ""
+                    : `<div class="legend" role="listbox" aria-label="PTO type selection">
                     ${Object.entries(PTO_TYPE_COLORS)
                       .map(
                         ([type, color], index) => `
@@ -347,7 +358,8 @@ export class PtoCalendar extends BaseComponent {
                     `,
                       )
                       .join("")}
-                </div>
+                </div>`
+                }
                 <slot name="balance-summary"></slot>
                 ${this.isReadonly ? "" : '<div class="submit-slot"><slot name="submit"></slot></div>'}
             </div>
