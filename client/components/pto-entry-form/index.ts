@@ -68,7 +68,7 @@ export class PtoEntryForm extends HTMLElement {
     // Set calendar to current month
     const currentDate = today();
     const { year, month } = parseDate(currentDate);
-    calendar.setAttribute("month", (month - 1).toString());
+    calendar.setAttribute("month", month.toString());
     calendar.setAttribute("year", year.toString());
     calendar.setAttribute("selected-month", month.toString());
 
@@ -114,6 +114,12 @@ export class PtoEntryForm extends HTMLElement {
                     background: var(--color-error-light, rgba(220, 53, 69, 0.08));
                     color: var(--color-error);
                     font-size: var(--font-size-sm);
+                    cursor: pointer;
+                    transition: opacity 0.2s ease;
+                }
+
+                .submit-errors:hover {
+                    opacity: 0.8;
                 }
 
                 .btn {
@@ -167,6 +173,44 @@ export class PtoEntryForm extends HTMLElement {
                     color: var(--color-text);
                 }
 
+                .calendar-navigation {
+                    display: flex;
+                    align-items: center;
+                    gap: var(--space-sm);
+                }
+
+                .nav-arrow {
+                    background: none;
+                    border: none;
+                    cursor: pointer;
+                    font-size: var(--font-size-xl);
+                    color: var(--color-text);
+                    padding: var(--space-xs);
+                    border-radius: var(--border-radius-sm);
+                    transition: background-color 0.2s ease;
+                    width: 32px;
+                    height: 32px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .nav-arrow:hover {
+                    background: var(--color-surface-hover);
+                }
+
+                .nav-arrow:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+                }
+
+                /* Hide navigation arrows on touch devices */
+                @media (hover: none) and (pointer: coarse) {
+                    .nav-arrow {
+                        display: none;
+                    }
+                }
+
                 .required {
                     color: var(--color-error);
                 }
@@ -188,6 +232,12 @@ export class PtoEntryForm extends HTMLElement {
             <div class="form-container">
                 <div class="form-header">
                     <h2>Submit Time Off</h2>
+                    <div class="calendar-toolbar">
+                        <div class="calendar-navigation">
+                            <button type="button" class="nav-arrow" id="prev-month-btn" aria-label="Previous month">←</button>
+                            <button type="button" class="nav-arrow" id="next-month-btn" aria-label="Next month">→</button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="calendar-view" id="calendar-view">
@@ -217,6 +267,18 @@ export class PtoEntryForm extends HTMLElement {
       "#submit-btn",
       this.shadow,
     );
+    const prevMonthBtn = querySingle<HTMLButtonElement>(
+      "#prev-month-btn",
+      this.shadow,
+    );
+    const nextMonthBtn = querySingle<HTMLButtonElement>(
+      "#next-month-btn",
+      this.shadow,
+    );
+    const submitErrors = querySingle<HTMLDivElement>(
+      "#submit-errors",
+      this.shadow,
+    );
 
     cancelBtn?.addEventListener("click", () => {
       this.dispatchEvent(new CustomEvent("form-cancel"));
@@ -224,6 +286,24 @@ export class PtoEntryForm extends HTMLElement {
 
     submitBtn?.addEventListener("click", () => {
       this.handleUnifiedSubmit();
+    });
+
+    prevMonthBtn?.addEventListener("click", () => {
+      const calendar = this.getCalendar();
+      if (calendar) {
+        this.navigateMonth(calendar, -1); // Previous month
+      }
+    });
+
+    nextMonthBtn?.addEventListener("click", () => {
+      const calendar = this.getCalendar();
+      if (calendar) {
+        this.navigateMonth(calendar, 1); // Next month
+      }
+    });
+
+    submitErrors?.addEventListener("click", () => {
+      this.clearSubmitErrors();
     });
 
     // Add swipe navigation to calendar
@@ -282,11 +362,11 @@ export class PtoEntryForm extends HTMLElement {
     let newMonth = calendar.month + direction;
     let newYear = calendar.year;
 
-    if (newMonth < 0) {
-      newMonth = 11; // Wrap to December of the same year
+    if (newMonth < 1) {
+      newMonth = 12; // Wrap to December of the same year
       // newYear stays the same for fiscal year constraint
-    } else if (newMonth > 11) {
-      newMonth = 0; // Wrap to January of the same year
+    } else if (newMonth > 12) {
+      newMonth = 1; // Wrap to January of the same year
       // newYear stays the same for fiscal year constraint
     }
 

@@ -29,6 +29,7 @@ Enhance the PTO entry form calendar functionality by eliminating the date picker
 - [x] Ensure swipe navigation works on mobile devices
 - [x] Test swipe functionality across different screen sizes
 - [x] Constrain swipe navigation within fiscal year (January-December) with wrap-around
+- [x] For non-mobile/touch devices, add navigational arrows (← →) to allow month changes
 
 ### Phase 3: Improve Toolbar Button Layout
 
