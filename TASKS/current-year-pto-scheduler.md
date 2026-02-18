@@ -60,7 +60,27 @@ Implement a web component that allows employees to review the entire current fis
 - Use atomic CSS classes from `tokens.css` for styling
 - Follow error handling patterns with try/catch and logging
 - **Uses existing `pto-calendar` component** for individual month calendars
-- **Balance summary slot**: Each `pto-calendar` includes a `balance-summary` slot showing monthly PTO totals (PTO, Sick, Bereavement, Jury Duty) with color coding and conditional styling
+- **Balance summary positioning**: Render balance summary outside the `pto-calendar` component and dock it to the bottom of each monthly grid cell to ensure consistent alignment across all months, preventing jagged rows caused by varying calendar heights
+
+## Layout Issue Resolution Plan
+
+**Problem**: Rendering balance summary within `<pto-calendar>` creates jagged grid rows due to varying calendar heights (28-31 days across months).
+
+**Solution**: Move balance summary rendering outside the `pto-calendar` component and position it at the bottom of each monthly grid cell.
+
+**Implementation**:
+
+1. Each monthly grid cell will have a fixed height container sized to accommodate the maximum calendar height (6 weeks/rows)
+2. Within each cell: render `<pto-calendar>` component (without balance-summary slot), followed by balance summary component
+3. Use CSS flexbox or positioning to dock the summary at the bottom of the cell
+4. This ensures all summaries align horizontally across the grid while calendars maintain their natural heights with appropriate spacing
+
+**Benefits**:
+
+- No modification needed to `pto-calendar` component internals
+- Maintains separation of concerns (calendar vs summary)
+- Consistent visual alignment of summaries
+- Avoids forced row padding within calendar components
 
 ## Questions and Concerns
 

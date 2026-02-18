@@ -85,26 +85,25 @@ export class CurrentYearPtoScheduler extends BaseComponent {
           month="${monthData.month}"
           year="${year}"
           readonly="false"
-        >
-          <div slot="balance-summary" class="month-summary">
-            <div class="summary-item">
-              <span class="summary-label">PTO:</span>
-              <span class="summary-value ${monthData.summary.ptoHours > 0 ? "summary-pto" : ""}">${monthData.summary.ptoHours}</span>
-            </div>
-            <div class="summary-item">
-              <span class="summary-label">Sick:</span>
-              <span class="summary-value ${monthData.summary.sickHours > 0 ? "summary-sick" : ""}">${monthData.summary.sickHours}</span>
-            </div>
-            <div class="summary-item">
-              <span class="summary-label">Bereavement:</span>
-              <span class="summary-value ${monthData.summary.bereavementHours > 0 ? "summary-bereavement" : ""}">${monthData.summary.bereavementHours}</span>
-            </div>
-            <div class="summary-item">
-              <span class="summary-label">Jury Duty:</span>
-              <span class="summary-value ${monthData.summary.juryDutyHours > 0 ? "summary-jury-duty" : ""}">${monthData.summary.juryDutyHours}</span>
-            </div>
+        ></pto-calendar>
+        <div class="month-summary">
+          <div class="summary-item">
+            <span class="summary-label">PTO:</span>
+            <span class="summary-value ${monthData.summary.ptoHours > 0 ? "summary-pto" : ""}">${monthData.summary.ptoHours}</span>
           </div>
-        </pto-calendar>
+          <div class="summary-item">
+            <span class="summary-label">Sick:</span>
+            <span class="summary-value ${monthData.summary.sickHours > 0 ? "summary-sick" : ""}">${monthData.summary.sickHours}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Bereavement:</span>
+            <span class="summary-value ${monthData.summary.bereavementHours > 0 ? "summary-bereavement" : ""}">${monthData.summary.bereavementHours}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Jury Duty:</span>
+            <span class="summary-value ${monthData.summary.juryDutyHours > 0 ? "summary-jury-duty" : ""}">${monthData.summary.juryDutyHours}</span>
+          </div>
+        </div>
       </div>
     `;
   }

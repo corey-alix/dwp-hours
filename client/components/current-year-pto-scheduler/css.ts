@@ -48,6 +48,8 @@ export const styles = `
     border-radius: 8px;
     background: var(--color-surface);
     overflow: hidden;
+    display: grid;
+    grid-template-rows: 1fr auto; /* Calendar takes available space, summary docks at bottom */
 }
 
 .month-summary {
