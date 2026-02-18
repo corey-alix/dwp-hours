@@ -1,6 +1,7 @@
 /* Import design tokens */
 @import url("tokens.css");
 @import url("atomic.css");
+@import url("media.css");
 
 /* Reset and base styles */
 * {
@@ -23,7 +24,6 @@ body {
   line-height: var(--line-height-base);
   color: var(--color-text);
   background-color: var(--color-background);
-  padding: var(--space-lg);
 }
 
 header {
@@ -42,20 +42,17 @@ header h1 {
 nav {
   display: flex;
   gap: var(--space-lg);
-  flex-direction: column;
 }
 
 /* Main content */
 main {
   max-width: 1200px;
   margin: 0 auto;
-  padding: var(--space-sm);
 }
 
 /* Forms */
 form {
   background: var(--color-surface);
-  padding: var(--space-xs);
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-lg);
   margin-bottom: var(--space-2xl);
@@ -172,7 +169,7 @@ button[type="button"]:hover {
 
 .pto-summary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(12em, 1fr));
   gap: var(--space-md);
   margin-top: var(--space-lg);
   padding: var(--space-xs);
@@ -229,21 +226,6 @@ button[type="button"]:hover {
 
 .items-center {
   align-items: center;
-}
-
-/* Responsive design */
-@media (min-width: 513px) {
-  main {
-    padding: var(--space-2xl);
-  }
-
-  form {
-    padding: var(--space-2xl);
-  }
-
-  nav {
-    flex-direction: row;
-  }
 }
 
 /* Notification/Toast System */

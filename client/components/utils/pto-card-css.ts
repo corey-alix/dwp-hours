@@ -7,11 +7,22 @@ export const CARD_CSS = `
         display: block;
     }
 
+    @media all {
+    .card {
+        padding: var(--space-lg);
+        }
+    }
+
+    @media (min-width: 360px) {
+    .card {
+        padding: var(--space-sm);
+        }
+    }
+
     .card {
         background: var(--color-background);
         border: var(--border-width) var(--border-style-solid) var(--color-border);
         border-radius: var(--border-radius-lg);
-        padding: var(--space-lg);
         box-shadow: var(--shadow-md);
     }
 
@@ -154,7 +165,7 @@ export const CARD_CSS = `
         font-style: italic;
     }
 
-    @media (max-width: 480px) {
+    @media (max-width: 280px) {
         .usage-list li {
             flex-direction: column;
             align-items: flex-start;

@@ -10,6 +10,7 @@ import {
   formatDateForDisplay,
   getWorkdaysBetween,
   parseDate,
+  addMonths,
 } from "../shared/dateUtils.js";
 
 // Import business rules
@@ -250,6 +251,12 @@ class UIManager {
       addEventListener(accrualCard, "month-selected", (e: CustomEvent) => {
         const { month, year, entries, requestMode } = e.detail;
         // Find or create the slotted pto-calendar
+
+        // HEREIAM: the should be declaritively
+        alert(
+          "HEREIAM: This calendar display is being rendered imperatively in response to a month-selected event from the accrual card. This is not ideal and should be refactored to be more declarative, with the accrual card simply setting attributes/properties that the calendar reacts to. However, this approach was chosen for now to meet the deadline and avoid a larger refactor of the PTO card architecture. Refactoring this will likely involve changes to how the PTO cards manage state and render their content, potentially moving towards a more unified data model and rendering approach across all cards.",
+        );
+
         let calendar = accrualCard.querySelector("pto-calendar") as PtoCalendar;
         if (!calendar) {
           calendar = document.createElement("pto-calendar") as PtoCalendar;

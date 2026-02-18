@@ -28,157 +28,169 @@ type PTOEntry = {
 };
 
 const ACCRUAL_CSS = `
-    :host {
-        display: block;
-    }
+:host {
+    display: block;
+}
 
-    .card {
-        background: var(--color-background);
-        border: var(--border-width) var(--border-style-solid) var(--color-border);
-        border-radius: var(--border-radius-lg);
-        padding: var(--space-lg);
-        box-shadow: var(--shadow-md);
-    }
+@media all {
+  .card {
+    padding: var(--space-lg);
+  }
+}
 
-    h4 {
-        margin: 0 0 var(--space-md) 0;
-        font-size: var(--font-size-lg);
-        color: var(--color-text);
-        font-weight: var(--font-weight-semibold);
-    }
+@media (min-width: 360px) {
+  .card {
+    padding: var(--space-sm);
+  }
+}
 
-    .accrual-grid {
-        display: grid;
-        grid-template-columns: 1fr auto auto auto;
-        gap: var(--space-sm) var(--space-md);
-    }
+.card {
+  background: var(--color-background);
+  border: var(--border-width) var(--border-style-solid) var(--color-border);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
+}
 
-    .accrual-row {
-        display: grid;
-        grid-template-columns: subgrid;
-        grid-column: 1 / -1;
-        align-items: center;
-        font-size: var(--font-size-sm);
-        color: var(--color-text-secondary);
-        cursor: pointer;
-        outline: none;
-    }
+h4 {
+    margin: 0 0 var(--space-md) 0;
+    font-size: var(--font-size-lg);
+    color: var(--color-text);
+    font-weight: var(--font-weight-semibold);
+}
 
-    .accrual-row:focus-visible {
-        outline: 2px solid var(--color-primary);
-        outline-offset: -1px;
-        border-radius: var(--border-radius);
-    }
+.accrual-grid {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    gap: var(--space-sm) var(--space-md);
+}
 
-    .accrual-row.header {
-        font-size: var(--font-size-xs);
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        color: var(--color-text-muted);
-    }
+.accrual-row {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
+    align-items: center;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    outline: none;
+}
 
-    .accrual-row.header .label {
-        text-align: right;
-    }
+.accrual-row:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: -1px;
+    border-radius: var(--border-radius);
+}
 
-    .accrual-row .month {
-        font-weight: var(--font-weight-semibold);
-    }
+.accrual-row.header {
+    font-size: var(--font-size-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-muted);
+}
 
-    .accrual-row.projected {
-        opacity: 0.7;
-    }
+.accrual-row.header .label {
+    text-align: right;
+}
 
-    .accrual-row.projected .hours::before {
-        content: "~";
-        opacity: 0.6;
-    }
+.accrual-row .month {
+    font-weight: var(--font-weight-semibold);
+}
 
-    .accrual-grid.wide .data-row.alt {
-        background-color: var(--color-surface);
-    }
+.accrual-row.projected {
+    opacity: 0.7;
+}
 
-    .accrual-row.current > .month::before {
-      content: "✓";
-      margin-right: var(--space-sm);
-      color: var(--color-success);
-      font-weight: var(--font-weight-semibold);
-    }
+.accrual-row.projected .hours::before {
+    content: "~";
+    opacity: 0.6;
+}
 
-    .accrual-row:hover {
-        background-color: var(--color-surface-hover) !important;
-    }
+.accrual-grid.wide .data-row.alt {
+    background-color: var(--color-surface);
+}
 
-    .accrual-row .hours,
-    .accrual-row .used {
-        text-align: right;
-    }
+.accrual-row.current > .month::before {
+  content: "✓";
+  margin-right: var(--space-sm);
+  color: var(--color-success);
+  font-weight: var(--font-weight-semibold);
+}
 
-    .calendar-button {
-        border: none;
-        background: var(--color-surface);
-        border-radius: var(--border-radius);
-        padding: var(--space-xs) var(--space-sm);
-        cursor: pointer;
-        color: var(--color-text);
-    }
+.accrual-row:hover {
+    background-color: var(--color-surface-hover) !important;
+}
 
-    .calendar-button.request-mode {
-        background: var(--color-primary);
-        color: var(--color-on-primary);
-    }
+.accrual-row .hours,
+.accrual-row .used {
+    text-align: right;
+}
 
-    .calendar-button.request-mode:hover {
-        background: var(--color-primary-hover);
-    }
+.calendar-button {
+    border: none;
+    background: var(--color-surface);
+    border-radius: var(--border-radius);
+    padding: var(--space-xs) var(--space-sm);
+    cursor: pointer;
+    color: var(--color-text);
+}
 
-    .empty {
-        color: var(--color-text-muted);
-        font-size: var(--font-size-xs);
-    }
+.calendar-button.request-mode {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+}
 
-    .submit-button {
-        background: var(--color-primary);
-        color: var(--color-on-primary);
-        border: none;
-        padding: var(--space-sm) var(--space-lg);
-        border-radius: var(--border-radius);
-        font-size: var(--font-size-sm);
-        cursor: pointer;
-        transition: background-color 0.2s;
-    }
+.calendar-button.request-mode:hover {
+    background: var(--color-primary-hover);
+}
 
-    .submit-button:hover {
-        background: var(--color-primary-hover);
-    }
+.empty {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+}
 
-    .submit-button:disabled {
-        background: var(--color-text-muted);
-        cursor: not-allowed;
-    }
+.submit-button {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    border: none;
+    margin-bottom: var(--space-lg);
+    padding: var(--space-sm) var(--space-lg);
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.submit-button:hover {
+    background: var(--color-primary-hover);
+}
+
+.submit-button:disabled {
+    background: var(--color-text-muted);
+    cursor: not-allowed;
+}
+
+.calendar-slot-row {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0ms ease-out;
+}
+
+.calendar-slot-row.open {
+    grid-template-rows: 1fr;
+}
+
+.calendar-slot-row > ::slotted(*) {
+    overflow: hidden;
+    min-height: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
 
     .calendar-slot-row {
-        grid-column: 1 / -1;
-        display: grid;
-        grid-template-rows: 0fr;
-        transition: grid-template-rows 0ms ease-out;
+        transition: none;
     }
-
-    .calendar-slot-row.open {
-        grid-template-rows: 1fr;
-    }
-
-    .calendar-slot-row > ::slotted(*) {
-        overflow: hidden;
-        min-height: 0;
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-
-        .calendar-slot-row {
-            transition: none;
-        }
-    }
+}
 `;
 
 export class PtoAccrualCard extends BaseComponent {

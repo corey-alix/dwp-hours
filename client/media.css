@@ -1,0 +1,52 @@
+/* Default responsive sizing */
+@media all {
+  nav {
+    flex-direction: column;
+  }
+
+  main {
+    padding: var(--space-sm);
+  }
+
+  body {
+    padding: var(--space-lg);
+  }
+
+  form {
+    padding: var(--space-xs);
+  }
+}
+
+/* Responsive design */
+@media (min-width: 360px) {
+  main {
+    padding: var(--space-sm);
+  }
+
+  body {
+    padding: var(--space-sm);
+  }
+
+  form {
+    padding: var(--space-sm);
+  }
+
+  nav {
+    flex-direction: row;
+  }
+}
+
+/* Responsive design */
+@media (min-width: 720px) {
+  main {
+    padding: var(--space-2xl);
+  }
+
+  form {
+    padding: var(--space-2xl);
+  }
+
+  nav {
+    flex-direction: row;
+  }
+}
