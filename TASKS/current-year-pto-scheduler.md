@@ -2,7 +2,7 @@
 
 ## Description
 
-Implement a web component that allows employees to review the entire current fiscal year (January to December) and schedule PTO across all months. The component should display twelve monthly calendars in a grid layout, enable editing of PTO dates for each month, and provide a single "Submit PTO Request" button at the bottom to submit all scheduled PTO at once.
+Implement a web component that allows employees to review the entire current fiscal year (January to December) and schedule PTO across all months. The component should display twelve monthly calendars using the existing `pto-calendar` component, enable editing of PTO dates for each month, and provide a single "Submit PTO Request" button at the bottom to submit all scheduled PTO at once. Each calendar includes a balance summary slot showing monthly PTO totals by type.
 
 ## Priority
 
@@ -59,6 +59,8 @@ Implement a web component that allows employees to review the entire current fis
 - Integrate with existing API endpoints for PTO data and submission
 - Use atomic CSS classes from `tokens.css` for styling
 - Follow error handling patterns with try/catch and logging
+- **Uses existing `pto-calendar` component** for individual month calendars
+- **Balance summary slot**: Each `pto-calendar` includes a `balance-summary` slot showing monthly PTO totals (PTO, Sick, Bereavement, Jury Duty) with color coding and conditional styling
 
 ## Questions and Concerns
 

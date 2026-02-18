@@ -25,6 +25,25 @@ export class App {
     notifications.addListener(new PtoNotificationController());
     notifications.addListener(new DebugConsoleController());
 
+    // Set up responsive scaling
+    App.setupResponsiveScaling();
+
     return new UIManager();
+  }
+
+  private static setupResponsiveScaling() {
+    const updateScale = () => {
+      const scale = Math.min(1, window.innerWidth / 320);
+      document.documentElement.style.setProperty(
+        "--scale-factor",
+        scale.toString(),
+      );
+    };
+
+    // Set initial scale
+    updateScale();
+
+    // Update on resize
+    window.addEventListener("resize", updateScale);
   }
 }

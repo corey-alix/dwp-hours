@@ -23,6 +23,8 @@ Activate when users need to:
 - **Prevent memory leaks from event listeners**
 - **Create base component classes for consistency**
 - **Migrate components to use BaseComponent**
+- **Organize component styles in css.ts files**
+- **Implement responsive scaling with --scale-factor**
 
 ## Response Pattern
 
@@ -32,12 +34,15 @@ Follow this structured approach when implementing web components:
 2. **CRITICAL: Static Imports Only** - Never use `await import()` or dynamic imports. All imports must be static at the top level. The build system uses esbuild to create a single `app.js` bundle loaded by test.html pages.
 3. **CRITICAL: Declarative Markup Priority** - Always prefer declarative template strings returned from `render()` over imperative DOM construction (manual `innerHTML` assignment, `createElement`, `appendChild`, IIFEs inside template literals). The `render()` method should read like a description of what the component displays. Extract complex conditional sections into small helper methods that return partial template strings, keeping `render()` itself a clear, top-level declaration of the component's structure.
 4. **CRITICAL: Named Slots Over Component Embedding** - Never create child web components inside a parent's shadow DOM template string. Instead, use `<slot name="...">` in the parent's template and let the consumer compose children in light DOM. This keeps components loosely coupled, independently testable, and composable. The parent declares _where_ children go; the consumer decides _which_ children to provide.
-5. **Base Class Selection**: Extend BaseComponent for memory-safe, consistent components
-6. **Custom Element Definition**: Create class extending BaseComponent with proper naming conventions
-7. **Shadow DOM Setup**: Automatic shadow root creation via BaseComponent
-8. **Lifecycle Methods**: Override connectedCallback, disconnectedCallback as needed (BaseComponent handles cleanup)
-9. **Template & Styling**: Define component template and styles following MDN best practices
-10. **CRITICAL: Strongly-Typed Getter/Setter Properties with Attribute Backing** - Use ES property getters/setters backed by the `attributes` collection for **primitive values only** (string, number, boolean). The setter writes to `setAttribute()`, and `attributeChangedCallback` is the single point that calls `requestUpdate()` — preventing double renders. The getter reads from `getAttribute()` and parses to the correct type. Guard `attributeChangedCallback` with `oldValue === newValue` to prevent cycles — this works reliably because primitives serialize to deterministic strings.
+5. **CSS Organization**: Create a separate `css.ts` file with exported `styles` template string
+6. **Design Tokens**: Use CSS custom properties from `tokens.css` for consistent theming
+7. **Responsive Scaling**: Use global `--scale-factor` variable for proportional scaling at small screens
+8. **Base Class Selection**: Extend BaseComponent for memory-safe, consistent components
+9. **Custom Element Definition**: Create class extending BaseComponent with proper naming conventions
+10. **Shadow DOM Setup**: Automatic shadow root creation via BaseComponent
+11. **Lifecycle Methods**: Override connectedCallback, disconnectedCallback as needed (BaseComponent handles cleanup)
+12. **Template & Styling**: Define component template and styles following MDN best practices
+13. **CRITICAL: Strongly-Typed Getter/Setter Properties with Attribute Backing** - Use ES property getters/setters backed by the `attributes` collection for **primitive values only** (string, number, boolean). The setter writes to `setAttribute()`, and `attributeChangedCallback` is the single point that calls `requestUpdate()` — preventing double renders. The getter reads from `getAttribute()` and parses to the correct type. Guard `attributeChangedCallback` with `oldValue === newValue` to prevent cycles — this works reliably because primitives serialize to deterministic strings.
 
     **Complex values (arrays, objects) must NOT use attributes.** Use private fields with `get`/`set` accessors that call `requestUpdate()` directly. Reasons:
     - `oldValue === newValue` string comparison fails for JSON — semantically identical objects can produce different serializations (key ordering, whitespace)
@@ -71,13 +76,13 @@ Follow this structured approach when implementing web components:
     }
     ```
 
-11. **CRITICAL: View-Model Rendering with Focus Preservation** - Component state fields form a view-model. `render()` is a pure function of this view-model. After each `render()` / `requestUpdate()` cycle, focus and input element state (cursor position, selection) must be restored. `BaseComponent.renderTemplate()` handles focus restore for elements with stable `id` attributes automatically. For elements identified by `data-*` attributes (e.g., calendar days), override `update()` to restore focus from the view-model after `super.update()`. Without focus preservation, re-rendering completely breaks UX (lost cursor position, dropped keyboard navigation).
-12. **Event Handling**: Use event delegation via handleDelegatedClick/handleDelegatedSubmit methods
-13. **Data Flow Architecture**: Use event-driven data flow - components dispatch events for data requests, parent handles API calls and data injection via methods like setPtoData()
-14. **Memory Management**: BaseComponent automatically handles event listener cleanup
-15. **Unit Testing**: Create Vitest tests with happy-dom using seedData for mocking
-16. **Integration Testing**: Test component in the DWP Hours Tracker context with Playwright E2E tests
-17. **Documentation**: Update component usage documentation
+14. **CRITICAL: View-Model Rendering with Focus Preservation** - Component state fields form a view-model. `render()` is a pure function of this view-model. After each `render()` / `requestUpdate()` cycle, focus and input element state (cursor position, selection) must be restored. `BaseComponent.renderTemplate()` handles focus restore for elements with stable `id` attributes automatically. For elements identified by `data-*` attributes (e.g., calendar days), override `update()` to restore focus from the view-model after `super.update()`. Without focus preservation, re-rendering completely breaks UX (lost cursor position, dropped keyboard navigation).
+15. **Event Handling**: Use event delegation via handleDelegatedClick/handleDelegatedSubmit methods
+16. **Data Flow Architecture**: Use event-driven data flow - components dispatch events for data requests, parent handles API calls and data injection via methods like setPtoData()
+17. **Memory Management**: BaseComponent automatically handles event listener cleanup
+18. **Unit Testing**: Create Vitest tests with happy-dom using seedData for mocking
+19. **Integration Testing**: Test component in the DWP Hours Tracker context with Playwright E2E tests
+20. **Documentation**: Update component usage documentation
 
 ## Component Testing Pattern
 
@@ -406,6 +411,7 @@ For consistency and memory leak prevention, all web components should extend the
 
 ```typescript
 import { BaseComponent } from "../base-component.js";
+import { styles } from "./css.js";
 
 export class MyComponent extends BaseComponent {
   private _data: MyData[] = [];
@@ -416,9 +422,7 @@ export class MyComponent extends BaseComponent {
   // ternary chains.
   protected render(): string {
     return `
-      <style>
-        /* Component styles */
-      </style>
+      ${styles}
       <div class="my-component">
         ${this.renderItems()}
       </div>
@@ -449,6 +453,80 @@ export class MyComponent extends BaseComponent {
   }
 }
 ```
+
+## CSS Organization and Responsive Design
+
+### CSS Structure Pattern
+
+All component styles should be defined in a separate `css.ts` file that exports a `styles` template string. This pattern provides:
+
+- **Separation of Concerns**: Logic and styling are in separate files
+- **Type Safety**: CSS variables and classes are checked at compile time
+- **Reusability**: Styles can be imported and used across components
+- **Maintainability**: Easier to modify styles without touching component logic
+
+```typescript
+// css.ts - Component-specific styles
+export const styles = `
+  .component-root {
+    padding: var(--space-md);
+    border-radius: var(--border-radius);
+  }
+  
+  .component-header {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+  }
+`;
+```
+
+```typescript
+// index.ts - Component implementation
+import { styles } from "./css.js";
+
+export class MyComponent extends BaseComponent {
+  protected render(): string {
+    return `
+      ${styles}
+      <div class="component-root">
+        <h2 class="component-header">Title</h2>
+      </div>
+    `;
+  }
+}
+```
+
+### Global Design Tokens
+
+Use CSS custom properties from `client/tokens.css` for consistent theming:
+
+- **Color Tokens**: `--color-primary`, `--color-text`, `--color-surface`, etc.
+- **Typography Tokens**: `--font-size-sm`, `--font-weight-medium`, etc.
+- **Spacing Tokens**: `--space-sm`, `--space-md`, etc.
+- **Border Tokens**: `--border-width`, `--border-radius`, etc.
+
+### Responsive Scaling with --scale-factor
+
+Components can use the global `--scale-factor` CSS variable for proportional scaling at small screen sizes:
+
+- **Global Management**: Set centrally in `app.ts` based on viewport width
+- **Automatic Updates**: Updates on window resize events
+- **Proportional Scaling**: `scale(calc(100vw / 320))` provides continuous scaling from 320px baseline
+- **Component Usage**: Apply in media queries for small screens
+
+```typescript
+// In css.ts
+export const styles = `
+  @media (max-width: 320px) {
+    .component-container {
+      transform: scale(var(--scale-factor));
+      transform-origin: top left;
+    }
+  }
+`;
+```
+
+This ensures all components scale consistently while maintaining proportions at super small resolutions.
 
 ### Memory Leak Prevention
 
@@ -492,6 +570,9 @@ Common queries that should trigger this skill:
 - "**Prevent memory leaks in web components**"
 - "**Migrate component to BaseComponent**"
 - "**Fix event listener memory leaks**"
+- "**Organize component styles in css.ts files**"
+- "**Implement responsive scaling with --scale-factor**"
+- "**Use design tokens in component styling**"
 
 ## Additional Context
 
@@ -499,6 +580,9 @@ Common queries that should trigger this skill:
 - **Browser Support**: Ensure compatibility with the project's target browsers
 - **Performance**: Follow MDN performance guidelines for web components
 - **Memory Management**: All components must extend BaseComponent to prevent memory leaks from event listeners
+- **CSS Organization**: Use separate `css.ts` files with exported `styles` template strings for maintainable, type-safe styling
+- **Design Tokens**: Leverage CSS custom properties from `tokens.css` for consistent theming across all components
+- **Responsive Scaling**: Use the global `--scale-factor` variable for proportional scaling at small screen sizes
 - **Consistency**: Use BaseComponent's event delegation and reactive update patterns for all components. Follow the [Lit reactive update cycle](https://lit.dev/docs/components/lifecycle/) — `render()` is a pure template method; `requestUpdate()` is the only way to trigger DOM updates
 - **Declarative First**: Always prefer declarative template strings over imperative DOM construction. `render()` should read as a flat, top-level description of what the component displays. Complex sections should be extracted into helper methods returning template fragments — never use IIFEs, deeply nested ternaries, or manual `innerHTML` assignment in component logic.
 - **Composition Over Embedding**: Never embed child web components by tag name inside a parent's shadow DOM template string. Use named `<slot>` elements so consumers compose children in light DOM. This ensures loose coupling and independent testability.

@@ -1,6 +1,6 @@
 # Current Year PTO Scheduler Component
 
-A web component for scheduling PTO across the entire current fiscal year in a 12-month calendar grid layout.
+A web component for scheduling PTO across the entire current fiscal year using the existing `pto-calendar` component with balance summary slots.
 
 ## Purpose and Goals
 
@@ -33,7 +33,7 @@ The Current Year PTO Scheduler feature provides a comprehensive interface for em
 
 ## Overview
 
-The `CurrentYearPtoScheduler` component renders an editable view of PTO for the entire current year, displaying all 12 months in a responsive grid. Each month shows a calendar where users can click days to schedule PTO, with visual feedback and validation.
+The `CurrentYearPtoScheduler` component renders an editable view of PTO for the entire current year, displaying all 12 months in a responsive grid. Each month is rendered using the `pto-calendar` component, which provides full calendar editing functionality. Each calendar includes a balance summary slot that displays monthly PTO totals by type, maintaining visual consistency with the prior-year-review component.
 
 ## Features
 

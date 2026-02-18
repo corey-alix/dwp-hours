@@ -12,6 +12,7 @@ import {
   isWeekend,
 } from "../../../shared/dateUtils.js";
 import { BaseComponent } from "../base-component.js";
+import { styles, PTO_TYPE_COLORS } from "./css.js";
 
 const monthNames = [
   "January",
@@ -27,14 +28,6 @@ const monthNames = [
   "November",
   "December",
 ];
-
-const PTO_TYPE_COLORS: Record<string, string> = {
-  PTO: "var(--color-pto-vacation)",
-  Sick: "var(--color-pto-sick)",
-  Bereavement: "var(--color-pto-bereavement)",
-  "Jury Duty": "var(--color-pto-jury-duty)",
-  "Work Day": "var(--color-surface)",
-};
 
 export interface CalendarEntry {
   date: string;
@@ -260,181 +253,7 @@ export class PtoCalendar extends BaseComponent {
   protected render(): string {
     return `
             <style>
-                :host {
-                    display: block;
-                }
-
-                .calendar {
-                    margin-top: 16px;
-                }
-
-                .calendar-header {
-                    font-weight: 600;
-                    margin-bottom: 8px;
-                }
-
-                .calendar-grid {
-                    display: grid;
-                    grid-template-columns: repeat(7, 1fr);
-                    gap: 4px;
-                }
-
-                .weekday {
-                    font-size: 11px;
-                    font-weight: 600;
-                    color: var(--color-text-secondary);
-                    text-align: center;
-                }
-
-                .day {
-                    position: relative;
-                    min-height: 50px;
-                    border: var(--border-width) var(--border-style-solid) var(--color-border);
-                    border-radius: 6px;
-                    background: var(--color-surface);
-                    padding: 4px;
-                    font-size: 12px;
-                }
-
-                .day.empty {
-                    background: transparent;
-                    border: none;
-                }
-
-                .day.clickable {
-                    cursor: pointer;
-                }
-
-                .day.clickable:hover {
-                    transform: scale(1.05);
-                    box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
-                }
-
-                .day.clickable:focus-visible,
-                .day.clickable:focus {
-                    box-shadow: 0 0 0 1px var(--color-focus);
-                }
-
-                .day.selected {
-                    border: 2px solid var(--color-primary);
-                    box-shadow: 0 0 0 2px rgb(59 130 246 / 25%);
-                }
-
-                .day .date {
-                    font-weight: 600;
-                    color: var(--color-text);
-                }
-
-                .day .checkmark {
-                    position: absolute;
-                    top: 2px;
-                    right: 2px;
-                    color: var(--color-success);
-                    font-size: 10px;
-                    font-weight: bold;
-                    z-index: 1;
-                }
-
-                .day .hours {
-                    position: absolute;
-                    bottom: 4px;
-                    right: 6px;
-                    font-size: 10px;
-                    color: var(--color-text-secondary);
-                }
-
-                .type-PTO { background: ${PTO_TYPE_COLORS.PTO}; }
-
-                .type-Sick { background: ${PTO_TYPE_COLORS.Sick}; }
-
-                .type-Bereavement { background: ${PTO_TYPE_COLORS.Bereavement}; }
-
-                .type-Jury-Duty { background: ${PTO_TYPE_COLORS["Jury Duty"]}; }
-
-                .type-Work-Day { background: ${PTO_TYPE_COLORS["Work Day"]}; border: 1px solid var(--color-border); }
-
-                /* Make text white on colored backgrounds for better contrast */
-                .type-PTO .date,
-                .type-PTO .hours,
-                .type-Sick .date,
-                .type-Sick .hours,
-                .type-Bereavement .date,
-                .type-Bereavement .hours,
-                .type-Jury-Duty .date,
-                .type-Jury-Duty .hours {
-                    color: white;
-                }
-
-                .legend {
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 8px 12px;
-                    margin-top: 12px;
-                    font-size: 12px;
-                    color: var(--color-text-secondary);
-                }
-
-                .legend-item {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 6px;
-                }
-
-                .legend-item.clickable {
-                    cursor: pointer;
-                    padding: 4px 8px;
-                    border-radius: 4px;
-                }
-
-                .legend-item.clickable:hover {
-                    background: var(--color-surface-hover);
-                    transform: scale(1.05);
-                }
-
-                .legend-item.clickable:focus-visible {
-                    outline: 2px solid var(--color-primary);
-                    outline-offset: 2px;
-                }
-
-                .legend-item.selected {
-                    background: var(--color-primary-light);
-                    border: 1px solid var(--color-primary);
-                    font-weight: 600;
-                }
-
-                .legend-swatch {
-                    width: 10px;
-                    height: 10px;
-                    border-radius: 2px;
-                    border: 1px solid var(--color-border);
-                }
-
-                .submit-slot {
-                    margin-top: 16px;
-                    text-align: center;
-                }
-
-                @keyframes day-pulse {
-                    0% { box-shadow: 0 0 0 0 rgb(59 130 246 / 40%); }
-                    50% { box-shadow: 0 0 0 4px rgb(59 130 246 / 20%); }
-                    100% { box-shadow: 0 0 0 0 rgb(59 130 246 / 0%); }
-                }
-
-                .day-changed {
-                    animation: day-pulse 200ms ease-out;
-                }
-
-                .hours-full {
-                    opacity: 1;
-                }
-
-                .hours-partial {
-                    opacity: 0.6;
-                }
-
-                .day.partial-day {
-                    opacity: 0.75;
-                }
+                ${styles}
             </style>
             ${this.renderCalendar()}
         `;

@@ -164,6 +164,9 @@
   --color-pto-bereavement: var(--color-purple-700);
   --color-pto-jury-duty: var(--color-green-600);
   --color-pto-holiday: var(--color-orange-500);
+
+  /* Responsive scaling factor */
+  --scale-factor: 1;
 }
 
 /* Dark Theme Overrides */
