@@ -27,6 +27,11 @@ body {
 }
 
 header {
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
   background-color: var(--color-surface);
   color: var(--color-text);
   padding: var(--space-lg);
@@ -40,6 +45,9 @@ header h1 {
 }
 
 nav {
+  position: absolute;
+  top: 0;
+  right: 0;
   display: flex;
   gap: var(--space-lg);
 }
@@ -107,14 +115,13 @@ button[type="button"]:hover {
   background-color: var(--color-secondary-hover);
 }
 
-/* Dashboard */
-.dashboard-controls {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-lg);
-  flex-wrap: wrap;
-  gap: var(--space-md);
+/* Dashboard pages */
+.page {
+  display: none;
+}
+
+.page.active {
+  display: block;
 }
 
 .year-selector {
@@ -220,6 +227,125 @@ button[type="button"]:hover {
 
 .items-center {
   align-items: center;
+}
+
+/* Dashboard Navigation Menu */
+.dashboard-navigation-menu {
+  position: fixed;
+  top: var(--space-lg);
+  right: var(--space-lg);
+  z-index: 100;
+}
+
+.menu-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--border-radius);
+  transition: background-color 0.3s;
+  font-size: 18px;
+  color: var(--color-text);
+}
+
+.menu-toggle:hover {
+  background-color: var(--color-surface-hover);
+}
+
+.menu-items {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--color-surface);
+  border: var(--border-width) var(--border-style-solid) var(--color-border);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-lg);
+  z-index: 10;
+  margin-top: var(--space-xs);
+}
+
+.menu-items nav {
+  /* No additional styles needed */
+}
+
+.menu-items.open {
+  display: block;
+}
+
+.menu-item {
+  display: block;
+  width: 100%;
+  padding: var(--space-md);
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+}
+
+.menu-item:hover {
+  background-color: var(--color-surface-hover);
+}
+
+.menu-item.active {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.menu-item.active:hover {
+  background-color: var(--color-primary-hover);
+}
+
+.menu-item.logout {
+  border-top: 1px solid var(--color-border);
+  margin-top: var(--space-sm);
+  color: var(--color-error);
+}
+
+.menu-item.logout:hover {
+  background-color: var(--color-error-light);
+  color: var(--color-error);
+}
+
+/* Desktop menu layout */
+@media (min-width: 720px) {
+  .dashboard-navigation-menu {
+    position: fixed;
+    top: var(--space-lg);
+    right: var(--space-lg);
+    width: auto;
+  }
+
+  .menu-toggle {
+    display: none;
+  }
+
+  .menu-items {
+    display: flex;
+    position: static;
+    box-shadow: none;
+    border: none;
+    background: none;
+    margin-top: 0;
+    gap: var(--space-sm);
+  }
+
+  .menu-item {
+    display: inline-block;
+    width: auto;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+  }
 }
 
 /* Notification/Toast System */

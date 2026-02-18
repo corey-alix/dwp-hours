@@ -36,7 +36,9 @@ test.describe("Authentication Logout", () => {
     expect(authCookie?.value).not.toBe("");
 
     // Step 5: Click the logout button
-    const logoutBtn = page.locator("#logout-btn");
+    const logoutBtn = page
+      .locator("dashboard-navigation-menu")
+      .locator('button[data-action="logout"]');
     await expect(logoutBtn).toBeVisible();
     await logoutBtn.click();
 

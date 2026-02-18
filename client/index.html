@@ -16,7 +16,9 @@
     <header>
       <h1>DWP Hours Tracker</h1>
       <nav id="nav">
-        <button id="logout-btn" class="hidden">Logout</button>
+        <dashboard-navigation-menu
+          id="dashboard-navigation-menu"
+        ></dashboard-navigation-menu>
       </nav>
     </header>
 
@@ -33,29 +35,17 @@
 
       <div id="dashboard" class="hidden">
         <h2>PTO Dashboard</h2>
-        <div class="dashboard-controls">
-          <div class="year-selector">
-            <button
-              id="current-year-btn"
-              class="year-btn active"
-              title="View current year PTO status and request calendar"
-            >
-              Current Year
-            </button>
-            <button
-              id="prior-year-btn"
-              class="year-btn"
-              title="View historical PTO data from the previous year"
-            >
-              Prior Year
-            </button>
-          </div>
-          <button id="toggle-pto-request-mode">Submit PTO Requests</button>
+        <pto-employee-info-card
+          class="bg-color-surface border-color-primary rounded-lg p-4"
+        ></pto-employee-info-card>
+
+        <div id="default-page" class="page active">
+          <current-year-pto-scheduler
+            id="current-year-pto-scheduler"
+          ></current-year-pto-scheduler>
         </div>
-        <div id="pto-status">
-          <pto-employee-info-card
-            class="bg-color-surface border-color-primary rounded-lg p-4"
-          ></pto-employee-info-card>
+
+        <div id="current-year-summary-page" class="page">
           <div class="pto-summary">
             <pto-summary-card></pto-summary-card>
             <pto-pto-card></pto-pto-card>
@@ -68,14 +58,11 @@
             ></pto-accrual-card>
           </div>
         </div>
-        <div id="current-year-scheduler" class="hidden">
-          <current-year-pto-scheduler
-            id="current-year-pto-scheduler"
-          ></current-year-pto-scheduler>
-        </div>
-        <div id="prior-year-view" class="hidden">
+
+        <div id="prior-year-summary-page" class="page">
           <prior-year-review id="prior-year-review"></prior-year-review>
         </div>
+
         <button id="new-pto-btn">Submit Time Off</button>
       </div>
 

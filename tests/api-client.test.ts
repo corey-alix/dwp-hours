@@ -21,6 +21,7 @@ describe("APIClient", () => {
     it("should make a GET request to the correct endpoint", async () => {
       const mockResponse = { data: "test" };
       fetchMock.mockResolvedValueOnce({
+        ok: true,
         json: () => Promise.resolve(mockResponse),
       });
 
@@ -38,6 +39,7 @@ describe("APIClient", () => {
       const mockResponse = { success: true };
       const requestData = { key: "value" };
       fetchMock.mockResolvedValueOnce({
+        ok: true,
         json: () => Promise.resolve(mockResponse),
       });
 
@@ -71,6 +73,7 @@ describe("APIClient", () => {
         ],
       };
       fetchMock.mockResolvedValueOnce({
+        ok: true,
         json: () => Promise.resolve(mockResponse),
       });
 
@@ -109,6 +112,7 @@ describe("APIClient", () => {
         ],
       };
       fetchMock.mockResolvedValueOnce({
+        ok: true,
         json: () => Promise.resolve(mockResponse),
       });
 
@@ -138,6 +142,7 @@ describe("APIClient", () => {
         monthlyBreakdown: [],
       };
       fetchMock.mockResolvedValueOnce({
+        ok: true,
         json: () => Promise.resolve(mockResponse),
       });
 
@@ -157,6 +162,7 @@ describe("APIClient", () => {
         { date: "2026-03-07", type: "PTO", hours: 8 },
       ];
       fetchMock.mockResolvedValueOnce({
+        ok: true,
         json: () => Promise.resolve(mockResponse),
       });
 
@@ -175,6 +181,7 @@ describe("APIClient", () => {
         message: SUCCESS_MESSAGES["auth.link_sent"],
       };
       fetchMock.mockResolvedValueOnce({
+        ok: true,
         json: () => Promise.resolve(mockResponse),
       });
 
@@ -199,6 +206,7 @@ describe("APIClient", () => {
         employee: { id: 1, name: "John Doe", role: "Employee" },
       };
       fetchMock.mockResolvedValueOnce({
+        ok: true,
         json: () => Promise.resolve(mockResponse),
       });
 
@@ -223,6 +231,7 @@ describe("APIClient", () => {
         version: "1.0.0",
       };
       fetchMock.mockResolvedValueOnce({
+        ok: true,
         json: () => Promise.resolve(mockResponse),
       });
 

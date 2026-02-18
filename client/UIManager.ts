@@ -24,6 +24,7 @@ import {
   PriorYearReview,
   CurrentYearPtoScheduler,
   ConfirmationDialog,
+  DashboardNavigationMenu,
 } from "./components";
 import type { CalendarEntry } from "./components/pto-calendar";
 import {
@@ -137,8 +138,10 @@ export class UIManager {
     }
 
     // Logout
-    const logoutBtn = querySingle<HTMLButtonElement>("#logout-btn");
-    addEventListener(logoutBtn, "click", () => this.handleLogout());
+    const navMenu = querySingle<DashboardNavigationMenu>(
+      "dashboard-navigation-menu",
+    );
+    addEventListener(navMenu, "logout", () => this.handleLogout());
 
     // Navigation
     const newPTOBtn = querySingle<HTMLButtonElement>("#new-pto-btn");
@@ -162,14 +165,15 @@ export class UIManager {
       // Element doesn't exist in test environment, skip
     }
 
-    // PTO Request Mode Toggle (only if it exists - for test.html compatibility)
+    // Dashboard navigation menu
     try {
-      const toggleRequestModeBtn = querySingle<HTMLButtonElement>(
-        "#toggle-pto-request-mode",
+      const menu = querySingle<DashboardNavigationMenu>(
+        "dashboard-navigation-menu",
       );
-      addEventListener(toggleRequestModeBtn, "click", () =>
-        this.togglePTORequestMode(),
+      addEventListener(menu, "page-change", (e: CustomEvent) =>
+        this.handlePageChange(e.detail.page),
       );
+      addEventListener(menu, "logout", () => this.handleLogout());
     } catch (error) {
       // Element doesn't exist in test environment, skip
     }
@@ -340,22 +344,21 @@ export class UIManager {
   private showLogin(): void {
     this.hideAllSections();
     querySingle("#login-section").classList.remove("hidden");
-    querySingle("#logout-btn").classList.add("hidden");
   }
 
   private showDashboard(): void {
     this.hideAllSections();
     querySingle("#dashboard").classList.remove("hidden");
+    querySingle("#dashboard-navigation-menu").classList.remove("hidden");
     if (this.currentUser?.role === "Admin") {
       querySingle("#admin-panel").classList.remove("hidden");
     }
-    querySingle("#logout-btn").classList.remove("hidden");
 
     // Set up event listeners for PTO cards (only once)
     this.setupPTOCardEventListeners();
 
-    // Initialize to current year view
-    this.showCurrentYearView();
+    // Initialize to default page
+    this.handlePageChange("default");
   }
 
   private showPTOForm(): void {
@@ -396,31 +399,30 @@ export class UIManager {
     await this.loadPriorYearReview();
   }
 
-  private togglePTORequestMode(): void {
-    try {
-      const ptoStatus = querySingle("#pto-status");
-      const scheduler = querySingle("#current-year-scheduler");
-      const isSchedulerVisible = !scheduler.classList.contains("hidden");
+  private handlePageChange(page: string): void {
+    // Hide all pages
+    const pages = document.querySelectorAll(".page");
+    pages.forEach((p) => p.classList.remove("active"));
 
-      if (isSchedulerVisible) {
-        // Switch back to PTO status view
-        scheduler.classList.add("hidden");
-        ptoStatus.classList.remove("hidden");
-      } else {
-        // Switch to scheduler view
-        ptoStatus.classList.add("hidden");
-        scheduler.classList.remove("hidden");
-        // Load data for the scheduler
-        this.loadCurrentYearScheduler();
-      }
+    // Show selected page
+    const selectedPage = querySingle(`#${page}-page`);
+    selectedPage.classList.add("active");
 
-      // Update button text
-      const button = querySingle("#toggle-pto-request-mode");
-      button.textContent = isSchedulerVisible
-        ? "Submit PTO Requests"
-        : "View PTO Status";
-    } catch (error) {
-      // Element doesn't exist in test environment, skip
+    // Update menu
+    const menu = querySingle<DashboardNavigationMenu>(
+      "dashboard-navigation-menu",
+    );
+    menu.currentPageValue = page as any;
+
+    // Load data based on page
+    if (page === "default") {
+      this.loadPTOStatus();
+      this.loadCurrentYearScheduler();
+    } else if (page === "current-year-summary") {
+      this.loadPTOStatus();
+    } else if (page === "prior-year-summary") {
+      this.loadEmployeeInfo();
+      this.loadPriorYearReview();
     }
   }
 
@@ -510,6 +512,7 @@ export class UIManager {
     sections.forEach((id) => {
       querySingle(`#${id}`).classList.add("hidden");
     });
+    querySingle("#dashboard-navigation-menu").classList.add("hidden");
   }
 
   private async loadPTOStatus(): Promise<void> {
@@ -648,6 +651,36 @@ export class UIManager {
                 <h3>PTO Status</h3>
                 <p>Error loading PTO status. Please try again later.</p>
             `;
+    }
+  }
+
+  private async loadEmployeeInfo(): Promise<void> {
+    if (!this.currentUser) return;
+
+    const employeeInfoCard = querySingle<PtoEmployeeInfoCard>(
+      "pto-employee-info-card",
+    );
+    employeeInfoCard.info = {
+      hireDate: "Loading...",
+      nextRolloverDate: "Loading...",
+    };
+
+    try {
+      const status = await this.api.getPTOStatus();
+      employeeInfoCard.info = {
+        hireDate: formatDateForDisplay(status.hireDate),
+        nextRolloverDate: formatDateForDisplay(status.nextRolloverDate, {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
+      };
+    } catch (error) {
+      console.error("Failed to load employee info:", error);
+      employeeInfoCard.info = {
+        hireDate: "Error loading",
+        nextRolloverDate: "Error loading",
+      };
     }
   }
 
