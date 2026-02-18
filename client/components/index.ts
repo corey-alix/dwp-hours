@@ -18,6 +18,7 @@ export { PtoJuryDutyCard } from "./pto-jury-duty-card/index.js";
 export { PtoPtoCard } from "./pto-pto-card/index.js";
 export { PtoEmployeeInfoCard } from "./pto-employee-info-card/index.js";
 export { PriorYearReview } from "./prior-year-review/index.js";
+export { CurrentYearPtoScheduler } from "./current-year-pto-scheduler/index.js";
 export { PtoBalanceSummary } from "./pto-balance-summary/index.js";
 export { DebugConsole } from "./debug-console/index.js";
 export { PtoNotification } from "./pto-notification/index.js";

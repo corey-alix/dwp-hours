@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Current Year PTO Scheduler Component Test</title>
+    <link rel="stylesheet" href="../../styles.css" />
+  </head>
+
+  <body>
+    <h1>Current Year PTO Scheduler Component Test</h1>
+    <div id="test-output"></div>
+
+    <current-year-pto-scheduler
+      id="current-year-pto-scheduler"
+    ></current-year-pto-scheduler>
+
+    <script type="module">
+      import { currentYearPtoScheduler } from "/app.js";
+      currentYearPtoScheduler();
+    </script>
+  </body>
+</html>
