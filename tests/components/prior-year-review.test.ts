@@ -2,16 +2,14 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import type { PTOYearReviewResponse } from "../../shared/api-models.js";
+import { PriorYearReview } from "../../client/components/prior-year-review/index.js";
+import "../../client/components/month-summary/index.js";
 
 describe("PriorYearReview Component", () => {
   let component: any;
   let container: HTMLElement;
 
   beforeEach(async () => {
-    // Dynamic import to ensure DOM is set up
-    const { PriorYearReview } =
-      await import("../../client/components/prior-year-review/index.js");
-
     // Create a container for the component
     container = document.createElement("div");
     document.body.appendChild(container);
@@ -142,13 +140,13 @@ describe("PriorYearReview Component", () => {
 
     it("should render month summaries", () => {
       component.data = mockData;
-      const summaries =
-        component.shadowRoot?.querySelectorAll(".month-summary");
+      const summaries = component.shadowRoot?.querySelectorAll("month-summary");
       expect(summaries?.length).toBe(12);
 
       // Check first month summary
       const firstMonthSummary = summaries?.[0];
-      const ptoValue = firstMonthSummary?.querySelector(".summary-pto");
+      const ptoValue =
+        firstMonthSummary?.shadowRoot?.querySelector(".summary-pto");
       expect(ptoValue?.textContent).toBe("8");
     });
   });
