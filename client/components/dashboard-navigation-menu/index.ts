@@ -39,7 +39,7 @@ export class DashboardNavigationMenu extends BaseComponent {
     return `
       <style>${DASHBOARD_NAVIGATION_MENU_CSS}</style>
       <div class="dashboard-navigation-menu">
-        <button class="menu-toggle" aria-label="Toggle navigation menu" aria-expanded="${this.isMenuOpen ? "true" : "false"}">
+        <button class="menu-toggle w-12 h-10" aria-label="Toggle navigation menu" aria-expanded="${this.isMenuOpen ? "true" : "false"}">
           &#9776;
         </button>
         <nav class="menu-items flex flex-col ${this.isMenuOpen ? "open" : "closed"}" role="navigation" aria-label="Dashboard pages">

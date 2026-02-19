@@ -1,7 +1,11 @@
+import { ATOMIC_CSS } from "../../shared/atomic-css.js";
+
 /**
  * CSS styles for the dashboard navigation menu component.
  */
 export const DASHBOARD_NAVIGATION_MENU_CSS = `
+  ${ATOMIC_CSS}
+
   :host {
     display: block;
   }
@@ -12,6 +16,10 @@ export const DASHBOARD_NAVIGATION_MENU_CSS = `
 
   .dashboard-navigation-menu {
     position: relative;
+  }
+
+  .menu-toggle {
+    /* Size set by atomic CSS classes w-12 h-12 */
   }
 
   .menu-items.closed {

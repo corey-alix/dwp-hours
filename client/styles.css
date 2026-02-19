@@ -37,18 +37,19 @@ header {
   box-shadow: var(--shadow-md);
   border-bottom: var(--border-width) var(--border-style-solid)
     var(--color-border);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
 }
 
 header h1 {
-  margin-bottom: var(--space-sm);
+  justify-self: center;
+  margin-bottom: 0;
   font-size: clamp(0.5rem, 5vw, 2.5rem);
   white-space: nowrap;
 }
 
 nav {
-  position: absolute;
-  top: 0;
-  right: 0;
   display: flex;
   gap: var(--space-lg);
 }
