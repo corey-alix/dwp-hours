@@ -41,7 +41,16 @@ When a user is scheduling time in the `current-year-pto-scheduler` component, th
 - [ ] Manual testing: select Work Day type, verify existing entries clear without delta display
 - [ ] Run E2E tests for `component-pto-calendar.spec.ts`
 
-### Stage 5: Future Enhancements
+### Stage 5: Edge Case - Unschedule Existing Entry (Complete)
+
+- [x] Fix hour cycling for existing entries: when cycling to 0, keep `selectedCells.set(date, 0)` instead of deleting
+- [x] Update `renderDayCell` to detect `isClearing` state (selected with 0h on existing entry)
+- [x] Show ✕ indicator and line-through date for clearing state
+- [x] Add `.clearing` and `.hours-clearing` CSS to pto-calendar
+- [x] Verify `getSelectedRequests()` returns 0-hour entries for correct delta computation
+- [x] Cycle now works: 8 → 4 → 0 (✕ clearing) → 8 → ...
+
+### Stage 6: Future Enhancements
 
 - [ ] Consider showing negative deltas when Work Day clears existing entries
 - [ ] Consider animating the delta appearance/disappearance

@@ -128,6 +128,22 @@ export const styles = `
 .type-Bereavement .hours { color: ${PTO_TYPE_COLORS.Bereavement}; }
 .type-Jury-Duty .hours { color: ${PTO_TYPE_COLORS["Jury Duty"]}; }
 
+/* Clearing state: day selected with 0 hours to unschedule */
+.day.clearing {
+    background: var(--color-surface);
+    opacity: 0.6;
+}
+
+.day.clearing .date {
+    text-decoration: line-through;
+    color: var(--color-text-secondary);
+}
+
+.hours-clearing {
+    color: var(--color-pto-sick);
+    font-weight: 600;
+}
+
 .legend {
     display: flex;
     flex-wrap: wrap;

@@ -375,15 +375,20 @@ export class PtoCalendar extends BaseComponent {
     const hasApprovedEntry = entriesForDate.some((e) => e.approved_by !== null);
 
     const isSelected = this._selectedCells.has(dateStr);
-    const selectedHours = this._selectedCells.get(dateStr) || 8;
+    const selectedHours = this._selectedCells.get(dateStr) ?? 8;
     const isWeekendDate = isWeekend(dateStr);
     const isNav = isCurrentMonth && !isWeekendDate;
 
-    const dayClass = entry
-      ? `day has-pto type-${entry.type.replace(/\s+/g, "-")}`
-      : isSelected && this._selectedPtoType
-        ? `day type-${this._selectedPtoType.replace(/\s+/g, "-")}`
-        : "day";
+    // When selected with 0 hours on an existing entry, show as cleared
+    const isClearing = isSelected && selectedHours === 0 && entry !== null;
+
+    const dayClass = isClearing
+      ? "day has-pto clearing"
+      : entry
+        ? `day has-pto type-${entry.type.replace(/\s+/g, "-")}`
+        : isSelected && this._selectedPtoType
+          ? `day type-${this._selectedPtoType.replace(/\s+/g, "-")}`
+          : "day";
     const emptyClass = isCurrentMonth ? "" : "empty";
     const selectedClass = isSelected ? "selected" : "";
     const clickableClass = !this.isReadonly && isNav ? "clickable" : "";
@@ -391,13 +396,21 @@ export class PtoCalendar extends BaseComponent {
       ? `tabindex="${dateStr === this._focusedDate ? "0" : "-1"}"`
       : "";
 
-    // Hours display: ● for full day (8h), ○ for partial (<8h)
-    const displayHours =
-      totalHours > 0 ? totalHours : isSelected ? selectedHours : 0;
+    // Hours display: ● for full day (8h), ○ for partial (<8h), ✕ for clearing
+    const displayHours = isClearing
+      ? 0
+      : totalHours > 0
+        ? totalHours
+        : isSelected
+          ? selectedHours
+          : 0;
     let hoursDisplay = "";
     let hoursClass = "hours";
     let partialDayClass = "";
-    if (displayHours > 0) {
+    if (isClearing) {
+      hoursDisplay = "✕";
+      hoursClass = "hours hours-clearing";
+    } else if (displayHours > 0) {
       if (displayHours >= 8) {
         hoursDisplay = "●";
         hoursClass = "hours hours-full";
@@ -563,10 +576,18 @@ export class PtoCalendar extends BaseComponent {
       } else {
         // Cycle hours: first click sets 8, then 4, then 0 (removes)
         const currentHours = this._selectedCells.get(date);
+        const existingEntry = this._ptoEntries.find(
+          (entry) => entry.date === date,
+        );
         if (currentHours !== undefined) {
           const nextHours = this.cycleHours(currentHours);
           if (nextHours === 0) {
-            this._selectedCells.delete(date);
+            if (existingEntry) {
+              // Keep 0 in selectedCells to indicate "unschedule this day"
+              this._selectedCells.set(date, 0);
+            } else {
+              this._selectedCells.delete(date);
+            }
           } else {
             this._selectedCells.set(date, nextHours);
           }
@@ -588,7 +609,8 @@ export class PtoCalendar extends BaseComponent {
         if (currentHours !== undefined) {
           const nextHours = this.cycleHours(currentHours);
           if (nextHours === 0) {
-            this._selectedCells.delete(date);
+            // Keep 0 in selectedCells to indicate "unschedule this day"
+            this._selectedCells.set(date, 0);
           } else {
             this._selectedCells.set(date, nextHours);
             this._selectedPtoType = existingEntry.type;
