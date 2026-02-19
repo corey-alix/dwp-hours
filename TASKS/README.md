@@ -17,6 +17,7 @@ This document outlines all remaining tasks to complete the DWP Hours Tracker app
 7. ✅ **[issue-search-input-focus-regression.md](issue-search-input-focus-regression.md)** - Search input loses focus on type in employee-list component
 8. ✅ **[issue-maximum-call-stack-regression.md](issue-maximum-call-stack-regression.md)** - Fix maximum call stack exceeded error in employee-workflow test
 9. **[admin-panel.md](admin-panel.md)** - Defect: Edit button does not open employee form (missing `employee-edit` event listener)
+10. ✅ **[issue-prior-year-summary-color-regression.md](issue-prior-year-summary-color-regression.md)** - Fix summary value color inconsistency between scheduler and prior year review
 
 ### 🟡 Medium Priority (Backend/API Core Features)
 

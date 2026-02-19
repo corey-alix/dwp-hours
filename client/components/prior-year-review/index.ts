@@ -267,10 +267,10 @@ export class PriorYearReview extends BaseComponent {
                 }
 
                 /* Color consistency: summary values match calendar day colors */
-                .summary-pto { color: ${PTO_TYPE_COLORS.PTO}; }
-                .summary-sick { color: ${PTO_TYPE_COLORS.Sick}; }
-                .summary-bereavement { color: ${PTO_TYPE_COLORS.Bereavement}; }
-                .summary-jury-duty { color: ${PTO_TYPE_COLORS["Jury Duty"]}; }
+                .summary-pto { color: var(--color-pto-vacation); }
+                .summary-sick { color: var(--color-pto-sick); }
+                .summary-bereavement { color: var(--color-pto-bereavement); }
+                .summary-jury-duty { color: var(--color-pto-jury-duty); }
 
                 /* Visual hierarchy: larger font for non-zero values */
                 .summary-pto,
