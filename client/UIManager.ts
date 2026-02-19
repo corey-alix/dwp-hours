@@ -841,6 +841,7 @@ export class UIManager {
       await this.api.createPTOEntry({ requests });
       notifications.success("PTO request submitted successfully!");
       await this.refreshPTOData();
+      await this.loadCurrentYearScheduler();
     } catch (error: any) {
       console.error("Error submitting PTO request:", error);
       // Check for structured error response

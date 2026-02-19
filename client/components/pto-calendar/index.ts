@@ -399,10 +399,10 @@ export class PtoCalendar extends BaseComponent {
     // Hours display: ● for full day (8h), ○ for partial (<8h), ✕ for clearing
     const displayHours = isClearing
       ? 0
-      : totalHours > 0
-        ? totalHours
-        : isSelected
-          ? selectedHours
+      : isSelected
+        ? selectedHours
+        : totalHours > 0
+          ? totalHours
           : 0;
     let hoursDisplay = "";
     let hoursClass = "hours";
