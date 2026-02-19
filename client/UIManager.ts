@@ -937,7 +937,14 @@ export class UIManager {
     const existingEntries = ptoForm.getPtoEntries();
 
     const deltas = computeSelectionDeltas(selectedRequests, existingEntries);
-    balanceSummary.deltas = deltas;
+
+    // Negate deltas: remaining balance decreases when PTO is taken,
+    // opposite of the scheduler which shows PTO hours consumed.
+    const invertedDeltas: Record<string, number> = {};
+    for (const [type, value] of Object.entries(deltas)) {
+      invertedDeltas[type] = -value;
+    }
+    balanceSummary.deltas = invertedDeltas;
   }
 
   /**
