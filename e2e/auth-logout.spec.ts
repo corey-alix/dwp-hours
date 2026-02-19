@@ -35,10 +35,13 @@ test.describe("Authentication Logout", () => {
     expect(authCookie?.value).toBeTruthy();
     expect(authCookie?.value).not.toBe("");
 
-    // Step 5: Click the logout button
-    const logoutBtn = page
-      .locator("dashboard-navigation-menu")
-      .locator('button[data-action="logout"]');
+    // Step 5: Open the navigation menu and click the logout button
+    const navMenu = page.locator("dashboard-navigation-menu");
+    const menuToggle = navMenu.locator("button.menu-toggle");
+    await expect(menuToggle).toBeVisible();
+    await menuToggle.click();
+
+    const logoutBtn = navMenu.locator('button[data-action="logout"]');
     await expect(logoutBtn).toBeVisible();
     await logoutBtn.click();
 
