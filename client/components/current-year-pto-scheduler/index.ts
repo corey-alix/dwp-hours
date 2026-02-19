@@ -122,14 +122,10 @@ export class CurrentYearPtoScheduler extends BaseComponent {
       <div class="container">
         ${
           this.data && this.data.months
-            ? this.data.months.some((m) => m.ptoEntries.length > 0)
-              ? `
+            ? `
                 <div class="months-grid">
                     ${this.data.months.map((month) => this.renderMonth(month)).join("")}
                 </div>
-            `
-              : `
-                <div class="no-data">No data available</div>
             `
             : `
         <div class="no-data">Loading...</div>

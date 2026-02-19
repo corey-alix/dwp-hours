@@ -286,3 +286,45 @@ describe("PTO Entry Form - Dynamic Field Behavior", () => {
 
 // Note: Integration tests requiring DOM manipulation are in the browser-based test file
 // These unit tests focus on pure business logic that can run in Node.js environment
+
+describe("PTO Entry Form - Shadow DOM Template", () => {
+  describe("pto-summary slot declaration", () => {
+    test("template string contains named slot between form-header and calendar-view", async () => {
+      // We can't instantiate HTMLElement in Node.js without happy-dom,
+      // so instead we verify the template source directly.
+      const fs = await import("fs");
+      const path = await import("path");
+      const filePath = path.resolve(
+        __dirname,
+        "../client/components/pto-entry-form/index.ts",
+      );
+      const source = fs.readFileSync(filePath, "utf-8");
+
+      // Slot must be present in the template
+      expect(source).toContain('name="pto-summary"');
+
+      // Slot must appear after form-header div and before calendar-view div in the HTML template.
+      // Use the actual HTML markup (not CSS class definitions) for ordering.
+      const slotIdx = source.indexOf('name="pto-summary"');
+      const headerDivIdx = source.indexOf('class="form-header"');
+      const calendarDivIdx = source.indexOf('id="calendar-view"');
+
+      expect(headerDivIdx).toBeGreaterThanOrEqual(0);
+      expect(calendarDivIdx).toBeGreaterThan(0);
+      expect(slotIdx).toBeGreaterThan(headerDivIdx);
+      expect(slotIdx).toBeLessThan(calendarDivIdx);
+    });
+
+    test("slot styling includes ::slotted selector", async () => {
+      const fs = await import("fs");
+      const path = await import("path");
+      const filePath = path.resolve(
+        __dirname,
+        "../client/components/pto-entry-form/index.ts",
+      );
+      const source = fs.readFileSync(filePath, "utf-8");
+
+      expect(source).toContain('::slotted([slot="pto-summary"])');
+    });
+  });
+});

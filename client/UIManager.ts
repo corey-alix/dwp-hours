@@ -424,6 +424,8 @@ export class UIManager {
       );
       // Load PTO data into the form's calendar
       this.handlePtoDataRequest(ptoForm);
+      // Populate the slotted summary card inside the entry form
+      this.updateFormSummaryCard();
     }
   }
 
@@ -715,6 +717,14 @@ export class UIManager {
         "current-year-pto-scheduler",
       );
       scheduler.data = schedulerData;
+
+      // Notify user if no PTO entries exist for the current year
+      const hasEntries = schedulerData.months.some(
+        (m) => m.ptoEntries.length > 0,
+      );
+      if (!hasEntries) {
+        notifications.info(`Nothing scheduled yet for ${currentYear}`);
+      }
     } catch (error) {
       console.error("Failed to load current year scheduler data:", error);
       notifications.error("Failed to load PTO scheduling data");
@@ -852,6 +862,8 @@ export class UIManager {
       const ptoForm = querySingle<PtoEntryForm>("#pto-entry-form");
       ptoForm.reset();
       await this.handlePtoDataRequest(ptoForm);
+      // Refresh slotted summary card after submission
+      await this.updateFormSummaryCard();
     } catch (error: any) {
       console.error("Error submitting PTO request:", error);
       // Check for structured error response
@@ -863,6 +875,35 @@ export class UIManager {
       } else {
         notifications.error("Failed to submit PTO request. Please try again.");
       }
+    }
+  }
+
+  /**
+   * Update the slotted pto-summary-card inside pto-entry-form with current PTO status.
+   */
+  private async updateFormSummaryCard(): Promise<void> {
+    if (!this.currentUser) return;
+
+    try {
+      const ptoForm = querySingle<PtoEntryForm>("#pto-entry-form");
+      const formSummary =
+        ptoForm.querySelector<PtoSummaryCard>("pto-summary-card");
+      if (!formSummary) return;
+
+      const status = await this.api.getPTOStatus();
+      const entries = await this.api.getPTOEntries();
+
+      formSummary.summary = {
+        annualAllocation: status.annualAllocation,
+        availablePTO: status.availablePTO,
+        usedPTO: status.usedPTO,
+        carryoverFromPreviousYear: status.carryoverFromPreviousYear,
+      };
+      formSummary.fullPtoEntries = entries.filter(
+        (e) => parseDate(e.date).year === getCurrentYear(),
+      );
+    } catch (error) {
+      console.error("Failed to update form summary card:", error);
     }
   }
 

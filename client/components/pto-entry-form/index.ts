@@ -141,6 +141,11 @@ export class PtoEntryForm extends HTMLElement {
                     display: none;
                 }
 
+                ::slotted([slot="pto-summary"]) {
+                    display: block;
+                    margin-bottom: var(--space-md);
+                }
+
                 .calendar-view {
                     margin-top: var(--space-md);
                     position: relative;
@@ -235,6 +240,8 @@ export class PtoEntryForm extends HTMLElement {
                         </div>
                     </div>
                 </div>
+
+                <slot name="pto-summary"></slot>
 
                 <div class="calendar-view" id="calendar-view">
                     <div id="calendar-container" class="calendar-container"></div>
