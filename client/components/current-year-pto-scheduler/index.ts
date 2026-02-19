@@ -2,6 +2,7 @@ import type { PTOYearReviewResponse } from "../../../shared/api-models.js";
 import { BaseComponent } from "../base-component.js";
 import { ConfirmationDialog } from "../confirmation-dialog/index.js";
 import type { MonthSummary } from "../month-summary/index.js";
+import { computeSelectionDeltas } from "../utils/compute-selection-deltas.js";
 import { styles } from "./css.js";
 
 export class CurrentYearPtoScheduler extends BaseComponent {
@@ -119,19 +120,10 @@ export class CurrentYearPtoScheduler extends BaseComponent {
       ? calendar.getSelectedRequests()
       : [];
 
-    // Compute pending delta per type
-    const deltas: Record<string, number> = {};
-    for (const request of selectedRequests) {
-      const existingEntry = monthData.ptoEntries.find(
-        (entry: PTOYearReviewResponse["months"][0]["ptoEntries"][0]) =>
-          entry.date === request.date,
-      );
-      const existingHours = existingEntry ? existingEntry.hours : 0;
-      const delta = request.hours - existingHours;
-      if (delta !== 0) {
-        deltas[request.type] = (deltas[request.type] || 0) + delta;
-      }
-    }
+    const deltas = computeSelectionDeltas(
+      selectedRequests,
+      monthData.ptoEntries,
+    );
 
     // Update the month-summary component's deltas property
     const summaryEl = monthCard.querySelector(

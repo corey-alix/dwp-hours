@@ -54,11 +54,11 @@ The `<month-summary>` component (from the `month-summary-component.md` task) alr
 
 ### Stage 5 — Pending Delta Display on Form Balance Summary
 
-- [ ] Extract the delta computation logic from `CurrentYearPtoScheduler.handleSelectionChanged()` into a shared utility function (e.g., `computeSelectionDeltas(selectedRequests, existingEntries)` in `client/components/utils/` or `shared/businessRules.ts`) that both `current-year-pto-scheduler` and the entry form can call
-- [ ] Refactor `CurrentYearPtoScheduler.handleSelectionChanged()` to use the extracted utility
-- [ ] In `UIManager` (or `pto-entry-form`), listen for `selection-changed` events from the entry form's `pto-calendar` and compute deltas using the shared utility
-- [ ] Set the `deltas` property on the slotted `<month-summary id="form-balance-summary">` element so pending `+N`/`-N` indicators appear alongside the remaining balance values
-- [ ] Clear deltas when the form is reset or PTO is submitted
+- [x] Extract the delta computation logic from `CurrentYearPtoScheduler.handleSelectionChanged()` into a shared utility function (e.g., `computeSelectionDeltas(selectedRequests, existingEntries)` in `client/components/utils/` or `shared/businessRules.ts`) that both `current-year-pto-scheduler` and the entry form can call
+- [x] Refactor `CurrentYearPtoScheduler.handleSelectionChanged()` to use the extracted utility
+- [x] In `UIManager` (or `pto-entry-form`), listen for `selection-changed` events from the entry form's `pto-calendar` and compute deltas using the shared utility
+- [x] Set the `deltas` property on the slotted `<month-summary id="form-balance-summary">` element so pending `+N`/`-N` indicators appear alongside the remaining balance values
+- [x] Clear deltas when the form is reset or PTO is submitted
 - [ ] `pnpm run build` passes
 - [ ] `pnpm run lint` passes
 - [ ] Manual visual verification: selecting dates in the entry form calendar shows pending deltas on the remaining balance summary

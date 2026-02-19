@@ -10,6 +10,7 @@ import {
 } from "../shared/dateUtils";
 import { APIClient } from "./APIClient";
 import { notifications } from "./app";
+import { computeSelectionDeltas } from "./components/utils/compute-selection-deltas";
 import {
   PtoEntryForm,
   AdminPanel,
@@ -129,6 +130,9 @@ export class UIManager {
       const errors: string[] = e.detail?.errors ?? [];
       notifications.error(errors.join("\n"));
     });
+    addEventListener(ptoForm, "selection-changed", () =>
+      this.handleFormSelectionChanged(ptoForm),
+    );
 
     // Current year PTO scheduler
     try {
@@ -862,6 +866,7 @@ export class UIManager {
       // Reset the form and reload PTO data after successful submit
       const ptoForm = querySingle<PtoEntryForm>("#pto-entry-form");
       ptoForm.reset();
+      this.clearFormBalanceDeltas();
       await this.handlePtoDataRequest(ptoForm);
       // Refresh slotted summary card after submission
       await this.updateFormSummaryCard();
@@ -915,6 +920,35 @@ export class UIManager {
       }
     } catch (error) {
       console.error("Failed to update form summary card:", error);
+    }
+  }
+
+  /**
+   * Handle selection-changed events from the entry form's pto-calendar.
+   * Computes per-type hour deltas and sets them on the form-balance-summary.
+   */
+  private handleFormSelectionChanged(ptoForm: PtoEntryForm): void {
+    const balanceSummary = document.querySelector<MonthSummary>(
+      "#form-balance-summary",
+    );
+    if (!balanceSummary) return;
+
+    const selectedRequests = ptoForm.getSelectedRequests();
+    const existingEntries = ptoForm.getPtoEntries();
+
+    const deltas = computeSelectionDeltas(selectedRequests, existingEntries);
+    balanceSummary.deltas = deltas;
+  }
+
+  /**
+   * Clear pending deltas on the form balance summary.
+   */
+  private clearFormBalanceDeltas(): void {
+    const balanceSummary = document.querySelector<MonthSummary>(
+      "#form-balance-summary",
+    );
+    if (balanceSummary) {
+      balanceSummary.deltas = {};
     }
   }
 

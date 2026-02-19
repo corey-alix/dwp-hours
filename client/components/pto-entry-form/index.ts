@@ -568,6 +568,22 @@ export class PtoEntryForm extends HTMLElement {
     // Calendar handles its own focus automatically
   }
 
+  /** Return the selected requests from the internal pto-calendar. */
+  getSelectedRequests(): CalendarEntry[] {
+    const calendar = this.getCalendar();
+    return calendar ? calendar.getSelectedRequests() : [];
+  }
+
+  /** Return the existing PTO entries loaded into the internal pto-calendar. */
+  getPtoEntries(): ReadonlyArray<{
+    date: string;
+    type: string;
+    hours: number;
+  }> {
+    const calendar = this.getCalendar();
+    return calendar ? calendar.ptoEntries : [];
+  }
+
   setPtoData(ptoEntries: any[]) {
     const calendar = this.getCalendar();
     if (calendar) {
