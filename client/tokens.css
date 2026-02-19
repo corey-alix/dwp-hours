@@ -124,6 +124,16 @@
   --shadow-xl: 0 4px 12px var(--color-shadow-dark);
 }
 
+/* Animation Tokens */
+:root {
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
+  --easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --easing-decelerate: cubic-bezier(0, 0, 0.2, 1);
+  --easing-accelerate: cubic-bezier(0.4, 0, 1, 1);
+}
+
 /* Semantic Color Mappings */
 :root {
   --color-primary: var(--color-blue-600);

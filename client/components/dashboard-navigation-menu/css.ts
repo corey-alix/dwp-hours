@@ -71,4 +71,13 @@ export const DASHBOARD_NAVIGATION_MENU_CSS = `
   .menu-item.logout:hover {
     background: var(--color-error-light);
   }
+
+  /* Accessibility: disable transitions for users who prefer reduced motion */
+
+  @media (prefers-reduced-motion: reduce) {
+
+    .menu-item {
+      transition: none;
+    }
+  }
 `;

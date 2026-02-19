@@ -37,7 +37,16 @@ Hard-won patterns from real implementations in this project:
 - **Force synchronous reflow** with `void element.offsetHeight` between phases to guarantee the browser commits an intermediate position before re-enabling transitions. Double `requestAnimationFrame` is not reliable for this.
 - **Filter `transitionend` by `e.propertyName`** (e.g., `=== "transform"`) to prevent double-firing when animating multiple properties (`transform` + `opacity`).
 - **Guard against overlapping animations** with an `isAnimating` flag checked at entry and cleared on completion.
+- **Always add a `setTimeout` fallback** after the animation duration (+50ms buffer) that runs the same completion logic as `transitionend`. The `transitionend` event will not fire if the element is destroyed mid-animation (e.g., by a re-render) or in test environments without CSS transition support. Without a fallback, `isAnimating` gets stuck `true` and the component deadlocks.
+- **Allow re-toggle during animation** — instead of `if (isAnimating) return`, call a `finalizeAnimation()` helper that clears the fallback timer, removes inline styles, and resets the flag, then proceed with the new action. This prevents the component from becoming unresponsive to rapid user clicks.
+- **Deduplicate completion logic** — extract a single `onComplete` closure shared by both the `transitionend` handler and the `setTimeout` fallback. Have it clear the timer, remove the event listener, clean up styles, and reset state, so the first to fire wins and the second is a no-op.
 - **Clean up inline styles** after animation completes — remove `willChange`, `transition`, `transform`, and `opacity` to avoid stale state.
+
+### Menu and dropdown animations
+
+- **Prefer slide (motion) over fade for menu reveal/hide**. Slide-down (`translateY`) provides stronger spatial context than opacity transitions alone. Combine with a subtle opacity change for polish, but the motion must be the primary effect.
+- **Use `translateY(-8px)` as the hidden position** for dropdown menus — small enough to feel natural, large enough to be perceptible.
+- **Decelerate on open, accelerate on close** — use a decelerate easing (`cubic-bezier(0, 0, 0.2, 1)`) when revealing and an accelerate easing (`cubic-bezier(0.4, 0, 1, 1)`) when hiding, so elements feel like they arrive gently and leave quickly.
 
 ### Accessibility
 

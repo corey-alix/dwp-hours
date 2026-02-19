@@ -68,8 +68,22 @@ The menu component should provide intuitive navigation between these views while
 - [x] Update `dashboard-navigation-menu.ts` to change the label for the default page from "Default" to "Submit Time Off" to reflect the updated navigation naming convention
 - [x] Update `index.html` to remove the "Submit Time Off" button element, as this functionality is now integrated into the navigation menu
 - [x] Update `dashboard-navigation-menu.ts` to add a new "Submit Time Off" menu item that emits a "show-pto-form" event to display the PTO entry form, consolidating navigation into the menu component
-- [x] Updated `dashboard-navigation-menu.ts` to reorder menu items with "Submit Time Off" as the first option
+- [x] Updated `dashboard-navigation-menu.ts` to set "submit-time-off" as the first option
 - [x] Updated `UIManager.ts` to set "submit-time-off" as the default page when showing dashboard
+
+### Stage 6: Menu Animation (CSS Animation Policy Compliance)
+
+- [x] Added animation tokens (`--duration-*`, `--easing-*`) to `tokens.css`
+- [x] Updated SKILL.md to prefer slide (motion) over fade for menu reveal/hide
+- [x] Implemented slide-down open animation using `transform: translateY()` (inline styles per SKILL.md)
+- [x] Implemented slide-up close animation with deferred DOM update
+- [x] Added `isAnimating` guard to prevent overlapping animations
+- [x] Added `prefersReducedMotion()` check queried at animation time, not component init
+- [x] Added `@media (prefers-reduced-motion: reduce)` to component CSS
+- [x] Used `transitionend` filtered by `e.propertyName === "transform"` to prevent double-fire
+- [x] Inline styles cleaned up after each animation completes
+- [x] Forced synchronous reflow (`void element.offsetHeight`) between animation phases
+- [x] Validation: `pnpm run build` and `pnpm run lint` pass
 
 ## Implementation Notes
 
