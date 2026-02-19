@@ -94,6 +94,12 @@ export const styles = `
     font-weight: 600;
 }
 
+.summary-pending {
+    font-size: 11px;
+    opacity: 0.8;
+    margin-left: 1px;
+}
+
 .submit-section {
     text-align: center;
     padding: 16px;

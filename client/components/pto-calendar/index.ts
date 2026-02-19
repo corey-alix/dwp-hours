@@ -195,6 +195,7 @@ export class PtoCalendar extends BaseComponent {
     this._selectedPtoType = null;
     this._selectedCells.clear();
     this.requestUpdate();
+    this.notifySelectionChanged();
   }
 
   submitRequest() {
@@ -558,6 +559,7 @@ export class PtoCalendar extends BaseComponent {
         this._selectedCells.delete(date);
         this.updateDay(date);
         this.restoreFocusFromViewModel();
+        this.notifySelectionChanged();
       } else {
         // Cycle hours: first click sets 8, then 4, then 0 (removes)
         const currentHours = this._selectedCells.get(date);
@@ -574,6 +576,7 @@ export class PtoCalendar extends BaseComponent {
         }
         this.updateDay(date);
         this.restoreFocusFromViewModel();
+        this.notifySelectionChanged();
       }
     } else {
       // No PTO type selected - can edit existing entries
@@ -596,8 +599,19 @@ export class PtoCalendar extends BaseComponent {
         }
         this.updateDay(date);
         this.restoreFocusFromViewModel();
+        this.notifySelectionChanged();
       }
     }
+  }
+
+  // ── Selection change notification ──
+  private notifySelectionChanged(): void {
+    this.dispatchEvent(
+      new CustomEvent("selection-changed", {
+        bubbles: true,
+        composed: true,
+      }),
+    );
   }
 
   // ── Navigation helpers ──

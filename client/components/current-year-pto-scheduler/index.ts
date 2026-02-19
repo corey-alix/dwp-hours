@@ -33,6 +33,10 @@ export class CurrentYearPtoScheduler extends BaseComponent {
   connectedCallback() {
     super.connectedCallback();
     this.updateCalendars();
+    this.shadowRoot.addEventListener(
+      "selection-changed",
+      this.handleSelectionChanged.bind(this),
+    );
   }
 
   protected update() {
@@ -80,7 +84,7 @@ export class CurrentYearPtoScheduler extends BaseComponent {
     }));
 
     return `
-      <div class="month-card">
+      <div class="month-card" data-month="${monthData.month}">
         <pto-calendar
           month="${monthData.month}"
           year="${year}"
@@ -90,19 +94,19 @@ export class CurrentYearPtoScheduler extends BaseComponent {
         <div class="month-summary">
           <div class="summary-item">
             <span class="summary-label">PTO:</span>
-            <span class="summary-value ${monthData.summary.ptoHours > 0 ? "summary-pto" : ""}">${monthData.summary.ptoHours}</span>
+            <span class="summary-value ${monthData.summary.ptoHours > 0 ? "summary-pto" : ""}" data-summary-type="pto">${monthData.summary.ptoHours}</span>
           </div>
           <div class="summary-item">
             <span class="summary-label">Sick:</span>
-            <span class="summary-value ${monthData.summary.sickHours > 0 ? "summary-sick" : ""}">${monthData.summary.sickHours}</span>
+            <span class="summary-value ${monthData.summary.sickHours > 0 ? "summary-sick" : ""}" data-summary-type="sick">${monthData.summary.sickHours}</span>
           </div>
           <div class="summary-item">
             <span class="summary-label">Bereavement:</span>
-            <span class="summary-value ${monthData.summary.bereavementHours > 0 ? "summary-bereavement" : ""}">${monthData.summary.bereavementHours}</span>
+            <span class="summary-value ${monthData.summary.bereavementHours > 0 ? "summary-bereavement" : ""}" data-summary-type="bereavement">${monthData.summary.bereavementHours}</span>
           </div>
           <div class="summary-item">
             <span class="summary-label">Jury Duty:</span>
-            <span class="summary-value ${monthData.summary.juryDutyHours > 0 ? "summary-jury-duty" : ""}">${monthData.summary.juryDutyHours}</span>
+            <span class="summary-value ${monthData.summary.juryDutyHours > 0 ? "summary-jury-duty" : ""}" data-summary-type="jury-duty">${monthData.summary.juryDutyHours}</span>
           </div>
         </div>
       </div>
@@ -136,6 +140,93 @@ export class CurrentYearPtoScheduler extends BaseComponent {
         </div>
       </div>
     `;
+  }
+
+  private handleSelectionChanged(e: Event): void {
+    const calendar = e.target as any;
+    if (!calendar || !this._data) return;
+
+    const month = calendar.month;
+    const monthCard = this.shadowRoot.querySelector(
+      `.month-card[data-month="${month}"]`,
+    );
+    if (!monthCard) return;
+
+    const monthData = this._data.months.find(
+      (m: PTOYearReviewResponse["months"][0]) => m.month === month,
+    );
+    if (!monthData) return;
+
+    const selectedRequests = calendar.getSelectedRequests
+      ? calendar.getSelectedRequests()
+      : [];
+
+    // Compute pending delta per type
+    const deltas: Record<string, number> = {};
+    for (const request of selectedRequests) {
+      const existingEntry = monthData.ptoEntries.find(
+        (entry: PTOYearReviewResponse["months"][0]["ptoEntries"][0]) =>
+          entry.date === request.date,
+      );
+      const existingHours = existingEntry ? existingEntry.hours : 0;
+      const delta = request.hours - existingHours;
+      if (delta !== 0) {
+        deltas[request.type] = (deltas[request.type] || 0) + delta;
+      }
+    }
+
+    // Map CSS type names to data model keys and PTO type names
+    const typeConfig: {
+      cssType: string;
+      cssClass: string;
+      existingHours: number;
+      typeName: string;
+    }[] = [
+      {
+        cssType: "pto",
+        cssClass: "summary-pto",
+        existingHours: monthData.summary.ptoHours,
+        typeName: "PTO",
+      },
+      {
+        cssType: "sick",
+        cssClass: "summary-sick",
+        existingHours: monthData.summary.sickHours,
+        typeName: "Sick",
+      },
+      {
+        cssType: "bereavement",
+        cssClass: "summary-bereavement",
+        existingHours: monthData.summary.bereavementHours,
+        typeName: "Bereavement",
+      },
+      {
+        cssType: "jury-duty",
+        cssClass: "summary-jury-duty",
+        existingHours: monthData.summary.juryDutyHours,
+        typeName: "Jury Duty",
+      },
+    ];
+
+    for (const { cssType, cssClass, existingHours, typeName } of typeConfig) {
+      const span = monthCard.querySelector(
+        `[data-summary-type="${cssType}"]`,
+      ) as HTMLElement;
+      if (!span) continue;
+
+      const delta = deltas[typeName] || 0;
+
+      if (delta !== 0) {
+        const sign = delta > 0 ? "+" : "";
+        span.innerHTML = `${existingHours}<span class="summary-pending">${sign}${delta}</span>`;
+        span.classList.add(cssClass);
+      } else {
+        span.textContent = `${existingHours}`;
+        if (existingHours <= 0) {
+          span.classList.remove(cssClass);
+        }
+      }
+    }
   }
 
   protected handleDelegatedClick(e: Event): void {
