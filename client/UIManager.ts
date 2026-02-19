@@ -25,6 +25,7 @@ import {
   CurrentYearPtoScheduler,
   ConfirmationDialog,
   DashboardNavigationMenu,
+  MonthSummary,
 } from "./components";
 import type { CalendarEntry } from "./components/pto-calendar";
 import {
@@ -902,6 +903,16 @@ export class UIManager {
       formSummary.fullPtoEntries = entries.filter(
         (e) => parseDate(e.date).year === getCurrentYear(),
       );
+
+      // Update the slotted month-summary with remaining balance data
+      const balanceSummary =
+        formSummary.querySelector<MonthSummary>("month-summary");
+      if (balanceSummary) {
+        balanceSummary.ptoHours = status.availablePTO;
+        balanceSummary.sickHours = status.sickTime.remaining;
+        balanceSummary.bereavementHours = status.bereavementTime.remaining;
+        balanceSummary.juryDutyHours = status.juryDutyTime.remaining;
+      }
     } catch (error) {
       console.error("Failed to update form summary card:", error);
     }

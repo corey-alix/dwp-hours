@@ -66,7 +66,12 @@
 
         <div id="pto-form" class="page">
           <pto-entry-form id="pto-entry-form">
-            <pto-summary-card slot="pto-summary"></pto-summary-card>
+            <pto-summary-card slot="pto-summary">
+              <div slot="balance-summary" class="balance-summary-section">
+                <h5>Remaining Balance</h5>
+                <month-summary id="form-balance-summary"></month-summary>
+              </div>
+            </pto-summary-card>
           </pto-entry-form>
         </div>
       </div>

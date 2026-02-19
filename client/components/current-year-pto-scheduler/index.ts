@@ -1,22 +1,8 @@
 import type { PTOYearReviewResponse } from "../../../shared/api-models.js";
 import { BaseComponent } from "../base-component.js";
 import { ConfirmationDialog } from "../confirmation-dialog/index.js";
+import type { MonthSummary } from "../month-summary/index.js";
 import { styles } from "./css.js";
-
-const monthNames = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
 
 export class CurrentYearPtoScheduler extends BaseComponent {
   private _data: PTOYearReviewResponse | null = null;
@@ -69,19 +55,7 @@ export class CurrentYearPtoScheduler extends BaseComponent {
   }
 
   private renderMonth(monthData: PTOYearReviewResponse["months"][0]): string {
-    const monthName = monthNames[monthData.month - 1];
     const year = this.data!.year;
-
-    // Convert PTO entries to the format expected by pto-calendar
-    const ptoEntries = monthData.ptoEntries.map((entry) => ({
-      id: 0, // Placeholder, not used for display
-      employeeId: 0, // Placeholder
-      date: entry.date,
-      type: entry.type,
-      hours: entry.hours,
-      createdAt: "", // Placeholder
-      approved_by: entry.approved_by ?? null,
-    }));
 
     return `
       <div class="month-card" data-month="${monthData.month}">
@@ -91,24 +65,12 @@ export class CurrentYearPtoScheduler extends BaseComponent {
           readonly="false"
           hide-legend="true"
         ></pto-calendar>
-        <div class="month-summary">
-          <div class="summary-item">
-            <span class="summary-label">PTO:</span>
-            <span class="summary-value ${monthData.summary.ptoHours > 0 ? "summary-pto" : ""}" data-summary-type="pto">${monthData.summary.ptoHours}</span>
-          </div>
-          <div class="summary-item">
-            <span class="summary-label">Sick:</span>
-            <span class="summary-value ${monthData.summary.sickHours > 0 ? "summary-sick" : ""}" data-summary-type="sick">${monthData.summary.sickHours}</span>
-          </div>
-          <div class="summary-item">
-            <span class="summary-label">Bereavement:</span>
-            <span class="summary-value ${monthData.summary.bereavementHours > 0 ? "summary-bereavement" : ""}" data-summary-type="bereavement">${monthData.summary.bereavementHours}</span>
-          </div>
-          <div class="summary-item">
-            <span class="summary-label">Jury Duty:</span>
-            <span class="summary-value ${monthData.summary.juryDutyHours > 0 ? "summary-jury-duty" : ""}" data-summary-type="jury-duty">${monthData.summary.juryDutyHours}</span>
-          </div>
-        </div>
+        <month-summary
+          pto-hours="${monthData.summary.ptoHours}"
+          sick-hours="${monthData.summary.sickHours}"
+          bereavement-hours="${monthData.summary.bereavementHours}"
+          jury-duty-hours="${monthData.summary.juryDutyHours}"
+        ></month-summary>
       </div>
     `;
   }
@@ -171,57 +133,12 @@ export class CurrentYearPtoScheduler extends BaseComponent {
       }
     }
 
-    // Map CSS type names to data model keys and PTO type names
-    const typeConfig: {
-      cssType: string;
-      cssClass: string;
-      existingHours: number;
-      typeName: string;
-    }[] = [
-      {
-        cssType: "pto",
-        cssClass: "summary-pto",
-        existingHours: monthData.summary.ptoHours,
-        typeName: "PTO",
-      },
-      {
-        cssType: "sick",
-        cssClass: "summary-sick",
-        existingHours: monthData.summary.sickHours,
-        typeName: "Sick",
-      },
-      {
-        cssType: "bereavement",
-        cssClass: "summary-bereavement",
-        existingHours: monthData.summary.bereavementHours,
-        typeName: "Bereavement",
-      },
-      {
-        cssType: "jury-duty",
-        cssClass: "summary-jury-duty",
-        existingHours: monthData.summary.juryDutyHours,
-        typeName: "Jury Duty",
-      },
-    ];
-
-    for (const { cssType, cssClass, existingHours, typeName } of typeConfig) {
-      const span = monthCard.querySelector(
-        `[data-summary-type="${cssType}"]`,
-      ) as HTMLElement;
-      if (!span) continue;
-
-      const delta = deltas[typeName] || 0;
-
-      if (delta !== 0) {
-        const sign = delta > 0 ? "+" : "";
-        span.innerHTML = `${existingHours}<span class="summary-pending">${sign}${delta}</span>`;
-        span.classList.add(cssClass);
-      } else {
-        span.textContent = `${existingHours}`;
-        if (existingHours <= 0) {
-          span.classList.remove(cssClass);
-        }
-      }
+    // Update the month-summary component's deltas property
+    const summaryEl = monthCard.querySelector(
+      "month-summary",
+    ) as MonthSummary | null;
+    if (summaryEl) {
+      summaryEl.deltas = deltas;
     }
   }
 

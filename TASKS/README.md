@@ -47,6 +47,8 @@ This document outlines all remaining tasks to complete the DWP Hours Tracker app
 23. LATER: See ./TASKS/dashboard-navigation-menu.md for details
 24. DONE: See ./TASKS/pto-entry-form-calendar-enhancements.md for details
 25. LATER: See ./TASKS/pto-entry-form-summary-slot.md for details — named slot for PTO summary card inside entry form
+26. LATER: See ./TASKS/month-summary-component.md for details — extract month summary into reusable web component
+27. LATER: See ./TASKS/pto-summary-balance-slot.md for details — slot a month-summary into pto-summary-card showing remaining PTO balances
 
 ## Task Dependencies
 

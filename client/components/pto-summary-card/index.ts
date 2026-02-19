@@ -60,10 +60,24 @@ export class PtoSummaryCard extends BaseComponent {
       <div class="row"><span class="label${approvedClass}">Used</span><span class="${getValueClass(this.data.usedPTO)}">${formatValue(this.data.usedPTO)} hours</span></div>
       <hr>
       <div class="row"><span class="label">Available</span><span class="${getValueClass(this.data.availablePTO)}">${formatValue(this.data.availablePTO)} hours</span></div>
+      <slot name="balance-summary"></slot>
     `;
 
-    return `<style>${CARD_CSS}</style>${renderCardShell("Regular PTO", body)}
-      <slot name="balance-summary"></slot>`;
+    return `<style>${CARD_CSS}
+      ::slotted([slot="balance-summary"]) {
+        display: block;
+        margin-top: var(--space-md);
+        padding-top: var(--space-md);
+        border-top: 1px solid var(--color-border);
+      }
+
+      ::slotted([slot="balance-summary"]) h5 {
+        margin: 0 0 var(--space-sm) 0;
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-text-secondary);
+      }
+    </style>${renderCardShell("Regular PTO", body)}`;
   }
 }
 

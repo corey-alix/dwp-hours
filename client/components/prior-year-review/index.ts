@@ -108,24 +108,12 @@ export class PriorYearReview extends BaseComponent {
                           .join("")}
                     </div>
                 </div>
-                <div class="month-summary">
-                    <div class="summary-item">
-                        <span class="summary-label">PTO:</span>
-                        <span class="summary-value ${monthData.summary.ptoHours > 0 ? "summary-pto" : ""}">${monthData.summary.ptoHours}</span>
-                    </div>
-                    <div class="summary-item">
-                        <span class="summary-label">Sick:</span>
-                        <span class="summary-value ${monthData.summary.sickHours > 0 ? "summary-sick" : ""}">${monthData.summary.sickHours}</span>
-                    </div>
-                    <div class="summary-item">
-                        <span class="summary-label">Bereavement:</span>
-                        <span class="summary-value ${monthData.summary.bereavementHours > 0 ? "summary-bereavement" : ""}">${monthData.summary.bereavementHours}</span>
-                    </div>
-                    <div class="summary-item">
-                        <span class="summary-label">Jury Duty:</span>
-                        <span class="summary-value ${monthData.summary.juryDutyHours > 0 ? "summary-jury-duty" : ""}">${monthData.summary.juryDutyHours}</span>
-                    </div>
-                </div>
+                <month-summary
+                    pto-hours="${monthData.summary.ptoHours}"
+                    sick-hours="${monthData.summary.sickHours}"
+                    bereavement-hours="${monthData.summary.bereavementHours}"
+                    jury-duty-hours="${monthData.summary.juryDutyHours}"
+                ></month-summary>
             </div>
         `;
   }
@@ -236,48 +224,6 @@ export class PriorYearReview extends BaseComponent {
                 .type-Jury-Duty .date,
                 .type-Jury-Duty .hours {
                     color: white;
-                }
-
-                .month-summary {
-                    display: flex;
-                    justify-content: space-around;
-                    padding: 8px;
-                    background: var(--color-surface-hover);
-                    border-top: 1px solid var(--color-border);
-                    font-size: 12px;
-                    color: var(--color-text-secondary);
-                }
-
-                .summary-item {
-                    text-align: center;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                }
-
-                .summary-label {
-                    font-size: 10px;
-                    margin-bottom: 2px;
-                }
-
-                .summary-value {
-                    font-size: 12px;
-                    font-weight: 400;
-                }
-
-                /* Color consistency: summary values match calendar day colors */
-                .summary-pto { color: var(--color-pto-vacation); }
-                .summary-sick { color: var(--color-pto-sick); }
-                .summary-bereavement { color: var(--color-pto-bereavement); }
-                .summary-jury-duty { color: var(--color-pto-jury-duty); }
-
-                /* Visual hierarchy: larger font for non-zero values */
-                .summary-pto,
-                .summary-sick,
-                .summary-bereavement,
-                .summary-jury-duty {
-                    font-size: 14px;
-                    font-weight: 600;
                 }
 
                 @media (max-width: 768px) {

@@ -1,11 +1,3 @@
-const PTO_TYPE_COLORS: Record<string, string> = {
-  PTO: "var(--color-pto-vacation)",
-  Sick: "var(--color-pto-sick)",
-  Bereavement: "var(--color-pto-bereavement)",
-  "Jury Duty": "var(--color-pto-jury-duty)",
-  "Work Day": "var(--color-surface)",
-};
-
 export const styles = `
 .months-grid {
     display: grid;
@@ -50,54 +42,6 @@ export const styles = `
     overflow: hidden;
     display: grid;
     grid-template-rows: 1fr auto; /* Calendar takes available space, summary docks at bottom */
-}
-
-.month-summary {
-    display: flex;
-    justify-content: space-around;
-    padding: 8px;
-    background: var(--color-surface-hover);
-    border-top: 1px solid var(--color-border);
-    font-size: 12px;
-    color: var(--color-text-secondary);
-}
-
-.summary-item {
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.summary-label {
-    font-size: 10px;
-    margin-bottom: 2px;
-}
-
-.summary-value {
-    font-size: 12px;
-    font-weight: 400;
-}
-
-/* Color consistency: summary values match calendar day colors */
-.summary-pto { color: ${PTO_TYPE_COLORS.PTO}; }
-.summary-sick { color: ${PTO_TYPE_COLORS.Sick}; }
-.summary-bereavement { color: ${PTO_TYPE_COLORS.Bereavement}; }
-.summary-jury-duty { color: ${PTO_TYPE_COLORS["Jury Duty"]}; }
-
-/* Visual hierarchy: larger font for non-zero values */
-.summary-pto,
-.summary-sick,
-.summary-bereavement,
-.summary-jury-duty {
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.summary-pending {
-    font-size: 11px;
-    opacity: 0.8;
-    margin-left: 1px;
 }
 
 .submit-section {

@@ -13,6 +13,7 @@ The PTO Summary Card component displays a comprehensive overview of an employee'
 - **Annual Allocation**: Displays total allocated PTO hours
 - **Theme Integration**: Full support for light and dark themes
 - **Responsive Design**: Adapts to different screen sizes
+- **Balance Summary Slot**: Named slot (`balance-summary`) for injecting a remaining-balance display (e.g., `<month-summary>`) at the bottom of the card
 
 ## Usage
 
@@ -54,6 +55,26 @@ carryoverFromPreviousYear: 0,
 
 - `data`: JSON object with PTO summary data
 - `full-entries`: JSON array of full PTOEntry objects with approval status
+
+## Slots
+
+- `balance-summary`: Named slot rendered at the bottom of the card, inside the `.card` container. Used to inject a `<month-summary>` element displaying remaining available hours per PTO type. The slot receives `::slotted` styling for spacing and a top border separator.
+
+### Slot Usage Example
+
+```html
+<pto-summary-card>
+  <div slot="balance-summary">
+    <h5>Remaining Balance</h5>
+    <month-summary
+      pto-hours="56"
+      sick-hours="16"
+      bereavement-hours="40"
+      jury-duty-hours="40"
+    ></month-summary>
+  </div>
+</pto-summary-card>
+```
 
 ## Properties
 
