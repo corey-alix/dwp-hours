@@ -23,6 +23,15 @@ test.describe("Sick Time Rendering Consistency", () => {
     await page.goto(magicLink!);
 
     // Wait for dashboard to load
+    await page.waitForSelector("#dashboard", { timeout: 10000 });
+
+    // Navigate to Current Year Summary page where PTO status is shown
+    const menu = page.locator("dashboard-navigation-menu");
+    const currentYearBtn = menu.locator(
+      'button[data-action="current-year-summary"]',
+    );
+    await currentYearBtn.click();
+
     await page.waitForSelector("#pto-status");
 
     // Check sick time card in dashboard

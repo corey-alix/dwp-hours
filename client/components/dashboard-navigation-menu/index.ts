@@ -1,7 +1,11 @@
 import { BaseComponent } from "../base-component.js";
 import { DASHBOARD_NAVIGATION_MENU_CSS } from "./css.js";
 
-type Page = "default" | "current-year-summary" | "prior-year-summary";
+type Page =
+  | "default"
+  | "current-year-summary"
+  | "prior-year-summary"
+  | "employee-info";
 
 export class DashboardNavigationMenu extends BaseComponent {
   private isMenuOpen = false;
@@ -33,6 +37,7 @@ export class DashboardNavigationMenu extends BaseComponent {
       { id: "default", label: "Default" },
       { id: "current-year-summary", label: "Current Year Summary" },
       { id: "prior-year-summary", label: "Prior Year Summary" },
+      { id: "employee-info", label: "Employee Information" },
       { id: "logout", label: "Logout", isLogout: true },
     ];
 

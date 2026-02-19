@@ -423,6 +423,8 @@ export class UIManager {
     } else if (page === "prior-year-summary") {
       this.loadEmployeeInfo();
       this.loadPriorYearReview();
+    } else if (page === "employee-info") {
+      this.loadEmployeeInfo();
     }
   }
 

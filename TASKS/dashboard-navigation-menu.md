@@ -7,9 +7,10 @@ Implement a navigation menu component to organize the dashboard into modular pag
 - **Default Page**: Current Year PTO Scheduler
 - **Current Year Summary**: PTO, Sick Time, Bereavement, Jury Duty cards
 - **Prior Year Summary**: Prior Year Review view
+- **Employee Information**: Employee details including hire date and rollover information
 - **Logout**: Sign out of the application
 
-**Employee Information** appears on every page at the top for consistent context. The menu component should provide intuitive navigation between these views while maintaining responsive design that works well on mobile devices first, then scales up to larger screens.
+The menu component should provide intuitive navigation between these views while maintaining responsive design that works well on mobile devices first, then scales up to larger screens.
 
 ## Priority
 
@@ -37,10 +38,11 @@ Implement a navigation menu component to organize the dashboard into modular pag
 ### Stage 3: Page Organization and HTML Restructuring
 
 - [x] Reorganize index.html to group components into page containers
-- [x] Move Employee Information to appear on every page at the top
+- [x] Create separate Employee Information page with pto-employee-info-card
 - [x] Implement default page (Current Year Scheduler)
 - [x] Implement current year summary page (PTO cards)
 - [x] Implement prior year summary page (Prior Year Review)
+- [x] Implement employee information page
 - [x] Integrate menu component into dashboard
 - [x] Validation: HTML structure updated, manual testing shows correct page switching
 
@@ -61,6 +63,7 @@ Implement a navigation menu component to organize the dashboard into modular pag
 - [x] Manual testing of all navigation paths and edge cases
 - [x] Code review and linting passes
 - [x] Validation: `pnpm run build` and `pnpm run lint` pass, manual testing complete, documentation updated
+- [x] Updated E2E tests to navigate to correct pages after moving employee info card to separate page
 
 ## Implementation Notes
 

@@ -31,6 +31,14 @@ test("index PTO calendar edit existing entry submits 8 hours", async ({
   await magicLink.click();
 
   await page.waitForSelector("#dashboard", { timeout: 10000 });
+
+  // Navigate to Current Year Summary page where PTO status is shown
+  const menu = page.locator("dashboard-navigation-menu");
+  const currentYearBtn = menu.locator(
+    'button[data-action="current-year-summary"]',
+  );
+  await currentYearBtn.click();
+
   await expect(page.locator("#pto-status")).toBeVisible();
 
   // Wait for PTO status to load

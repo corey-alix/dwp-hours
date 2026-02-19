@@ -45,6 +45,14 @@ test.describe("Employee Authentication & Workflow", () => {
 
     // Wait for dashboard to load
     await page.waitForSelector("#dashboard", { timeout: 10000 });
+
+    // Navigate to Current Year Summary page where PTO status is shown
+    const menu = page.locator("dashboard-navigation-menu");
+    const currentYearBtn = menu.locator(
+      'button[data-action="current-year-summary"]',
+    );
+    await currentYearBtn.click();
+
     await expect(page.locator("#pto-status")).toBeVisible();
 
     // Verify we're in request mode by default (Phase 13)
