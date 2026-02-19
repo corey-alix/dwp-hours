@@ -5,7 +5,8 @@ type Page =
   | "default"
   | "current-year-summary"
   | "prior-year-summary"
-  | "employee-info";
+  | "employee-info"
+  | "submit-time-off";
 
 export class DashboardNavigationMenu extends BaseComponent {
   private isMenuOpen = false;
@@ -34,7 +35,8 @@ export class DashboardNavigationMenu extends BaseComponent {
 
   protected render(): string {
     const menuItems = [
-      { id: "default", label: "Default" },
+      { id: "submit-time-off", label: "Submit Time Off" },
+      { id: "default", label: "Schedule PTO" },
       { id: "current-year-summary", label: "Current Year Summary" },
       { id: "prior-year-summary", label: "Prior Year Summary" },
       { id: "employee-info", label: "Employee Information" },

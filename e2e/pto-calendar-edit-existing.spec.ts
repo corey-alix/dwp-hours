@@ -44,8 +44,11 @@ test("index PTO calendar edit existing entry submits 8 hours", async ({
   // Wait for PTO status to load
   await page.waitForTimeout(5000);
 
-  // Click "Request Time Off" button
-  await page.click("#new-pto-btn");
+  // Open navigation menu and click "Submit Time Off"
+  await page.click("dashboard-navigation-menu .menu-toggle");
+  await page.click(
+    'dashboard-navigation-menu .menu-item[data-action="submit-time-off"]',
+  );
   await expect(page.locator("#main-content > #pto-form")).not.toHaveClass(
     /hidden/,
   );

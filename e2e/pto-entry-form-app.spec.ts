@@ -32,7 +32,11 @@ test("index PTO form submission persists entry", async ({ page }) => {
   await page.waitForSelector("#dashboard", { timeout: 10000 });
   await expect(page.locator("#pto-status")).toBeVisible();
 
-  await page.click("#new-pto-btn");
+  // Open navigation menu and click "Submit Time Off"
+  await page.click("dashboard-navigation-menu .menu-toggle");
+  await page.click(
+    'dashboard-navigation-menu .menu-item[data-action="submit-time-off"]',
+  );
   await expect(page.locator("#main-content > #pto-form")).not.toHaveClass(
     /hidden/,
   );
@@ -112,7 +116,11 @@ test("index PTO calendar submission persists entry", async ({ page }) => {
   // Wait for PTO status to load
   await page.waitForTimeout(2000);
 
-  await page.click("#new-pto-btn");
+  // Open navigation menu and click "Submit Time Off"
+  await page.click("dashboard-navigation-menu .menu-toggle");
+  await page.click(
+    'dashboard-navigation-menu .menu-item[data-action="submit-time-off"]',
+  );
   await expect(page.locator("#main-content > #pto-form")).not.toHaveClass(
     /hidden/,
   );

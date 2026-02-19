@@ -143,10 +143,6 @@ export class UIManager {
     );
     addEventListener(navMenu, "logout", () => this.handleLogout());
 
-    // Navigation
-    const newPTOBtn = querySingle<HTMLButtonElement>("#new-pto-btn");
-    addEventListener(newPTOBtn, "click", () => this.showPTOForm());
-
     // Year selector buttons
     try {
       const currentYearBtn =
@@ -358,19 +354,7 @@ export class UIManager {
     this.setupPTOCardEventListeners();
 
     // Initialize to default page
-    this.handlePageChange("default");
-  }
-
-  private showPTOForm(): void {
-    this.hideAllSections();
-    querySingle("#pto-form").classList.remove("hidden");
-
-    // Set available PTO balance on the form for validation
-    const ptoForm = querySingle<PtoEntryForm>("#pto-entry-form");
-    ptoForm.setAttribute(
-      "available-pto-balance",
-      this.availablePtoBalance.toString(),
-    );
+    this.handlePageChange("submit-time-off");
   }
 
   private showCurrentYearView(): void {
@@ -405,7 +389,8 @@ export class UIManager {
     pages.forEach((p) => p.classList.remove("active"));
 
     // Show selected page
-    const selectedPage = querySingle(`#${page}-page`);
+    const pageId = page === "submit-time-off" ? "pto-form" : `${page}-page`;
+    const selectedPage = querySingle(`#${pageId}`);
     selectedPage.classList.add("active");
 
     // Update menu
@@ -425,6 +410,14 @@ export class UIManager {
       this.loadPriorYearReview();
     } else if (page === "employee-info") {
       this.loadEmployeeInfo();
+    } else if (page === "submit-time-off") {
+      this.loadPTOStatus(); // Load PTO balance for form validation
+      // Set available PTO balance on the form for validation
+      const ptoForm = querySingle<PtoEntryForm>("#pto-entry-form");
+      ptoForm.setAttribute(
+        "available-pto-balance",
+        this.availablePtoBalance.toString(),
+      );
     }
   }
 

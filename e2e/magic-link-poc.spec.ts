@@ -18,7 +18,10 @@ test.describe("Magic link POC", () => {
     await expect(page.locator("#dashboard")).toBeVisible();
     await expect(page.locator("#pto-status")).toBeVisible();
 
-    await page.click("#new-pto-btn");
+    await page.click("dashboard-navigation-menu .menu-toggle");
+    await page.click(
+      'dashboard-navigation-menu .menu-item[data-action="submit-time-off"]',
+    );
     await expect(page.locator("#pto-form")).toBeVisible();
 
     await page.fill("#start-date", "2026-02-05");

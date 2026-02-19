@@ -23,7 +23,10 @@ test.describe("PTO Balance Validation", () => {
     await expect(page.locator("#pto-status")).toBeVisible();
 
     // Navigate to PTO form
-    await page.click("#new-pto-btn");
+    await page.click("dashboard-navigation-menu .menu-toggle");
+    await page.click(
+      'dashboard-navigation-menu .menu-item[data-action="submit-time-off"]',
+    );
     await expect(page.locator("#main-content > #pto-form")).not.toHaveClass(
       /hidden/,
     );
@@ -107,7 +110,10 @@ test.describe("PTO Balance Validation", () => {
     await expect(page.locator("#pto-status")).toBeVisible();
 
     // Navigate to PTO form
-    await page.click("#new-pto-btn");
+    await page.click("dashboard-navigation-menu .menu-toggle");
+    await page.click(
+      'dashboard-navigation-menu .menu-item[data-action="submit-time-off"]',
+    );
     await expect(page.locator("#main-content > #pto-form")).not.toHaveClass(
       /hidden/,
     );
@@ -208,7 +214,10 @@ test.describe("PTO Balance Validation", () => {
     await page.waitForSelector("#dashboard", { timeout: 10000 });
 
     // Navigate to PTO form
-    await page.click("#new-pto-btn");
+    await page.click("dashboard-navigation-menu .menu-toggle");
+    await page.click(
+      'dashboard-navigation-menu .menu-item[data-action="submit-time-off"]',
+    );
     const form = page.locator("pto-entry-form");
 
     // Fill form with valid data first
@@ -259,7 +268,10 @@ test.describe("PTO Balance Validation", () => {
     await page.waitForSelector("#dashboard", { timeout: 10000 });
 
     // Navigate to PTO form
-    await page.click("#new-pto-btn");
+    await page.click("dashboard-navigation-menu .menu-toggle");
+    await page.click(
+      'dashboard-navigation-menu .menu-item[data-action="submit-time-off"]',
+    );
     const form = page.locator("pto-entry-form");
 
     // Try to submit exactly 12 hours (John's approximate balance)
