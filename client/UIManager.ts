@@ -392,6 +392,14 @@ export class UIManager {
     await this.loadPriorYearReview();
   }
 
+  private static readonly PAGE_LABELS: Record<string, string> = {
+    "submit-time-off": "Submit Time Off",
+    default: "Schedule PTO",
+    "current-year-summary": "Current Year Summary",
+    "prior-year-summary": "Prior Year Summary",
+    "employee-info": "Employee Information",
+  };
+
   private handlePageChange(page: string): void {
     // Hide all pages
     const pages = document.querySelectorAll(".page");
@@ -401,6 +409,10 @@ export class UIManager {
     const pageId = page === "submit-time-off" ? "pto-form" : `${page}-page`;
     const selectedPage = querySingle(`#${pageId}`);
     selectedPage.classList.add("active");
+
+    // Update page heading
+    const heading = querySingle<HTMLHeadingElement>("h1");
+    heading.textContent = UIManager.PAGE_LABELS[page] ?? "DWP Hours Tracker";
 
     // Update menu
     const menu = querySingle<DashboardNavigationMenu>(
