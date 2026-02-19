@@ -40,11 +40,12 @@ This document outlines all remaining tasks to complete the DWP Hours Tracker app
 16. LATER: See ./TASKS/pto-calendar-flashing-fix.md for details
 17. LATER: See ./TASKS/pto-accrual-card-fixes.md for details
 18. See ./TASKS/live-summary-delta-scheduler.md for details — live summary delta display in PTO scheduler
-19. DONE (Stages 1–4 complete, Stage 5 pending): See ./TASKS/app-run-entry-point.md for details — explicit App.run() entry point (prerequisite for TraceListener controller architecture)
-20. DONE (TraceListener, controllers, pto-notification, debug-console refactor complete; Stage 5 integration testing remains): See ./TASKS/debug-console-component.md for details
-21. LATER: See ./TASKS/migrate-prior-year-review-to-base-component.md for details
-22. LATER: See ./TASKS/dashboard-navigation-menu.md for details
-23. DONE: See ./TASKS/pto-entry-form-calendar-enhancements.md for details
+19. See ./TASKS/zero-hour-pto-unschedule.md for details — API support for 0-hour PTO requests to unschedule entries
+20. DONE (Stages 1–4 complete, Stage 5 pending): See ./TASKS/app-run-entry-point.md for details — explicit App.run() entry point (prerequisite for TraceListener controller architecture)
+21. DONE (TraceListener, controllers, pto-notification, debug-console refactor complete; Stage 5 integration testing remains): See ./TASKS/debug-console-component.md for details
+22. LATER: See ./TASKS/migrate-prior-year-review-to-base-component.md for details
+23. LATER: See ./TASKS/dashboard-navigation-menu.md for details
+24. DONE: See ./TASKS/pto-entry-form-calendar-enhancements.md for details
 
 ## Task Dependencies
 

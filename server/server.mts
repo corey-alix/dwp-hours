@@ -1779,6 +1779,36 @@ initDatabase()
                 .json({ error: "Invalid employee ID or hours" });
             }
 
+            // Handle 0-hour requests: unschedule an existing entry
+            if (reqHoursNum === 0) {
+              const existingEntry = await ptoEntryRepo.findOne({
+                where: {
+                  employee_id: empIdNum,
+                  date: reqDate,
+                  type: reqType,
+                },
+              });
+
+              if (!existingEntry) {
+                return res.status(400).json({
+                  error: "validation_failed",
+                  fieldErrors: [
+                    {
+                      field: "hours",
+                      message:
+                        "Cannot unschedule: no existing entry of this type on this date",
+                    },
+                  ],
+                });
+              }
+
+              await ptoEntryRepo.remove(existingEntry);
+              logger.info(
+                `PTO entry unscheduled: Employee ${empIdNum}, Date ${reqDate}, Type ${reqType}`,
+              );
+              continue; // Skip to next request
+            }
+
             const result = await ptoEntryDAL.createPtoEntry({
               employeeId: empIdNum,
               date: reqDate,
@@ -1856,6 +1886,13 @@ initDatabase()
               `Entry ${index + 1}: Employee ${entry.employee_id}, Date ${entry.date}, Type ${entry.type}, Hours ${entry.hours}`,
             );
           });
+
+          // If all requests were unschedules (0-hour), results may be empty
+          if (results.length === 0) {
+            return res.json({
+              message: "PTO entries unscheduled successfully",
+            });
+          }
 
           const lastResult = results[results.length - 1];
           const response: PTOCreateResponse = {
