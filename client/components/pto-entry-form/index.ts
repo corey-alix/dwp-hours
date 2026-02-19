@@ -84,7 +84,7 @@ export class PtoEntryForm extends HTMLElement {
                     background: var(--color-surface);
                     border-radius: var(--border-radius-lg);
                     box-shadow: var(--shadow-md);
-                    max-width: 500px;
+                    max-width: clamp(480px, 100cqw, 60vh);
                     margin: 0 auto;
                 }
 
@@ -104,22 +104,6 @@ export class PtoEntryForm extends HTMLElement {
                     font-size: var(--font-size-xl);
                     font-weight: var(--font-weight-semibold);
                     color: var(--color-text);
-                }
-
-                .submit-errors {
-                    margin-top: var(--space-md);
-                    padding: var(--space-sm) var(--space-md);
-                    border-radius: var(--border-radius-md);
-                    border: var(--border-width) var(--border-style-solid) var(--color-error);
-                    background: var(--color-error-light, rgba(220, 53, 69, 0.08));
-                    color: var(--color-error);
-                    font-size: var(--font-size-sm);
-                    cursor: pointer;
-                    transition: opacity 0.2s ease;
-                }
-
-                .submit-errors:hover {
-                    opacity: 0.8;
                 }
 
                 .btn {
@@ -222,6 +206,12 @@ export class PtoEntryForm extends HTMLElement {
                 }
 
                 /* Responsive design */
+                @media screen {
+                  .form-actions {
+                    display: flex;
+                  }
+                }
+
                 @media (max-width: 768px) {
                     .form-actions {
                         flex-wrap: wrap;
@@ -249,8 +239,6 @@ export class PtoEntryForm extends HTMLElement {
                 <div class="calendar-view" id="calendar-view">
                     <div id="calendar-container" class="calendar-container"></div>
                 </div>
-
-                <div class="submit-errors hidden" id="submit-errors" role="alert" aria-live="polite"></div>
 
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" id="cancel-btn">
@@ -281,11 +269,6 @@ export class PtoEntryForm extends HTMLElement {
       "#next-month-btn",
       this.shadow,
     );
-    const submitErrors = querySingle<HTMLDivElement>(
-      "#submit-errors",
-      this.shadow,
-    );
-
     cancelBtn?.addEventListener("click", () => {
       this.dispatchEvent(new CustomEvent("form-cancel"));
     });
@@ -306,10 +289,6 @@ export class PtoEntryForm extends HTMLElement {
       if (calendar) {
         this.navigateMonthWithAnimation(calendar, 1); // Next month
       }
-    });
-
-    submitErrors?.addEventListener("click", () => {
-      this.clearSubmitErrors();
     });
 
     // Add swipe navigation to calendar
@@ -467,19 +446,21 @@ export class PtoEntryForm extends HTMLElement {
   private handleCalendarSubmit(): void {
     const calendar = this.getCalendar();
     if (!calendar) {
-      this.showSubmitErrors(["Calendar is not ready. Please try again."]);
+      this.emitValidationErrors(["Calendar is not ready. Please try again."]);
       return;
     }
 
     const requests = calendar.getSelectedRequests();
     if (requests.length === 0) {
-      this.showSubmitErrors(["Select at least one weekday in the calendar."]);
+      this.emitValidationErrors([
+        "Select at least one weekday in the calendar.",
+      ]);
       return;
     }
 
     const validationErrors = this.validateCalendarRequests(requests);
     if (validationErrors.length > 0) {
-      this.showSubmitErrors(validationErrors);
+      this.emitValidationErrors(validationErrors);
       return;
     }
 
@@ -491,7 +472,6 @@ export class PtoEntryForm extends HTMLElement {
   }
 
   private handleUnifiedSubmit(): void {
-    this.clearSubmitErrors();
     this.handleCalendarSubmit();
   }
 
@@ -499,6 +479,11 @@ export class PtoEntryForm extends HTMLElement {
     const errors: string[] = [];
 
     for (const request of requests) {
+      // Zero hours = unschedule/delete an existing entry; skip validation
+      if (request.hours === 0) {
+        continue;
+      }
+
       const hoursError = validateHours(request.hours);
       if (hoursError) {
         errors.push(
@@ -551,26 +536,13 @@ export class PtoEntryForm extends HTMLElement {
     ) as PtoCalendar | null;
   }
 
-  private showSubmitErrors(messages: string[]): void {
-    const submitErrors = querySingle<HTMLDivElement>(
-      "#submit-errors",
-      this.shadow,
+  private emitValidationErrors(messages: string[]): void {
+    this.dispatchEvent(
+      new CustomEvent("pto-validation-error", {
+        detail: { errors: messages },
+        bubbles: true,
+      }),
     );
-    if (messages.length === 1) {
-      submitErrors.textContent = messages[0];
-    } else {
-      submitErrors.innerHTML = `<ul>${messages.map((message) => `<li>${message}</li>`).join("")}</ul>`;
-    }
-    submitErrors.classList.remove("hidden");
-  }
-
-  private clearSubmitErrors(): void {
-    const submitErrors = querySingle<HTMLDivElement>(
-      "#submit-errors",
-      this.shadow,
-    );
-    submitErrors.textContent = "";
-    submitErrors.classList.add("hidden");
   }
 
   // Public methods for external control
@@ -580,9 +552,6 @@ export class PtoEntryForm extends HTMLElement {
     if (calendar) {
       calendar.clearSelection();
     }
-
-    // Clear submit errors
-    this.clearSubmitErrors();
 
     // Reinitialize calendar defaults
     this.initializeCalendarDefaults();

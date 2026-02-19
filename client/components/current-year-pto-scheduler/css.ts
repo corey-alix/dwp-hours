@@ -105,6 +105,9 @@ export const styles = `
     padding: 16px;
     border-top: 1px solid var(--color-border);
     margin-top: 16px;
+    position: sticky;
+    bottom: 0;
+    background: var(--color-background);
 }
 
 .submit-button {

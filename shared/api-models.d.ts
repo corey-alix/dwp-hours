@@ -186,6 +186,7 @@ export interface PTOYearReviewResponse {
       date: string; // ISO date string
       type: "PTO" | "Sick" | "Bereavement" | "Jury Duty";
       hours: number;
+      approved_by?: number | null;
     }[];
     summary: {
       totalDays: number;

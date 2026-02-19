@@ -12,7 +12,6 @@ The `<pto-calendar>` component provides a monthly calendar view for displaying a
 - **Visual Hour Indicators**: ● full day (8h), ○ partial day (<8h), ✕ clearing an existing entry
 - **Approval Indicators**: Green checkmark (✓) in top-right corner for approved entries
 - **Clearing State**: Setting an existing entry to 0h shows ✕ with line-through styling
-- **Work Day Type**: Selecting "Work Day" removes existing entries from the date
 - **Keyboard Navigation**: Arrow keys to move focus, Enter/Space to toggle selection
 - **Read-only Mode**: Display-only mode when `readonly` is not `"false"`
 - **Legend with PTO Type Selection**: Clickable/keyboard-navigable legend for choosing PTO type
@@ -122,10 +121,6 @@ All events use `bubbles: true` and `composed: true` to cross Shadow DOM boundari
 2. **Second click**: Cycles to 4 hours (partial day)
 3. **Third click**: Cycles to 0 hours — if the date has an existing entry, it enters **clearing state** (✕); otherwise the selection is removed
 4. **Fourth click**: Cycles back to 8 hours
-
-### With "Work Day" selected
-
-Clicking a date with an existing PTO entry removes it immediately. No cycle — the entry is spliced from `_ptoEntries`.
 
 ### With no PTO type selected
 

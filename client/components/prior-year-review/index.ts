@@ -28,7 +28,6 @@ const PTO_TYPE_COLORS: Record<string, string> = {
   Sick: "var(--color-pto-sick)",
   Bereavement: "var(--color-pto-bereavement)",
   "Jury Duty": "var(--color-pto-jury-duty)",
-  "Work Day": "var(--color-surface)",
 };
 
 export class PriorYearReview extends BaseComponent {

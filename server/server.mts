@@ -2095,6 +2095,7 @@ initDatabase()
                 date: entry.date, // Already in YYYY-MM-DD format
                 type: entry.type,
                 hours: entry.hours,
+                approved_by: entry.approved_by ?? null,
               })),
               summary,
             });

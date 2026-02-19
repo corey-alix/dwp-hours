@@ -20,11 +20,11 @@ test("pto-calendar component test", async ({ page }) => {
   const legend = await page.locator("pto-calendar").locator(".legend");
   await expect(legend).toBeVisible();
 
-  // Check legend items count (should be 5: PTO, Sick, Bereavement, Jury Duty, Work Day)
+  // Check legend items count (should be 4: PTO, Sick, Bereavement, Jury Duty)
   const legendItems = await page
     .locator("pto-calendar")
     .locator(".legend-item");
-  await expect(legendItems).toHaveCount(5);
+  await expect(legendItems).toHaveCount(4);
 
   // Set calendar to editable mode to test default selection
   await page.evaluate(() => {
@@ -136,31 +136,6 @@ test("pto-calendar component test", async ({ page }) => {
     cell.click();
   });
   await expect(firstCell).toHaveClass(/selected/);
-
-  // Test Work Day clear functionality
-  await page.evaluate(() => {
-    const calendar = document.querySelector("pto-calendar") as any;
-    const workDayItem = calendar.shadowRoot.querySelector(
-      '.legend-item[data-type="Work Day"]',
-    ) as HTMLElement;
-    workDayItem.click();
-  });
-  const workDayLegendItem = await page
-    .locator("pto-calendar")
-    .locator(".legend-item")
-    .filter({ hasText: "Work Day" });
-  await expect(workDayLegendItem).toHaveClass(/selected/);
-
-  // Click on the selected cell — Work Day clears entries
-  await page.evaluate(() => {
-    const calendar = document.querySelector("pto-calendar") as any;
-    const cell = calendar.shadowRoot.querySelector(
-      ".day.selected",
-    ) as HTMLElement;
-    if (cell) cell.click();
-  });
-  // Cell should not be selected (cleared by Work Day)
-  await expect(firstCell).not.toHaveClass(/selected/);
 
   // Test clear selection via API
   // First select PTO again and click a cell

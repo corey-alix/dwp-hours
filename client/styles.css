@@ -32,7 +32,7 @@ header {
   left: 0;
   right: 0;
   z-index: 1;
-  background-color: var(--color-surface);
+  background-color: var(--color-background);
   color: var(--color-text);
   box-shadow: var(--shadow-md);
   border-bottom: var(--border-width) var(--border-style-solid)

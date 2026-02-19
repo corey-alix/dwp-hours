@@ -415,7 +415,7 @@ export class PtoCalendar extends BaseComponent {
         hoursDisplay = "●";
         hoursClass = "hours hours-full";
       } else {
-        hoursDisplay = "○";
+        hoursDisplay = "½";
         hoursClass = "hours hours-partial";
         partialDayClass = " partial-day";
       }
@@ -561,44 +561,30 @@ export class PtoCalendar extends BaseComponent {
 
   private toggleDaySelection(date: string) {
     if (this._selectedPtoType) {
-      if (this._selectedPtoType === "Work Day") {
-        // Clear operation - remove any existing entry for this date
-        const existingEntryIndex = this._ptoEntries.findIndex(
-          (entry) => entry.date === date,
-        );
-        if (existingEntryIndex >= 0) {
-          this._ptoEntries.splice(existingEntryIndex, 1);
-        }
-        this._selectedCells.delete(date);
-        this.updateDay(date);
-        this.restoreFocusFromViewModel();
-        this.notifySelectionChanged();
-      } else {
-        // Cycle hours: first click sets 8, then 4, then 0 (removes)
-        const currentHours = this._selectedCells.get(date);
-        const existingEntry = this._ptoEntries.find(
-          (entry) => entry.date === date,
-        );
-        if (currentHours !== undefined) {
-          const nextHours = this.cycleHours(currentHours);
-          if (nextHours === 0) {
-            if (existingEntry) {
-              // Keep 0 in selectedCells to indicate "unschedule this day"
-              this._selectedCells.set(date, 0);
-            } else {
-              this._selectedCells.delete(date);
-            }
+      // Cycle hours: first click sets 8, then 4, then 0 (removes)
+      const currentHours = this._selectedCells.get(date);
+      const existingEntry = this._ptoEntries.find(
+        (entry) => entry.date === date,
+      );
+      if (currentHours !== undefined) {
+        const nextHours = this.cycleHours(currentHours);
+        if (nextHours === 0) {
+          if (existingEntry) {
+            // Keep 0 in selectedCells to indicate "unschedule this day"
+            this._selectedCells.set(date, 0);
           } else {
-            this._selectedCells.set(date, nextHours);
+            this._selectedCells.delete(date);
           }
         } else {
-          // First click - select with 8 hours
-          this._selectedCells.set(date, 8);
+          this._selectedCells.set(date, nextHours);
         }
-        this.updateDay(date);
-        this.restoreFocusFromViewModel();
-        this.notifySelectionChanged();
+      } else {
+        // First click - select with 8 hours
+        this._selectedCells.set(date, 8);
       }
+      this.updateDay(date);
+      this.restoreFocusFromViewModel();
+      this.notifySelectionChanged();
     } else {
       // No PTO type selected - can edit existing entries
       const existingEntry = this._ptoEntries.find(

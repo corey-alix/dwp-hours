@@ -108,10 +108,10 @@ export class PtoNotification extends BaseComponent {
       <style>
         :host {
           position: fixed;
-          top: 20px;
-          right: 20px;
-          z-index: 1000;
-          max-width: 400px;
+          top: var(--space-sm);
+          right: var(--space-sm);
+          z-index: 1;
+          max-width: 90vw;
           display: block;
           pointer-events: none;
         }
@@ -121,8 +121,8 @@ export class PtoNotification extends BaseComponent {
           background: var(--color-surface, #fff);
           border-radius: var(--border-radius, 6px);
           box-shadow: 0 10px 15px -3px rgb(0 0 0 / 10%), 0 4px 6px -4px rgb(0 0 0 / 10%);
-          margin-bottom: 8px;
-          padding: 16px;
+          margin-bottom: var(--space-sm);
+          padding: var(--space-md);
           display: flex;
           align-items: flex-start;
           border-left: 4px solid;

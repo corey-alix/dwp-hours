@@ -124,6 +124,10 @@ export class UIManager {
     addEventListener(ptoForm, "pto-data-request", () =>
       this.handlePtoDataRequest(ptoForm),
     );
+    addEventListener(ptoForm, "pto-validation-error", (e: CustomEvent) => {
+      const errors: string[] = e.detail?.errors ?? [];
+      notifications.error(errors.join("\n"));
+    });
 
     // Current year PTO scheduler
     try {
@@ -418,6 +422,8 @@ export class UIManager {
         "available-pto-balance",
         this.availablePtoBalance.toString(),
       );
+      // Load PTO data into the form's calendar
+      this.handlePtoDataRequest(ptoForm);
     }
   }
 
@@ -842,6 +848,10 @@ export class UIManager {
       notifications.success("PTO request submitted successfully!");
       await this.refreshPTOData();
       await this.loadCurrentYearScheduler();
+      // Reset the form and reload PTO data after successful submit
+      const ptoForm = querySingle<PtoEntryForm>("#pto-entry-form");
+      ptoForm.reset();
+      await this.handlePtoDataRequest(ptoForm);
     } catch (error: any) {
       console.error("Error submitting PTO request:", error);
       // Check for structured error response

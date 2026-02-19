@@ -3,7 +3,6 @@ export const PTO_TYPE_COLORS: Record<string, string> = {
   Sick: "var(--color-pto-sick)",
   Bereavement: "var(--color-pto-bereavement)",
   "Jury Duty": "var(--color-pto-jury-duty)",
-  "Work Day": "var(--color-surface)",
 };
 
 export const styles = `
@@ -11,10 +10,25 @@ export const styles = `
     display: block;
 }
 
-@media (max-width: 320px) {
+@media screen {
+    .legend {
+        gap: 8px 12px;
+    }
+    .legend-item {
+        gap: var(--space-lg);
+    }
+}
+
+@media (max-width: 480px) {
     .calendar {
         transform: scale(var(--scale-factor, 0.8));
         transform-origin: top left;
+    }
+    .legend {
+        gap: var(--space-xs);
+    }
+    .legend-item {
+        gap: var(--space-xs);
     }
 }
 
@@ -93,7 +107,6 @@ export const styles = `
     color: var(--color-success);
     font-size: var(--font-size-sm);
     font-weight: bold;
-    z-index: 1;
 }
 
 .day .hours {
@@ -147,7 +160,6 @@ export const styles = `
 .legend {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px 12px;
     margin-top: 12px;
     font-size: 12px;
     color: var(--color-text-secondary);
@@ -156,7 +168,6 @@ export const styles = `
 .legend-item {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
 }
 
 .legend-item.clickable {
@@ -208,10 +219,10 @@ export const styles = `
 }
 
 .hours-partial {
-    opacity: 0.6;
+    opacity: 1;
 }
 
 .day.partial-day {
-    opacity: 0.75;
+    opacity: 1;
 }
 `;

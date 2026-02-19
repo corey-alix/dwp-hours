@@ -62,7 +62,7 @@ export class CurrentYearPtoScheduler extends BaseComponent {
           type: entry.type,
           hours: entry.hours,
           createdAt: "",
-          approved_by: null,
+          approved_by: entry.approved_by ?? null,
         }));
       }
     });
@@ -80,7 +80,7 @@ export class CurrentYearPtoScheduler extends BaseComponent {
       type: entry.type,
       hours: entry.hours,
       createdAt: "", // Placeholder
-      approved_by: null,
+      approved_by: entry.approved_by ?? null,
     }));
 
     return `
