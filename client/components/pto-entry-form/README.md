@@ -4,6 +4,8 @@
 
 The PTO Entry Form component collects time-off requests with PTO-type specific behavior, weekday-aware date handling, spillover-aware end date calculation, and inline validation feedback. It includes a toggle to open the PTO calendar for date/type selection.
 
+The component is designed to be used with external sticky elements for the Remaining Balance summary and Submit/Cancel toolbar, which are positioned outside the component for better usability during scrolling.
+
 ## Features
 
 - **Dynamic fields**: "Full PTO" uses days with a readonly hours field; other types use editable hours with readonly end date
@@ -11,16 +13,27 @@ The PTO Entry Form component collects time-off requests with PTO-type specific b
 - **Progressive disclosure**: Shows a calculation breakdown with spillover indication
 - **Validation**: Uses shared business rules for hours, type, and weekday warnings
 - **Calendar toggle**: Opens `pto-calendar` for selecting dates and hours
-- **Unified toolbar**: Common Submit and Cancel buttons for both form and calendar views
+- **Unified toolbar**: Common Submit and Cancel buttons for both form and calendar views (now external for sticky positioning)
 - **View switching**: Toggle between form and calendar views with calendar icon
 - **Keyboard navigation**: Tab through weekdays and legend items in calendar edit mode
+- **External sticky elements**: Remaining Balance and toolbar are rendered outside the component for sticky behavior
 
 ## Usage
 
 ### Basic Implementation
 
 ```html
+<!-- External sticky balance summary -->
+<month-summary id="form-balance-summary"></month-summary>
+
+<!-- PTO Entry Form -->
 <pto-entry-form></pto-entry-form>
+
+<!-- External sticky toolbar -->
+<div class="form-actions">
+  <button class="btn btn-secondary" id="cancel-btn">Cancel</button>
+  <button class="btn btn-primary" id="submit-btn">Submit</button>
+</div>
 ```
 
 ### Event Handling
@@ -37,16 +50,6 @@ form.addEventListener("form-cancel", () => {
   // handle cancel
 });
 ```
-
-## Usage
-
-### Basic Implementation
-
-```html
-<pto-entry-form></pto-entry-form>
-```
-
-### Event Handling
 
 ```javascript
 const form = document.querySelector("pto-entry-form");

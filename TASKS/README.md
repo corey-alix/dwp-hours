@@ -147,7 +147,7 @@ database-schema.md
 19. ✅ **issue-endless-loop-employee-acknowledge.md** - fix endless loop in AdminPanel event handling
 20. **esbuild-css-bundling.md** - implement esbuild CSS bundling to fix missing atomic.css in build
 21. LATER: See ./TASKS/pto-balance-summary-component.md for details
-22. LATER: See ./TASKS/sticky-pto-form-elements.md for details
+22. DONE: See ./TASKS/sticky-pto-form-elements.md for details
 
 Each task file contains detailed checklists for implementation steps.</content>
 <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/TASKS/README.md

@@ -49,6 +49,65 @@ header h1 {
   white-space: nowrap;
 }
 
+/* PTO Form Sticky Elements */
+#form-balance-summary {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--color-surface);
+  padding: var(--space-sm);
+  border-bottom: var(--border-width) var(--border-style-solid)
+    var(--color-border);
+  border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
+  margin-bottom: var(--space-sm);
+}
+
+.form-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  background: var(--color-surface);
+  padding: var(--space-sm);
+  border-top: var(--border-width) var(--border-style-solid) var(--color-border);
+  border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
+  display: flex;
+  justify-content: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+/* Button styles for external buttons */
+.btn {
+  padding: var(--space-sm) var(--space-lg);
+  border: none;
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  transition: all 0.3s ease;
+  min-width: 80px;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-hover, var(--color-primary));
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: var(--color-secondary, var(--color-surface));
+  color: var(--color-text);
+  border: var(--border-width) var(--border-style-solid) var(--color-border);
+}
+
+.btn-secondary:hover {
+  background: var(--color-surface-hover, var(--color-surface));
+}
+
 nav {
   display: flex;
   gap: var(--space-lg);

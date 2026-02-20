@@ -212,36 +212,17 @@ export class PtoEntryForm extends HTMLElement {
                     </div>
                 </div>
 
-                <div class="balance-summary-section">
-                    <h5>Remaining Balance</h5>
-                    <slot name="pto-summary"></slot>
-                </div>
-
                 <div class="calendar-view" id="calendar-view">
                     <div id="calendar-container" class="calendar-container"></div>
-                </div>
-
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" id="cancel-btn">
-                        Cancel
-                    </button>
-                    <button type="button" class="btn btn-primary" id="submit-btn">
-                        Submit
-                    </button>
                 </div>
             </div>
         `;
   }
 
   private setupEventListeners() {
-    const cancelBtn = querySingle<HTMLButtonElement>(
-      "#cancel-btn",
-      this.shadow,
-    );
-    const submitBtn = querySingle<HTMLButtonElement>(
-      "#submit-btn",
-      this.shadow,
-    );
+    // Listen for external submit event
+    this.addEventListener("submit", () => this.handleUnifiedSubmit());
+
     const prevMonthBtn = querySingle<HTMLButtonElement>(
       "#prev-month-btn",
       this.shadow,
@@ -250,13 +231,6 @@ export class PtoEntryForm extends HTMLElement {
       "#next-month-btn",
       this.shadow,
     );
-    cancelBtn?.addEventListener("click", () => {
-      this.dispatchEvent(new CustomEvent("form-cancel"));
-    });
-
-    submitBtn?.addEventListener("click", () => {
-      this.handleUnifiedSubmit();
-    });
 
     prevMonthBtn?.addEventListener("click", () => {
       const calendar = this.getCalendar();

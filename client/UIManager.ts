@@ -136,6 +136,13 @@ export class UIManager {
       this.handleFormSelectionChanged(ptoForm),
     );
 
+    // External PTO form buttons
+    const cancelBtn = querySingle<HTMLButtonElement>("#cancel-btn");
+    addEventListener(cancelBtn, "click", () => this.handleCancel(ptoForm));
+
+    const submitBtn = querySingle<HTMLButtonElement>("#submit-btn");
+    addEventListener(submitBtn, "click", () => this.handleSubmit(ptoForm));
+
     // Logout
     const navMenu = querySingle<DashboardNavigationMenu>(
       "dashboard-navigation-menu",
@@ -295,6 +302,15 @@ export class UIManager {
   private async handlePTO(e: Event): Promise<void> {
     e.preventDefault();
     // Form submission is now handled by pto-submit event
+  }
+
+  private handleCancel(ptoForm: PtoEntryForm): void {
+    ptoForm.reset();
+    this.clearFormBalanceDeltas();
+  }
+
+  private handleSubmit(ptoForm: PtoEntryForm): void {
+    ptoForm.dispatchEvent(new Event("submit"));
   }
 
   private showLogin(): void {

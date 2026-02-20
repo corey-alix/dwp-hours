@@ -19,56 +19,8 @@ export const styles = `
                     justify-content: space-between;
                 }
 
-                .btn {
-                    padding: var(--space-sm) var(--space-lg);
-                    border: none;
-                    border-radius: var(--border-radius-md);
-                    cursor: pointer;
-                    font-size: var(--font-size-sm);
-                    font-weight: var(--font-weight-medium);
-                    transition: all 0.3s ease;
-                    min-width: 80px;
-                }
-
-                .btn-primary {
-                    background: var(--color-primary);
-                    color: white;
-                }
-
-                .btn-primary:hover {
-                    background: var(--color-primary-hover, var(--color-primary));
-                    transform: translateY(-1px);
-                }
-
-                .btn-secondary {
-                    background: var(--color-secondary, var(--color-surface));
-                    color: var(--color-text);
-                    border: var(--border-width) var(--border-style-solid) var(--color-border);
-                }
-
-                .btn-secondary:hover {
-                    background: var(--color-surface-hover, var(--color-surface));
-                }
-
                 .hidden {
                     display: none;
-                }
-
-                ::slotted(month-summary) {
-                    display: flex;
-                    justify-content: space-around;
-                    margin-bottom: var(--space-md);
-                }
-
-                .balance-summary-section {
-                    margin-bottom: var(--space-md);
-                }
-
-                .balance-summary-section h5 {
-                    margin: 0 0 var(--space-sm) 0;
-                    font-size: var(--font-size-md);
-                    font-weight: var(--font-weight-semibold);
-                    color: var(--color-text-primary);
                 }
 
                 .calendar-view {
