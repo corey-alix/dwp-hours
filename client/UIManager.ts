@@ -1,5 +1,8 @@
 import type * as ApiTypes from "../shared/api-models";
-import { UI_ERROR_MESSAGES } from "../shared/businessRules";
+import {
+  UI_ERROR_MESSAGES,
+  computeAccrualToDate,
+} from "../shared/businessRules";
 import {
   getCurrentYear,
   formatDateForDisplay,
@@ -7,6 +10,8 @@ import {
   getWorkdaysBetween,
   isWeekend,
   addDays,
+  today,
+  formatDate,
 } from "../shared/dateUtils";
 import { APIClient } from "./APIClient";
 import { notifications } from "./app";
@@ -14,16 +19,13 @@ import { computeSelectionDeltas } from "./components/utils/compute-selection-del
 import {
   PtoEntryForm,
   AdminPanel,
-  PtoAccrualCard,
   PtoSickCard,
   PtoBereavementCard,
   PtoJuryDutyCard,
   PtoPtoCard,
-  PtoCalendar,
   PtoSummaryCard,
   PtoEmployeeInfoCard,
   PriorYearReview,
-  CurrentYearPtoScheduler,
   ConfirmationDialog,
   DashboardNavigationMenu,
   MonthSummary,
@@ -134,18 +136,6 @@ export class UIManager {
       this.handleFormSelectionChanged(ptoForm),
     );
 
-    // Current year PTO scheduler
-    try {
-      const scheduler = querySingle<CurrentYearPtoScheduler>(
-        "current-year-pto-scheduler",
-      );
-      addEventListener(scheduler, "pto-submit", (e: CustomEvent) =>
-        this.handlePtoRequestSubmit(e),
-      );
-    } catch (error) {
-      // Scheduler element doesn't exist in test environment, skip
-    }
-
     // Logout
     const navMenu = querySingle<DashboardNavigationMenu>(
       "dashboard-navigation-menu",
@@ -226,7 +216,6 @@ export class UIManager {
 
   private setupPTOCardEventListeners(): void {
     try {
-      const accrualCard = querySingle<PtoAccrualCard>("pto-accrual-card");
       const sickCard = querySingle<PtoSickCard>("pto-sick-card");
       const bereavementCard = querySingle<PtoBereavementCard>(
         "pto-bereavement-card",
@@ -234,54 +223,15 @@ export class UIManager {
       const juryDutyCard = querySingle<PtoJuryDutyCard>("pto-jury-duty-card");
       const ptoCard = querySingle<PtoPtoCard>("pto-pto-card");
 
-      // Handle PTO request submission
-      addEventListener(accrualCard, "pto-request-submit", (e: CustomEvent) => {
-        e.stopPropagation();
-        this.handlePtoRequestSubmit(e);
-      });
-
-      // Handle month-selected from accrual card — compose slotted calendar
-      addEventListener(accrualCard, "month-selected", (e: CustomEvent) => {
-        const { month, year, entries, requestMode } = e.detail;
-        // Find or create the slotted pto-calendar
-        let calendar = accrualCard.querySelector("pto-calendar") as PtoCalendar;
-        if (!calendar) {
-          calendar = createElement("pto-calendar") as PtoCalendar;
-          calendar.setAttribute("slot", "calendar");
-          accrualCard.appendChild(calendar);
-        }
-        calendar.setAttribute("month", String(month));
-        calendar.setAttribute("year", String(year));
-        calendar.ptoEntries = entries;
-        calendar.setAttribute("selected-month", String(month));
-        calendar.setAttribute("readonly", String(!requestMode));
-        if (requestMode) {
-          // Ensure submit button exists
-          let submitBtn = calendar.querySelector('button[slot="submit"]');
-          if (!submitBtn) {
-            submitBtn = createElement("button") as HTMLButtonElement;
-            submitBtn.setAttribute("slot", "submit");
-            submitBtn.className = "submit-button";
-            submitBtn.textContent = "Submit PTO Request";
-            calendar.appendChild(submitBtn);
-          }
-        } else {
-          // Remove submit button if not in request mode
-          const submitBtn = calendar.querySelector('button[slot="submit"]');
-          if (submitBtn) submitBtn.remove();
-        }
-        // Scroll into view
-        calendar.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-
       // Handle navigation to month from PTO detail cards
       const handleNavigateToMonth = (e: CustomEvent) => {
         e.stopPropagation();
         const { month, year } = e.detail;
         console.log("App: navigate-to-month event received:", { month, year });
-        accrualCard.navigateToMonth(month, year);
-        // Scroll to the accrual card
-        accrualCard.scrollIntoView({ behavior: "smooth", block: "start" });
+        // Switch to Submit Time Off page and navigate calendar to clicked month
+        this.handlePageChange("submit-time-off");
+        const ptoForm = querySingle<PtoEntryForm>("#pto-entry-form");
+        ptoForm.navigateToMonth(month, year);
       };
 
       addEventListener(sickCard, "navigate-to-month", handleNavigateToMonth);
@@ -394,10 +344,8 @@ export class UIManager {
 
   private static readonly PAGE_LABELS: Record<string, string> = {
     "submit-time-off": "Submit Time Off",
-    default: "Schedule PTO",
     "current-year-summary": "Current Year Summary",
     "prior-year-summary": "Prior Year Summary",
-    "employee-info": "Employee Information",
   };
 
   private handlePageChange(page: string): void {
@@ -421,16 +369,11 @@ export class UIManager {
     menu.currentPageValue = page as any;
 
     // Load data based on page
-    if (page === "default") {
+    if (page === "current-year-summary") {
       this.loadPTOStatus();
-      this.loadCurrentYearScheduler();
-    } else if (page === "current-year-summary") {
-      this.loadPTOStatus();
+      this.loadEmployeeInfo();
     } else if (page === "prior-year-summary") {
-      this.loadEmployeeInfo();
       this.loadPriorYearReview();
-    } else if (page === "employee-info") {
-      this.loadEmployeeInfo();
     } else if (page === "submit-time-off") {
       this.loadPTOStatus(); // Load PTO balance for form validation
       // Set available PTO balance on the form for validation
@@ -546,12 +489,6 @@ export class UIManager {
     const summaryCard = querySingle<PtoSummaryCard>("pto-summary-card");
     summaryCard.summary = null; // Will show loading
 
-    const accrualCard = querySingle<PtoAccrualCard>("pto-accrual-card");
-    accrualCard.monthlyAccruals = [];
-    accrualCard.ptoEntries = [];
-    accrualCard.calendarYear = getCurrentYear();
-    accrualCard.monthlyUsage = [];
-    // Attributes already set in HTML
     const sickCard = querySingle<PtoSickCard>("pto-sick-card");
     sickCard.bucket = null; // Will show loading
     sickCard.usageEntries = [];
@@ -604,17 +541,6 @@ export class UIManager {
         carryoverFromPreviousYear: status.carryoverFromPreviousYear,
       };
 
-      accrualCard.monthlyAccruals = status.monthlyAccruals;
-      accrualCard.ptoEntries = entries;
-      accrualCard.monthlyUsage = this.buildMonthlyUsage(
-        entries,
-        getCurrentYear(),
-      );
-      accrualCard.setAttribute(
-        "annual-allocation",
-        status.annualAllocation.toString(),
-      );
-
       sickCard.bucket = status.sickTime;
       sickCard.usageEntries = this.buildUsageEntries(
         entries,
@@ -661,9 +587,8 @@ export class UIManager {
       employeeInfoCard.info = {
         hireDate: realHireDate,
         nextRolloverDate: realNextRolloverDate,
+        ...this.computeAccrualFields(status),
       };
-
-      // Event listeners are set up once in setupPTOCardEventListeners()
     } catch (error) {
       console.error(UI_ERROR_MESSAGES.failed_to_load_pto_status, error);
       const statusDiv = querySingle("#pto-status");
@@ -694,6 +619,7 @@ export class UIManager {
           month: "long",
           day: "numeric",
         }),
+        ...this.computeAccrualFields(status),
       };
     } catch (error) {
       console.error("Failed to load employee info:", error);
@@ -720,31 +646,6 @@ export class UIManager {
       notifications.error(
         "Failed to load prior year data. Please try again later.",
       );
-    }
-  }
-
-  private async loadCurrentYearScheduler(): Promise<void> {
-    if (!this.currentUser) return;
-
-    try {
-      const currentYear = getCurrentYear();
-      const schedulerData = await this.api.getPTOYearReview(currentYear);
-
-      const scheduler = querySingle<CurrentYearPtoScheduler>(
-        "current-year-pto-scheduler",
-      );
-      scheduler.data = schedulerData;
-
-      // Notify user if no PTO entries exist for the current year
-      const hasEntries = schedulerData.months.some(
-        (m) => m.ptoEntries.length > 0,
-      );
-      if (!hasEntries) {
-        notifications.info(`Nothing scheduled yet for ${currentYear}`);
-      }
-    } catch (error) {
-      console.error("Failed to load current year scheduler data:", error);
-      notifications.error("Failed to load PTO scheduling data");
     }
   }
 
@@ -776,68 +677,6 @@ export class UIManager {
       .map(([date, hours]) => ({ date, hours }))
       .sort((a, b) => a.date.localeCompare(b.date));
     return result;
-  }
-
-  private buildAllUsageEntries(
-    entries: ApiTypes.PTOEntry[],
-    type: string,
-  ): { date: string; hours: number }[] {
-    const safeEntries = Array.isArray(entries) ? entries : [];
-    const hoursByDate = new Map<string, number>();
-
-    for (const entry of safeEntries) {
-      if (entry.type !== type) {
-        continue;
-      }
-
-      hoursByDate.set(
-        entry.date,
-        (hoursByDate.get(entry.date) ?? 0) + entry.hours,
-      );
-    }
-
-    const result = Array.from(hoursByDate.entries())
-      .map(([date, hours]) => ({ date, hours }))
-      .sort((a, b) => a.date.localeCompare(b.date));
-    return result;
-  }
-
-  private buildMonthlyUsage(
-    entries: ApiTypes.PTOEntry[],
-    year: number,
-  ): { month: number; hours: number }[] {
-    const usageByMonth = new Map<number, number>();
-    for (let month = 1; month <= 12; month += 1) {
-      usageByMonth.set(month, 0);
-    }
-
-    const safeEntries = Array.isArray(entries) ? entries : [];
-    for (const entry of safeEntries) {
-      if (entry.type !== "PTO") {
-        continue;
-      }
-
-      const { year: entryYear, month: entryMonth } = parseDate(entry.date);
-      if (entryYear !== year) {
-        continue;
-      }
-
-      usageByMonth.set(
-        entryMonth,
-        (usageByMonth.get(entryMonth) ?? 0) + (entry.hours ?? 0),
-      );
-    }
-
-    return Array.from(usageByMonth.entries())
-      .map(([month, hours]) => ({ month, hours }))
-      .sort((a, b) => a.month - b.month);
-  }
-
-  private getWorkdaysBetween(
-    startDateStr: string,
-    endDateStr: string,
-  ): string[] {
-    return getWorkdaysBetween(startDateStr, endDateStr);
   }
 
   private async handlePtoRequestSubmit(e: CustomEvent): Promise<void> {
@@ -874,7 +713,6 @@ export class UIManager {
       await this.api.createPTOEntry({ requests });
       notifications.success("PTO request submitted successfully!");
       await this.refreshPTOData();
-      await this.loadCurrentYearScheduler();
       // Reset the form and reload PTO data after successful submit
       const ptoForm = querySingle<PtoEntryForm>("#pto-entry-form");
       ptoForm.reset();
@@ -1015,19 +853,6 @@ export class UIManager {
       carryoverFromPreviousYear: status.carryoverFromPreviousYear,
     };
 
-    const accrualCard = querySingle<PtoAccrualCard>("pto-accrual-card");
-    accrualCard.monthlyAccruals = status.monthlyAccruals;
-    accrualCard.ptoEntries = entries;
-    accrualCard.calendarYear = getCurrentYear();
-    accrualCard.monthlyUsage = this.buildMonthlyUsage(
-      entries,
-      getCurrentYear(),
-    );
-    accrualCard.setAttribute(
-      "annual-allocation",
-      status.annualAllocation.toString(),
-    );
-
     const sickCard = querySingle<PtoSickCard>("pto-sick-card");
     sickCard.bucket = status.sickTime;
     sickCard.usageEntries = this.buildUsageEntries(
@@ -1086,8 +911,39 @@ export class UIManager {
         month: "long",
         day: "numeric",
       }),
+      ...this.computeAccrualFields(status),
     };
 
     // Event listeners are set up once in setupPTOCardEventListeners()
+  }
+
+  /**
+   * Compute accrual-related fields for the employee info card.
+   */
+  private computeAccrualFields(status: ApiTypes.PTOStatusResponse): {
+    carryoverHours: number;
+    ptoRatePerDay: number;
+    accrualToDate: number;
+    annualAllocation: number;
+  } {
+    const year = getCurrentYear();
+    const totalWorkDays = getWorkdaysBetween(
+      formatDate(year, 1, 1),
+      formatDate(year, 12, 31),
+    ).length;
+    const ptoRatePerDay =
+      totalWorkDays > 0 ? status.annualAllocation / totalWorkDays : 0;
+    const fiscalYearStart = formatDate(year, 1, 1);
+    const accrualToDate = computeAccrualToDate(
+      ptoRatePerDay,
+      fiscalYearStart,
+      today(),
+    );
+    return {
+      carryoverHours: status.carryoverFromPreviousYear,
+      ptoRatePerDay,
+      accrualToDate,
+      annualAllocation: status.annualAllocation,
+    };
   }
 }

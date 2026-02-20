@@ -1,4 +1,4 @@
-import { getDayOfWeek } from "./dateUtils.js";
+import { getDayOfWeek, getWorkdaysBetween } from "./dateUtils.js";
 import type { PtoBalanceData } from "./api-models.d.ts";
 
 export type PTOType = "Sick" | "PTO" | "Bereavement" | "Jury Duty";
@@ -180,6 +180,22 @@ export function validateMonthEditable(
     return { field: "month", messageKey: "month.acknowledged" };
   }
   return null;
+}
+
+/**
+ * Computes PTO accrued from the start of the fiscal year to the current date.
+ * @param ptoRate - hours accrued per work day
+ * @param fiscalYearStart - YYYY-MM-DD string for the beginning of the fiscal year
+ * @param currentDate - YYYY-MM-DD string (today)
+ * @returns total hours accrued = ptoRate × number of workdays between fiscalYearStart and currentDate
+ */
+export function computeAccrualToDate(
+  ptoRate: number,
+  fiscalYearStart: string,
+  currentDate: string,
+): number {
+  const workdays = getWorkdaysBetween(fiscalYearStart, currentDate);
+  return ptoRate * workdays.length;
 }
 
 /**

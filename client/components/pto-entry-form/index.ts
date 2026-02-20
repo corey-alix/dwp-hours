@@ -6,7 +6,7 @@ interface PtoRequest {
 }
 
 import { querySingle } from "../test-utils";
-import { today, parseDate } from "../../../shared/dateUtils.js";
+import { today, parseDate, getCurrentYear } from "../../../shared/dateUtils.js";
 import {
   validateHours,
   validatePTOType,
@@ -16,10 +16,22 @@ import {
 } from "../../../shared/businessRules.js";
 import type { MessageKey } from "../../../shared/businessRules.js";
 import { PtoCalendar, type CalendarEntry } from "../pto-calendar/index.js";
+import type { MonthSummary } from "../month-summary/index.js";
+import { computeSelectionDeltas } from "../utils/compute-selection-deltas.js";
+
+/** Breakpoint at which all 12 months are shown in a grid */
+const MULTI_CALENDAR_BREAKPOINT = 960;
 
 export class PtoEntryForm extends HTMLElement {
   private shadow: ShadowRoot;
   private availablePtoBalance: number = 0;
+
+  /** MediaQueryList used to detect multi-calendar mode */
+  private multiCalendarMql: MediaQueryList | null = null;
+  /** Bound handler for matchMedia changes */
+  private handleMqlChange = (e: MediaQueryListEvent | MediaQueryList) => {
+    this.setMultiCalendarMode(e.matches);
+  };
 
   constructor() {
     super();
@@ -38,42 +50,151 @@ export class PtoEntryForm extends HTMLElement {
 
   connectedCallback() {
     this.render();
-    this.initializeCalendarDefaults();
     this.setupEventListeners();
+    this.setupMultiCalendarDetection();
+    // After detection, calendars are built. Request PTO data from parent.
+    this.dispatchEvent(new CustomEvent("pto-data-request"));
   }
 
   disconnectedCallback() {
-    // Clean up event listeners if needed
+    this.teardownMultiCalendarDetection();
   }
 
-  private initializeCalendarDefaults(): void {
-    // Ensure calendar is ready and set to current month
-    this.ensureCalendarReady();
+  /** Start listening for viewport changes to toggle multi-calendar mode. */
+  private setupMultiCalendarDetection(): void {
+    this.multiCalendarMql = window.matchMedia(
+      `(min-width: ${MULTI_CALENDAR_BREAKPOINT}px)`,
+    );
+    // Apply initial state — force-build even when the mode matches the default
+    this.classList.toggle("multi-calendar", this.multiCalendarMql.matches);
+    this.rebuildCalendars();
+    this.multiCalendarMql.addEventListener("change", this.handleMqlChange);
   }
 
-  private ensureCalendarReady(): void {
-    const calendarContainer = querySingle<HTMLDivElement>(
+  /** Remove the matchMedia listener. */
+  private teardownMultiCalendarDetection(): void {
+    if (this.multiCalendarMql) {
+      this.multiCalendarMql.removeEventListener("change", this.handleMqlChange);
+      this.multiCalendarMql = null;
+    }
+  }
+
+  /** Whether the component is currently in multi-calendar (12-month grid) mode */
+  get isMultiCalendar(): boolean {
+    return this.classList.contains("multi-calendar");
+  }
+
+  /**
+   * Toggle between single-calendar and multi-calendar modes.
+   * In multi-calendar mode all 12 months are shown in a CSS grid.
+   * In single-calendar mode the existing carousel navigation is used.
+   */
+  private setMultiCalendarMode(enabled: boolean): void {
+    if (enabled === this.isMultiCalendar) return;
+    this.classList.toggle("multi-calendar", enabled);
+    this.rebuildCalendars();
+  }
+
+  /**
+   * Rebuild the calendar container contents for the current mode.
+   * - Single-calendar: one `<pto-calendar>` set to the current month.
+   * - Multi-calendar: twelve `<pto-calendar>` instances inside `.month-card` wrappers.
+   */
+  private rebuildCalendars(): void {
+    const container = querySingle<HTMLDivElement>(
       "#calendar-container",
       this.shadow,
     );
-    let calendar = calendarContainer.querySelector<PtoCalendar>("pto-calendar");
 
-    if (!calendar) {
-      calendar = document.createElement("pto-calendar") as PtoCalendar;
-      calendar.setAttribute("readonly", "false");
+    // Preserve existing PTO entries from the current calendar(s) so
+    // they can be pushed into the new calendar instances.
+    const existingEntries = this.collectPtoEntries();
 
-      calendarContainer.appendChild(calendar);
+    container.innerHTML = "";
+
+    const year = getCurrentYear();
+
+    if (this.isMultiCalendar) {
+      for (let m = 1; m <= 12; m++) {
+        const card = document.createElement("div");
+        card.className = "month-card";
+        card.dataset.month = m.toString();
+
+        const cal = document.createElement("pto-calendar") as PtoCalendar;
+        cal.setAttribute("month", m.toString());
+        cal.setAttribute("year", year.toString());
+        cal.setAttribute("selected-month", m.toString());
+        cal.setAttribute("readonly", "false");
+        cal.setAttribute("hide-legend", "true");
+
+        const summary = document.createElement("month-summary") as MonthSummary;
+
+        // Filter existing entries for this month
+        const monthEntries = existingEntries.filter(
+          (e) => parseDate(e.date).month === m,
+        );
+        cal.ptoEntries = monthEntries;
+
+        card.appendChild(cal);
+        card.appendChild(summary);
+        container.appendChild(card);
+      }
+
+      // Wire up selection-changed across all calendars (handled by persistent listener)
+    } else {
+      // Single-calendar mode
+      const cal = document.createElement("pto-calendar") as PtoCalendar;
+      cal.setAttribute("readonly", "false");
+
+      const currentDate = today();
+      const { month } = parseDate(currentDate);
+      cal.setAttribute("month", month.toString());
+      cal.setAttribute("year", year.toString());
+      cal.setAttribute("selected-month", month.toString());
+
+      cal.ptoEntries = existingEntries;
+
+      container.appendChild(cal);
     }
+  }
 
-    // Set calendar to current month
-    const currentDate = today();
-    const { year, month } = parseDate(currentDate);
-    calendar.setAttribute("month", month.toString());
-    calendar.setAttribute("year", year.toString());
-    calendar.setAttribute("selected-month", month.toString());
+  /**
+   * Collect PTO entries from all currently rendered calendars.
+   * Used to preserve data when switching between single/multi-calendar modes.
+   */
+  private collectPtoEntries(): any[] {
+    const container = this.shadow.querySelector("#calendar-container");
+    if (!container) return [];
 
-    // Request PTO data from parent
-    this.dispatchEvent(new CustomEvent("pto-data-request"));
+    const calendars = container.querySelectorAll("pto-calendar");
+    const entries: any[] = [];
+    calendars.forEach((cal) => {
+      entries.push(...(cal as PtoCalendar).ptoEntries);
+    });
+    return entries;
+  }
+
+  /**
+   * Handle selection-changed events from any calendar in multi-calendar mode.
+   * Updates the corresponding month-summary deltas.
+   */
+  private handleMultiCalendarSelectionChanged(e: Event): void {
+    const calendar = e.target as PtoCalendar;
+    if (!calendar) return;
+
+    const month = calendar.month;
+    const card = this.shadow.querySelector(
+      `.month-card[data-month="${month}"]`,
+    );
+    if (!card) return;
+
+    const summary = card.querySelector("month-summary") as MonthSummary | null;
+    if (!summary) return;
+
+    const selectedRequests = calendar.getSelectedRequests();
+    const existingEntries = calendar.ptoEntries;
+    const deltas = computeSelectionDeltas(selectedRequests, existingEntries);
+    summary.deltas = deltas;
   }
 
   private render() {
@@ -97,13 +218,6 @@ export class PtoEntryForm extends HTMLElement {
                     display: flex;
                     align-items: center;
                     justify-content: space-between;
-                }
-
-                .form-header h2 {
-                    margin: 0;
-                    font-size: var(--font-size-xl);
-                    font-weight: var(--font-weight-semibold);
-                    color: var(--color-text);
                 }
 
                 .btn {
@@ -228,11 +342,62 @@ export class PtoEntryForm extends HTMLElement {
                         min-width: 120px;
                     }
                 }
+
+                /* ── Multi-calendar grid (all 12 months visible) ── */
+
+                :host(.multi-calendar) {
+                    max-width: none;
+                }
+
+                :host(.multi-calendar) .nav-arrow {
+                    display: none;
+                }
+
+                :host(.multi-calendar) .calendar-container {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: var(--space-sm);
+                }
+
+                :host(.multi-calendar) .month-card {
+                    border: var(--border-width) var(--border-style-solid) var(--color-border);
+                    border-radius: var(--border-radius-md);
+                    background: var(--color-surface);
+                    overflow: hidden;
+                    display: grid;
+                    grid-template-rows: 1fr auto;
+                }
+
+                @media (min-width: 1200px) {
+                    :host(.multi-calendar) .calendar-container {
+                        grid-template-columns: repeat(4, 1fr);
+                    }
+                }
+
+                @media (min-width: 1600px) {
+                    :host(.multi-calendar) .calendar-container {
+                        grid-template-columns: repeat(6, 1fr);
+                    }
+                }
+
+                :host(.multi-calendar) .month-card.highlight {
+                    animation: highlightPulse 1.2s ease-out;
+                }
+
+                @keyframes highlightPulse {
+                    0% { box-shadow: 0 0 0 3px var(--color-primary); }
+                    100% { box-shadow: none; }
+                }
+
+                @media (prefers-reduced-motion: reduce) {
+                    :host(.multi-calendar) .month-card.highlight {
+                        animation: none;
+                    }
+                }
             </style>
 
             <div class="form-container">
                 <div class="form-header">
-                    <h2>Submit Time Off</h2>
                     <div class="calendar-toolbar">
                         <div class="calendar-navigation">
                             <button type="button" class="nav-arrow" id="prev-month-btn" aria-label="Previous month">←</button>
@@ -300,6 +465,19 @@ export class PtoEntryForm extends HTMLElement {
 
     // Add swipe navigation to calendar
     this.setupSwipeNavigation();
+
+    // Persistent listener for multi-calendar month-summary delta updates.
+    // In multi-calendar mode, updates the corresponding month-summary
+    // whenever selections change on any calendar.
+    const calendarContainer = querySingle<HTMLDivElement>(
+      "#calendar-container",
+      this.shadow,
+    );
+    calendarContainer.addEventListener("selection-changed", (e: Event) => {
+      if (this.isMultiCalendar) {
+        this.handleMultiCalendarSelectionChanged(e);
+      }
+    });
   }
 
   private setupSwipeNavigation() {
@@ -451,13 +629,7 @@ export class PtoEntryForm extends HTMLElement {
   }
 
   private handleCalendarSubmit(): void {
-    const calendar = this.getCalendar();
-    if (!calendar) {
-      this.emitValidationErrors(["Calendar is not ready. Please try again."]);
-      return;
-    }
-
-    const requests = calendar.getSelectedRequests();
+    const requests = this.getSelectedRequests();
     if (requests.length === 0) {
       this.emitValidationErrors([
         "Select at least one weekday in the calendar.",
@@ -533,6 +705,16 @@ export class PtoEntryForm extends HTMLElement {
     return errors;
   }
 
+  /** Return all pto-calendar instances currently in the container. */
+  private getAllCalendars(): PtoCalendar[] {
+    const container = this.shadow.querySelector("#calendar-container");
+    if (!container) return [];
+    return Array.from(
+      container.querySelectorAll("pto-calendar"),
+    ) as PtoCalendar[];
+  }
+
+  /** Return the single-mode calendar (first pto-calendar in the container). */
   private getCalendar(): PtoCalendar | null {
     const calendarContainer = querySingle<HTMLDivElement>(
       "#calendar-container",
@@ -554,45 +736,86 @@ export class PtoEntryForm extends HTMLElement {
 
   // Public methods for external control
   reset() {
-    // Clear calendar selections
-    const calendar = this.getCalendar();
-    if (calendar) {
-      calendar.clearSelection();
+    // Clear all calendar selections
+    for (const cal of this.getAllCalendars()) {
+      cal.clearSelection();
     }
 
-    // Reinitialize calendar defaults
-    this.initializeCalendarDefaults();
+    // Rebuild calendars to their default state
+    this.rebuildCalendars();
+    this.dispatchEvent(new CustomEvent("pto-data-request"));
   }
 
   focus() {
     // Calendar handles its own focus automatically
   }
 
-  /** Return the selected requests from the internal pto-calendar. */
+  /** Return the selected requests from all pto-calendar instance(s). */
   getSelectedRequests(): CalendarEntry[] {
-    const calendar = this.getCalendar();
-    return calendar ? calendar.getSelectedRequests() : [];
+    const all: CalendarEntry[] = [];
+    for (const cal of this.getAllCalendars()) {
+      all.push(...cal.getSelectedRequests());
+    }
+    return all;
   }
 
-  /** Return the existing PTO entries loaded into the internal pto-calendar. */
+  /** Return the existing PTO entries loaded into all pto-calendar instance(s). */
   getPtoEntries(): ReadonlyArray<{
     date: string;
     type: string;
     hours: number;
   }> {
-    const calendar = this.getCalendar();
-    return calendar ? calendar.ptoEntries : [];
+    return this.collectPtoEntries();
   }
 
   setPtoData(ptoEntries: any[]) {
-    const calendar = this.getCalendar();
-    if (calendar) {
-      calendar.ptoEntries = ptoEntries;
+    if (this.isMultiCalendar) {
+      // Distribute entries to their respective month calendars
+      for (const cal of this.getAllCalendars()) {
+        const month = cal.month;
+        cal.ptoEntries = ptoEntries.filter(
+          (e) => parseDate(e.date).month === month,
+        );
+      }
+    } else {
+      const calendar = this.getCalendar();
+      if (calendar) {
+        calendar.ptoEntries = ptoEntries;
+      }
     }
   }
 
   setPtoStatus(status: any) {
     this.availablePtoBalance = status.availablePTO || 0;
+  }
+
+  /**
+   * Navigate the internal calendar to the specified month and year.
+   * Called when the user clicks a date in a PTO detail card on the summary page.
+   */
+  navigateToMonth(month: number, year: number): void {
+    if (this.isMultiCalendar) {
+      // In multi-calendar mode, scroll the target month card into view
+      const card = this.shadow.querySelector(
+        `.month-card[data-month="${month}"]`,
+      );
+      if (card) {
+        card.scrollIntoView({ behavior: "smooth", block: "center" });
+
+        // Brief highlight animation — accessibility: skip for reduced-motion
+        if (!this.prefersReducedMotion()) {
+          card.classList.add("highlight");
+          setTimeout(() => card.classList.remove("highlight"), 1200);
+        }
+      }
+    } else {
+      const calendar = this.getCalendar();
+      if (calendar) {
+        calendar.setAttribute("month", month.toString());
+        calendar.setAttribute("year", year.toString());
+        calendar.setAttribute("selected-month", month.toString());
+      }
+    }
   }
 }
 

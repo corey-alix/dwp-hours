@@ -5,11 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DWP Hours Tracker</title>
     <link rel="stylesheet" href="styles.css" />
-    <style>
-      pto-accrual-card {
-        grid-column: 1 / -1;
-      }
-    </style>
   </head>
 
   <body>
@@ -34,34 +29,19 @@
       </div>
 
       <div id="dashboard" class="hidden">
-        <div id="default-page" class="page active">
-          <current-year-pto-scheduler
-            id="current-year-pto-scheduler"
-          ></current-year-pto-scheduler>
-        </div>
-
         <div id="current-year-summary-page" class="page">
           <div class="pto-summary">
+            <pto-employee-info-card></pto-employee-info-card>
             <pto-summary-card></pto-summary-card>
             <pto-pto-card></pto-pto-card>
             <pto-sick-card></pto-sick-card>
             <pto-bereavement-card></pto-bereavement-card>
             <pto-jury-duty-card></pto-jury-duty-card>
-            <pto-accrual-card
-              request-mode="true"
-              annual-allocation="0"
-            ></pto-accrual-card>
           </div>
         </div>
 
         <div id="prior-year-summary-page" class="page">
           <prior-year-review id="prior-year-review"></prior-year-review>
-        </div>
-
-        <div id="employee-info-page" class="page">
-          <pto-employee-info-card
-            class="bg-color-surface border-color-primary rounded-lg p-4"
-          ></pto-employee-info-card>
         </div>
 
         <div id="pto-form" class="page">

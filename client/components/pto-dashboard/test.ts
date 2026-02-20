@@ -1,6 +1,5 @@
 import { querySingle } from "../test-utils.js";
 import {
-  PtoAccrualCard,
   PtoBereavementCard,
   PtoEmployeeInfoCard,
   PtoJuryDutyCard,
@@ -8,7 +7,6 @@ import {
   PtoSickCard,
   PtoSummaryCard,
 } from "./index.js";
-import { PtoCalendar } from "../pto-calendar/index.js";
 import { today, formatDateForDisplay } from "../../../shared/dateUtils.js";
 import { seedPTOEntries, seedEmployees } from "../../../shared/seedData.js";
 
@@ -160,7 +158,6 @@ export function playground(): void {
   console.log("Starting PTO dashboard playground test with API data...");
 
   const summary = querySingle<PtoSummaryCard>("pto-summary-card");
-  const accrual = querySingle<PtoAccrualCard>("pto-accrual-card");
   const pto = querySingle<PtoPtoCard>("pto-pto-card");
   const sick = querySingle<PtoSickCard>("pto-sick-card");
   const bereavement = querySingle<PtoBereavementCard>("pto-bereavement-card");
@@ -173,41 +170,6 @@ export function playground(): void {
     usedPTO: ptoStatus.usedPTO,
     carryoverFromPreviousYear: ptoStatus.carryoverFromPreviousYear,
   };
-
-  accrual.monthlyAccruals = ptoStatus.monthlyAccruals;
-  accrual.monthlyUsage = monthlyUsage;
-  console.log("Setting ptoEntries on accrual");
-  accrual.ptoEntries = fullPtoEntries;
-  console.log("Set ptoEntries");
-  accrual.calendarYear = currentYear;
-
-  // Set properties that were previously inline attributes
-  accrual.setAttribute("request-mode", "true");
-  accrual.setAttribute("annual-allocation", "96");
-
-  // Listen for month-selected events and compose slotted calendar
-  accrual.addEventListener("month-selected", ((e: CustomEvent) => {
-    const { month, year, entries, requestMode } = e.detail;
-    console.log("month-selected:", { month, year, entries, requestMode });
-
-    // Create or update slotted calendar in light DOM
-    let calendar = accrual.querySelector("pto-calendar") as PtoCalendar;
-    if (!calendar) {
-      calendar = document.createElement("pto-calendar") as PtoCalendar;
-      calendar.setAttribute("slot", "calendar");
-      accrual.appendChild(calendar);
-    }
-
-    calendar.setAttribute("month", String(month));
-    calendar.setAttribute("year", String(year));
-    calendar.ptoEntries = entries;
-    calendar.setAttribute("selected-month", String(month));
-    if (requestMode) {
-      calendar.setAttribute("readonly", "false");
-    } else {
-      calendar.setAttribute("readonly", "true");
-    }
-  }) as EventListener);
 
   const ptoEntriesFiltered = approvedEntries
     .filter((e) => e.type === "PTO")
@@ -241,62 +203,5 @@ export function playground(): void {
     nextRolloverDate: formatDateForDisplay(ptoStatus.nextRolloverDate),
   };
 
-  // Set up PTO request submission event handling
-  const handlePtoRequestSubmit = (event: CustomEvent) => {
-    console.log("PTO Request Submit Event Received:", event);
-    console.log("Event detail:", event.detail);
-    const { requests } = event.detail;
-    console.log("Requests:", requests);
-
-    const timestamp = new Date().toLocaleString();
-    const submissionText = `
-[${timestamp}] PTO Request Submitted:
-${requests.map((req: any) => `  - ${req.date}: ${req.hours} hours (${req.type})`).join("\n")}
-
-Total Requests: ${requests.length}
-`;
-
-    console.log(submissionText);
-
-    // Visual feedback - create a temporary log element if it doesn't exist
-    let logElement = document.getElementById("submission-log");
-    if (!logElement) {
-      logElement = document.createElement("div");
-      logElement.id = "submission-log";
-      logElement.style.cssText = `
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 4px;
-        padding: 12px;
-        margin: 16px 0;
-        font-family: monospace;
-        white-space: pre-wrap;
-      `;
-      logElement.innerHTML =
-        "<strong>PTO Request Submissions:</strong>\n(No submissions yet)";
-      document.body.appendChild(logElement);
-    }
-
-    logElement.textContent += submissionText;
-
-    // Visual feedback
-    logElement.style.background = "#d4edda";
-    logElement.style.borderColor = "#c3e6cb";
-    setTimeout(() => {
-      logElement!.style.background = "#f8f9fa";
-      logElement!.style.borderColor = "#dee2e6";
-    }, 2000);
-  };
-
-  // Listen for PTO request submissions from the accrual card
-  document.addEventListener(
-    "pto-request-submit",
-    handlePtoRequestSubmit as EventListener,
-  );
-
-  console.log("Event listener added for pto-request-submit");
   console.log("PTO dashboard playground test initialized with API data");
-  console.log(
-    "Instructions: Select a month, choose PTO type, paint cells, edit hours, submit",
-  );
 }

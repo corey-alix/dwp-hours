@@ -5,6 +5,10 @@ import { renderCardShell, renderRow } from "../utils/pto-card-helpers.js";
 type EmployeeInfoData = {
   hireDate: string;
   nextRolloverDate: string;
+  carryoverHours?: number;
+  ptoRatePerDay?: number;
+  accrualToDate?: number;
+  annualAllocation?: number;
 };
 
 export class PtoEmployeeInfoCard extends BaseComponent {
@@ -37,6 +41,10 @@ export class PtoEmployeeInfoCard extends BaseComponent {
         `
         ${renderRow("Hire Date", this.data.hireDate)}
         ${renderRow("Next Rollover", this.data.nextRolloverDate)}
+        ${this.data.carryoverHours !== undefined ? renderRow("Carryover", `${this.data.carryoverHours.toFixed(1)} hours`) : ""}
+        ${this.data.ptoRatePerDay !== undefined ? renderRow("PTO Rate", `${this.data.ptoRatePerDay.toFixed(2)} hrs/day`) : ""}
+        ${this.data.accrualToDate !== undefined ? renderRow("Accrued YTD", `${this.data.accrualToDate.toFixed(1)} hours`) : ""}
+        ${this.data.annualAllocation !== undefined ? renderRow("Annual Allocation", `${this.data.annualAllocation.toFixed(1)} hours`) : ""}
       `,
       )}
       <slot name="balance-summary"></slot>

@@ -1,12 +1,7 @@
 import { BaseComponent } from "../base-component.js";
 import { DASHBOARD_NAVIGATION_MENU_CSS } from "./css.js";
 
-type Page =
-  | "default"
-  | "current-year-summary"
-  | "prior-year-summary"
-  | "employee-info"
-  | "submit-time-off";
+type Page = "current-year-summary" | "prior-year-summary" | "submit-time-off";
 
 export class DashboardNavigationMenu extends BaseComponent {
   private isMenuOpen = false;
@@ -45,10 +40,8 @@ export class DashboardNavigationMenu extends BaseComponent {
   protected render(): string {
     const menuItems = [
       { id: "submit-time-off", label: "Submit Time Off" },
-      { id: "default", label: "Schedule PTO" },
       { id: "current-year-summary", label: "Current Year Summary" },
       { id: "prior-year-summary", label: "Prior Year Summary" },
-      { id: "employee-info", label: "Employee Information" },
       { id: "logout", label: "Logout", isLogout: true },
     ];
 
