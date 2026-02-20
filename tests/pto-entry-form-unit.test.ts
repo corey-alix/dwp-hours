@@ -320,11 +320,11 @@ describe("PTO Entry Form - Shadow DOM Template", () => {
       const path = await import("path");
       const filePath = path.resolve(
         __dirname,
-        "../client/components/pto-entry-form/index.ts",
+        "../client/components/pto-entry-form/css.ts",
       );
       const source = fs.readFileSync(filePath, "utf-8");
 
-      expect(source).toContain('::slotted([slot="pto-summary"])');
+      expect(source).toContain("::slotted(month-summary)");
     });
   });
 });
