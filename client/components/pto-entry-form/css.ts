@@ -24,8 +24,6 @@ export const styles = `
                 }
 
                 .calendar-view {
-                    margin-top: var(--space-md);
-                    position: relative;
                     overflow: hidden;
                 }
 
@@ -78,7 +76,7 @@ export const styles = `
 
                 /* Hide navigation arrows on touch devices */
                 @media (hover: none) and (pointer: coarse) {
-                    .nav-arrow {
+                    .form-header, .calendar-navigation, .nav-arrow {
                         display: none;
                     }
                 }

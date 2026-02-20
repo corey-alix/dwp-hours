@@ -54,6 +54,7 @@ header h1 {
   position: sticky;
   top: 81px;
   z-index: 1;
+  width: -webkit-fill-available;
 }
 
 .form-actions {
@@ -175,6 +176,7 @@ button[type="button"]:hover {
 
 #pto-form {
   display: flex;
+  gap: var(--space-md);
   flex-direction: column;
   justify-content: center;
   align-items: center;
