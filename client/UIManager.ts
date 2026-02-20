@@ -79,6 +79,7 @@ export class UIManager {
         notifications.error(
           "Invalid or expired magic link. Please request a new one.",
         );
+        this.handleLogout();
       }
     }
 

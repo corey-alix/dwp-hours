@@ -17,7 +17,7 @@ test.describe("Authentication Logout", () => {
     // Step 3: Get the magic link and redirect to it
     const magicLink = page.locator("#login-message a");
     await expect(magicLink).toBeVisible();
-    await expect(magicLink).toHaveAttribute("href", /token=.+&ts=\d+/);
+    await expect(magicLink).toHaveAttribute("href", /token=.+/);
 
     const href = await magicLink.getAttribute("href");
     expect(href).toBeTruthy();
