@@ -48,11 +48,11 @@
 /* Responsive design */
 @media (min-width: 720px) {
   main {
-    padding: var(--space-2xl);
+    padding: var(--space-lg);
   }
 
   form {
-    padding: var(--space-2xl);
+    padding: var(--space-lg);
   }
 
   nav {

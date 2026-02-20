@@ -2,10 +2,9 @@ export const styles = `
 :host {
     display: flex;
     justify-content: space-around;
-    padding: 8px;
-    background: var(--color-surface-hover);
-    border-top: 1px solid var(--color-border);
-    font-size: 12px;
+    padding: var(--space-sm);
+    background: var(--color-background);
+    font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
 }
 

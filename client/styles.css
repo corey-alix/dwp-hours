@@ -31,7 +31,7 @@ header {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 1;
+  z-index: 2;
   background-color: var(--color-background);
   color: var(--color-text);
   box-shadow: var(--shadow-md);
@@ -52,28 +52,16 @@ header h1 {
 /* PTO Form Sticky Elements */
 #form-balance-summary {
   position: sticky;
-  top: 0;
-  z-index: 10;
-  background: var(--color-surface);
-  padding: var(--space-sm);
-  border-bottom: var(--border-width) var(--border-style-solid)
-    var(--color-border);
-  border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
-  margin-bottom: var(--space-sm);
+  top: 81px;
+  z-index: 1;
 }
 
 .form-actions {
   position: sticky;
   bottom: 0;
-  z-index: 10;
-  background: var(--color-surface);
-  padding: var(--space-sm);
-  border-top: var(--border-width) var(--border-style-solid) var(--color-border);
-  border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
+  z-index: 1;
   display: flex;
-  justify-content: center;
   gap: var(--space-sm);
-  margin-top: var(--space-sm);
 }
 
 /* Button styles for external buttons */
@@ -183,6 +171,13 @@ button[type="button"]:hover {
 
 .page.active {
   display: block;
+}
+
+#pto-form {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .year-selector {
