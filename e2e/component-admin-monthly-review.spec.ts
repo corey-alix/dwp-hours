@@ -102,7 +102,7 @@ test.describe("Admin Monthly Review Acknowledgment", () => {
 
   test("non-admin users cannot access monthly review", async ({ page }) => {
     await page.goto("/");
-    await page.fill("#identifier", "john.doe@gmail.com");
+    await page.fill("#identifier", "john.doe@example.com");
     await page.click('#login-form button[type="submit"]');
     await page.waitForSelector("#login-message", { timeout: 10000 });
     const magicLink = page.locator("#login-message a");

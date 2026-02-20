@@ -19,7 +19,7 @@ export function playground() {
 
   // Compute available PTO balance from seedData
   const employee = seedEmployees.find(
-    (e) => e.identifier === "john.doe@gmail.com",
+    (e) => e.identifier === "john.doe@example.com",
   )!;
   const approvedPtoEntries = seedPTOEntries.filter(
     (e) => e.employee_id === 1 && e.approved_by !== null && e.type === "PTO",

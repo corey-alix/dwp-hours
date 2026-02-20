@@ -27,7 +27,7 @@ describe("EmployeeList Component - Search Filtering", () => {
     // Verify John Doe exists
     const johnDoe = seedEmployees.find((emp) => emp.name === "John Doe");
     expect(johnDoe).toBeDefined();
-    expect(johnDoe?.identifier).toBe("john.doe@gmail.com");
+    expect(johnDoe?.identifier).toBe("john.doe@example.com");
     expect(johnDoe?.role).toBe("Employee");
 
     // Verify Jane Smith exists
@@ -123,8 +123,8 @@ describe("EmployeeList Component - Search Filtering", () => {
         "#search-input",
       ) as HTMLInputElement;
 
-      // Search by identifier "john.doe@gmail.com"
-      searchInput.value = "john.doe@gmail.com";
+      // Search by identifier "john.doe@example.com"
+      searchInput.value = "john.doe@example.com";
       searchInput.dispatchEvent(new Event("input", { bubbles: true }));
 
       const employeeCards =

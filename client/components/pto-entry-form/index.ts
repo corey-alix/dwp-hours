@@ -212,6 +212,8 @@ export class PtoEntryForm extends HTMLElement {
                     </div>
                 </div>
 
+                <slot name="pto-summary"></slot>
+
                 <div class="calendar-view" id="calendar-view">
                     <div id="calendar-container" class="calendar-container"></div>
                 </div>

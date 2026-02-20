@@ -7,8 +7,8 @@ test.describe("Sick Time Rendering Consistency", () => {
     // Navigate to login page
     await page.goto("/index.html");
 
-    // Enter employee identifier (assuming john.doe@gmail.com has seeded data)
-    await page.fill("#identifier", "john.doe@gmail.com");
+    // Enter employee identifier (assuming john.doe@example.com has seeded data)
+    await page.fill("#identifier", "john.doe@example.com");
     await page.click('button[type="submit"]');
 
     // Get magic link from response (test mode returns it directly)

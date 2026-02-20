@@ -11,7 +11,7 @@ test.describe("PTO Balance Validation", () => {
     await page.goto("/");
 
     // Login as John Doe (has ~12 hours available PTO)
-    await page.fill("#identifier", "john.doe@gmail.com");
+    await page.fill("#identifier", "john.doe@example.com");
     await page.click('#login-form button[type="submit"]');
 
     await page.waitForSelector("#login-message a", { timeout: 10000 });
@@ -171,7 +171,7 @@ test.describe("PTO Balance Validation", () => {
     await page.goto("/");
 
     // Login as John Doe (positive balance)
-    await page.fill("#identifier", "john.doe@gmail.com");
+    await page.fill("#identifier", "john.doe@example.com");
     await page.click('#login-form button[type="submit"]');
 
     await page.waitForSelector("#login-message a", { timeout: 10000 });
@@ -203,7 +203,7 @@ test.describe("PTO Balance Validation", () => {
     await page.goto("/");
 
     // Login as John Doe
-    await page.fill("#identifier", "john.doe@gmail.com");
+    await page.fill("#identifier", "john.doe@example.com");
     await page.click('#login-form button[type="submit"]');
 
     await page.waitForSelector("#login-message a", { timeout: 10000 });
@@ -257,7 +257,7 @@ test.describe("PTO Balance Validation", () => {
     await page.goto("/");
 
     // Login as John Doe
-    await page.fill("#identifier", "john.doe@gmail.com");
+    await page.fill("#identifier", "john.doe@example.com");
     await page.click('#login-form button[type="submit"]');
 
     await page.waitForSelector("#login-message a", { timeout: 10000 });

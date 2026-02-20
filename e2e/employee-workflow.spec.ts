@@ -31,14 +31,14 @@ test.describe("Employee Authentication & Workflow", () => {
     await page.goto("/");
 
     // Fill out login form with test user email
-    await page.fill("#identifier", "john.doe@gmail.com");
+    await page.fill("#identifier", "john.doe@example.com");
     await page.click('#login-form button[type="submit"]');
 
     // Wait for magic link to appear
     await page.waitForSelector("#login-message", { timeout: 10000 });
     const magicLink = page.locator("#login-message a");
     await expect(magicLink).toBeVisible();
-    await expect(magicLink).toHaveAttribute("href", /token=.+&ts=\d+/);
+    await expect(magicLink).toHaveAttribute("href", /token=.+/);
 
     // Click the magic link to login
     await magicLink.click();

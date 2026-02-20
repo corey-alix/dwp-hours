@@ -1,5 +1,6 @@
 import { test, expect, vi } from "vitest";
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
 import { authenticateMiddleware } from "../server/utils/auth.js";
 
 test("email validation should work", () => {
@@ -9,9 +10,8 @@ test("email validation should work", () => {
 });
 
 test("URL parameters parsing", () => {
-  const urlParams = new URLSearchParams("?token=abc123&ts=1234567890");
+  const urlParams = new URLSearchParams("?token=abc123");
   expect(urlParams.get("token")).toBe("abc123");
-  expect(urlParams.get("ts")).toBe("1234567890");
 });
 
 test("localStorage management", () => {
@@ -37,79 +37,110 @@ test("localStorage management", () => {
 
 test("session token generation", () => {
   const employeeId = 1;
-  const timestamp = 1640995200000;
-  const salt = "test_salt";
-  const sessionToken = crypto
-    .createHash("sha256")
-    .update(`${employeeId}:${timestamp}:${salt}`)
-    .digest("hex");
+  const jwtSecret = "test_jwt_secret";
+  const sessionToken = jwt.sign(
+    {
+      employeeId,
+      role: "Employee",
+      exp: Math.floor(Date.now() / 1000) + 10 * 365 * 24 * 60 * 60, // 10 years
+    },
+    jwtSecret,
+  );
 
   expect(typeof sessionToken).toBe("string");
-  expect(sessionToken.length).toBe(64); // SHA256 produces 64 character hex string
+  expect(sessionToken.split(".").length).toBe(3); // JWT has 3 parts
 
-  // Same inputs should produce same token
-  const sessionToken2 = crypto
-    .createHash("sha256")
-    .update(`${employeeId}:${timestamp}:${salt}`)
-    .digest("hex");
-  expect(sessionToken).toBe(sessionToken2);
-
-  // Different employee should produce different token
-  const sessionToken3 = crypto
-    .createHash("sha256")
-    .update(`${employeeId + 1}:${timestamp}:${salt}`)
-    .digest("hex");
-  expect(sessionToken).not.toBe(sessionToken3);
+  // Verify the token can be decoded
+  const decoded = jwt.verify(sessionToken, jwtSecret) as jwt.JwtPayload;
+  expect(decoded.employeeId).toBe(employeeId);
+  expect(decoded.role).toBe("Employee");
+  expect(decoded.exp).toBeDefined();
 });
 
 test("session token expiration check", () => {
-  const now = Date.now();
-  const twentyNineDaysAgo = now - 29 * 24 * 60 * 60 * 1000;
-  const thirtyOneDaysAgo = now - 31 * 24 * 60 * 60 * 1000;
+  const jwtSecret = "test_jwt_secret";
+  const now = Math.floor(Date.now() / 1000);
 
-  // Valid timestamp (less than 30 days ago)
-  expect(now - twentyNineDaysAgo).toBeLessThan(30 * 24 * 60 * 60 * 1000);
+  // Valid token (expires in 10 years)
+  const validToken = jwt.sign(
+    {
+      employeeId: 1,
+      role: "Employee",
+      exp: now + 10 * 365 * 24 * 60 * 60, // 10 years from now
+    },
+    jwtSecret,
+  );
 
-  // Expired timestamp (more than 30 days ago)
-  expect(now - thirtyOneDaysAgo).toBeGreaterThan(30 * 24 * 60 * 60 * 1000);
+  // Should verify successfully
+  expect(() => jwt.verify(validToken, jwtSecret)).not.toThrow();
+
+  // Expired token (already expired)
+  const expiredToken = jwt.sign(
+    {
+      employeeId: 1,
+      role: "Employee",
+      exp: now - 3600, // 1 hour ago
+    },
+    jwtSecret,
+  );
+
+  // Should throw TokenExpiredError
+  expect(() => jwt.verify(expiredToken, jwtSecret)).toThrow(
+    jwt.TokenExpiredError,
+  );
 });
 
-test("temporal hash generation", () => {
-  const secretHash = "secret_hash";
-  const timestamp = 1234567890;
-  const temporalHash = crypto
-    .createHash("sha256")
-    .update(secretHash + timestamp)
-    .digest("hex");
+test("magic link token generation", () => {
+  const email = "test@example.com";
+  const jwtSecret = "test_jwt_secret";
+  const now = Math.floor(Date.now() / 1000);
 
-  expect(typeof temporalHash).toBe("string");
-  expect(temporalHash.length).toBe(64);
+  const magicToken = jwt.sign(
+    {
+      email,
+      exp: now + 3600, // 1 hour
+    },
+    jwtSecret,
+  );
 
-  // Same inputs should produce same hash
-  const temporalHash2 = crypto
-    .createHash("sha256")
-    .update(secretHash + timestamp)
-    .digest("hex");
-  expect(temporalHash).toBe(temporalHash2);
+  expect(typeof magicToken).toBe("string");
+  expect(magicToken.split(".").length).toBe(3); // JWT has 3 parts
 
-  // Different timestamp should produce different hash
-  const temporalHash3 = crypto
-    .createHash("sha256")
-    .update(secretHash + (timestamp + 1))
-    .digest("hex");
-  expect(temporalHash).not.toBe(temporalHash3);
+  // Verify the token can be decoded and contains correct data
+  const decoded = jwt.verify(magicToken, jwtSecret) as jwt.JwtPayload;
+  expect(decoded.email).toBe(email);
+  expect(decoded.exp).toBe(now + 3600);
 });
 
-test("temporal hash expiration check", () => {
-  const now = Date.now();
-  const fiftyNineMinutesAgo = now - 59 * 60 * 1000; // 59 minutes ago
-  const twoHoursAgo = now - 2 * 60 * 60 * 1000;
+test("magic link token expiration check", () => {
+  const jwtSecret = "test_jwt_secret";
+  const now = Math.floor(Date.now() / 1000);
 
-  // Valid timestamp (less than 1 hour ago)
-  expect(now - fiftyNineMinutesAgo).toBeLessThan(60 * 60 * 1000);
+  // Valid token (expires in 1 hour)
+  const validToken = jwt.sign(
+    {
+      email: "test@example.com",
+      exp: now + 3600, // 1 hour from now
+    },
+    jwtSecret,
+  );
 
-  // Expired timestamp (more than 1 hour ago)
-  expect(now - twoHoursAgo).toBeGreaterThan(60 * 60 * 1000);
+  // Should verify successfully
+  expect(() => jwt.verify(validToken, jwtSecret)).not.toThrow();
+
+  // Expired token (already expired)
+  const expiredToken = jwt.sign(
+    {
+      email: "test@example.com",
+      exp: now - 3600, // 1 hour ago
+    },
+    jwtSecret,
+  );
+
+  // Should throw TokenExpiredError
+  expect(() => jwt.verify(expiredToken, jwtSecret)).toThrow(
+    jwt.TokenExpiredError,
+  );
 });
 
 test("cookie storage simulation", () => {

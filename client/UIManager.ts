@@ -57,12 +57,10 @@ export class UIManager {
     // Check URL params for magic link
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get("token");
-    const ts = urlParams.get("ts");
-    if (token && ts) {
+    if (token) {
       try {
         const response = (await this.api.validateAuth(
           token,
-          ts,
         )) as ApiTypes.AuthValidateResponse;
         this.setAuthCookie(response.authToken);
         localStorage.setItem("currentUser", JSON.stringify(response.employee));

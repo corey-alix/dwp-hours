@@ -66,7 +66,7 @@ test.describe("Employee Admin Panel - Add Employee", () => {
     const employeeData = {
       id: 1,
       name: "John Doe",
-      identifier: "john.doe@gmail.com",
+      identifier: "john.doe@example.com",
       ptoRate: 0.71,
       carryoverHours: 0,
       role: "Employee",
@@ -97,12 +97,12 @@ test.describe("Employee Admin Panel - Add Employee", () => {
     // Verify the form is pre-populated with existing data
     await expect(editForm.locator("#name")).toHaveValue("John Doe");
     await expect(editForm.locator("#identifier")).toHaveValue(
-      "john.doe@gmail.com",
+      "john.doe@example.com",
     );
 
     // Modify the employee data (keep same email to avoid validation issues)
     await editForm.locator("#name").fill("John Smith"); // Changed name
-    await editForm.locator("#identifier").fill("john.doe@gmail.com"); // Same email
+    await editForm.locator("#identifier").fill("john.doe@example.com"); // Same email
     await editForm.locator("#ptoRate").fill("0.80"); // Changed rate
     await editForm.locator("#carryoverHours").fill("15"); // Changed hours
     await editForm.locator("#role").selectOption("Admin"); // Changed role

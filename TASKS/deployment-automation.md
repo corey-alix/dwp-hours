@@ -979,7 +979,7 @@ This setup provides a solid foundation for the DWP Hours Tracker deployment with
 - ✅ **Solution:** Modified `getBaseUrl()` function to check `X-Forwarded-Proto` header
 - ✅ **Code change:** Added explicit header check for proxy protocol detection
 - ✅ **Verified:** Magic link generation tested and confirmed working with real auth tokens
-- ✅ **Database Seeded:** Test users (john.doe@gmail.com, jane.smith@example.com, admin@example.com) now exist
+- ✅ **Database Seeded:** Test users (john.doe@example.com, jane.smith@example.com, admin@example.com) now exist
 
 **Current Status:**
 
@@ -1150,7 +1150,7 @@ const fs = require('fs');
 **Result:**
 
 ```
-1 | John Doe | john.doe@gmail.com | Employee
+1 | John Doe | john.doe@example.com | Employee
 2 | Jane Smith | jane.smith@example.com | Employee
 3 | Admin User | admin@example.com | Admin
 ```

@@ -210,10 +210,10 @@ describe("APIClient", () => {
         json: () => Promise.resolve(mockResponse),
       });
 
-      const result = await apiClient.validateAuth("token123", "1234567890");
+      const result = await apiClient.validateAuth("token123");
 
       expect(fetchMock).toHaveBeenCalledWith(
-        "/api/auth/validate?token=token123&ts=1234567890",
+        "/api/auth/validate?token=token123",
         {
           credentials: "include",
         },

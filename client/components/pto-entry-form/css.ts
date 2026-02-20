@@ -160,4 +160,8 @@ export const styles = `
                         animation: none;
                     }
                 }
+
+                ::slotted(month-summary) {
+                    margin-bottom: var(--space-lg);
+                }
 `;

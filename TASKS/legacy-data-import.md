@@ -59,7 +59,7 @@ Implement utility methods and scripts for converting between Excel, JSON, and da
 ## Questions and Concerns
 
 1. Figure out the structure by first converting Excel → JSON → Excel; once we have the JSON, we can determine the structure. The formulas should make it obvious.
-2. For the time being, replace any existing data. Use user "1", "john.doe@gmail.com"; it is an in-memory test so the database should be empty anyway. Create a new user if needed.
+2. For the time being, replace any existing data. Use user "1", "john.doe@example.com"; it is an in-memory test so the database should be empty anyway. Create a new user if needed.
 3. No business rules yet. We just want to be sure we are importing the correct dates, PTO types, hours, accrual values, signoffs, etc.
 4. What dependencies need to be added to package.json for ExcelJS and any other required libraries?
 5. How should error handling be implemented for malformed Excel files or invalid data during conversion?

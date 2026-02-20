@@ -72,11 +72,8 @@ export class APIClient {
     return this.post("/auth/request-link", { identifier });
   }
 
-  async validateAuth(
-    token: string,
-    ts: string,
-  ): Promise<ApiTypes.AuthValidateResponse> {
-    return this.get(`/auth/validate?token=${token}&ts=${ts}`);
+  async validateAuth(token: string): Promise<ApiTypes.AuthValidateResponse> {
+    return this.get(`/auth/validate?token=${token}`);
   }
 
   async getPTOStatus(): Promise<ApiTypes.PTOStatusResponse> {

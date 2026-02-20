@@ -12,7 +12,7 @@ import { seedPTOEntries, seedEmployees } from "../../../shared/seedData.js";
 
 // Get employee data
 const employee = seedEmployees.find(
-  (e) => e.identifier === "john.doe@gmail.com",
+  (e) => e.identifier === "john.doe@example.com",
 )!;
 
 // Filter seed data for employee 1 and 2026 entries

@@ -22,7 +22,7 @@ test("index PTO calendar edit existing entry submits 8 hours", async ({
   await page.goto("/");
 
   // Log in as John Doe (who has the 80-hour PTO entry for 2026-07-01)
-  await page.fill("#identifier", "john.doe@gmail.com");
+  await page.fill("#identifier", "john.doe@example.com");
   await page.click('#login-form button[type="submit"]');
 
   await page.waitForSelector("#login-message a", { timeout: 10000 });

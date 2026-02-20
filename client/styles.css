@@ -174,7 +174,7 @@ button[type="button"]:hover {
   display: block;
 }
 
-#pto-form {
+#pto-form:not(.hidden) {
   display: flex;
   gap: var(--space-md);
   flex-direction: column;

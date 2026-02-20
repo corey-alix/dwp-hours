@@ -8,6 +8,7 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
 import "reflect-metadata";
 import { DataSource, Not, IsNull, Between, Like } from "typeorm";
 import {
@@ -488,9 +489,8 @@ initDatabase()
           if (!employee) {
             logger.info(`Login attempt for unknown user: ${identifier}`);
             if (shouldReturnMagicLink) {
-              const timestamp = Date.now();
               const baseUrl = getBaseUrl(req);
-              const magicLink = `${baseUrl}/?token=missing-user&ts=${timestamp}`;
+              const magicLink = `${baseUrl}/?token=missing-user`;
               logger.debug(`Magic link for ${identifier}: ${magicLink}`);
               return res.json({
                 message: "Magic link generated",
@@ -518,15 +518,21 @@ initDatabase()
             await employeeRepo.save(employee);
           }
 
-          // Generate temporal hash: hash(secret + timestamp)
-          const timestamp = Date.now();
-          const temporalHash = crypto
-            .createHash("sha256")
-            .update(secretHash + timestamp)
-            .digest("hex");
+          // Generate JWT token with email and expiration
+          const jwtSecret =
+            process.env.JWT_SECRET ||
+            process.env.HASH_SALT ||
+            "default_jwt_secret";
+          const magicToken = jwt.sign(
+            {
+              email: identifier,
+              exp: Math.floor(Date.now() / 1000) + 3600, // 1 hour
+            },
+            jwtSecret,
+          );
 
           const baseUrl = getBaseUrl(req);
-          const magicLink = `${baseUrl}/?token=${temporalHash}&ts=${timestamp}`;
+          const magicLink = `${baseUrl}/?token=${magicToken}`;
 
           if (shouldReturnMagicLink) {
             logger.debug(`Magic link for ${identifier}: ${magicLink}`);
@@ -565,64 +571,61 @@ initDatabase()
         `API access: ${req.method} ${req.path} by unauthenticated user`,
       );
       try {
-        const { token, ts } = req.query;
-        if (!token || !ts) {
-          logger.warn("Auth validation failed: Token and timestamp required");
-          return res
-            .status(400)
-            .json({ error: "Token and timestamp required" });
+        const { token } = req.query;
+        if (!token) {
+          logger.warn("Auth validation failed: Token required");
+          return res.status(400).json({ error: "Token required" });
         }
 
-        const timestamp = parseInt(ts as string);
-        const now = Date.now();
-        // Expire after 1 hour
-        if (now - timestamp > 60 * 60 * 1000) {
-          logger.warn("Auth validation failed: Token expired");
-          return res.status(401).json({ error: "Token expired" });
+        const jwtSecret =
+          process.env.JWT_SECRET ||
+          process.env.HASH_SALT ||
+          "default_jwt_secret";
+        let payload;
+        try {
+          payload = jwt.verify(token as string, jwtSecret) as jwt.JwtPayload;
+        } catch (err) {
+          logger.warn("Auth validation failed: Invalid or expired token");
+          return res.status(401).json({ error: "Invalid or expired token" });
         }
 
-        // Find employee with matching secret hash
-        const employeeRepo = dataSource.getRepository(Employee);
-        const employees = await employeeRepo.find({
-          where: { hash: Not(IsNull()) },
-        });
-        let validEmployee = null;
-        for (const emp of employees) {
-          const expectedTemporal = crypto
-            .createHash("sha256")
-            .update(emp.hash + timestamp)
-            .digest("hex");
-          if (expectedTemporal === token) {
-            validEmployee = emp;
-            break;
-          }
-        }
-        if (!validEmployee) {
-          logger.warn("Auth validation failed: Invalid token");
+        const { email } = payload;
+        if (!email) {
+          logger.warn("Auth validation failed: Token missing email");
           return res.status(401).json({ error: "Invalid token" });
         }
 
-        // Create session token: employeeId.timestamp.signature (sha256 of employeeId:timestamp:salt)
-        const sessionTimestamp = Date.now();
-        const signature = crypto
-          .createHash("sha256")
-          .update(
-            `${validEmployee.id}:${sessionTimestamp}:${process.env.HASH_SALT || "default_salt"}`,
-          )
-          .digest("hex");
-        const sessionToken = `${validEmployee.id}.${sessionTimestamp}.${signature}`;
+        // Find employee by identifier
+        const employeeRepo = dataSource.getRepository(Employee);
+        const employee = await employeeRepo.findOne({
+          where: { identifier: email },
+        });
+        if (!employee) {
+          logger.warn("Auth validation failed: Employee not found");
+          return res.status(401).json({ error: "Invalid token" });
+        }
+
+        // Create session JWT token
+        const sessionToken = jwt.sign(
+          {
+            employeeId: employee.id,
+            role: employee.role,
+            exp: Math.floor(Date.now() / 1000) + 10 * 365 * 24 * 60 * 60, // 10 years
+          },
+          jwtSecret,
+        );
 
         // Return session token and employee info
         logger.info(
-          `Auth validation successful for employee ${validEmployee.id} (${validEmployee.name})`,
+          `Auth validation successful for employee ${employee.id} (${employee.name})`,
         );
         res.json({
           authToken: sessionToken,
-          expiresAt: sessionTimestamp + 1 * 24 * 60 * 60 * 1000, // 1 day for testing
+          expiresAt: Date.now() + 10 * 365 * 24 * 60 * 60 * 1000, // 10 years
           employee: {
-            id: validEmployee.id,
-            name: validEmployee.name,
-            role: validEmployee.role,
+            id: employee.id,
+            name: employee.name,
+            role: employee.role,
           },
         });
       } catch (error) {

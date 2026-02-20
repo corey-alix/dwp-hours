@@ -6,7 +6,7 @@ export function playground() {
   console.log("Starting PTO Summary Card playground test...");
 
   // Set up John Doe card (employee 1)
-  setupEmployeeCard("john.doe@gmail.com", "pto-summary-card-john", 1);
+  setupEmployeeCard("john.doe@example.com", "pto-summary-card-john", 1);
 
   // Set up Jane Smith card (employee 2)
   setupEmployeeCard("jane.smith@example.com", "pto-summary-card-jane", 2);

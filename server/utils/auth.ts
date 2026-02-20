@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { DataSource } from "typeorm";
 import { Employee } from "../entities/index.js";
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
 
 // Extend Express Request interface to include authenticated employee
 declare global {
@@ -89,37 +90,17 @@ export async function validateSessionToken(
   log: (message: string) => void,
 ): Promise<Employee | null> {
   try {
-    const parts = token.split(".");
-    if (parts.length !== 3) {
+    const jwtSecret =
+      process.env.JWT_SECRET || process.env.HASH_SALT || "default_jwt_secret";
+    let payload;
+    try {
+      payload = jwt.verify(token, jwtSecret) as jwt.JwtPayload;
+    } catch (err) {
       return null;
     }
 
-    const employeeId = Number(parts[0]);
-    const timestamp = Number(parts[1]);
-    const signature = parts[2];
-
-    if (
-      !Number.isFinite(employeeId) ||
-      !Number.isFinite(timestamp) ||
-      !signature
-    ) {
-      return null;
-    }
-
-    const expectedSignature = crypto
-      .createHash("sha256")
-      .update(
-        `${employeeId}:${timestamp}:${process.env.HASH_SALT || "default_salt"}`,
-      )
-      .digest("hex");
-
-    if (expectedSignature !== signature) {
-      return null;
-    }
-
-    const now = Date.now();
-    const sessionTtlMs = 1 * 24 * 60 * 60 * 1000;
-    if (timestamp > now || now - timestamp > sessionTtlMs) {
+    const { employeeId } = payload;
+    if (!employeeId || typeof employeeId !== "number") {
       return null;
     }
 

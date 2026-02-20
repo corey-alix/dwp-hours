@@ -9,7 +9,7 @@ export function playground() {
 
   // Info data from seedData
   const employee = seedEmployees.find(
-    (e) => e.identifier === "john.doe@gmail.com",
+    (e) => e.identifier === "john.doe@example.com",
   )!;
   card.info = {
     hireDate: employee.hire_date,
