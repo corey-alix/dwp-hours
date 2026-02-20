@@ -255,9 +255,21 @@ export class PtoEntryForm extends HTMLElement {
                     display: none;
                 }
 
-                ::slotted([slot="pto-summary"]) {
-                    display: block;
+                ::slotted(month-summary) {
+                    display: flex;
+                    justify-content: space-around;
                     margin-bottom: var(--space-md);
+                }
+
+                .balance-summary-section {
+                    margin-bottom: var(--space-md);
+                }
+
+                .balance-summary-section h5 {
+                    margin: 0 0 var(--space-sm) 0;
+                    font-size: var(--font-size-md);
+                    font-weight: var(--font-weight-semibold);
+                    color: var(--color-text-primary);
                 }
 
                 .calendar-view {
@@ -406,7 +418,10 @@ export class PtoEntryForm extends HTMLElement {
                     </div>
                 </div>
 
-                <slot name="pto-summary"></slot>
+                <div class="balance-summary-section">
+                    <h5>Remaining Balance</h5>
+                    <slot name="pto-summary"></slot>
+                </div>
 
                 <div class="calendar-view" id="calendar-view">
                     <div id="calendar-container" class="calendar-container"></div>

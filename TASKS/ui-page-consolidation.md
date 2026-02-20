@@ -6,13 +6,13 @@ Consolidate and simplify the dashboard page structure by removing redundant page
 
 ### Summary of Changes
 
-| Page                              | Action                                                                                                                                                                                                                                                                                 |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Submit Time Off**               | Remove the duplicate "Submit Time Off" `<h2>` header inside `pto-entry-form` (the page `<h1>` already shows this). Calendar and submit/cancel buttons remain. The slotted `<pto-summary-card>` with `<month-summary id="form-balance-summary">` ("Remaining Balance") remains visible. |
-| **Schedule PTO** (`default` page) | Delete entirely — its functionality is already covered by "Submit Time Off".                                                                                                                                                                                                           |
-| **Current Year Summary**          | Remove `<pto-accrual-card>`. Add `<pto-employee-info-card>` at the top. Re-wire `navigate-to-month` events from PTO detail cards to switch to the "Submit Time Off" page and navigate the `pto-entry-form` calendar to the clicked date's month.                                       |
-| **Employee Information**          | Delete entirely — `<pto-employee-info-card>` moves to "Current Year Summary".                                                                                                                                                                                                          |
-| **Prior Year Summary**            | No changes.                                                                                                                                                                                                                                                                            |
+| Page                              | Action                                                                                                                                                                                                                                                                                                                |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Submit Time Off**               | Remove the duplicate "Submit Time Off" `<h2>` header inside `pto-entry-form` (the page `<h1>` already shows this). Remove the redundant `<pto-summary-card>` wrapper, leaving only the `<month-summary id="form-balance-summary">` ("Remaining Balance") directly slotted. Calendar and submit/cancel buttons remain. |
+| **Schedule PTO** (`default` page) | Delete entirely — its functionality is already covered by "Submit Time Off".                                                                                                                                                                                                                                          |
+| **Current Year Summary**          | Remove `<pto-accrual-card>`. Add `<pto-employee-info-card>` at the top. Re-wire `navigate-to-month` events from PTO detail cards to switch to the "Submit Time Off" page and navigate the `pto-entry-form` calendar to the clicked date's month.                                                                      |
+| **Employee Information**          | Delete entirely — `<pto-employee-info-card>` moves to "Current Year Summary".                                                                                                                                                                                                                                         |
+| **Prior Year Summary**            | No changes.                                                                                                                                                                                                                                                                                                           |
 
 ## Priority
 
@@ -128,12 +128,13 @@ When a user clicks a date inside `pto-pto-card`, `pto-sick-card`, `pto-bereaveme
 - [ ] Verify clicking a date in any PTO detail card on the "Current Year Summary" page navigates to the "Submit Time Off" page with the correct month displayed.
 - [ ] Verify `pnpm run build` passes.
 
-### Stage 6: Simplify "Submit Time Off" page — remove duplicate header
+### Stage 6: Simplify "Submit Time Off" page — remove duplicate header and redundant card wrapper
 
 The `pto-entry-form` component renders its own `<h2>Submit Time Off</h2>` header internally. Since the page-level `<h1>` already displays the page title via `UIManager.handlePageChange()`, the component's internal header is redundant.
 
-The calendar, nav arrows, submit/cancel buttons, and slotted `<pto-summary-card>` (containing the "Remaining Balance" `<month-summary>`) all remain — they are critical for PTO scheduling and for the Stage 5 navigate-to-month flow.
+Additionally, the `<pto-summary-card>` wrapper around the `<month-summary id="form-balance-summary">` is redundant — the month-summary component can be slotted directly into the form. The calendar, nav arrows, submit/cancel buttons, and the "Remaining Balance" `<month-summary>` all remain — they are critical for PTO scheduling and for the Stage 5 navigate-to-month flow.
 
+- [ ] **index.html**: Replace the slotted `<pto-summary-card>` with direct `<month-summary id="form-balance-summary"></month-summary>` inside `<pto-entry-form>`.
 - [ ] **pto-entry-form/index.ts – `render()`**: Remove the `<h2>Submit Time Off</h2>` element from the form header. Keep the `.form-header` div if it still contains the calendar navigation toolbar, or remove it if it only contained the heading.
 - [ ] Ensure the `<month-summary id="form-balance-summary">` ("Remaining Balance") remains visible and functional.
 - [ ] Verify the calendar, nav arrows, and submit/cancel buttons are unchanged.
@@ -162,14 +163,14 @@ The calendar, nav arrows, submit/cancel buttons, and slotted `<pto-summary-card>
 
 ### Files to modify
 
-| File                                                   | Changes                                                                                                                                                                                                       |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `client/index.html`                                    | Remove `#default-page`, `#employee-info-page`, `<pto-accrual-card>` from `#current-year-summary-page`, add `<pto-employee-info-card>` to `#current-year-summary-page`, remove accrual card `<style>` override |
-| `client/UIManager.ts`                                  | Remove dead page branches, dead methods, dead imports, re-wire `navigate-to-month` handler                                                                                                                    |
-| `client/components/dashboard-navigation-menu/index.ts` | Remove "Schedule PTO" and "Employee Information" from menu items and `Page` type                                                                                                                              |
-| `client/components/pto-entry-form/index.ts`            | Add public `navigateToMonth(month, year)` method                                                                                                                                                              |
-| `client/components/pto-employee-info-card/index.ts`    | Extend `EmployeeInfoData` type and `render()` to display carryover, PTO rate, accrual-to-date, annual allocation                                                                                              |
-| `shared/businessRules.ts`                              | Add `computeAccrualToDate()` function                                                                                                                                                                         |
+| File                                                   | Changes                                                                                                                                                                                                                                                                                  |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `client/index.html`                                    | Remove `#default-page`, `#employee-info-page`, `<pto-accrual-card>` from `#current-year-summary-page`, add `<pto-employee-info-card>` to `#current-year-summary-page`, remove accrual card `<style>` override, replace `<pto-summary-card>` with direct `<month-summary>` in `#pto-form` |
+| `client/UIManager.ts`                                  | Remove dead page branches, dead methods, dead imports, re-wire `navigate-to-month` handler                                                                                                                                                                                               |
+| `client/components/dashboard-navigation-menu/index.ts` | Remove "Schedule PTO" and "Employee Information" from menu items and `Page` type                                                                                                                                                                                                         |
+| `client/components/pto-entry-form/index.ts`            | Add public `navigateToMonth(month, year)` method                                                                                                                                                                                                                                         |
+| `client/components/pto-employee-info-card/index.ts`    | Extend `EmployeeInfoData` type and `render()` to display carryover, PTO rate, accrual-to-date, annual allocation                                                                                                                                                                         |
+| `shared/businessRules.ts`                              | Add `computeAccrualToDate()` function                                                                                                                                                                                                                                                    |
 
 ### Files NOT to modify
 
@@ -196,7 +197,7 @@ After this consolidation is complete, re-purpose `pto-entry-form` to render all 
 
 ## Questions and Concerns
 
-1. **RESOLVED** — Calendar stays on "Submit Time Off". Only the redundant `<h2>Submit Time Off</h2>` header inside `pto-entry-form` is removed. The calendar, nav arrows, submit/cancel, and "Remaining Balance" section all remain.
+1. **RESOLVED** — Calendar stays on "Submit Time Off". The redundant `<h2>Submit Time Off</h2>` header inside `pto-entry-form` is removed, and the redundant `<pto-summary-card>` wrapper is removed, leaving only the `<month-summary id="form-balance-summary">` ("Remaining Balance") directly slotted. The calendar, nav arrows, submit/cancel, and "Remaining Balance" section all remain.
 2. **RESOLVED** — Delete `current-year-pto-scheduler` component files entirely (Stage 1). The `pto-entry-form` will be enhanced with a multi-calendar view for large viewports in a follow-up task.
 3. **RESOLVED** — Delete `pto-accrual-card` component files (Stage 3). The accrual summary data (carryover, PTO rate, accrual-to-date) is absorbed into `pto-employee-info-card` (Stage 4).
 4.

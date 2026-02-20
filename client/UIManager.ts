@@ -212,6 +212,7 @@ export class UIManager {
     } catch (error) {
       // admin-panel element doesn't exist in test environment, skip
     }
+    ptoForm.reset();
   }
 
   private setupPTOCardEventListeners(): void {
@@ -735,33 +736,18 @@ export class UIManager {
   }
 
   /**
-   * Update the slotted pto-summary-card inside pto-entry-form with current PTO status.
+   * Update the slotted month-summary inside pto-entry-form with current PTO status.
    */
   private async updateFormSummaryCard(): Promise<void> {
     if (!this.currentUser) return;
 
     try {
-      const ptoForm = querySingle<PtoEntryForm>("#pto-entry-form");
-      const formSummary =
-        ptoForm.querySelector<PtoSummaryCard>("pto-summary-card");
-      if (!formSummary) return;
-
       const status = await this.api.getPTOStatus();
-      const entries = await this.api.getPTOEntries();
 
-      formSummary.summary = {
-        annualAllocation: status.annualAllocation,
-        availablePTO: status.availablePTO,
-        usedPTO: status.usedPTO,
-        carryoverFromPreviousYear: status.carryoverFromPreviousYear,
-      };
-      formSummary.fullPtoEntries = entries.filter(
-        (e) => parseDate(e.date).year === getCurrentYear(),
+      // Update the month-summary with remaining balance data
+      const balanceSummary = document.querySelector<MonthSummary>(
+        "#form-balance-summary",
       );
-
-      // Update the slotted month-summary with remaining balance data
-      const balanceSummary =
-        formSummary.querySelector<MonthSummary>("month-summary");
       if (balanceSummary) {
         balanceSummary.ptoHours = status.availablePTO;
         balanceSummary.sickHours = status.sickTime.remaining;

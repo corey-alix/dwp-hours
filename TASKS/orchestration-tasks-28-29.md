@@ -86,9 +86,9 @@ Run after each stage to verify no broken code.
 - **Root cause**: `setMultiCalendarMode(false)` had a guard `if (enabled === this.isMultiCalendar) return` — on first load both values were `false`, so `rebuildCalendars()` was never called.
 - **Fix**: `setupMultiCalendarDetection()` now directly sets the class and calls `rebuildCalendars()` on initial setup, bypassing the no-change guard.
 
-#### 🔴 Unresolved: PTO entries not decorated on first load
+#### ✅ Resolved: PTO entries not decorated on first load
 
 - **Symptom**: Calendar renders but existing PTO entries are not decorated on the day cells. Resizing the browser window triggers `rebuildCalendars()`, after which entries render correctly.
-- **Root cause**: The calendars are not visually refreshing when `setPtoData()` delivers data on startup. The data IS stored (proven by resize collecting it via `collectPtoEntries()`), but the `PtoCalendar` re-render triggered by `set ptoEntries` → `requestUpdate()` does not visually update the day cells.
+- **Root cause**: The calendars are not visually refreshing when `setPtoData()` delivers data on startup. The data IS stored (proven by resize collecting it via `collectPtoEntries()`), but the `PtoCalendar` re-render triggered by `set ptoEntries` → `requestUpdate()` does not visually update the day cells after the initial render.
 - **Why resize works**: `rebuildCalendars()` creates brand-new calendar elements with entries already set before appending to DOM, so entries are present for the initial `connectedCallback` render.
-- **Next step**: Debug why `BaseComponent.requestUpdate()` → `update()` → `renderTemplate()` does not produce a visible update when called after the calendar's initial render. Add console logs to confirm the render fires and inspect the resulting DOM for `has-pto` classes.
+- **Solution**: In `UIManager.handlePtoDataRequest()`, call `ptoForm.rebuildCalendars()` immediately after `ptoForm.setPtoData(entries)`. This forces a DOM rebuild with the newly loaded PTO data, ensuring visual decoration of existing entries on first load. The rebuild preserves all data and selections while fixing the render issue.
