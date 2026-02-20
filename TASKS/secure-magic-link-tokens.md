@@ -43,9 +43,18 @@ Enhance the security and reliability of the magic link authentication system by 
 
 - [x] Update `UIManager.ts` checkAuth method to remove 'ts' parameter extraction and usage
 - [x] Update `APIClient.validateAuth` method to send only the token parameter
-- [ ] Test magic link flow end-to-end with new token structure
+- [x] Test magic link flow end-to-end with new token structure
 - [x] Update any hardcoded magic link generation in tests
 - [x] Lint validation
+
+### Stage 6: Session Validation on Page Load
+
+- [x] Add `/api/auth/validate-session` endpoint to server
+- [x] Add `validateSession` method to `APIClient`
+- [x] Add `AuthValidateSessionResponse` type
+- [x] Update `UIManager.checkAuth` to validate session on page load when cookie exists
+- [x] Automatically log out users with invalid session cookies
+- [x] Build and lint validation
 
 ### Stage 5: Testing and Validation
 

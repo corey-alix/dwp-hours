@@ -241,6 +241,31 @@ export interface ErrorResponse {
   details?: any[];
 }
 
+// Auth types
+export interface AuthRequestLinkResponse {
+  message: string;
+  magicLink?: string;
+}
+
+export interface AuthValidateResponse {
+  authToken: string;
+  expiresAt: number;
+  employee: {
+    id: number;
+    name: string;
+    role: string;
+  };
+}
+
+export interface AuthValidateSessionResponse {
+  valid: boolean;
+  employee: {
+    id: number;
+    name: string;
+    role: string;
+  };
+}
+
 // PTO Balance Summary types
 import type { PTOType } from "./businessRules.js";
 

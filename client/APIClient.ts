@@ -76,6 +76,10 @@ export class APIClient {
     return this.get(`/auth/validate?token=${token}`);
   }
 
+  async validateSession(): Promise<ApiTypes.AuthValidateSessionResponse> {
+    return this.get("/auth/validate-session");
+  }
+
   async getPTOStatus(): Promise<ApiTypes.PTOStatusResponse> {
     return this.get("/pto/status");
   }

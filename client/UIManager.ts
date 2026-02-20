@@ -86,11 +86,22 @@ export class UIManager {
     // Check cookie
     const cookieHash = this.getAuthCookie();
     if (cookieHash) {
-      const storedUser = localStorage.getItem("currentUser");
-      if (storedUser) {
-        this.currentUser = JSON.parse(storedUser);
-        this.showDashboard();
-        await this.loadPTOStatus();
+      try {
+        const sessionResponse = await this.api.validateSession();
+        if (sessionResponse.valid) {
+          this.currentUser = sessionResponse.employee;
+          localStorage.setItem(
+            "currentUser",
+            JSON.stringify(sessionResponse.employee),
+          );
+          this.showDashboard();
+          await this.loadPTOStatus();
+          return;
+        }
+      } catch (error) {
+        console.error("Session validation failed:", error);
+        // Invalid session, log out
+        this.handleLogout();
         return;
       }
     }

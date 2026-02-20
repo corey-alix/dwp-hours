@@ -634,6 +634,30 @@ initDatabase()
       }
     });
 
+    app.get(
+      "/api/auth/validate-session",
+      authenticate(() => dataSource, log),
+      async (req, res) => {
+        logger.info(
+          `API access: ${req.method} ${req.path} by authenticated user ${req.employee!.id}`,
+        );
+        try {
+          // If we reach here, authentication passed
+          res.json({
+            valid: true,
+            employee: {
+              id: req.employee!.id,
+              name: req.employee!.name,
+              role: req.employee!.role,
+            },
+          });
+        } catch (error) {
+          logger.error(`Error validating session: ${error}`);
+          res.status(500).json({ error: "Internal server error" });
+        }
+      },
+    );
+
     // PTO routes
     app.get(
       "/api/pto/status",
