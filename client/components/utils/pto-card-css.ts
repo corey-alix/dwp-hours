@@ -27,8 +27,12 @@ export const CARD_CSS = `
     }
 
     .card h4 {
+        text-align: center;
+        background: var(--color-surface);
+        padding: var(--space-sm);
         margin: 0 0 var(--space-md) 0;
-        font-size: var(--font-size-lg);
+        font-size: var(--font-size-xl);
+        border-bottom: 1px solid var(--color-border);
         color: var(--color-text);
         font-weight: var(--font-weight-semibold);
     }

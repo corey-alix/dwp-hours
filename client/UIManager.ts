@@ -553,11 +553,6 @@ export class UIManager {
       const realHireDate = formatDateForDisplay(status.hireDate);
       const realNextRolloverDate = formatDateForDisplay(
         status.nextRolloverDate,
-        {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        },
       );
 
       // Update cards with real data
