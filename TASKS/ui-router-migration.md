@@ -22,17 +22,34 @@ The goal is to:
 
 ## Decisions (from Q&A)
 
-| #   | Question                         | Decision                                                                                                                                                                               |
-| --- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Extract auth into `AuthService`? | **Yes** — extract as part of this migration.                                                                                                                                           |
-| 2   | Admin page structure?            | **Decompose** `admin-panel` into separate routes (`/admin/employees`, `/admin/pto-requests`, `/admin/monthly-review`, `/admin/settings`). Remove `admin-panel` and `report-generator`. |
-| 3   | Hash-based routing?              | **No** — History API only. This is a lightweight app; the focus is developer experience. The server already serves `index.html` for all paths.                                         |
-| 4   | `navigate-to-month` cross-page?  | **Query params** — navigate to `/submit-time-off?month=3&year=2026`. The Submit Time Off page reads `URLSearchParams` in `onRouteEnter` and calls `ptoForm.navigateToMonth()`.         |
-| 5   | Hybrid migration?                | **No hybrid** — switch to `#router-outlet` immediately. No one will use the app until this feature is complete.                                                                        |
+| #   | Question                         | Decision                                                                                                                                                                                                                                                                                                                                                                                     |
+| --- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Extract auth into `AuthService`? | **Yes** — extract as part of this migration.                                                                                                                                                                                                                                                                                                                                                 |
+| 2   | Admin page structure?            | **Decompose** `admin-panel` into separate routes (`/admin/employees`, `/admin/pto-requests`, `/admin/monthly-review`, `/admin/settings`). Remove `admin-panel` and `report-generator`.                                                                                                                                                                                                       |
+| 3   | Hash-based routing?              | **No** — History API only. This is a lightweight app; the focus is developer experience. The server already serves `index.html` for all paths.                                                                                                                                                                                                                                               |
+| 4   | `navigate-to-month` cross-page?  | **Query params** — navigate to `/submit-time-off?month=3&year=2026`. The Submit Time Off page reads `URLSearchParams` in `onRouteEnter` and calls `ptoForm.navigateToMonth()`.                                                                                                                                                                                                               |
+| 5   | Hybrid migration?                | **No hybrid** — switch to `#router-outlet` immediately. No one will use the app until this feature is complete.                                                                                                                                                                                                                                                                              |
+| 6   | Admin on non-admin routes?       | **Treat as normal user.** Non-admin routes (`/submit-time-off`, `/current-year-summary`, `/prior-year-summary`) must show only the logged-in user's own PTO data, regardless of role. Admin-specific access to all employees' data is restricted to `/admin/*` routes, which use dedicated admin API endpoints (`/api/employees/:id/pto-entries`, `/api/admin/monthly-review/:month`, etc.). |
+
+## Known Issues
+
+### ~~BUG: Admin user sees all employees' PTO on non-admin pages~~ **FIXED**
+
+**Symptom:** When an Admin user navigates to "Submit Time Off" (or any non-admin page), the PTO calendar and balance summary display data for **all** employees instead of just the admin's own PTO.
+
+**Root cause:** `GET /api/pto` in `server.mts` skipped the `employee_id` filter for Admin users, leaking all-employee data into user-facing pages.
+
+**Fix applied:**
+
+1. **`GET /api/pto`** — Now **always** scopes to the authenticated user's `employee_id`, regardless of role.
+2. **New `GET /api/admin/pto`** — Admin-only endpoint (uses `authenticateAdmin` middleware) that returns all employees' PTO entries. Supports the same `type`, `startDate`, `endDate` query params.
+3. **`APIClient.getAdminPTOEntries()`** — New client method that calls `GET /api/admin/pto`.
+4. **Admin pages updated** — `admin-pto-requests-page` (loader + `refreshQueue()`) and `admin-monthly-review-page` now use `getAdminPTOEntries()` instead of `getPTOEntries()`.
+5. **Non-admin pages unchanged** — `submit-time-off-page`, `current-year-summary-page`, and their route loaders continue using `getPTOEntries()` → `GET /api/pto`, which now correctly returns only the current user's data.
 
 ## Progress Update
 
-- **Latest work:** Implemented named-slot projection for `employee-list` and `admin-monthly-review`, projected per-employee `pto-balance-summary` and inline `employee-form` editors from `admin-employees-page`, and converted the `employee-form` submit flow to a view-model-driven `_isSubmitting` + `requestUpdate()` pattern to remove imperative submit DOM writes.
+- **Latest work:** Fixed admin-sees-all-employees bug by making `GET /api/pto` always scope to the authenticated user, adding `GET /api/admin/pto` for admin pages, and switching admin page loaders/refresh methods to `getAdminPTOEntries()`.
 - **Current focus:** Convert remaining imperative validation/class mutations in `employee-form` (Stage 8c) to view-model-driven rendering, make `admin-monthly-review` balance rendering fully declarative (Stage 8d), and add unit tests for the refactored components and E2E tests for route/auth flows.
 - **Verification:** `pnpm run build` and `pnpm run lint` completed successfully after these changes.
 
@@ -531,7 +548,7 @@ Each former `admin-panel` sidebar view becomes its own routed page. The `admin-p
 - **AuthService** — extracted from `UIManager` as a standalone class. The `Router` receives `AuthService` in its constructor and checks `meta.requiresAuth` / `meta.roles` before rendering. Unauthenticated users are redirected to `/login`.
 - **Component conformance** — before wrapping admin child components in page components, they are migrated to the web-components-assistant standard. `pto-request-queue` needs a full `BaseComponent` migration. `employee-list`, `employee-form`, and `admin-monthly-review` need partial fixes (css.ts extraction, attribute/field handling, removing imperative DOM mutations).
 - **Admin decomposition** — the monolithic `admin-panel` component is replaced by 4 individual page components, each wrapping the relevant child component (`employee-list`, `pto-request-queue`, `admin-monthly-review`). `report-generator` is deleted entirely. The child components are retained; only the container/orchestrator is removed.
-- **Data loading** — route `loader` functions replace the scattered `loadPTOStatus`, `loadPriorYearReview`, etc. calls. Loader results are passed to `onRouteEnter`, giving each page its data without the page knowing about `APIClient` directly (loaders use `APIClient`, pages receive data).
+- **Data loading** — route `loader` functions replace the scattered `loadPTOStatus`, `loadPriorYearReview`, etc. calls. Loader results are passed to `onRouteEnter`, giving each page its data without the page knowing about `APIClient` directly (loaders use `APIClient`, pages receive data). **Important:** Non-admin pages (Submit Time Off, Current Year Summary, Prior Year Summary) must always receive only the current user's PTO data. Admin users on these pages are treated as normal users — see "Known Issues" above.
 - **Cross-page navigation** — `navigate-to-month` events on PTO cards navigate via `router.navigate("/submit-time-off?month=3&year=2026")`. The Submit Time Off page reads `URLSearchParams` in `onRouteEnter` and calls `ptoForm.navigateToMonth()`.
 - **Dashboard navigation menu** — the menu component emits route paths (e.g., `/submit-time-off`) via a `navigate` custom event. For admin users, the menu includes admin sub-routes. The `currentPage` attribute is updated by the router after each navigation.
 - **Server SPA fallback** — `server.mts` needs a catch-all that returns `index.html` for non-API paths so that direct URL access (e.g., refreshing on `/admin/employees`) works. The dev server (`http-serve`) may already handle this; production (Express) needs the explicit route.
@@ -547,3 +564,4 @@ Each former `admin-panel` sidebar view becomes its own routed page. The `admin-p
 4. ~~`navigate-to-month` mechanism?~~ **Query params** — `/submit-time-off?month=3&year=2026`.
 5. ~~Hybrid migration?~~ **No** — switch immediately to `#router-outlet`. App is offline during migration.
 6. ~~Child component refactoring?~~ **Yes** — migrate to web-components-assistant standard before wrapping in pages. `report-generator` is deleted (app doesn't need it). `pto-request-queue` needs a full `BaseComponent` migration. `employee-list`, `employee-form`, and `admin-monthly-review` need partial fixes (css.ts extraction, attribute/field handling, removing imperative DOM mutations). Added as Stage 8.
+7. ~~Admin user on non-admin pages sees all employees' data?~~ **Bug.** `GET /api/pto` skips the `employee_id` filter for Admin users, leaking all employees' PTO into user-facing pages. Fix: make `GET /api/pto` always scope to the authenticated user; admin pages use dedicated admin endpoints (`GET /api/employees/:id/pto-entries`, `GET /api/admin/monthly-review/:month`, or a new `GET /api/admin/pto` if needed). See "Known Issues" section.

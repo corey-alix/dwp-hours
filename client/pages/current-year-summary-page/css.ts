@@ -5,8 +5,8 @@ export const styles = `<style>
   }
 
   .pto-summary {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(18em, 1fr));
     gap: var(--space-md, 16px);
   }
 </style>`;

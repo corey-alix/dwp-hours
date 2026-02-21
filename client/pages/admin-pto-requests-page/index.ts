@@ -112,7 +112,7 @@ export class AdminPtoRequestsPage
     try {
       const [employees, entries] = await Promise.all([
         this.api.getEmployees(),
-        this.api.getPTOEntries(),
+        this.api.getAdminPTOEntries(),
       ]);
       const employeeMap = new Map(
         (employees as { id: number; name: string }[]).map((e) => [

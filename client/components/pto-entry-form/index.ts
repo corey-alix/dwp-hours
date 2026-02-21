@@ -54,7 +54,7 @@ export class PtoEntryForm extends HTMLElement {
     this.setupEventListeners();
     this.setupMultiCalendarDetection();
     // After detection, calendars are built. Request PTO data from parent.
-    this.dispatchEvent(new CustomEvent("pto-data-request"));
+    this.dispatchEvent(new CustomEvent("pto-data-request", { bubbles: true }));
   }
 
   disconnectedCallback() {
@@ -431,6 +431,7 @@ export class PtoEntryForm extends HTMLElement {
     this.dispatchEvent(
       new CustomEvent("pto-submit", {
         detail: { requests },
+        bubbles: true,
       }),
     );
   }
@@ -528,7 +529,7 @@ export class PtoEntryForm extends HTMLElement {
 
     // Rebuild calendars to their default state
     this.rebuildCalendars();
-    this.dispatchEvent(new CustomEvent("pto-data-request"));
+    this.dispatchEvent(new CustomEvent("pto-data-request", { bubbles: true }));
   }
 
   focus() {

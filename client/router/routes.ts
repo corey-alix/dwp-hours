@@ -67,7 +67,7 @@ export const appRoutes: AppRoutes = [
     loader: async () => {
       const [employees, entries] = await Promise.all([
         api.getEmployees(),
-        api.getPTOEntries(),
+        api.getAdminPTOEntries(),
       ]);
       const pendingRequests = entries
         .filter((e) => e.approved_by === null || e.approved_by === undefined)

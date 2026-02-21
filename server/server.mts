@@ -1709,6 +1709,44 @@ initDatabase()
       },
     );
 
+    // Admin PTO endpoint — returns all employees' PTO entries (admin only)
+    app.get(
+      "/api/admin/pto",
+      authenticateAdmin(() => dataSource, log),
+      async (req, res) => {
+        try {
+          const { type, startDate, endDate } = req.query;
+          const ptoEntryRepo = dataSource.getRepository(PtoEntry);
+
+          let whereCondition: any = {};
+
+          if (type) {
+            whereCondition.type = type;
+          }
+
+          if (startDate || endDate) {
+            whereCondition.date = {};
+            if (startDate) whereCondition.date.$gte = startDate as string;
+            if (endDate) whereCondition.date.$lte = endDate as string;
+          }
+
+          const ptoEntries = await ptoEntryRepo.find({
+            where: whereCondition,
+            order: { date: "DESC" },
+          });
+
+          const serializedEntries = ptoEntries.map((entry) =>
+            serializePTOEntry(entry),
+          );
+
+          res.json(serializedEntries);
+        } catch (error) {
+          logger.error(`Error getting admin PTO entries: ${error}`);
+          res.status(500).json({ error: "Internal server error" });
+        }
+      },
+    );
+
     // PTO Management routes
     app.get(
       "/api/pto",
@@ -1721,10 +1759,9 @@ initDatabase()
 
           let whereCondition: any = {};
 
-          // For non-admin users, only show their own PTO entries
-          if (req.employee!.role !== "Admin") {
-            whereCondition.employee_id = authenticatedEmployeeId;
-          }
+          // Always scope to the authenticated user's own PTO entries.
+          // Admin access to all employees' entries uses GET /api/admin/pto.
+          whereCondition.employee_id = authenticatedEmployeeId;
 
           if (type) {
             whereCondition.type = type;
@@ -1781,9 +1818,13 @@ initDatabase()
               type: reqType,
             } = request;
 
-            // For non-admin users, force the employeeId to be their own
+            // For non-admin users, force the employeeId to be their own.
+            // For admins, use the provided empId if present, otherwise
+            // default to their own ID (self-submission from the calendar).
             const targetEmployeeId =
-              req.employee!.role === "Admin" ? empId : authenticatedEmployeeId;
+              req.employee!.role === "Admin"
+                ? (empId ?? authenticatedEmployeeId)
+                : authenticatedEmployeeId;
 
             if (
               !targetEmployeeId ||

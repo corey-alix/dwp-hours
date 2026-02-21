@@ -191,6 +191,10 @@ export class APIClient {
     return this.get(`/admin/monthly-review/${month}`);
   }
 
+  async getAdminPTOEntries(): Promise<ApiTypes.PTOEntry[]> {
+    return this.get("/admin/pto");
+  }
+
   async getEmployees(): Promise<ApiTypes.EmployeesResponse> {
     return this.get("/employees");
   }

@@ -59,7 +59,7 @@ export class AdminMonthlyReviewPage
           try {
             const [employeeData, ptoEntries] = await Promise.all([
               this.api.getAdminMonthlyReview(month),
-              this.api.getPTOEntries(),
+              this.api.getAdminPTOEntries(),
             ]);
 
             const adminComp = this.shadowRoot?.querySelector(
