@@ -1,11 +1,10 @@
-import { querySingle } from "../test-utils.js";
 import { BaseComponent } from "../base-component.js";
 import { styles } from "./css.js";
 import type {
   AdminMonthlyReviewItem,
   PtoBalanceData,
+  PtoBalanceCategoryItem,
 } from "../../../shared/api-models.js";
-import type { PtoBalanceSummary } from "../pto-balance-summary/index.js";
 import {
   computeEmployeeBalanceData,
   type PTOType,
@@ -189,16 +188,31 @@ export class AdminMonthlyReview extends BaseComponent {
     );
   }
 
-  // NOTE: balance summary wiring is now declarative. Parent pages that
-  // project `pto-balance-summary` elements into the named slots should
-  // call `getBalanceDataForEmployee(employeeId)` and assign the returned
-  // `PtoBalanceData` to the slotted component via its `setBalanceData()`
-  // method. This removes imperative DOM mutation from the component and
-  // enables parent pages to control data injection for slotted children.
-
-  /** Public accessor for parent components to retrieve computed balance data. */
-  getBalanceDataForEmployee(employeeId: number): PtoBalanceData {
-    return this.computeEmployeeBalanceData(employeeId);
+  /** Render balance badges inline for the given employee. */
+  private renderBalanceSummary(employeeId: number): string {
+    if (this._ptoEntries.length === 0) {
+      return '<div class="balance-row"><span class="balance-empty">No balance data</span></div>';
+    }
+    try {
+      const data = this.computeEmployeeBalanceData(employeeId);
+      if (data.categories.length === 0) {
+        return '<div class="balance-row"><span class="balance-empty">No categories</span></div>';
+      }
+      const badges = data.categories
+        .map((cat: PtoBalanceCategoryItem) => {
+          const statusClass =
+            cat.remaining >= 0 ? "balance-available" : "balance-exceeded";
+          return `
+            <span class="balance-badge ${statusClass}" aria-label="${cat.category}: ${cat.remaining} hours remaining">
+              <span class="badge-label">${cat.category}</span>
+              <span class="badge-value">${cat.remaining}h</span>
+            </span>`;
+        })
+        .join("");
+      return `<div class="balance-row" role="status" aria-label="PTO balance summary for ${data.employeeName}">${badges}</div>`;
+    } catch {
+      return '<div class="balance-row"><span class="balance-empty">Balance unavailable</span></div>';
+    }
   }
 
   private async handleAcknowledgeEmployee(employeeId: number): Promise<void> {
@@ -283,7 +297,6 @@ export class AdminMonthlyReview extends BaseComponent {
         </div>
       `
       }
-      <slot name="balance-summary"></slot>
     `;
   }
 
@@ -300,9 +313,7 @@ export class AdminMonthlyReview extends BaseComponent {
           </div>
         </div>
 
-        <slot name="balance-${employee.employeeId}">
-          <pto-balance-summary data-employee-id="${employee.employeeId}"></pto-balance-summary>
-        </slot>
+        ${this.renderBalanceSummary(employee.employeeId)}
 
         <div class="hours-breakdown">
           <div class="hours-row">

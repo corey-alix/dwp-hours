@@ -68,9 +68,6 @@ export class AdminMonthlyReviewPage
             if (!adminComp)
               throw new Error("admin-monthly-review element not found");
 
-            // Inject data into the child component
-            adminComp.setEmployeeData(employeeData);
-
             // Normalize PTO entries shape expected by businessRules (employee_id, type, hours)
             const normalized = (ptoEntries || []).map((p: any) => ({
               employee_id: p.employeeId,
@@ -79,29 +76,9 @@ export class AdminMonthlyReviewPage
             }));
             adminComp.setPtoEntries(normalized);
 
-            // Project slotted pto-balance-summary elements and assign computed data
-            employeeData.forEach((emp: any) => {
-              const slotName = `balance-${emp.employeeId}`;
-              // Avoid duplicating slotted summaries
-              let summaryEl = adminComp.querySelector(`[slot="${slotName}"]`);
-              if (!summaryEl) {
-                summaryEl = createElement("pto-balance-summary", {
-                  slot: slotName,
-                  "data-employee-id": String(emp.employeeId),
-                });
-                adminComp.appendChild(summaryEl as HTMLElement);
-              }
-
-              try {
-                const balanceData = adminComp.getBalanceDataForEmployee(
-                  emp.employeeId,
-                );
-                // Assign computed balance data to the slotted component
-                (summaryEl as any).setBalanceData(balanceData);
-              } catch (err) {
-                console.error("Failed to compute/assign balance data:", err);
-              }
-            });
+            // Inject employee data — balance summaries are now rendered
+            // declaratively inside admin-monthly-review's template
+            adminComp.setEmployeeData(employeeData);
           } catch (error: any) {
             console.error("Failed to load admin monthly review data:", error);
             notifications.error(

@@ -143,5 +143,44 @@ export const styles = `
     font-size: 14px;
     color: var(--color-success-dark, #065f46);
   }
+
+  .balance-row {
+    display: flex;
+    gap: var(--space-sm, 8px);
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+
+  .balance-badge {
+    display: inline-flex;
+    gap: var(--space-xs, 4px);
+    align-items: center;
+    padding: var(--space-xs, 4px) var(--space-sm, 8px);
+    border-radius: var(--border-radius, 4px);
+    font-size: var(--font-size-xs, 0.75rem);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+  }
+
+  .badge-label {
+    font-weight: 500;
+  }
+
+  .badge-value {
+    font-weight: 600;
+  }
+
+  .balance-available .badge-value {
+    color: var(--color-success, #10b981);
+  }
+
+  .balance-exceeded .badge-value {
+    color: var(--color-error, #ef4444);
+  }
+
+  .balance-empty {
+    font-size: var(--font-size-xs, 0.75rem);
+    color: var(--color-text-secondary);
+  }
 </style>
 `;

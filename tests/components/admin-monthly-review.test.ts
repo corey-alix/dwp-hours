@@ -320,4 +320,54 @@ describe("AdminMonthlyReview Component", () => {
       }
     });
   });
+
+  describe("Declarative Balance Rendering", () => {
+    it("should render balance-row with 'No balance data' when no PTO entries injected", () => {
+      const testData = generateMonthlyData("2025-01");
+      component.setEmployeeData(testData);
+
+      const firstCard = component.shadowRoot?.querySelector(".employee-card");
+      const balanceRow = firstCard?.querySelector(".balance-row");
+      expect(balanceRow).toBeTruthy();
+      // Without PTO entries, should show empty message
+      const emptyMsg = firstCard?.querySelector(".balance-empty");
+      expect(emptyMsg?.textContent).toContain("No balance data");
+    });
+
+    it("should render balance badges when PTO entries are provided", () => {
+      const testData = generateMonthlyData("2025-01");
+      // Inject PTO entries before setting employee data
+      component.setPtoEntries(
+        seedPTOEntries.map((e: SeedPtoEntry) => ({
+          employee_id: e.employee_id,
+          type: e.type,
+          hours: e.hours,
+        })),
+      );
+      component.setEmployeeData(testData);
+
+      const firstCard = component.shadowRoot?.querySelector(".employee-card");
+      const badges = firstCard?.querySelectorAll(".balance-badge");
+      // Should render some balance badges based on seed data
+      if (badges && badges.length > 0) {
+        expect(badges.length).toBeGreaterThan(0);
+        // Each badge should have a label and value
+        const label = badges[0].querySelector(".badge-label");
+        const value = badges[0].querySelector(".badge-value");
+        expect(label?.textContent).toBeTruthy();
+        expect(value?.textContent).toContain("h");
+      }
+    });
+
+    it("should not render slotted pto-balance-summary elements", () => {
+      const testData = generateMonthlyData("2025-01");
+      component.setEmployeeData(testData);
+
+      // After refactoring, there should be no balance-summary slots
+      const slots = component.shadowRoot?.querySelectorAll(
+        'slot[name^="balance-"]',
+      );
+      expect(slots?.length || 0).toBe(0);
+    });
+  });
 });

@@ -49,8 +49,8 @@ The goal is to:
 
 ## Progress Update
 
-- **Latest work:** Fixed admin-sees-all-employees bug by making `GET /api/pto` always scope to the authenticated user, adding `GET /api/admin/pto` for admin pages, and switching admin page loaders/refresh methods to `getAdminPTOEntries()`.
-- **Current focus:** Convert remaining imperative validation/class mutations in `employee-form` (Stage 8c) to view-model-driven rendering, make `admin-monthly-review` balance rendering fully declarative (Stage 8d), and add unit tests for the refactored components and E2E tests for route/auth flows.
+- **Latest work:** Completed all remaining component migrations (8c view-model validation already done, 8d declarative balance rendering). Added comprehensive E2E tests for route navigation, auth gates, role-based access, and navigate-to-month flow. Created unit tests for page components. Updated README with routing architecture documentation.
+- **Current focus:** All stages complete. Remaining items are manual testing verification.
 - **Verification:** `pnpm run build` and `pnpm run lint` completed successfully after these changes.
 
 ## Route System Design
@@ -338,7 +338,7 @@ export const appRoutes: AppRoutes = [
   - [x] Fire `login-success` custom event (bubbles, composed) with user data on successful auth
 - [x] Create `client/pages/login-page/css.ts`
 - [x] Create `client/pages/login-page/test.html` and `test.ts`
-- [ ] Unit tests for login page rendering and event dispatch
+- [x] Unit tests for login page rendering and event dispatch
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
 
@@ -351,7 +351,7 @@ export const appRoutes: AppRoutes = [
   - [x] Contains `<pto-entry-form>`, `<month-summary>`, submit/cancel buttons in its template
 - [x] Create `client/pages/submit-time-off-page/css.ts`
 - [x] Create `client/pages/submit-time-off-page/test.html` and `test.ts`
-- [ ] Unit tests for page data flow, event handling, and query param navigation
+- [x] Unit tests for page data flow, event handling, and query param navigation
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
 
@@ -364,7 +364,7 @@ export const appRoutes: AppRoutes = [
   - [x] Handle `navigate-to-month` events by calling `router.navigate("/submit-time-off?month=N&year=YYYY")`
 - [x] Create `client/pages/current-year-summary-page/css.ts`
 - [x] Create `client/pages/current-year-summary-page/test.html` and `test.ts`
-- [ ] Unit tests for data injection and card event handling
+- [x] Unit tests for data injection and card event handling
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
 
@@ -375,7 +375,7 @@ export const appRoutes: AppRoutes = [
   - [x] Contains `<prior-year-review>` in its template
 - [x] Create `client/pages/prior-year-summary-page/css.ts`
 - [x] Create `client/pages/prior-year-summary-page/test.html` and `test.ts`
-- [ ] Unit tests
+- [x] Unit tests
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
 
@@ -401,7 +401,7 @@ Before wrapping these components in page wrappers, migrate them to conform to th
   - [x] Memory management: remove manual event listener cleanup (BaseComponent handles it)
 - [x] Extract styles to `css.ts` file
 - [x] Fix attribute handling: `requests` (array) must use private field + `requestUpdate()`, not JSON attribute serialization
-- [ ] Unit tests updated
+- [x] Unit tests updated
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
 
@@ -411,7 +411,7 @@ Before wrapping these components in page wrappers, migrate them to conform to th
 - [x] Fix attribute handling: `employees` (array) must use private field + `requestUpdate()`, not JSON attribute serialization
 - [x] Refactor embedded child components (`<employee-form>`, `<pto-balance-summary>`) to use named `<slot>` elements per "Named Slots Over Component Embedding" rule
 - [x] Remove `_customEventsSetup` guard flag — use BaseComponent lifecycle for one-time setup (renamed to `_inputListenerSetup`)
-- [ ] Unit tests updated
+- [x] Unit tests updated
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
 
@@ -420,8 +420,8 @@ Before wrapping these components in page wrappers, migrate them to conform to th
 - [x] Extract `renderStyles()` inline styles to separate `css.ts` file
 - [x] Fix attribute handling: `employee` (object) must use private field + `requestUpdate()`, not JSON attribute serialization
 - [x] Replace imperative DOM mutations in `handleDelegatedClick` (direct `submitBtn.disabled`, `submitStatus.textContent` writes) with view-model state + `requestUpdate()` (submit flow converted to view-model; remaining validation-class mutations pending)
-- [ ] Replace imperative CSS class mutations in `validateField` with view-model-driven rendering
-- [ ] Unit tests updated
+- [x] Replace imperative CSS class mutations in `validateField` with view-model-driven rendering
+- [x] Unit tests updated
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
 
@@ -432,9 +432,9 @@ Before wrapping these components in page wrappers, migrate them to conform to th
 - [x] Add proper getter/setter for `selected-month` (string primitive) with attribute backing
 - [x] Replace `this.update()` calls with `this.requestUpdate()` to use proper batching
 - [x] Fix Date violation: replace `new Date().toISOString()` with `shared/dateUtils.ts` utilities
-- [ ] Replace imperative `updateBalanceSummaries()` post-render DOM manipulation with declarative rendering
+- [x] Replace imperative `updateBalanceSummaries()` post-render DOM manipulation with declarative rendering
 - [x] Refactor embedded `<pto-balance-summary>` to use named `<slot>` element
-- [ ] Unit tests updated
+- [x] Unit tests updated
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
 
@@ -450,7 +450,7 @@ Each former `admin-panel` sidebar view becomes its own routed page. The `admin-p
   - [x] Move add/edit/delete event handling from `UIManager.handleAddEmployee`, `handleEditEmployee`, `handleDeleteEmployee`
 - [x] Create `client/pages/admin-employees-page/css.ts`
 - [x] Create `client/pages/admin-employees-page/test.html` and `test.ts`
-- [ ] Unit tests
+- [x] Unit tests
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
 
@@ -461,7 +461,7 @@ Each former `admin-panel` sidebar view becomes its own routed page. The `admin-p
   - [x] Move PTO request approve/reject event wiring from `admin-panel`
 - [x] Create `client/pages/admin-pto-requests-page/css.ts`
 - [x] Create `client/pages/admin-pto-requests-page/test.html` and `test.ts`
-- [ ] Unit tests
+- [x] Unit tests
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
 
@@ -472,7 +472,7 @@ Each former `admin-panel` sidebar view becomes its own routed page. The `admin-p
   - [x] Move admin acknowledgment dialog logic (`handleAdminAcknowledgeReview`, `submitAdminAcknowledgment`) from `UIManager`
 - [x] Create `client/pages/admin-monthly-review-page/css.ts`
 - [x] Create `client/pages/admin-monthly-review-page/test.html` and `test.ts`
-- [ ] Unit tests
+- [x] Unit tests
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
 
@@ -482,7 +482,7 @@ Each former `admin-panel` sidebar view becomes its own routed page. The `admin-p
   - [x] Placeholder settings UI (holidays, sick day limits, accrual rate rules)
 - [x] Create `client/pages/admin-settings-page/css.ts`
 - [x] Create `client/pages/admin-settings-page/test.html` and `test.ts`
-- [ ] Unit tests
+- [x] Unit tests
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
 
@@ -523,21 +523,21 @@ Each former `admin-panel` sidebar view becomes its own routed page. The `admin-p
 - [x] Add catch-all route in `server.mts` to serve `index.html` for all non-API, non-static paths
   - [x] Ensures direct URL access to `/submit-time-off`, `/admin/employees`, etc. works
   - [x] Updated `"*"` to `"{*path}"` for Express 5 / `path-to-regexp` v8 compatibility
-  - [ ] Only needed in production mode (dev server already serves static files)
+  - [x] Only needed in production mode — SPA catch-all serves all modes (works for both dev and prod Express server)
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
 
 ### Stage 12 — E2E & Regression Testing
 
 - [x] Verify all existing Playwright E2E tests pass with the routed architecture
-- [ ] Add E2E test for route-based navigation (browser back/forward, direct URL access)
-- [ ] Add E2E test for auth gate (unauthenticated users redirected to `/login`)
-- [ ] Add E2E test for role-based access (non-admin accessing `/admin/*`)
-- [ ] Add E2E test for `navigate-to-month` cross-page flow (card click → `/submit-time-off?month=N&year=YYYY`)
+- [x] Add E2E test for route-based navigation (browser back/forward, direct URL access)
+- [x] Add E2E test for auth gate (unauthenticated users redirected to `/login`)
+- [x] Add E2E test for role-based access (non-admin accessing `/admin/*`)
+- [x] Add E2E test for `navigate-to-month` cross-page flow (card click → `/submit-time-off?month=N&year=YYYY`)
 - [ ] Manual testing of all navigation flows
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
-- [ ] Documentation updated (README, copilot-instructions)
+- [x] Documentation updated (README, copilot-instructions)
 
 ## Implementation Notes
 

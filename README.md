@@ -120,6 +120,8 @@ _Displays employee information and PTO rate details._
 - **Report Generation**: Detailed PTO usage reports with filtering and export capabilities
 - **API Integration**: RESTful API for programmatic access
 - **Responsive Design**: Vanilla CSS for clean, accessible UI
+- **Client-side Router**: Type-safe History API router with auth gates, role-based access, and declarative route definitions
+- **AuthService**: Standalone authentication service managing magic-link login, session validation, and role-based access control
 
 **📋 Architecture**: For detailed information about the system architecture, tech stack, and design patterns, see [`.github/skills/architecture-guidance/SKILL.md`](.github/skills/architecture-guidance/SKILL.md).
 
@@ -131,20 +133,42 @@ _Displays employee information and PTO rate details._
 
 **📋 Notification System**: For detailed information about the toast notification system and user feedback patterns, see [`.github/skills/notification-system-assistant/SKILL.md`](.github/skills/notification-system-assistant/SKILL.md).
 
+## Routing Architecture
+
+The application uses a lightweight client-side router built on the History API (no hash routing). Key components:
+
+- **Router** (`client/router/router.ts`): Matches paths (including `:param` and `*` wildcard), manages History API (`pushState`/`popstate`), enforces auth gates, executes loaders, and renders page components into a single `<main id="router-outlet">` outlet.
+- **AuthService** (`client/auth/auth-service.ts`): Standalone authentication service extracted from `UIManager`. Handles magic-link login, session validation, and role-based access. Emits `auth-state-changed` events.
+- **Page Components**: Each route maps to a self-contained page web component implementing the `PageComponent` interface (`onRouteEnter`, `onRouteLeave`).
+- **Route Definitions** (`client/router/routes.ts`): Declarative route config with loaders, auth requirements, and role gates.
+
+### Routes
+
+| Path                    | Component                   | Auth | Roles |
+| ----------------------- | --------------------------- | ---- | ----- |
+| `/login`                | `login-page`                | No   | —     |
+| `/submit-time-off`      | `submit-time-off-page`      | Yes  | —     |
+| `/current-year-summary` | `current-year-summary-page` | Yes  | —     |
+| `/prior-year-summary`   | `prior-year-summary-page`   | Yes  | —     |
+| `/admin/employees`      | `admin-employees-page`      | Yes  | Admin |
+| `/admin/pto-requests`   | `admin-pto-requests-page`   | Yes  | Admin |
+| `/admin/monthly-review` | `admin-monthly-review-page` | Yes  | Admin |
+| `/admin/settings`       | `admin-settings-page`       | Yes  | Admin |
+
+The server includes a SPA catch-all route that serves `index.html` for all non-API paths, enabling direct URL access to any client-side route.
+
 ## Components Reference
 
 This application is built using web components for modular, reusable UI elements. Each component includes comprehensive documentation with usage examples, theming integration, and implementation details.
 
 ### Core Components
 
-- **Admin Panel**: Main administrative interface with navigation between different management views - [`client/components/admin-panel/README.md`](client/components/admin-panel/README.md)
 - **Confirmation Dialog**: Modal dialog for user confirmations with customizable messages and actions - [`client/components/confirmation-dialog/README.md`](client/components/confirmation-dialog/README.md)
 - **Data Table**: Sortable, paginated table component for displaying tabular data - [`client/components/data-table/README.md`](client/components/data-table/README.md)
 - **Employee Form**: Comprehensive form for creating and editing employee records - [`client/components/employee-form/README.md`](client/components/employee-form/README.md)
 - **Employee List**: Employee management interface with search, filtering, and action buttons - [`client/components/employee-list/README.md`](client/components/employee-list/README.md)
 - **PTO Entry Form**: Form for submitting time-off requests with calendar integration - [`client/components/pto-entry-form/README.md`](client/components/pto-entry-form/README.md)
 - **PTO Request Queue**: Administrative interface for reviewing and managing PTO requests - [`client/components/pto-request-queue/README.md`](client/components/pto-request-queue/README.md)
-- **Report Generator**: Comprehensive reporting tool with filtering and export capabilities - [`client/components/report-generator/README.md`](client/components/report-generator/README.md)
 
 ### PTO Dashboard Components
 
@@ -299,6 +323,7 @@ The following features have been successfully implemented and tested:
 10. ✅ **COMPLETED**: API endpoints implementation - all required API endpoints with validation and error handling. See [TASKS/api-endpoints.md](TASKS/api-endpoints.md) for details
 11. ✅ **COMPLETED**: Complete logging system implementation - structured logging with daily rotation, configurable levels, and monitoring. See [TASKS/logging.md](TASKS/logging.md) for details
 12. 🔄 **IN-PROGRESS**: Implement automated backup system for database with retention policies. See [TASKS/backup.md](TASKS/backup.md) for details
+13. ✅ **COMPLETED**: UI router migration - decoupled UIManager via type-safe client-side router, AuthService extraction, admin page decomposition, and SPA fallback. See [TASKS/ui-router-migration.md](TASKS/ui-router-migration.md) for details
 
 ## Up Next
 
