@@ -17,53 +17,7 @@
       </nav>
     </header>
 
-    <main id="main-content">
-      <div id="login-section">
-        <h2>Login</h2>
-        <form id="login-form">
-          <label for="identifier">Email:</label>
-          <input type="email" id="identifier" required />
-          <button type="submit">Send Magic Link</button>
-        </form>
-        <div id="login-message" class="hidden"></div>
-      </div>
-
-      <div id="dashboard" class="hidden">
-        <div id="current-year-summary-page" class="page">
-          <div class="pto-summary">
-            <pto-employee-info-card></pto-employee-info-card>
-            <pto-summary-card></pto-summary-card>
-            <pto-pto-card></pto-pto-card>
-            <pto-sick-card></pto-sick-card>
-            <pto-bereavement-card></pto-bereavement-card>
-            <pto-jury-duty-card></pto-jury-duty-card>
-          </div>
-        </div>
-
-        <div id="prior-year-summary-page" class="page">
-          <prior-year-review id="prior-year-review"></prior-year-review>
-        </div>
-
-        <div id="pto-form" class="page">
-          <month-summary id="form-balance-summary"></month-summary>
-          <pto-entry-form id="pto-entry-form"></pto-entry-form>
-          <div class="form-actions">
-            <button type="button" class="btn btn-secondary" id="cancel-btn">
-              Cancel
-            </button>
-            <button type="button" class="btn btn-primary" id="submit-btn">
-              Submit
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div id="admin-panel" class="hidden">
-        <h2>Admin Panel</h2>
-        <button id="manage-employees-btn">Manage Employees</button>
-        <button id="view-reports-btn">View Reports</button>
-      </div>
-    </main>
+    <main id="router-outlet"></main>
 
     <pto-notification></pto-notification>
 

@@ -1,7 +1,14 @@
 import { BaseComponent } from "../base-component.js";
 import { DASHBOARD_NAVIGATION_MENU_CSS } from "./css.js";
 
-type Page = "current-year-summary" | "prior-year-summary" | "submit-time-off";
+type Page =
+  | "current-year-summary"
+  | "prior-year-summary"
+  | "submit-time-off"
+  | "admin/employees"
+  | "admin/pto-requests"
+  | "admin/monthly-review"
+  | "admin/settings";
 
 export class DashboardNavigationMenu extends BaseComponent {
   private isMenuOpen = false;
@@ -16,13 +23,21 @@ export class DashboardNavigationMenu extends BaseComponent {
   private static readonly SLIDE_DISTANCE = "-8px";
 
   static get observedAttributes() {
-    return ["current-page"];
+    return ["current-page", "user-role"];
   }
 
   attributeChangedCallback(name: string, _oldValue: string, newValue: string) {
-    if (name === "current-page") {
+    if (name === "current-page" || name === "user-role") {
       this.requestUpdate();
     }
+  }
+
+  get userRole(): string {
+    return this.getAttribute("user-role") || "";
+  }
+
+  set userRole(value: string) {
+    this.setAttribute("user-role", value);
   }
 
   get currentPage(): Page {
@@ -38,12 +53,22 @@ export class DashboardNavigationMenu extends BaseComponent {
   }
 
   protected render(): string {
-    const menuItems = [
+    const menuItems: { id: string; label: string; isLogout?: boolean }[] = [
       { id: "submit-time-off", label: "Submit Time Off" },
       { id: "current-year-summary", label: "Current Year Summary" },
       { id: "prior-year-summary", label: "Prior Year Summary" },
-      { id: "logout", label: "Logout", isLogout: true },
     ];
+
+    if (this.userRole === "Admin") {
+      menuItems.push(
+        { id: "admin/employees", label: "Employee Management" },
+        { id: "admin/pto-requests", label: "PTO Requests" },
+        { id: "admin/monthly-review", label: "Monthly Review" },
+        { id: "admin/settings", label: "Settings" },
+      );
+    }
+
+    menuItems.push({ id: "logout", label: "Logout", isLogout: true });
 
     return `
       <style>${DASHBOARD_NAVIGATION_MENU_CSS}</style>

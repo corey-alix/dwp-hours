@@ -7,7 +7,7 @@ import { playground as employeeForm } from "./employee-form/test.js";
 import { playground as ptoEntryForm } from "./pto-entry-form/test.js";
 import { playground as ptoRequestQueue } from "./pto-request-queue/test.js";
 import { playground as dataTable } from "./data-table/test.js";
-import { playground as reportGenerator } from "./report-generator/test.js";
+
 import { playground as ptoDashboard } from "./pto-dashboard/test.js";
 import { playground as ptoCalendar } from "./pto-calendar/test.js";
 import { playground as ptoSummaryCard } from "./pto-summary-card/test.js";
@@ -31,7 +31,6 @@ export {
   ptoEntryForm,
   ptoRequestQueue,
   dataTable,
-  reportGenerator,
   ptoDashboard,
   ptoCalendar,
   ptoSummaryCard,

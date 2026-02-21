@@ -6,14 +6,29 @@ Decouple `UIManager` from concrete page implementations by introducing a type-sa
 
 The goal is to:
 
-1. Define a `Route` / `AppRoutes` type system (inspired by the route type declarations provided by the user) that describes pages declaratively.
-2. Implement a lightweight `Router` class that matches paths, manages history, enforces auth gates, calls loaders, and renders page components.
-3. Extract each "page" (Login, Submit Time Off, Current Year Summary, Prior Year Summary, Admin) into a self-contained page web component that implements a `PageComponent` interface.
-4. Reduce `UIManager` to a thin application shell that bootstraps the router, handles auth state, and delegates everything else to routes and page components.
+1. Define a `Route` / `AppRoutes` type system that describes pages declaratively.
+2. Implement a lightweight `Router` class that matches paths, manages history (History API only — no hash routing), enforces auth gates, calls loaders, and renders page components.
+3. Extract auth logic from `UIManager` into a dedicated `AuthService` class.
+4. Extract each "page" (Login, Submit Time Off, Current Year Summary, Prior Year Summary) into a self-contained page web component implementing the `PageComponent` interface.
+5. Migrate admin child components (`employee-list`, `employee-form`, `pto-request-queue`, `admin-monthly-review`) to conform to the web-components-assistant standard **before** wrapping them in pages.
+6. Delete `report-generator` (the app doesn't need it).
+7. Decompose the monolithic `admin-panel` component into separate routed admin pages (Employees, PTO Requests, Monthly Review, Settings) and **remove** `admin-panel`.
+8. Reduce `UIManager` to a thin application shell that bootstraps the router, wires `AuthService`, and delegates everything else to routes and page components.
+9. Replace `index.html`'s multi-div page structure with a single `<main id="router-outlet">` immediately (no hybrid migration — the app is offline during this work).
 
 ## Priority
 
 🟢 Low Priority (Frontend/UI refactoring — no new user-visible behaviour; existing features must remain intact)
+
+## Decisions (from Q&A)
+
+| #   | Question                         | Decision                                                                                                                                                                               |
+| --- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Extract auth into `AuthService`? | **Yes** — extract as part of this migration.                                                                                                                                           |
+| 2   | Admin page structure?            | **Decompose** `admin-panel` into separate routes (`/admin/employees`, `/admin/pto-requests`, `/admin/monthly-review`, `/admin/settings`). Remove `admin-panel` and `report-generator`. |
+| 3   | Hash-based routing?              | **No** — History API only. This is a lightweight app; the focus is developer experience. The server already serves `index.html` for all paths.                                         |
+| 4   | `navigate-to-month` cross-page?  | **Query params** — navigate to `/submit-time-off?month=3&year=2026`. The Submit Time Off page reads `URLSearchParams` in `onRouteEnter` and calls `ptoForm.navigateToMonth()`.         |
+| 5   | Hybrid migration?                | **No hybrid** — switch to `#router-outlet` immediately. No one will use the app until this feature is complete.                                                                        |
 
 ## Route System Design
 
@@ -81,6 +96,43 @@ export interface Route<TPath extends string = string> {
 export type AppRoutes = Route<string>[];
 ```
 
+### AuthService (sketch)
+
+```typescript
+// client/auth/auth-service.ts
+
+export interface AuthUser {
+  id: number;
+  name: string;
+  role: string;
+}
+
+export class AuthService {
+  private currentUser: AuthUser | null = null;
+
+  /** Check URL for magic-link token, then fall back to cookie-based session. */
+  async initialize(): Promise<AuthUser | null> { ... }
+
+  /** Request a magic link for the given email. */
+  async requestMagicLink(identifier: string): Promise<{ message: string; magicLink?: string }> { ... }
+
+  /** Validate a magic-link token and establish a session. */
+  async validateToken(token: string): Promise<AuthUser> { ... }
+
+  /** Validate an existing cookie-based session. */
+  async validateSession(): Promise<AuthUser | null> { ... }
+
+  /** Log the user out: clear cookie, clear state. */
+  logout(): void { ... }
+
+  /** Current authenticated user (or null). */
+  getUser(): AuthUser | null { return this.currentUser; }
+
+  /** Whether the current user has a given role. */
+  hasRole(role: string): boolean { ... }
+}
+```
+
 ### Router Class (sketch)
 
 ```typescript
@@ -88,10 +140,11 @@ export type AppRoutes = Route<string>[];
 
 export class Router {
   private routes: AppRoutes;
-  private outlet: HTMLElement; // <main> or similar container
+  private outlet: HTMLElement;
   private currentComponent: PageComponent | null = null;
+  private authService: AuthService;
 
-  constructor(routes: AppRoutes, outlet: HTMLElement) { ... }
+  constructor(routes: AppRoutes, outlet: HTMLElement, authService: AuthService) { ... }
 
   /** Navigate to a path. Updates History API and renders. */
   async navigate(path: string): Promise<void> { ... }
@@ -116,6 +169,7 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
     loaderData?: unknown,
   ): Promise<void> {
     // Receive PTO status & entries from loader, populate sub-components
+    // Read query params for navigate-to-month: ?month=3&year=2026
   }
 
   onRouteLeave(): boolean {
@@ -161,7 +215,7 @@ export const appRoutes: AppRoutes = [
     name: "Current Year Summary",
     meta: { title: "Current Year Summary", requiresAuth: true },
     loader: async () => {
-      /* ... */
+      /* fetch PTO status + entries */
     },
   },
   {
@@ -170,14 +224,47 @@ export const appRoutes: AppRoutes = [
     name: "Prior Year Summary",
     meta: { title: "Prior Year Summary", requiresAuth: true },
     loader: async () => {
-      /* ... */
+      /* fetch prior year review data */
+    },
+  },
+  // Admin routes — each former admin-panel view becomes its own route
+  {
+    path: "/admin/employees",
+    component: "admin-employees-page",
+    name: "Employee Management",
+    meta: {
+      title: "Employee Management",
+      requiresAuth: true,
+      roles: ["Admin"],
+    },
+    loader: async () => {
+      /* fetch employee list */
     },
   },
   {
-    path: "/admin",
-    component: "admin-page",
-    name: "Admin",
-    meta: { title: "Admin Panel", requiresAuth: true, roles: ["Admin"] },
+    path: "/admin/pto-requests",
+    component: "admin-pto-requests-page",
+    name: "PTO Requests",
+    meta: { title: "PTO Request Queue", requiresAuth: true, roles: ["Admin"] },
+    loader: async () => {
+      /* fetch PTO requests */
+    },
+  },
+  {
+    path: "/admin/monthly-review",
+    component: "admin-monthly-review-page",
+    name: "Monthly Review",
+    meta: {
+      title: "Monthly Employee Review",
+      requiresAuth: true,
+      roles: ["Admin"],
+    },
+  },
+  {
+    path: "/admin/settings",
+    component: "admin-settings-page",
+    name: "Settings",
+    meta: { title: "System Settings", requiresAuth: true, roles: ["Admin"] },
   },
   {
     path: "*",
@@ -190,58 +277,75 @@ export const appRoutes: AppRoutes = [
 
 ## Checklist
 
-### Stage 1 — Router Foundation (no behaviour change)
+### Stage 1 — AuthService Extraction
+
+- [ ] Create `client/auth/auth-service.ts` with `AuthService` class
+  - [ ] Move cookie helpers (`setAuthCookie`, `getAuthCookie`) from `UIManager`
+  - [ ] Move `checkAuth`, `validateToken`, `validateSession` logic from `UIManager`
+  - [ ] Move `handleLogout` auth-clearing logic from `UIManager`
+  - [ ] Expose `getUser()`, `hasRole(role)`, `isAuthenticated()` accessors
+  - [ ] Emit a `auth-state-changed` custom event when user logs in/out
+- [ ] Create `client/auth/index.ts` barrel export
+- [ ] Unit tests for `AuthService` (Vitest, happy-dom)
+- [ ] `pnpm run build` passes
+- [ ] `pnpm run lint` passes
+
+### Stage 2 — Router Foundation
 
 - [ ] Create `client/router/types.ts` with `Route`, `AppRoutes`, `PageComponent`, `RouteMeta` types
 - [ ] Create `client/router/router.ts` implementing `Router` class
   - [ ] Path matching with `:param` and `*` wildcard support
   - [ ] History API integration (`pushState` / `popstate`)
-  - [ ] Auth gate: check `meta.requiresAuth` and `meta.roles` before rendering
+  - [ ] Auth gate: check `meta.requiresAuth` and `meta.roles` via `AuthService` before rendering
+  - [ ] Redirect to `/login` when unauthenticated
   - [ ] Loader execution with error/pending component support
   - [ ] Outlet management: unmount old component (`onRouteLeave`), mount new component (`onRouteEnter`)
+  - [ ] Pass `URLSearchParams` from the current URL to `onRouteEnter` for query param consumption
 - [ ] Create `client/router/routes.ts` with initial route definitions (empty placeholder components)
 - [ ] Create `client/router/index.ts` barrel export
-- [ ] Unit tests for `Router` path matching and auth gating (Vitest, happy-dom)
+- [ ] Unit tests for `Router` path matching, auth gating, and query param passing (Vitest, happy-dom)
 - [ ] `pnpm run build` passes
 - [ ] `pnpm run lint` passes
 
-### Stage 2 — Login Page Component
+### Stage 3 — Login Page Component
 
 - [ ] Create `client/pages/login-page/index.ts` extending `BaseComponent` and implementing `PageComponent`
-  - [ ] Move login form HTML, event handling, and magic-link logic from `UIManager.handleLogin` / `checkAuth`
-  - [ ] Fire `login-success` custom event with user data on successful auth
+  - [ ] Move login form HTML and event handling from `UIManager.handleLogin`
+  - [ ] Use `AuthService.requestMagicLink()` and `AuthService.validateToken()` internally
+  - [ ] Fire `login-success` custom event (bubbles, composed) with user data on successful auth
 - [ ] Create `client/pages/login-page/css.ts`
 - [ ] Create `client/pages/login-page/test.html` and `test.ts`
 - [ ] Unit tests for login page rendering and event dispatch
 - [ ] `pnpm run build` passes
 - [ ] `pnpm run lint` passes
 
-### Stage 3 — Submit Time Off Page Component
+### Stage 4 — Submit Time Off Page Component
 
 - [ ] Create `client/pages/submit-time-off-page/index.ts` extending `BaseComponent` and implementing `PageComponent`
   - [ ] Move PTO entry form orchestration from `UIManager` (`handlePtoRequestSubmit`, `handlePtoDataRequest`, `handleFormSelectionChanged`, `clearFormBalanceDeltas`, `updateFormSummaryCard`)
   - [ ] Implement `onRouteEnter` to receive loader data (PTO status + entries) and populate sub-components
+  - [ ] Read query params `?month=N&year=YYYY` in `onRouteEnter` and call `ptoForm.navigateToMonth()` if present
   - [ ] Contains `<pto-entry-form>`, `<month-summary>`, submit/cancel buttons in its template
 - [ ] Create `client/pages/submit-time-off-page/css.ts`
 - [ ] Create `client/pages/submit-time-off-page/test.html` and `test.ts`
-- [ ] Unit tests for page data flow and event handling
+- [ ] Unit tests for page data flow, event handling, and query param navigation
 - [ ] `pnpm run build` passes
 - [ ] `pnpm run lint` passes
 
-### Stage 4 — Current Year Summary Page Component
+### Stage 5 — Current Year Summary Page Component
 
 - [ ] Create `client/pages/current-year-summary-page/index.ts` extending `BaseComponent` and implementing `PageComponent`
   - [ ] Move PTO status card orchestration from `UIManager.loadPTOStatus` and `renderPTOStatus`
   - [ ] Implement `onRouteEnter` to receive loader data and populate summary/detail cards
   - [ ] Contains `<pto-summary-card>`, `<pto-employee-info-card>`, `<pto-pto-card>`, `<pto-sick-card>`, `<pto-bereavement-card>`, `<pto-jury-duty-card>` in its template
-  - [ ] Handle `navigate-to-month` events internally (dispatch route navigation)
+  - [ ] Handle `navigate-to-month` events by calling `router.navigate("/submit-time-off?month=N&year=YYYY")`
 - [ ] Create `client/pages/current-year-summary-page/css.ts`
 - [ ] Create `client/pages/current-year-summary-page/test.html` and `test.ts`
 - [ ] Unit tests for data injection and card event handling
 - [ ] `pnpm run build` passes
 - [ ] `pnpm run lint` passes
 
-### Stage 5 — Prior Year Summary Page Component
+### Stage 6 — Prior Year Summary Page Component
 
 - [ ] Create `client/pages/prior-year-summary-page/index.ts` extending `BaseComponent` and implementing `PageComponent`
   - [ ] Move `UIManager.loadPriorYearReview` logic into `onRouteEnter`
@@ -252,37 +356,161 @@ export const appRoutes: AppRoutes = [
 - [ ] `pnpm run build` passes
 - [ ] `pnpm run lint` passes
 
-### Stage 6 — Admin Page Component
+### Stage 7 — Remove `report-generator`
 
-- [ ] Create `client/pages/admin-page/index.ts` extending `BaseComponent` and implementing `PageComponent`
-  - [ ] Move admin button wiring, employee management stubs, and acknowledgment dialog logic from `UIManager`
-  - [ ] Contains `<admin-panel>`, management buttons in its template
-- [ ] Create `client/pages/admin-page/css.ts`
-- [ ] Create `client/pages/admin-page/test.html` and `test.ts`
+- [ ] Delete `client/components/report-generator/` directory
+- [ ] Remove `ReportGenerator` export from `client/components/index.ts`
+- [ ] Remove all `report-generator` references from other files
+- [ ] `pnpm run build` passes (no dead imports)
+- [ ] `pnpm run lint` passes
+
+### Stage 8 — Migrate Admin Child Components to Web-Components-Assistant Standard
+
+Before wrapping these components in page wrappers, migrate them to conform to the [web-components-assistant](../.github/skills/web-components-assistant/SKILL.md) standard. See the conformance audit below for each component's gaps.
+
+#### 8a — `pto-request-queue` (full BaseComponent migration)
+
+- [ ] Rewrite to extend `BaseComponent` instead of `HTMLElement`
+  - [ ] Remove manual `attachShadow()` constructor call
+  - [ ] Replace imperative `this.shadow.innerHTML = ...` with declarative `protected render(): string`
+  - [ ] Replace manual `setupEventListeners()` with `handleDelegatedClick()` event delegation
+  - [ ] Replace direct `this.render()` calls with `this.requestUpdate()`
+  - [ ] Memory management: remove manual event listener cleanup (BaseComponent handles it)
+- [ ] Extract styles to `css.ts` file
+- [ ] Fix attribute handling: `requests` (array) must use private field + `requestUpdate()`, not JSON attribute serialization
+- [ ] Unit tests updated
+- [ ] `pnpm run build` passes
+- [ ] `pnpm run lint` passes
+
+#### 8b — `employee-list` (partial migration)
+
+- [ ] Extract inline `STYLES` const to separate `css.ts` file
+- [ ] Fix attribute handling: `employees` (array) must use private field + `requestUpdate()`, not JSON attribute serialization
+- [ ] Refactor embedded child components (`<employee-form>`, `<pto-balance-summary>`) to use named `<slot>` elements per "Named Slots Over Component Embedding" rule
+- [ ] Remove `_customEventsSetup` guard flag — use BaseComponent lifecycle for one-time setup
+- [ ] Unit tests updated
+- [ ] `pnpm run build` passes
+- [ ] `pnpm run lint` passes
+
+#### 8c — `employee-form` (partial migration)
+
+- [ ] Extract `renderStyles()` inline styles to separate `css.ts` file
+- [ ] Fix attribute handling: `employee` (object) must use private field + `requestUpdate()`, not JSON attribute serialization
+- [ ] Replace imperative DOM mutations in `handleDelegatedClick` (direct `submitBtn.disabled`, `submitStatus.textContent` writes) with view-model state + `requestUpdate()`
+- [ ] Replace imperative CSS class mutations in `validateField` with view-model-driven rendering
+- [ ] Unit tests updated
+- [ ] `pnpm run build` passes
+- [ ] `pnpm run lint` passes
+
+#### 8d — `admin-monthly-review` (partial migration)
+
+- [ ] Extract inline styles to separate `css.ts` file
+- [ ] Fix attribute handling: `employee-data` and `acknowledgment-data` (arrays) must use private fields + `requestUpdate()`, not JSON attribute serialization
+- [ ] Add proper getter/setter for `selected-month` (string primitive) with attribute backing
+- [ ] Replace `this.update()` calls with `this.requestUpdate()` to use proper batching
+- [ ] Fix Date violation: replace `new Date().toISOString()` with `shared/dateUtils.ts` utilities
+- [ ] Replace imperative `updateBalanceSummaries()` post-render DOM manipulation with declarative rendering
+- [ ] Refactor embedded `<pto-balance-summary>` to use named `<slot>` element
+- [ ] Unit tests updated
+- [ ] `pnpm run build` passes
+- [ ] `pnpm run lint` passes
+
+### Stage 9 — Admin Page Decomposition (replaces monolithic `admin-panel`)
+
+Each former `admin-panel` sidebar view becomes its own routed page. The `admin-panel` component and its folder are removed after this stage.
+
+#### 9a — Admin Employees Page
+
+- [ ] Create `client/pages/admin-employees-page/index.ts` extending `BaseComponent` and implementing `PageComponent`
+  - [ ] Contains `<employee-list>` and `<employee-form>` in its template
+  - [ ] Move employee CRUD orchestration, `showEmployeeForm`, `handleEmployeeSubmit` from `admin-panel`
+  - [ ] Move add/edit/delete event handling from `UIManager.handleAddEmployee`, `handleEditEmployee`, `handleDeleteEmployee`
+- [ ] Create `client/pages/admin-employees-page/css.ts`
+- [ ] Create `client/pages/admin-employees-page/test.html` and `test.ts`
 - [ ] Unit tests
 - [ ] `pnpm run build` passes
 - [ ] `pnpm run lint` passes
 
-### Stage 7 — UIManager Slimdown & Router Integration
+#### 9b — Admin PTO Requests Page
+
+- [ ] Create `client/pages/admin-pto-requests-page/index.ts` extending `BaseComponent` and implementing `PageComponent`
+  - [ ] Contains `<pto-request-queue>` in its template
+  - [ ] Move PTO request approve/reject event wiring from `admin-panel`
+- [ ] Create `client/pages/admin-pto-requests-page/css.ts`
+- [ ] Create `client/pages/admin-pto-requests-page/test.html` and `test.ts`
+- [ ] Unit tests
+- [ ] `pnpm run build` passes
+- [ ] `pnpm run lint` passes
+
+#### 9c — Admin Monthly Review Page
+
+- [ ] Create `client/pages/admin-monthly-review-page/index.ts` extending `BaseComponent` and implementing `PageComponent`
+  - [ ] Contains `<admin-monthly-review>` in its template
+  - [ ] Move admin acknowledgment dialog logic (`handleAdminAcknowledgeReview`, `submitAdminAcknowledgment`) from `UIManager`
+- [ ] Create `client/pages/admin-monthly-review-page/css.ts`
+- [ ] Create `client/pages/admin-monthly-review-page/test.html` and `test.ts`
+- [ ] Unit tests
+- [ ] `pnpm run build` passes
+- [ ] `pnpm run lint` passes
+
+#### 9d — Admin Settings Page
+
+- [ ] Create `client/pages/admin-settings-page/index.ts` extending `BaseComponent` and implementing `PageComponent`
+  - [ ] Placeholder settings UI (holidays, sick day limits, accrual rate rules)
+- [ ] Create `client/pages/admin-settings-page/css.ts`
+- [ ] Create `client/pages/admin-settings-page/test.html` and `test.ts`
+- [ ] Unit tests
+- [ ] `pnpm run build` passes
+- [ ] `pnpm run lint` passes
+
+#### 9e — Remove `admin-panel`
+
+- [ ] Delete `client/components/admin-panel/` directory
+- [ ] Remove `AdminPanel` export from `client/components/index.ts`
+- [ ] Remove all `AdminPanel` references from `UIManager`
+- [ ] Remove `<admin-panel>` from `index.html`
+- [ ] `pnpm run build` passes (no dead imports)
+- [ ] `pnpm run lint` passes
+
+### Stage 10 — UIManager Slimdown & Router Integration
 
 - [ ] Refactor `UIManager` to:
-  - [ ] Instantiate `Router` with `appRoutes` and the `<main>` outlet
-  - [ ] Handle only auth state (cookie, session validation, login/logout)
-  - [ ] Listen for `login-success` event from router/login page to set user context
-  - [ ] Remove all direct component references (`PtoEntryForm`, card components, etc.)
-  - [ ] Remove `hideAllSections`, `showLogin`, `showDashboard`, `handlePageChange`, and page-specific load methods
+  - [ ] Instantiate `AuthService` and `Router` with `appRoutes` and the `<main id="router-outlet">` outlet
+  - [ ] Delegate all auth to `AuthService`
+  - [ ] Listen for `login-success` event from `login-page` to update `AuthService` state and navigate to `/submit-time-off`
+  - [ ] Listen for `auth-state-changed` to show/hide `dashboard-navigation-menu`
+  - [ ] Remove **all** direct component references (`PtoEntryForm`, card components, etc.)
+  - [ ] Remove `hideAllSections`, `showLogin`, `showDashboard`, `handlePageChange`, and all page-specific load/render methods
+  - [ ] Remove `buildUsageEntries`, `computeAccrualFields`, `renderPTOStatus` (moved to page components)
   - [ ] Delegate page rendering entirely to `Router`
-- [ ] Update `dashboard-navigation-menu` to emit route paths instead of page IDs
+- [ ] Update `dashboard-navigation-menu` to emit route paths (`/submit-time-off`, `/current-year-summary`, etc.) instead of page IDs
+  - [x] Add `user-role` observed attribute and `userRole` getter/setter to `DashboardNavigationMenu`
+  - [x] Conditionally render admin menu items (`admin/employees`, `admin/pto-requests`, `admin/monthly-review`, `admin/settings`) when `userRole === "Admin"`
+  - [x] Expand `Page` type union to include admin page IDs
+  - [x] `UIManager.showNav()` sets `menu.userRole` from `AuthService.getUser().role` on login, clears on logout
+  - [x] `UIManager.navigateFromPage()` route map includes admin paths
+  - [x] `UIManager.updateNavMenu()` page map includes admin paths
+  - [x] `Router.renderComponent()` injects `authService` into page components that expose the property (e.g. `LoginPage`)
 - [ ] Update `index.html` to use a single `<main id="router-outlet">` instead of multiple page divs
 - [ ] `pnpm run build` passes
 - [ ] `pnpm run lint` passes
 
-### Stage 8 — E2E & Regression Testing
+### Stage 11 — Server SPA Fallback
+
+- [x] Add catch-all route in `server.mts` to serve `index.html` for all non-API, non-static paths
+  - [x] Ensures direct URL access to `/submit-time-off`, `/admin/employees`, etc. works
+  - [x] Updated `"*"` to `"{*path}"` for Express 5 / `path-to-regexp` v8 compatibility
+  - [ ] Only needed in production mode (dev server already serves static files)
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+
+### Stage 12 — E2E & Regression Testing
 
 - [ ] Verify all existing Playwright E2E tests pass with the routed architecture
 - [ ] Add E2E test for route-based navigation (browser back/forward, direct URL access)
 - [ ] Add E2E test for auth gate (unauthenticated users redirected to `/login`)
-- [ ] Add E2E test for role-based access (non-admin accessing `/admin`)
+- [ ] Add E2E test for role-based access (non-admin accessing `/admin/*`)
+- [ ] Add E2E test for `navigate-to-month` cross-page flow (card click → `/submit-time-off?month=N&year=YYYY`)
 - [ ] Manual testing of all navigation flows
 - [ ] `pnpm run build` passes
 - [ ] `pnpm run lint` passes
@@ -290,22 +518,25 @@ export const appRoutes: AppRoutes = [
 
 ## Implementation Notes
 
-- **No new dependencies** — the router is implemented in vanilla TypeScript using the History API.
-- **Static imports only** — all page component files are statically imported per project conventions (no lazy `import()`).
+- **No new dependencies** — the router is implemented in vanilla TypeScript using the History API. No hash-based routing.
+- **Static imports only** — all page component files are statically imported per project conventions (no lazy `import()`). The app is lightweight and all pages load into memory at startup.
 - **BaseComponent** — all page components extend `BaseComponent` for consistent lifecycle, memory management, and rendering.
-- **Named slots over embedding** — page components use `<slot>` for composable sub-components where appropriate, but can directly embed domain-specific child components (cards, forms) since they are page-scoped, not generic.
-- **Backward compatibility** — during migration, `UIManager` can run in a hybrid mode where some pages use the router and others use the legacy path, allowing incremental adoption. Each stage should leave the app fully functional.
-- **Auth state** — the `Router` consults `UIManager` (or a shared auth service) for current user/role when evaluating `meta.requiresAuth` and `meta.roles`. The auth cookie and session validation logic stays in `UIManager` (or is extracted to an `AuthService`).
-- **Data loading** — route `loader` functions replace the scattered `loadPTOStatus`, `loadPriorYearReview`, etc. calls. Loader results are passed to `onRouteEnter`, giving each page its data without the page knowing about `APIClient`.
-- **Event-driven cross-page actions** — e.g., `navigate-to-month` on a PTO card navigates via `router.navigate("/submit-time-off?month=3&year=2026")` instead of reaching into the form component.
-- **Dashboard navigation menu** — the menu component will emit route paths (e.g., `/submit-time-off`) via a `navigate` custom event. The router listens and navigates accordingly. The `currentPage` attribute is updated by the router after each navigation.
+- **No hybrid mode** — `index.html` switches to a single `<main id="router-outlet">` immediately. The app is offline during migration so no backward-compatibility shim is needed.
+- **AuthService** — extracted from `UIManager` as a standalone class. The `Router` receives `AuthService` in its constructor and checks `meta.requiresAuth` / `meta.roles` before rendering. Unauthenticated users are redirected to `/login`.
+- **Component conformance** — before wrapping admin child components in page components, they are migrated to the web-components-assistant standard. `pto-request-queue` needs a full `BaseComponent` migration. `employee-list`, `employee-form`, and `admin-monthly-review` need partial fixes (css.ts extraction, attribute/field handling, removing imperative DOM mutations).
+- **Admin decomposition** — the monolithic `admin-panel` component is replaced by 4 individual page components, each wrapping the relevant child component (`employee-list`, `pto-request-queue`, `admin-monthly-review`). `report-generator` is deleted entirely. The child components are retained; only the container/orchestrator is removed.
+- **Data loading** — route `loader` functions replace the scattered `loadPTOStatus`, `loadPriorYearReview`, etc. calls. Loader results are passed to `onRouteEnter`, giving each page its data without the page knowing about `APIClient` directly (loaders use `APIClient`, pages receive data).
+- **Cross-page navigation** — `navigate-to-month` events on PTO cards navigate via `router.navigate("/submit-time-off?month=3&year=2026")`. The Submit Time Off page reads `URLSearchParams` in `onRouteEnter` and calls `ptoForm.navigateToMonth()`.
+- **Dashboard navigation menu** — the menu component emits route paths (e.g., `/submit-time-off`) via a `navigate` custom event. For admin users, the menu includes admin sub-routes. The `currentPage` attribute is updated by the router after each navigation.
+- **Server SPA fallback** — `server.mts` needs a catch-all that returns `index.html` for non-API paths so that direct URL access (e.g., refreshing on `/admin/employees`) works. The dev server (`http-serve`) may already handle this; production (Express) needs the explicit route.
 - **Date handling** — follows project convention: all date operations use `shared/dateUtils.ts`, no `new Date()` outside that module.
 - **Business rules** — all validation/calculation logic stays in `shared/businessRules.ts`, consumed by loaders or page components.
 
 ## Questions and Concerns
 
-1. Should we extract auth logic from `UIManager` into a dedicated `AuthService` class as part of this migration, or leave it in `UIManager` and extract later?
-2. The current `index.html` has admin controls outside the dashboard div. Should the admin page be a full route (`/admin`) or remain a conditional panel appended to other pages?
-3. Should the router support hash-based routing (`#/path`) as a fallback for environments where the server doesn't support SPA rewrites, or is History API sufficient given the dev server setup?
-4. How should the `navigate-to-month` cross-page event work? Should the target page read query params (`?month=3&year=2026`), or should the router pass them as route params?
-5. During the hybrid migration period (Stages 2–6), should new page components be rendered inside the existing `#dashboard` container, or immediately switch to a dedicated `#router-outlet`?
+1. ~~Should we extract auth logic from `UIManager` into a dedicated `AuthService` class?~~ **Yes** — added as Stage 1.
+2. ~~Admin page structure?~~ **Decompose** into 5 separate routes; remove `admin-panel` component.
+3. ~~Hash-based routing?~~ **No** — History API only. Focus is DX.
+4. ~~`navigate-to-month` mechanism?~~ **Query params** — `/submit-time-off?month=3&year=2026`.
+5. ~~Hybrid migration?~~ **No** — switch immediately to `#router-outlet`. App is offline during migration.
+6. ~~Child component refactoring?~~ **Yes** — migrate to web-components-assistant standard before wrapping in pages. `report-generator` is deleted (app doesn't need it). `pto-request-queue` needs a full `BaseComponent` migration. `employee-list`, `employee-form`, and `admin-monthly-review` need partial fixes (css.ts extraction, attribute/field handling, removing imperative DOM mutations). Added as Stage 8.

@@ -2210,6 +2210,18 @@ initDatabase()
       },
     );
 
+    // ── SPA catch-all: serve index.html for all non-API, non-static paths ──
+    // This enables direct URL access to client-side routes like /submit-time-off,
+    // /admin/employees, etc. without a 404.
+    app.get("{*path}", (req, res) => {
+      // Skip API paths — they should have been handled above
+      if (req.path.startsWith("/api/")) {
+        return res.status(404).json({ error: "API endpoint not found" });
+      }
+      // Serve index.html for all other paths (SPA routing)
+      res.sendFile(path.join(process.cwd(), "public", "index.html"));
+    });
+
     // Start server
     logger.info(`Checking if port ${PORT} is available...`);
     const portInUse = await checkPortInUse(PORT);

@@ -1,956 +1,182 @@
-import type * as ApiTypes from "../shared/api-models";
-import {
-  UI_ERROR_MESSAGES,
-  computeAccrualToDate,
-} from "../shared/businessRules";
-import {
-  getCurrentYear,
-  formatDateForDisplay,
-  parseDate,
-  getWorkdaysBetween,
-  isWeekend,
-  addDays,
-  today,
-  formatDate,
-} from "../shared/dateUtils";
 import { APIClient } from "./APIClient";
+import { AuthService } from "./auth/auth-service";
+import { Router, appRoutes } from "./router";
 import { notifications } from "./app";
-import { computeSelectionDeltas } from "./components/utils/compute-selection-deltas";
-import {
-  PtoEntryForm,
-  AdminPanel,
-  PtoSickCard,
-  PtoBereavementCard,
-  PtoJuryDutyCard,
-  PtoPtoCard,
-  PtoSummaryCard,
-  PtoEmployeeInfoCard,
-  PriorYearReview,
-  ConfirmationDialog,
-  DashboardNavigationMenu,
-  MonthSummary,
-} from "./components";
-import type { CalendarEntry } from "./components/pto-calendar";
-import {
-  querySingle,
-  addEventListener,
-  createElement,
-} from "./components/test-utils";
+import { DashboardNavigationMenu } from "./components";
+import { querySingle, addEventListener } from "./components/test-utils";
 
-// UI Manager
+// Import page components so they register with customElements
+import "./pages/index";
+
+/**
+ * Thin application shell.
+ * Bootstraps AuthService + Router, wires the navigation menu, and delegates
+ * all page rendering to the router.
+ */
 export class UIManager {
-  private currentUser: { id: number; name: string; role: string } | null = null;
-  private availablePtoBalance: number = 0;
+  private authService: AuthService;
+  private router: Router;
   private api: APIClient;
 
   constructor() {
     this.api = new APIClient();
+    this.authService = new AuthService(this.api);
+    const outlet = querySingle<HTMLElement>("#router-outlet");
+    this.router = new Router(appRoutes, outlet, this.authService);
     this.init();
   }
 
-  private init(): void {
-    this.checkAuth();
-    this.setupEventListeners();
-  }
+  private async init(): Promise<void> {
+    this.setupGlobalListeners();
 
-  private async checkAuth(): Promise<void> {
-    // Check URL params for magic link
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get("token");
-    if (token) {
-      try {
-        const response = (await this.api.validateAuth(
-          token,
-        )) as ApiTypes.AuthValidateResponse;
-        this.setAuthCookie(response.authToken);
-        localStorage.setItem("currentUser", JSON.stringify(response.employee));
-        this.currentUser = response.employee as ApiTypes.Employee; // Cast to full Employee if needed, but actually it's partial
-        this.showDashboard();
-        await this.loadPTOStatus();
-        // Clean URL
-        window.history.replaceState(
-          {},
-          document.title,
-          window.location.pathname,
-        );
-        return;
-      } catch (error) {
-        console.error("Auth validation failed:", error);
-        notifications.error(
-          "Invalid or expired magic link. Please request a new one.",
-        );
-        this.handleLogout();
-      }
-    }
-
-    // Check cookie
-    const cookieHash = this.getAuthCookie();
-    if (cookieHash) {
-      try {
-        const sessionResponse = await this.api.validateSession();
-        if (sessionResponse.valid) {
-          this.currentUser = sessionResponse.employee;
-          localStorage.setItem(
-            "currentUser",
-            JSON.stringify(sessionResponse.employee),
-          );
-          this.showDashboard();
-          await this.loadPTOStatus();
-          return;
+    // Authenticate
+    try {
+      const user = await this.authService.initialize();
+      if (user) {
+        this.showNav(true);
+        // Navigate to the current URL (or default)
+        const path = window.location.pathname;
+        if (path === "/" || path === "/login") {
+          await this.router.navigate("/submit-time-off");
+        } else {
+          this.router.start();
         }
-      } catch (error) {
-        console.error("Session validation failed:", error);
-        // Invalid session, log out
-        this.handleLogout();
-        return;
+      } else {
+        this.showNav(false);
+        this.router.start();
+        if (
+          window.location.pathname !== "/login" &&
+          window.location.pathname !== "/"
+        ) {
+          await this.router.navigate("/login");
+        }
       }
+    } catch (error) {
+      console.error("Auth initialization failed:", error);
+      this.showNav(false);
+      this.router.start();
+      await this.router.navigate("/login");
     }
-
-    this.showLogin();
   }
 
-  private setAuthCookie(hash: string): void {
-    document.cookie = `auth_hash=${hash}; path=/; max-age=${10 * 365 * 24 * 60 * 60}`; // 10 years
-  }
-
-  private getAuthCookie(): string | null {
-    const cookies = document.cookie.split(";");
-    for (const cookie of cookies) {
-      const [name, value] = cookie.trim().split("=");
-      if (name === "auth_hash") {
-        return value;
+  private setupGlobalListeners(): void {
+    // Auth state changes
+    window.addEventListener("auth-state-changed", ((e: CustomEvent) => {
+      const user = e.detail?.user;
+      this.showNav(!!user);
+      if (!user) {
+        this.router.navigate("/login");
       }
-    }
-    return null;
-  }
+    }) as EventListener);
 
-  private setupEventListeners(): void {
-    // Login form
-    const loginForm = querySingle<HTMLFormElement>("#login-form");
-    addEventListener(loginForm, "submit", (e) => this.handleLogin(e));
-
-    // PTO form
-    const ptoForm = querySingle<PtoEntryForm>("#pto-entry-form");
-    addEventListener(ptoForm, "submit", (e) => this.handlePTO(e));
-    addEventListener(ptoForm, "pto-submit", (e: CustomEvent) =>
-      this.handlePtoRequestSubmit(e),
-    );
-    addEventListener(ptoForm, "pto-data-request", () =>
-      this.handlePtoDataRequest(ptoForm),
-    );
-    addEventListener(ptoForm, "pto-validation-error", (e: CustomEvent) => {
-      const errors: string[] = e.detail?.errors ?? [];
-      notifications.error(errors.join("\n"));
-    });
-    addEventListener(ptoForm, "selection-changed", () =>
-      this.handleFormSelectionChanged(ptoForm),
-    );
-
-    // External PTO form buttons
-    const cancelBtn = querySingle<HTMLButtonElement>("#cancel-btn");
-    addEventListener(cancelBtn, "click", () => this.handleCancel(ptoForm));
-
-    const submitBtn = querySingle<HTMLButtonElement>("#submit-btn");
-    addEventListener(submitBtn, "click", () => this.handleSubmit(ptoForm));
-
-    // Logout
-    const navMenu = querySingle<DashboardNavigationMenu>(
-      "dashboard-navigation-menu",
-    );
-    addEventListener(navMenu, "logout", () => this.handleLogout());
-
-    // Year selector buttons
-    try {
-      const currentYearBtn =
-        querySingle<HTMLButtonElement>("#current-year-btn");
-      addEventListener(currentYearBtn, "click", () =>
-        this.showCurrentYearView(),
-      );
-    } catch (error) {
-      // Element doesn't exist in test environment, skip
-    }
-
-    try {
-      const priorYearBtn = querySingle<HTMLButtonElement>("#prior-year-btn");
-      addEventListener(priorYearBtn, "click", () => this.showPriorYearView());
-    } catch (error) {
-      // Element doesn't exist in test environment, skip
-    }
-
-    // Dashboard navigation menu
+    // Navigation menu
     try {
       const menu = querySingle<DashboardNavigationMenu>(
         "dashboard-navigation-menu",
       );
-      addEventListener(menu, "page-change", (e: CustomEvent) =>
-        this.handlePageChange(e.detail.page),
-      );
-      addEventListener(menu, "logout", () => this.handleLogout());
-    } catch (error) {
-      // Element doesn't exist in test environment, skip
+      addEventListener(menu, "page-change", (e: CustomEvent) => {
+        const page = e.detail.page;
+        this.navigateFromPage(page);
+      });
+      addEventListener(menu, "logout", () => {
+        this.authService.logout();
+      });
+    } catch {
+      // Menu not available in test environment
     }
 
-    // Admin buttons (only if they exist - for test.html compatibility)
-    try {
-      const manageBtn = querySingle<HTMLButtonElement>("#manage-employees-btn");
-      addEventListener(manageBtn, "click", () => this.showEmployeeManagement());
-    } catch (error) {
-      // Element doesn't exist in test environment, skip
-    }
+    // Router-navigate events (from page components)
+    window.addEventListener("router-navigate", ((e: CustomEvent) => {
+      const path = e.detail?.path;
+      if (path) this.router.navigate(path);
+    }) as EventListener);
 
-    try {
-      const reportsBtn = querySingle<HTMLButtonElement>("#view-reports-btn");
-      addEventListener(reportsBtn, "click", () => this.showReports());
-    } catch (error) {
-      // Element doesn't exist in test environment, skip
-    }
-
-    // Admin panel events (only if it exists)
-    try {
-      const adminPanel = querySingle<AdminPanel>("admin-panel");
-      if (adminPanel) {
-        addEventListener(adminPanel, "add-employee", () =>
-          this.handleAddEmployee(),
-        );
-        addEventListener(adminPanel, "employee-edit", (e: CustomEvent) =>
-          this.handleEditEmployee(e.detail.employeeId),
-        );
-        addEventListener(adminPanel, "employee-delete", (e: CustomEvent) =>
-          this.handleDeleteEmployee(e.detail.employeeId),
-        );
-        addEventListener(adminPanel, "admin-acknowledge", (e: CustomEvent) =>
-          this.handleAdminAcknowledgeReview(
-            e.detail.employeeId,
-            e.detail.employeeName,
-            e.detail.month,
-          ),
-        );
-      }
-    } catch (error) {
-      // admin-panel element doesn't exist in test environment, skip
-    }
-    ptoForm.reset();
+    // Route-changed events (update nav menu state & heading)
+    window.addEventListener("route-changed", ((e: CustomEvent) => {
+      this.updateNavMenu(e.detail?.path);
+      this.updateHeading(e.detail?.path);
+    }) as EventListener);
   }
 
-  private setupPTOCardEventListeners(): void {
-    try {
-      const sickCard = querySingle<PtoSickCard>("pto-sick-card");
-      const bereavementCard = querySingle<PtoBereavementCard>(
-        "pto-bereavement-card",
-      );
-      const juryDutyCard = querySingle<PtoJuryDutyCard>("pto-jury-duty-card");
-      const ptoCard = querySingle<PtoPtoCard>("pto-pto-card");
+  /** Map dashboard-navigation-menu page IDs to router paths. */
+  private navigateFromPage(page: string): void {
+    const routeMap: Record<string, string> = {
+      "submit-time-off": "/submit-time-off",
+      "current-year-summary": "/current-year-summary",
+      "prior-year-summary": "/prior-year-summary",
+      "admin/employees": "/admin/employees",
+      "admin/pto-requests": "/admin/pto-requests",
+      "admin/monthly-review": "/admin/monthly-review",
+      "admin/settings": "/admin/settings",
+    };
+    const path = routeMap[page] ?? `/${page}`;
+    this.router.navigate(path);
+  }
 
-      // Handle navigation to month from PTO detail cards
-      const handleNavigateToMonth = (e: CustomEvent) => {
-        e.stopPropagation();
-        const { month, year } = e.detail;
-        console.log("App: navigate-to-month event received:", { month, year });
-        // Switch to Submit Time Off page and navigate calendar to clicked month
-        this.handlePageChange("submit-time-off");
-        const ptoForm = querySingle<PtoEntryForm>("#pto-entry-form");
-        ptoForm.navigateToMonth(month, year);
+  private showNav(visible: boolean): void {
+    try {
+      const menu = querySingle<DashboardNavigationMenu>(
+        "dashboard-navigation-menu",
+      );
+      if (visible) {
+        menu.classList.remove("hidden");
+        // Set user role so admin menu items are rendered
+        const user = this.authService.getUser();
+        if (user) {
+          menu.userRole = user.role;
+        }
+      } else {
+        menu.classList.add("hidden");
+        menu.userRole = "";
+      }
+    } catch {
+      // Menu not in DOM
+    }
+  }
+
+  private updateNavMenu(path?: string): void {
+    if (!path) return;
+    try {
+      const menu = querySingle<DashboardNavigationMenu>(
+        "dashboard-navigation-menu",
+      );
+      // Reverse-map path to page ID for the menu
+      const pageMap: Record<string, string> = {
+        "/submit-time-off": "submit-time-off",
+        "/current-year-summary": "current-year-summary",
+        "/prior-year-summary": "prior-year-summary",
+        "/admin/employees": "admin/employees",
+        "/admin/pto-requests": "admin/pto-requests",
+        "/admin/monthly-review": "admin/monthly-review",
+        "/admin/settings": "admin/settings",
       };
-
-      addEventListener(sickCard, "navigate-to-month", handleNavigateToMonth);
-      addEventListener(
-        bereavementCard,
-        "navigate-to-month",
-        handleNavigateToMonth,
-      );
-      addEventListener(
-        juryDutyCard,
-        "navigate-to-month",
-        handleNavigateToMonth,
-      );
-      addEventListener(ptoCard, "navigate-to-month", handleNavigateToMonth);
-    } catch (error) {
-      // PTO cards don't exist in test environment, skip
-      console.log("PTO cards not available for event listener setup:", error);
-    }
-  }
-
-  private handleLogout(): void {
-    this.currentUser = null;
-    document.cookie =
-      "auth_hash=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    localStorage.removeItem("currentUser");
-    this.showLogin();
-  }
-
-  private async handleLogin(e: Event): Promise<void> {
-    e.preventDefault();
-    const identifier = querySingle<HTMLInputElement>("#identifier").value;
-
-    try {
-      const response = await this.api.requestAuthLink(identifier);
-      const messageDiv = querySingle("#login-message")!;
-      messageDiv.textContent = response.message;
-      messageDiv.innerHTML = "";
-      const messageText = createElement("div");
-      messageText.textContent = response.message;
-      messageDiv.appendChild(messageText);
-      messageDiv.classList.remove("hidden");
-      if (response.magicLink) {
-        const link = createElement("a") as HTMLAnchorElement;
-        link.href = response.magicLink;
-        link.textContent = response.magicLink;
-        link.rel = "noopener noreferrer";
-        link.target = "_self";
-
-        const linkWrapper = createElement("div") as HTMLDivElement;
-        linkWrapper.style.marginTop = "8px";
-        linkWrapper.appendChild(link);
-        messageDiv.appendChild(linkWrapper);
+      const pageId = pageMap[path];
+      if (pageId) {
+        menu.currentPageValue = pageId as any;
       }
-    } catch (error) {
-      console.error("Failed to send magic link:", error);
-      notifications.error("Failed to send magic link. Please try again.");
+    } catch {
+      // Menu not available
     }
-  }
-
-  private async handlePTO(e: Event): Promise<void> {
-    e.preventDefault();
-    // Form submission is now handled by pto-submit event
-  }
-
-  private handleCancel(ptoForm: PtoEntryForm): void {
-    ptoForm.reset();
-    this.clearFormBalanceDeltas();
-  }
-
-  private handleSubmit(ptoForm: PtoEntryForm): void {
-    ptoForm.dispatchEvent(new Event("submit"));
-  }
-
-  private showLogin(): void {
-    this.hideAllSections();
-    querySingle("#login-section").classList.remove("hidden");
-  }
-
-  private showDashboard(): void {
-    this.hideAllSections();
-    querySingle("#dashboard").classList.remove("hidden");
-    querySingle("#dashboard-navigation-menu").classList.remove("hidden");
-    if (this.currentUser?.role === "Admin") {
-      querySingle("#admin-panel").classList.remove("hidden");
-    }
-
-    // Set up event listeners for PTO cards (only once)
-    this.setupPTOCardEventListeners();
-
-    // Initialize to default page
-    this.handlePageChange("submit-time-off");
-  }
-
-  private showCurrentYearView(): void {
-    // Update button states
-    querySingle("#current-year-btn").classList.add("active");
-    querySingle("#prior-year-btn").classList.remove("active");
-
-    // Show current year view, hide prior year view
-    querySingle("#pto-status").classList.remove("hidden");
-    querySingle("#prior-year-view").classList.add("hidden");
-
-    // Reload current year data
-    this.loadPTOStatus();
-  }
-
-  private async showPriorYearView(): Promise<void> {
-    // Update button states
-    querySingle("#current-year-btn").classList.remove("active");
-    querySingle("#prior-year-btn").classList.add("active");
-
-    // Show prior year view, hide current year view
-    querySingle("#pto-status").classList.add("hidden");
-    querySingle("#prior-year-view").classList.remove("hidden");
-
-    // Load prior year data
-    await this.loadPriorYearReview();
   }
 
   private static readonly PAGE_LABELS: Record<string, string> = {
-    "submit-time-off": "Submit Time Off",
-    "current-year-summary": "Current Year Summary",
-    "prior-year-summary": "Prior Year Summary",
+    "/submit-time-off": "Submit Time Off",
+    "/current-year-summary": "Current Year Summary",
+    "/prior-year-summary": "Prior Year Summary",
+    "/admin/employees": "Employee Management",
+    "/admin/pto-requests": "PTO Request Queue",
+    "/admin/monthly-review": "Monthly Employee Review",
+    "/admin/settings": "System Settings",
+    "/login": "Login",
   };
 
-  private handlePageChange(page: string): void {
-    // Hide all pages
-    const pages = document.querySelectorAll(".page");
-    pages.forEach((p) => p.classList.remove("active"));
-
-    // Show selected page
-    const pageId = page === "submit-time-off" ? "pto-form" : `${page}-page`;
-    const selectedPage = querySingle(`#${pageId}`);
-    selectedPage.classList.add("active");
-
-    // Update page heading
-    const heading = querySingle<HTMLHeadingElement>("h1");
-    heading.textContent = UIManager.PAGE_LABELS[page] ?? "DWP Hours Tracker";
-
-    // Update menu
-    const menu = querySingle<DashboardNavigationMenu>(
-      "dashboard-navigation-menu",
-    );
-    menu.currentPageValue = page as any;
-
-    // Load data based on page
-    if (page === "current-year-summary") {
-      this.loadPTOStatus();
-      this.loadEmployeeInfo();
-    } else if (page === "prior-year-summary") {
-      this.loadPriorYearReview();
-    } else if (page === "submit-time-off") {
-      this.loadPTOStatus(); // Load PTO balance for form validation
-      // Set available PTO balance on the form for validation
-      const ptoForm = querySingle<PtoEntryForm>("#pto-entry-form");
-      ptoForm.setAttribute(
-        "available-pto-balance",
-        this.availablePtoBalance.toString(),
-      );
-      // Load PTO data into the form's calendar
-      this.handlePtoDataRequest(ptoForm);
-      // Populate the slotted summary card inside the entry form
-      this.updateFormSummaryCard();
-    }
-  }
-
-  private showEmployeeManagement(): void {
-    // TODO: Implement employee management UI
-    notifications.info("Employee management feature coming soon!");
-  }
-
-  private showReports(): void {
-    // TODO: Implement reports UI
-    notifications.info("Reports feature coming soon!");
-  }
-
-  private handleAddEmployee(): void {
-    // TODO: Implement add employee dialog
-    notifications.info("Add employee feature coming soon!");
-  }
-
-  private handleEditEmployee(employeeId: number): void {
-    // TODO: Implement edit employee dialog
-    notifications.info(`Edit employee ${employeeId} feature coming soon!`);
-  }
-
-  private handleDeleteEmployee(employeeId: number): void {
-    // TODO: Implement delete employee confirmation
-    if (confirm(`Are you sure you want to delete employee ${employeeId}?`)) {
-      // TODO: Call API to delete
-      notifications.info(`Delete employee ${employeeId} feature coming soon!`);
-    }
-  }
-
-  private handleAdminAcknowledgeReview(
-    employeeId: number,
-    employeeName: string,
-    month: string,
-  ): void {
-    // Show confirmation dialog before submitting acknowledgment
-    const dialog = createElement<ConfirmationDialog>("confirmation-dialog");
-    dialog.message = `Are you sure you want to acknowledge the monthly review for ${employeeName} (${month})? This action confirms that you have reviewed their hours and PTO data for this month.`;
-    dialog.confirmText = "Acknowledge";
-    dialog.cancelText = "Cancel";
-
-    // Handle confirmation
-    const handleConfirm = () => {
-      this.submitAdminAcknowledgment(employeeId, month);
-      document.body.removeChild(dialog);
-    };
-
-    // Handle cancellation
-    const handleCancel = () => {
-      document.body.removeChild(dialog);
-    };
-
-    dialog.addEventListener("confirm", handleConfirm);
-    dialog.addEventListener("cancel", handleCancel);
-
-    document.body.appendChild(dialog);
-  }
-
-  private async submitAdminAcknowledgment(
-    employeeId: number,
-    month: string,
-  ): Promise<void> {
+  private updateHeading(path?: string): void {
+    if (!path) return;
     try {
-      if (!this.currentUser) {
-        notifications.error("You must be logged in to perform this action.");
-        return;
-      }
-      const response = await this.api.submitAdminAcknowledgement(
-        employeeId,
-        month,
-      );
-      notifications.success(
-        response.message || "Acknowledgment submitted successfully.",
-      );
-    } catch (error: any) {
-      console.error("Failed to submit admin acknowledgment:", error);
-      notifications.error(
-        "Failed to submit acknowledgment: " +
-          (error.message || "Unknown error"),
-      );
+      const heading = querySingle<HTMLHeadingElement>("h1");
+      heading.textContent = UIManager.PAGE_LABELS[path] ?? "DWP Hours Tracker";
+    } catch {
+      // Heading not in DOM
     }
-  }
-
-  private hideAllSections(): void {
-    const sections = ["login-section", "dashboard", "pto-form", "admin-panel"];
-    sections.forEach((id) => {
-      querySingle(`#${id}`).classList.add("hidden");
-    });
-    querySingle("#dashboard-navigation-menu").classList.add("hidden");
-  }
-
-  private async loadPTOStatus(): Promise<void> {
-    console.log("loadPTOStatus called, currentUser:", this.currentUser);
-    if (!this.currentUser) return;
-
-    // Load PTO data
-    await this.refreshPTOData();
-
-    // Query existing elements instead of creating them
-    const summaryCard = querySingle<PtoSummaryCard>("pto-summary-card");
-    summaryCard.summary = null; // Will show loading
-
-    const sickCard = querySingle<PtoSickCard>("pto-sick-card");
-    sickCard.bucket = null; // Will show loading
-    sickCard.usageEntries = [];
-
-    const bereavementCard = querySingle<PtoBereavementCard>(
-      "pto-bereavement-card",
-    );
-    bereavementCard.bucket = null; // Will show loading
-    bereavementCard.usageEntries = [];
-
-    const juryDutyCard = querySingle<PtoJuryDutyCard>("pto-jury-duty-card");
-    juryDutyCard.bucket = null; // Will show loading
-    juryDutyCard.usageEntries = [];
-
-    const employeeInfoCard = querySingle<PtoEmployeeInfoCard>(
-      "pto-employee-info-card",
-    );
-    employeeInfoCard.info = {
-      hireDate: "Loading...",
-      nextRolloverDate: "Loading...",
-    };
-
-    const ptoCard = querySingle<PtoPtoCard>("pto-pto-card");
-    ptoCard.bucket = null; // Will show loading
-    ptoCard.usageEntries = [];
-
-    try {
-      // Fetch data
-      const status = await this.api.getPTOStatus();
-      const entries = await this.api.getPTOEntries();
-
-      // Store available PTO balance for form validation
-      this.availablePtoBalance = status.availablePTO;
-
-      const realHireDate = formatDateForDisplay(status.hireDate);
-      const realNextRolloverDate = formatDateForDisplay(
-        status.nextRolloverDate,
-      );
-
-      // Update cards with real data
-      summaryCard.summary = {
-        annualAllocation: status.annualAllocation,
-        availablePTO: status.availablePTO,
-        usedPTO: status.usedPTO,
-        carryoverFromPreviousYear: status.carryoverFromPreviousYear,
-      };
-
-      sickCard.bucket = status.sickTime;
-      sickCard.usageEntries = this.buildUsageEntries(
-        entries,
-        getCurrentYear(),
-        "Sick",
-      );
-      sickCard.fullPtoEntries = entries.filter(
-        (e) => e.type === "Sick" && parseDate(e.date).year === getCurrentYear(),
-      );
-
-      bereavementCard.bucket = status.bereavementTime;
-      bereavementCard.usageEntries = this.buildUsageEntries(
-        entries,
-        getCurrentYear(),
-        "Bereavement",
-      );
-      bereavementCard.fullPtoEntries = entries.filter(
-        (e) =>
-          e.type === "Bereavement" &&
-          parseDate(e.date).year === getCurrentYear(),
-      );
-
-      juryDutyCard.bucket = status.juryDutyTime;
-      juryDutyCard.usageEntries = this.buildUsageEntries(
-        entries,
-        getCurrentYear(),
-        "Jury Duty",
-      );
-      juryDutyCard.fullPtoEntries = entries.filter(
-        (e) =>
-          e.type === "Jury Duty" && parseDate(e.date).year === getCurrentYear(),
-      );
-
-      ptoCard.bucket = status.ptoTime;
-      ptoCard.usageEntries = this.buildUsageEntries(
-        entries,
-        getCurrentYear(),
-        "PTO",
-      );
-      ptoCard.fullPtoEntries = entries.filter(
-        (e) => e.type === "PTO" && parseDate(e.date).year === getCurrentYear(),
-      );
-
-      employeeInfoCard.info = {
-        hireDate: realHireDate,
-        nextRolloverDate: realNextRolloverDate,
-        ...this.computeAccrualFields(status),
-      };
-    } catch (error) {
-      console.error(UI_ERROR_MESSAGES.failed_to_load_pto_status, error);
-      const statusDiv = querySingle("#pto-status");
-      statusDiv.innerHTML = `
-                <h3>PTO Status</h3>
-                <p>Error loading PTO status. Please try again later.</p>
-            `;
-    }
-  }
-
-  private async loadEmployeeInfo(): Promise<void> {
-    if (!this.currentUser) return;
-
-    const employeeInfoCard = querySingle<PtoEmployeeInfoCard>(
-      "pto-employee-info-card",
-    );
-    employeeInfoCard.info = {
-      hireDate: "Loading...",
-      nextRolloverDate: "Loading...",
-    };
-
-    try {
-      const status = await this.api.getPTOStatus();
-      employeeInfoCard.info = {
-        hireDate: formatDateForDisplay(status.hireDate),
-        nextRolloverDate: formatDateForDisplay(status.nextRolloverDate, {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        }),
-        ...this.computeAccrualFields(status),
-      };
-    } catch (error) {
-      console.error("Failed to load employee info:", error);
-      employeeInfoCard.info = {
-        hireDate: "Error loading",
-        nextRolloverDate: "Error loading",
-      };
-    }
-  }
-
-  private async loadPriorYearReview(): Promise<void> {
-    if (!this.currentUser) return;
-
-    try {
-      const priorYear = getCurrentYear() - 1;
-      const reviewData = await this.api.getPTOYearReview(priorYear);
-
-      const priorYearReview = querySingle<PriorYearReview>("prior-year-review");
-      priorYearReview.data = reviewData;
-    } catch (error) {
-      console.error("Failed to load prior year review:", error);
-      const priorYearReview = querySingle<PriorYearReview>("prior-year-review");
-      priorYearReview.data = null;
-      notifications.error(
-        "Failed to load prior year data. Please try again later.",
-      );
-    }
-  }
-
-  private buildUsageEntries(
-    entries: ApiTypes.PTOEntry[],
-    year: number,
-    type: string,
-  ): { date: string; hours: number }[] {
-    const safeEntries = Array.isArray(entries) ? entries : [];
-    const hoursByDate = new Map<string, number>();
-
-    for (const entry of safeEntries) {
-      if (entry.type !== type) {
-        continue;
-      }
-
-      const { year: entryYear } = parseDate(entry.date);
-      if (entryYear !== year) {
-        continue;
-      }
-
-      hoursByDate.set(
-        entry.date,
-        (hoursByDate.get(entry.date) ?? 0) + entry.hours,
-      );
-    }
-
-    const result = Array.from(hoursByDate.entries())
-      .map(([date, hours]) => ({ date, hours }))
-      .sort((a, b) => a.date.localeCompare(b.date));
-    return result;
-  }
-
-  private async handlePtoRequestSubmit(e: CustomEvent): Promise<void> {
-    if (e.detail.requests) {
-      // Calendar submission
-      await this.handlePtoRequestSubmitOld(e.detail.requests);
-    } else if (e.detail.ptoRequest) {
-      // Form submission - convert to requests format
-      const request = e.detail.ptoRequest;
-      const requests: CalendarEntry[] = [];
-      let currentDateStr = request.startDate;
-      while (currentDateStr <= request.endDate) {
-        if (!isWeekend(currentDateStr)) {
-          requests.push({
-            date: currentDateStr,
-            type: request.ptoType === "Full PTO" ? "PTO" : request.ptoType,
-            hours: request.hours,
-          });
-        }
-        currentDateStr = addDays(currentDateStr, 1);
-      }
-      if (requests.length === 0) {
-        notifications.error("No valid dates selected (must be weekdays).");
-        return;
-      }
-      await this.handlePtoRequestSubmitOld(requests);
-    }
-  }
-
-  private async handlePtoRequestSubmitOld(
-    requests: CalendarEntry[],
-  ): Promise<void> {
-    try {
-      await this.api.createPTOEntry({ requests });
-      notifications.success("PTO request submitted successfully!");
-      await this.refreshPTOData();
-      // Reset the form and reload PTO data after successful submit
-      const ptoForm = querySingle<PtoEntryForm>("#pto-entry-form");
-      ptoForm.reset();
-      this.clearFormBalanceDeltas();
-      await this.handlePtoDataRequest(ptoForm);
-      // Refresh slotted summary card after submission
-      await this.updateFormSummaryCard();
-    } catch (error: any) {
-      console.error("Error submitting PTO request:", error);
-      // Check for structured error response
-      if (error.responseData?.fieldErrors) {
-        const messages = error.responseData.fieldErrors.map(
-          (err: any) => `${err.field}: ${err.message}`,
-        );
-        notifications.error(`PTO request failed: ${messages.join("; ")}`);
-      } else {
-        notifications.error("Failed to submit PTO request. Please try again.");
-      }
-    }
-  }
-
-  /**
-   * Update the slotted month-summary inside pto-entry-form with current PTO status.
-   */
-  private async updateFormSummaryCard(): Promise<void> {
-    if (!this.currentUser) return;
-
-    try {
-      const status = await this.api.getPTOStatus();
-
-      // Update the month-summary with remaining balance data
-      const balanceSummary = document.querySelector<MonthSummary>(
-        "#form-balance-summary",
-      );
-      if (balanceSummary) {
-        balanceSummary.ptoHours = status.availablePTO;
-        balanceSummary.sickHours = status.sickTime.remaining;
-        balanceSummary.bereavementHours = status.bereavementTime.remaining;
-        balanceSummary.juryDutyHours = status.juryDutyTime.remaining;
-      }
-    } catch (error) {
-      console.error("Failed to update form summary card:", error);
-    }
-  }
-
-  /**
-   * Handle selection-changed events from the entry form's pto-calendar.
-   * Computes per-type hour deltas and sets them on the form-balance-summary.
-   */
-  private handleFormSelectionChanged(ptoForm: PtoEntryForm): void {
-    const balanceSummary = document.querySelector<MonthSummary>(
-      "#form-balance-summary",
-    );
-    if (!balanceSummary) return;
-
-    const selectedRequests = ptoForm.getSelectedRequests();
-    const existingEntries = ptoForm.getPtoEntries();
-
-    const deltas = computeSelectionDeltas(selectedRequests, existingEntries);
-
-    // Negate deltas: remaining balance decreases when PTO is taken,
-    // opposite of the scheduler which shows PTO hours consumed.
-    const invertedDeltas: Record<string, number> = {};
-    for (const [type, value] of Object.entries(deltas)) {
-      invertedDeltas[type] = -value;
-    }
-    balanceSummary.deltas = invertedDeltas;
-  }
-
-  /**
-   * Clear pending deltas on the form balance summary.
-   */
-  private clearFormBalanceDeltas(): void {
-    const balanceSummary = document.querySelector<MonthSummary>(
-      "#form-balance-summary",
-    );
-    if (balanceSummary) {
-      balanceSummary.deltas = {};
-    }
-  }
-
-  private async handlePtoDataRequest(ptoForm: PtoEntryForm): Promise<void> {
-    try {
-      const entries = await this.api.getPTOEntries();
-      ptoForm.setPtoData(entries);
-    } catch (error) {
-      console.error("Failed to fetch PTO entries for calendar:", error);
-      ptoForm.setPtoData([]);
-    }
-  }
-
-  private async refreshPTOData(): Promise<void> {
-    if (!this.currentUser) return;
-
-    try {
-      // Re-query PTO status from server
-      const status = await this.api.getPTOStatus();
-      const entries = await this.api.getPTOEntries();
-
-      // Update stored available PTO balance
-      this.availablePtoBalance = status.availablePTO;
-
-      // Re-render all PTO components with fresh data
-      await this.renderPTOStatus(status, entries);
-    } catch (error) {
-      console.error(UI_ERROR_MESSAGES.failed_to_refresh_pto_data, error);
-      notifications.error(
-        `${UI_ERROR_MESSAGES.failed_to_refresh_pto_data}. Please refresh the page.`,
-      );
-    }
-  }
-
-  private async renderPTOStatus(
-    status: ApiTypes.PTOStatusResponse,
-    entries: ApiTypes.PTOEntry[],
-  ): Promise<void> {
-    // Update existing PTO components with fresh data instead of recreating
-    const summaryCard = querySingle<PtoSummaryCard>("pto-summary-card");
-    summaryCard.summary = {
-      annualAllocation: status.annualAllocation,
-      availablePTO: status.availablePTO,
-      usedPTO: status.usedPTO,
-      carryoverFromPreviousYear: status.carryoverFromPreviousYear,
-    };
-
-    const sickCard = querySingle<PtoSickCard>("pto-sick-card");
-    sickCard.bucket = status.sickTime;
-    sickCard.usageEntries = this.buildUsageEntries(
-      entries,
-      getCurrentYear(),
-      "Sick",
-    );
-    sickCard.fullPtoEntries = entries.filter(
-      (e) => e.type === "Sick" && parseDate(e.date).year === getCurrentYear(),
-    );
-
-    const bereavementCard = querySingle<PtoBereavementCard>(
-      "pto-bereavement-card",
-    );
-    bereavementCard.bucket = status.bereavementTime;
-    bereavementCard.usageEntries = this.buildUsageEntries(
-      entries,
-      getCurrentYear(),
-      "Bereavement",
-    );
-    bereavementCard.fullPtoEntries = entries.filter(
-      (e) =>
-        e.type === "Bereavement" && parseDate(e.date).year === getCurrentYear(),
-    );
-
-    const juryDutyCard = querySingle<PtoJuryDutyCard>("pto-jury-duty-card");
-    juryDutyCard.bucket = status.juryDutyTime;
-    juryDutyCard.usageEntries = this.buildUsageEntries(
-      entries,
-      getCurrentYear(),
-      "Jury Duty",
-    );
-    juryDutyCard.fullPtoEntries = entries.filter(
-      (e) =>
-        e.type === "Jury Duty" && parseDate(e.date).year === getCurrentYear(),
-    );
-
-    const ptoCard = querySingle<PtoPtoCard>("pto-pto-card");
-    ptoCard.bucket = status.ptoTime;
-    ptoCard.usageEntries = this.buildUsageEntries(
-      entries,
-      getCurrentYear(),
-      "PTO",
-    );
-    ptoCard.fullPtoEntries = entries.filter(
-      (e) => e.type === "PTO" && parseDate(e.date).year === getCurrentYear(),
-    );
-
-    const employeeInfoCard = querySingle<PtoEmployeeInfoCard>(
-      "pto-employee-info-card",
-    );
-    employeeInfoCard.info = {
-      hireDate: formatDateForDisplay(status.hireDate),
-      nextRolloverDate: formatDateForDisplay(status.nextRolloverDate, {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      }),
-      ...this.computeAccrualFields(status),
-    };
-
-    // Event listeners are set up once in setupPTOCardEventListeners()
-  }
-
-  /**
-   * Compute accrual-related fields for the employee info card.
-   */
-  private computeAccrualFields(status: ApiTypes.PTOStatusResponse): {
-    carryoverHours: number;
-    ptoRatePerDay: number;
-    accrualToDate: number;
-    annualAllocation: number;
-  } {
-    const year = getCurrentYear();
-    const totalWorkDays = getWorkdaysBetween(
-      formatDate(year, 1, 1),
-      formatDate(year, 12, 31),
-    ).length;
-    const ptoRatePerDay =
-      totalWorkDays > 0 ? status.annualAllocation / totalWorkDays : 0;
-    const fiscalYearStart = formatDate(year, 1, 1);
-    const accrualToDate = computeAccrualToDate(
-      ptoRatePerDay,
-      fiscalYearStart,
-      today(),
-    );
-    return {
-      carryoverHours: status.carryoverFromPreviousYear,
-      ptoRatePerDay,
-      accrualToDate,
-      annualAllocation: status.annualAllocation,
-    };
   }
 }
