@@ -38,7 +38,7 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
   private populateList(): void {
     const list = this.shadowRoot.querySelector("employee-list") as any;
     if (list && this._employees.length) {
-      list.employees = JSON.stringify(this._employees);
+      list.employees = this._employees;
     }
   }
 

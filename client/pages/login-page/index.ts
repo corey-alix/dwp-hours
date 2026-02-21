@@ -69,6 +69,28 @@ export class LoginPage extends BaseComponent implements PageComponent {
       const response = await this._authService.requestMagicLink(identifier);
       this._message = response.message;
       this._magicLink = response.magicLink ?? "";
+
+      // In dev mode, if a magicLink URL is returned, auto-validate the token
+      if (this._magicLink) {
+        const url = new URL(this._magicLink, window.location.origin);
+        const token = url.searchParams.get("token");
+        if (token) {
+          try {
+            const user = await this._authService.validateToken(token);
+            this.dispatchEvent(
+              new CustomEvent("login-success", {
+                detail: { user },
+                bubbles: true,
+                composed: true,
+              }),
+            );
+            return;
+          } catch {
+            // Token validation failed, show the link to user
+          }
+        }
+      }
+
       this.requestUpdate();
     } catch (error) {
       console.error("Failed to send magic link:", error);

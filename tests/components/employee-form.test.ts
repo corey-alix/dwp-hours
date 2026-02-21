@@ -29,7 +29,7 @@ describe("EmployeeForm Component", () => {
       role: "Employee",
     };
 
-    element.setAttribute("employee", JSON.stringify(testEmployee));
+    element.employee = testEmployee;
 
     expect(element.shadowRoot?.querySelector("h2")?.textContent).toBe(
       "Edit Employee",
@@ -48,12 +48,12 @@ describe("EmployeeForm Component", () => {
   });
 
   describe("Template Functions", () => {
-    it("should render styles containing CSS rules", () => {
-      const styles = (element as any).renderStyles();
-      expect(styles).toContain("<style>");
-      expect(styles).toContain(":host");
-      expect(styles).toContain(".form-container");
-      expect(styles).toContain(".btn-primary");
+    it("should render styles via css.ts import", () => {
+      const shadowHtml = element.shadowRoot?.innerHTML || "";
+      expect(shadowHtml).toContain("<style>");
+      expect(shadowHtml).toContain(":host");
+      expect(shadowHtml).toContain(".form-container");
+      expect(shadowHtml).toContain(".btn-primary");
     });
 
     it("should render form header with correct title", () => {

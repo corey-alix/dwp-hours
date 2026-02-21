@@ -47,7 +47,7 @@ export function playground() {
       };
     });
 
-  // Set initial data
+  // Set initial data via property (no JSON attribute serialization)
   ptoQueue.requests = sampleRequests;
 
   // Test event listeners

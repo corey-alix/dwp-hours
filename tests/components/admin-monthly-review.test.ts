@@ -140,12 +140,7 @@ describe("AdminMonthlyReview Component", () => {
     it("should render employee cards when data is injected", () => {
       const testData = generateMonthlyData("2025-01");
 
-      component.connectedCallback();
-      component.attributeChangedCallback(
-        "employee-data",
-        null,
-        JSON.stringify(testData),
-      );
+      component.employeeData = testData;
 
       const html = component.shadowRoot?.innerHTML;
       const count = (html?.match(/class="employee-card"/g) || []).length;

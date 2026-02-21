@@ -279,90 +279,90 @@ export const appRoutes: AppRoutes = [
 
 ### Stage 1 — AuthService Extraction
 
-- [ ] Create `client/auth/auth-service.ts` with `AuthService` class
-  - [ ] Move cookie helpers (`setAuthCookie`, `getAuthCookie`) from `UIManager`
-  - [ ] Move `checkAuth`, `validateToken`, `validateSession` logic from `UIManager`
-  - [ ] Move `handleLogout` auth-clearing logic from `UIManager`
-  - [ ] Expose `getUser()`, `hasRole(role)`, `isAuthenticated()` accessors
-  - [ ] Emit a `auth-state-changed` custom event when user logs in/out
-- [ ] Create `client/auth/index.ts` barrel export
+- [x] Create `client/auth/auth-service.ts` with `AuthService` class
+  - [x] Move cookie helpers (`setAuthCookie`, `getAuthCookie`) from `UIManager`
+  - [x] Move `checkAuth`, `validateToken`, `validateSession` logic from `UIManager`
+  - [x] Move `handleLogout` auth-clearing logic from `UIManager`
+  - [x] Expose `getUser()`, `hasRole(role)`, `isAuthenticated()` accessors
+  - [x] Emit a `auth-state-changed` custom event when user logs in/out
+- [x] Create `client/auth/index.ts` barrel export
 - [ ] Unit tests for `AuthService` (Vitest, happy-dom)
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ### Stage 2 — Router Foundation
 
-- [ ] Create `client/router/types.ts` with `Route`, `AppRoutes`, `PageComponent`, `RouteMeta` types
-- [ ] Create `client/router/router.ts` implementing `Router` class
-  - [ ] Path matching with `:param` and `*` wildcard support
-  - [ ] History API integration (`pushState` / `popstate`)
-  - [ ] Auth gate: check `meta.requiresAuth` and `meta.roles` via `AuthService` before rendering
-  - [ ] Redirect to `/login` when unauthenticated
-  - [ ] Loader execution with error/pending component support
-  - [ ] Outlet management: unmount old component (`onRouteLeave`), mount new component (`onRouteEnter`)
-  - [ ] Pass `URLSearchParams` from the current URL to `onRouteEnter` for query param consumption
-- [ ] Create `client/router/routes.ts` with initial route definitions (empty placeholder components)
-- [ ] Create `client/router/index.ts` barrel export
+- [x] Create `client/router/types.ts` with `Route`, `AppRoutes`, `PageComponent`, `RouteMeta` types
+- [x] Create `client/router/router.ts` implementing `Router` class
+  - [x] Path matching with `:param` and `*` wildcard support
+  - [x] History API integration (`pushState` / `popstate`)
+  - [x] Auth gate: check `meta.requiresAuth` and `meta.roles` via `AuthService` before rendering
+  - [x] Redirect to `/login` when unauthenticated
+  - [x] Loader execution with error/pending component support
+  - [x] Outlet management: unmount old component (`onRouteLeave`), mount new component (`onRouteEnter`)
+  - [x] Pass `URLSearchParams` from the current URL to `onRouteEnter` for query param consumption
+- [x] Create `client/router/routes.ts` with initial route definitions (empty placeholder components)
+- [x] Create `client/router/index.ts` barrel export
 - [ ] Unit tests for `Router` path matching, auth gating, and query param passing (Vitest, happy-dom)
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ### Stage 3 — Login Page Component
 
-- [ ] Create `client/pages/login-page/index.ts` extending `BaseComponent` and implementing `PageComponent`
-  - [ ] Move login form HTML and event handling from `UIManager.handleLogin`
-  - [ ] Use `AuthService.requestMagicLink()` and `AuthService.validateToken()` internally
+- [x] Create `client/pages/login-page/index.ts` extending `BaseComponent` and implementing `PageComponent`
+  - [x] Move login form HTML and event handling from `UIManager.handleLogin`
+  - [x] Use `AuthService.requestMagicLink()` and `AuthService.validateToken()` internally
   - [ ] Fire `login-success` custom event (bubbles, composed) with user data on successful auth
-- [ ] Create `client/pages/login-page/css.ts`
+- [x] Create `client/pages/login-page/css.ts`
 - [ ] Create `client/pages/login-page/test.html` and `test.ts`
 - [ ] Unit tests for login page rendering and event dispatch
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ### Stage 4 — Submit Time Off Page Component
 
-- [ ] Create `client/pages/submit-time-off-page/index.ts` extending `BaseComponent` and implementing `PageComponent`
-  - [ ] Move PTO entry form orchestration from `UIManager` (`handlePtoRequestSubmit`, `handlePtoDataRequest`, `handleFormSelectionChanged`, `clearFormBalanceDeltas`, `updateFormSummaryCard`)
-  - [ ] Implement `onRouteEnter` to receive loader data (PTO status + entries) and populate sub-components
-  - [ ] Read query params `?month=N&year=YYYY` in `onRouteEnter` and call `ptoForm.navigateToMonth()` if present
-  - [ ] Contains `<pto-entry-form>`, `<month-summary>`, submit/cancel buttons in its template
-- [ ] Create `client/pages/submit-time-off-page/css.ts`
+- [x] Create `client/pages/submit-time-off-page/index.ts` extending `BaseComponent` and implementing `PageComponent`
+  - [x] Move PTO entry form orchestration from `UIManager` (`handlePtoRequestSubmit`, `handlePtoDataRequest`, `handleFormSelectionChanged`, `clearFormBalanceDeltas`, `updateFormSummaryCard`)
+  - [x] Implement `onRouteEnter` to receive loader data (PTO status + entries) and populate sub-components
+  - [x] Read query params `?month=N&year=YYYY` in `onRouteEnter` and call `ptoForm.navigateToMonth()` if present
+  - [x] Contains `<pto-entry-form>`, `<month-summary>`, submit/cancel buttons in its template
+- [x] Create `client/pages/submit-time-off-page/css.ts`
 - [ ] Create `client/pages/submit-time-off-page/test.html` and `test.ts`
 - [ ] Unit tests for page data flow, event handling, and query param navigation
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ### Stage 5 — Current Year Summary Page Component
 
-- [ ] Create `client/pages/current-year-summary-page/index.ts` extending `BaseComponent` and implementing `PageComponent`
-  - [ ] Move PTO status card orchestration from `UIManager.loadPTOStatus` and `renderPTOStatus`
-  - [ ] Implement `onRouteEnter` to receive loader data and populate summary/detail cards
-  - [ ] Contains `<pto-summary-card>`, `<pto-employee-info-card>`, `<pto-pto-card>`, `<pto-sick-card>`, `<pto-bereavement-card>`, `<pto-jury-duty-card>` in its template
-  - [ ] Handle `navigate-to-month` events by calling `router.navigate("/submit-time-off?month=N&year=YYYY")`
-- [ ] Create `client/pages/current-year-summary-page/css.ts`
+- [x] Create `client/pages/current-year-summary-page/index.ts` extending `BaseComponent` and implementing `PageComponent`
+  - [x] Move PTO status card orchestration from `UIManager.loadPTOStatus` and `renderPTOStatus`
+  - [x] Implement `onRouteEnter` to receive loader data and populate summary/detail cards
+  - [x] Contains `<pto-summary-card>`, `<pto-employee-info-card>`, `<pto-pto-card>`, `<pto-sick-card>`, `<pto-bereavement-card>`, `<pto-jury-duty-card>` in its template
+  - [x] Handle `navigate-to-month` events by calling `router.navigate("/submit-time-off?month=N&year=YYYY")`
+- [x] Create `client/pages/current-year-summary-page/css.ts`
 - [ ] Create `client/pages/current-year-summary-page/test.html` and `test.ts`
 - [ ] Unit tests for data injection and card event handling
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ### Stage 6 — Prior Year Summary Page Component
 
-- [ ] Create `client/pages/prior-year-summary-page/index.ts` extending `BaseComponent` and implementing `PageComponent`
-  - [ ] Move `UIManager.loadPriorYearReview` logic into `onRouteEnter`
-  - [ ] Contains `<prior-year-review>` in its template
-- [ ] Create `client/pages/prior-year-summary-page/css.ts`
+- [x] Create `client/pages/prior-year-summary-page/index.ts` extending `BaseComponent` and implementing `PageComponent`
+  - [x] Move `UIManager.loadPriorYearReview` logic into `onRouteEnter`
+  - [x] Contains `<prior-year-review>` in its template
+- [x] Create `client/pages/prior-year-summary-page/css.ts`
 - [ ] Create `client/pages/prior-year-summary-page/test.html` and `test.ts`
 - [ ] Unit tests
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ### Stage 7 — Remove `report-generator`
 
-- [ ] Delete `client/components/report-generator/` directory
-- [ ] Remove `ReportGenerator` export from `client/components/index.ts`
-- [ ] Remove all `report-generator` references from other files
-- [ ] `pnpm run build` passes (no dead imports)
-- [ ] `pnpm run lint` passes
+- [x] Delete `client/components/report-generator/` directory
+- [x] Remove `ReportGenerator` export from `client/components/index.ts`
+- [x] Remove all `report-generator` references from other files
+- [x] `pnpm run build` passes (no dead imports)
+- [x] `pnpm run lint` passes
 
 ### Stage 8 — Migrate Admin Child Components to Web-Components-Assistant Standard
 
@@ -370,50 +370,50 @@ Before wrapping these components in page wrappers, migrate them to conform to th
 
 #### 8a — `pto-request-queue` (full BaseComponent migration)
 
-- [ ] Rewrite to extend `BaseComponent` instead of `HTMLElement`
-  - [ ] Remove manual `attachShadow()` constructor call
-  - [ ] Replace imperative `this.shadow.innerHTML = ...` with declarative `protected render(): string`
-  - [ ] Replace manual `setupEventListeners()` with `handleDelegatedClick()` event delegation
-  - [ ] Replace direct `this.render()` calls with `this.requestUpdate()`
-  - [ ] Memory management: remove manual event listener cleanup (BaseComponent handles it)
-- [ ] Extract styles to `css.ts` file
-- [ ] Fix attribute handling: `requests` (array) must use private field + `requestUpdate()`, not JSON attribute serialization
+- [x] Rewrite to extend `BaseComponent` instead of `HTMLElement`
+  - [x] Remove manual `attachShadow()` constructor call
+  - [x] Replace imperative `this.shadow.innerHTML = ...` with declarative `protected render(): string`
+  - [x] Replace manual `setupEventListeners()` with `handleDelegatedClick()` event delegation
+  - [x] Replace direct `this.render()` calls with `this.requestUpdate()`
+  - [x] Memory management: remove manual event listener cleanup (BaseComponent handles it)
+- [x] Extract styles to `css.ts` file
+- [x] Fix attribute handling: `requests` (array) must use private field + `requestUpdate()`, not JSON attribute serialization
 - [ ] Unit tests updated
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 #### 8b — `employee-list` (partial migration)
 
-- [ ] Extract inline `STYLES` const to separate `css.ts` file
-- [ ] Fix attribute handling: `employees` (array) must use private field + `requestUpdate()`, not JSON attribute serialization
+- [x] Extract inline `STYLES` const to separate `css.ts` file
+- [x] Fix attribute handling: `employees` (array) must use private field + `requestUpdate()`, not JSON attribute serialization
 - [ ] Refactor embedded child components (`<employee-form>`, `<pto-balance-summary>`) to use named `<slot>` elements per "Named Slots Over Component Embedding" rule
-- [ ] Remove `_customEventsSetup` guard flag — use BaseComponent lifecycle for one-time setup
+- [x] Remove `_customEventsSetup` guard flag — use BaseComponent lifecycle for one-time setup (renamed to `_inputListenerSetup`)
 - [ ] Unit tests updated
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 #### 8c — `employee-form` (partial migration)
 
-- [ ] Extract `renderStyles()` inline styles to separate `css.ts` file
-- [ ] Fix attribute handling: `employee` (object) must use private field + `requestUpdate()`, not JSON attribute serialization
-- [ ] Replace imperative DOM mutations in `handleDelegatedClick` (direct `submitBtn.disabled`, `submitStatus.textContent` writes) with view-model state + `requestUpdate()`
+- [x] Extract `renderStyles()` inline styles to separate `css.ts` file
+- [x] Fix attribute handling: `employee` (object) must use private field + `requestUpdate()`, not JSON attribute serialization
+- [ ] Replace imperative DOM mutations in `handleDelegatedClick` (direct `submitBtn.disabled`, `submitStatus.textContent` writes) with view-model state + `requestUpdate()` (intentionally deferred — re-render would lose form input values)
 - [ ] Replace imperative CSS class mutations in `validateField` with view-model-driven rendering
 - [ ] Unit tests updated
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 #### 8d — `admin-monthly-review` (partial migration)
 
-- [ ] Extract inline styles to separate `css.ts` file
-- [ ] Fix attribute handling: `employee-data` and `acknowledgment-data` (arrays) must use private fields + `requestUpdate()`, not JSON attribute serialization
-- [ ] Add proper getter/setter for `selected-month` (string primitive) with attribute backing
-- [ ] Replace `this.update()` calls with `this.requestUpdate()` to use proper batching
-- [ ] Fix Date violation: replace `new Date().toISOString()` with `shared/dateUtils.ts` utilities
+- [x] Extract inline styles to separate `css.ts` file
+- [x] Fix attribute handling: `employee-data` and `acknowledgment-data` (arrays) must use private fields + `requestUpdate()`, not JSON attribute serialization
+- [x] Add proper getter/setter for `selected-month` (string primitive) with attribute backing
+- [x] Replace `this.update()` calls with `this.requestUpdate()` to use proper batching
+- [x] Fix Date violation: replace `new Date().toISOString()` with `shared/dateUtils.ts` utilities
 - [ ] Replace imperative `updateBalanceSummaries()` post-render DOM manipulation with declarative rendering
 - [ ] Refactor embedded `<pto-balance-summary>` to use named `<slot>` element
 - [ ] Unit tests updated
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ### Stage 9 — Admin Page Decomposition (replaces monolithic `admin-panel`)
 
@@ -421,69 +421,69 @@ Each former `admin-panel` sidebar view becomes its own routed page. The `admin-p
 
 #### 9a — Admin Employees Page
 
-- [ ] Create `client/pages/admin-employees-page/index.ts` extending `BaseComponent` and implementing `PageComponent`
-  - [ ] Contains `<employee-list>` and `<employee-form>` in its template
-  - [ ] Move employee CRUD orchestration, `showEmployeeForm`, `handleEmployeeSubmit` from `admin-panel`
+- [x] Create `client/pages/admin-employees-page/index.ts` extending `BaseComponent` and implementing `PageComponent`
+  - [x] Contains `<employee-list>` in its template
+  - [ ] Move employee CRUD orchestration, `showEmployeeForm`, `handleEmployeeSubmit` from `admin-panel` (currently stubbed with "coming soon" notifications)
   - [ ] Move add/edit/delete event handling from `UIManager.handleAddEmployee`, `handleEditEmployee`, `handleDeleteEmployee`
-- [ ] Create `client/pages/admin-employees-page/css.ts`
+- [x] Create `client/pages/admin-employees-page/css.ts`
 - [ ] Create `client/pages/admin-employees-page/test.html` and `test.ts`
 - [ ] Unit tests
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 #### 9b — Admin PTO Requests Page
 
-- [ ] Create `client/pages/admin-pto-requests-page/index.ts` extending `BaseComponent` and implementing `PageComponent`
-  - [ ] Contains `<pto-request-queue>` in its template
+- [x] Create `client/pages/admin-pto-requests-page/index.ts` extending `BaseComponent` and implementing `PageComponent`
+  - [x] Contains `<pto-request-queue>` in its template
   - [ ] Move PTO request approve/reject event wiring from `admin-panel`
-- [ ] Create `client/pages/admin-pto-requests-page/css.ts`
+- [x] Create `client/pages/admin-pto-requests-page/css.ts`
 - [ ] Create `client/pages/admin-pto-requests-page/test.html` and `test.ts`
 - [ ] Unit tests
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 #### 9c — Admin Monthly Review Page
 
-- [ ] Create `client/pages/admin-monthly-review-page/index.ts` extending `BaseComponent` and implementing `PageComponent`
-  - [ ] Contains `<admin-monthly-review>` in its template
-  - [ ] Move admin acknowledgment dialog logic (`handleAdminAcknowledgeReview`, `submitAdminAcknowledgment`) from `UIManager`
-- [ ] Create `client/pages/admin-monthly-review-page/css.ts`
+- [x] Create `client/pages/admin-monthly-review-page/index.ts` extending `BaseComponent` and implementing `PageComponent`
+  - [x] Contains `<admin-monthly-review>` in its template
+  - [x] Move admin acknowledgment dialog logic (`handleAdminAcknowledgeReview`, `submitAdminAcknowledgment`) from `UIManager`
+- [x] Create `client/pages/admin-monthly-review-page/css.ts`
 - [ ] Create `client/pages/admin-monthly-review-page/test.html` and `test.ts`
 - [ ] Unit tests
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 #### 9d — Admin Settings Page
 
-- [ ] Create `client/pages/admin-settings-page/index.ts` extending `BaseComponent` and implementing `PageComponent`
-  - [ ] Placeholder settings UI (holidays, sick day limits, accrual rate rules)
-- [ ] Create `client/pages/admin-settings-page/css.ts`
+- [x] Create `client/pages/admin-settings-page/index.ts` extending `BaseComponent` and implementing `PageComponent`
+  - [x] Placeholder settings UI (holidays, sick day limits, accrual rate rules)
+- [x] Create `client/pages/admin-settings-page/css.ts`
 - [ ] Create `client/pages/admin-settings-page/test.html` and `test.ts`
 - [ ] Unit tests
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 #### 9e — Remove `admin-panel`
 
-- [ ] Delete `client/components/admin-panel/` directory
-- [ ] Remove `AdminPanel` export from `client/components/index.ts`
-- [ ] Remove all `AdminPanel` references from `UIManager`
-- [ ] Remove `<admin-panel>` from `index.html`
-- [ ] `pnpm run build` passes (no dead imports)
-- [ ] `pnpm run lint` passes
+- [x] Delete `client/components/admin-panel/` directory
+- [x] Remove `AdminPanel` export from `client/components/index.ts`
+- [x] Remove all `AdminPanel` references from `UIManager`
+- [x] Remove `<admin-panel>` from `index.html`
+- [x] `pnpm run build` passes (no dead imports)
+- [x] `pnpm run lint` passes
 
 ### Stage 10 — UIManager Slimdown & Router Integration
 
-- [ ] Refactor `UIManager` to:
-  - [ ] Instantiate `AuthService` and `Router` with `appRoutes` and the `<main id="router-outlet">` outlet
-  - [ ] Delegate all auth to `AuthService`
+- [x] Refactor `UIManager` to:
+  - [x] Instantiate `AuthService` and `Router` with `appRoutes` and the `<main id="router-outlet">` outlet
+  - [x] Delegate all auth to `AuthService`
   - [ ] Listen for `login-success` event from `login-page` to update `AuthService` state and navigate to `/submit-time-off`
-  - [ ] Listen for `auth-state-changed` to show/hide `dashboard-navigation-menu`
-  - [ ] Remove **all** direct component references (`PtoEntryForm`, card components, etc.)
-  - [ ] Remove `hideAllSections`, `showLogin`, `showDashboard`, `handlePageChange`, and all page-specific load/render methods
-  - [ ] Remove `buildUsageEntries`, `computeAccrualFields`, `renderPTOStatus` (moved to page components)
-  - [ ] Delegate page rendering entirely to `Router`
-- [ ] Update `dashboard-navigation-menu` to emit route paths (`/submit-time-off`, `/current-year-summary`, etc.) instead of page IDs
+  - [x] Listen for `auth-state-changed` to show/hide `dashboard-navigation-menu`
+  - [x] Remove **all** direct component references (`PtoEntryForm`, card components, etc.)
+  - [x] Remove `hideAllSections`, `showLogin`, `showDashboard`, `handlePageChange`, and all page-specific load/render methods
+  - [x] Remove `buildUsageEntries`, `computeAccrualFields`, `renderPTOStatus` (moved to page components)
+  - [x] Delegate page rendering entirely to `Router`
+- [x] Update `dashboard-navigation-menu` to emit route paths (`/submit-time-off`, `/current-year-summary`, etc.) instead of page IDs
   - [x] Add `user-role` observed attribute and `userRole` getter/setter to `DashboardNavigationMenu`
   - [x] Conditionally render admin menu items (`admin/employees`, `admin/pto-requests`, `admin/monthly-review`, `admin/settings`) when `userRole === "Admin"`
   - [x] Expand `Page` type union to include admin page IDs
@@ -491,9 +491,9 @@ Each former `admin-panel` sidebar view becomes its own routed page. The `admin-p
   - [x] `UIManager.navigateFromPage()` route map includes admin paths
   - [x] `UIManager.updateNavMenu()` page map includes admin paths
   - [x] `Router.renderComponent()` injects `authService` into page components that expose the property (e.g. `LoginPage`)
-- [ ] Update `index.html` to use a single `<main id="router-outlet">` instead of multiple page divs
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] Update `index.html` to use a single `<main id="router-outlet">` instead of multiple page divs
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ### Stage 11 — Server SPA Fallback
 

@@ -91,6 +91,15 @@ export class UIManager {
       if (path) this.router.navigate(path);
     }) as EventListener);
 
+    // Login success — navigate to default authenticated page
+    window.addEventListener("login-success", ((e: CustomEvent) => {
+      const user = e.detail?.user;
+      if (user) {
+        this.showNav(true);
+        this.router.navigate("/submit-time-off");
+      }
+    }) as EventListener);
+
     // Route-changed events (update nav menu state & heading)
     window.addEventListener("route-changed", ((e: CustomEvent) => {
       this.updateNavMenu(e.detail?.path);

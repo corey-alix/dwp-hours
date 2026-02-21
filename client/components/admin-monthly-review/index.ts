@@ -1,5 +1,6 @@
 import { querySingle } from "../test-utils.js";
 import { BaseComponent } from "../base-component.js";
+import { styles } from "./css.js";
 import type {
   AdminMonthlyReviewItem,
   PtoBalanceData,
@@ -9,6 +10,10 @@ import {
   computeEmployeeBalanceData,
   type PTOType,
 } from "../../../shared/businessRules.js";
+import {
+  getCurrentMonth,
+  formatDateForDisplay,
+} from "../../../shared/dateUtils.js";
 
 // Admin Monthly Review Component Architecture:
 // This component implements the event-driven data flow pattern:
@@ -20,7 +25,7 @@ import {
 
 export class AdminMonthlyReview extends BaseComponent {
   private _employeeData: AdminMonthlyReviewItem[] = [];
-  private _selectedMonth: string = new Date().toISOString().slice(0, 7); // YYYY-MM format
+  private _selectedMonth: string = getCurrentMonth();
   private _isLoading = false;
   private _acknowledgmentData: any[] = [];
   private _ptoEntries: Array<{
@@ -30,7 +35,7 @@ export class AdminMonthlyReview extends BaseComponent {
   }> = [];
 
   static get observedAttributes() {
-    return ["employee-data", "selected-month", "acknowledgment-data"];
+    return ["selected-month"];
   }
 
   connectedCallback() {
@@ -41,41 +46,49 @@ export class AdminMonthlyReview extends BaseComponent {
   attributeChangedCallback(
     name: string,
     oldValue: string | null,
-    newValue: string,
+    newValue: string | null,
   ) {
-    if (oldValue !== newValue) {
-      switch (name) {
-        case "employee-data":
-          try {
-            this._employeeData = JSON.parse(newValue);
-            this._isLoading = false;
-          } catch (e) {
-            console.error("Invalid employee data JSON:", e);
-            this._employeeData = [];
-          }
-          break;
-        case "selected-month":
-          this._selectedMonth = newValue;
-          this.requestEmployeeData();
-          break;
-        case "acknowledgment-data":
-          try {
-            this._acknowledgmentData = JSON.parse(newValue);
-            // Reload employee data when acknowledgment data changes
-            this.requestEmployeeData();
-          } catch (e) {
-            console.error("Invalid acknowledgment data JSON:", e);
-            this._acknowledgmentData = [];
-          }
-          break;
-      }
-      this.update();
+    if (oldValue === newValue) return;
+    if (name === "selected-month" && newValue) {
+      this._selectedMonth = newValue;
+      this.requestEmployeeData();
+      this.requestUpdate();
     }
+  }
+
+  /** Complex value — private field + requestUpdate(), no attribute serialization. */
+  set employeeData(value: AdminMonthlyReviewItem[]) {
+    this._employeeData = value;
+    this._isLoading = false;
+    this.requestUpdate();
+  }
+
+  get employeeData(): AdminMonthlyReviewItem[] {
+    return this._employeeData;
+  }
+
+  /** Complex value — private field + requestUpdate(), no attribute serialization. */
+  set acknowledgmentData(value: any[]) {
+    this._acknowledgmentData = value;
+    this.requestEmployeeData();
+    this.requestUpdate();
+  }
+
+  get acknowledgmentData(): any[] {
+    return this._acknowledgmentData;
+  }
+
+  set selectedMonth(value: string) {
+    this.setAttribute("selected-month", value);
+  }
+
+  get selectedMonth(): string {
+    return this._selectedMonth;
   }
 
   private requestEmployeeData(): void {
     this._isLoading = true;
-    this.update();
+    this.requestUpdate();
 
     // Event-driven data flow: dispatch event for parent to handle data fetching
     // Parent component listens for this event and calls setEmployeeData() with results
@@ -93,7 +106,7 @@ export class AdminMonthlyReview extends BaseComponent {
   setEmployeeData(data: AdminMonthlyReviewItem[]): void {
     this._employeeData = data;
     this._isLoading = false;
-    this.update();
+    this.requestUpdate();
     // Set balance data after DOM update
     setTimeout(() => this.updateBalanceSummaries(), 0);
   }
@@ -104,7 +117,7 @@ export class AdminMonthlyReview extends BaseComponent {
     data: Array<{ employee_id: number; type: PTOType; hours: number }>,
   ): void {
     this._ptoEntries = data;
-    this.update();
+    this.requestUpdate();
     // Update balance summaries when PTO data changes
     setTimeout(() => this.updateBalanceSummaries(), 0);
   }
@@ -160,8 +173,7 @@ export class AdminMonthlyReview extends BaseComponent {
   }
 
   setAcknowledgmentData(data: any[]): void {
-    this._acknowledgmentData = data;
-    this.setAttribute("acknowledgment-data", JSON.stringify(data));
+    this.acknowledgmentData = data;
   }
 
   private computeEmployeeBalanceData(employeeId: number): PtoBalanceData {
@@ -264,151 +276,7 @@ export class AdminMonthlyReview extends BaseComponent {
 
   protected render(): string {
     return `
-      <style>
-        :host {
-          display: block;
-          padding: 20px;
-        }
-
-        .header {
-          margin-bottom: 20px;
-        }
-
-        .month-selector {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin-bottom: 20px;
-        }
-
-        .month-selector label {
-          font-weight: 500;
-          color: var(--color-text);
-        }
-
-        .month-selector input[type="month"] {
-          padding: 8px 12px;
-          border: 1px solid var(--color-border);
-          border-radius: 6px;
-          background: var(--color-background);
-          color: var(--color-text);
-        }
-
-        .loading {
-          text-align: center;
-          padding: 40px;
-          color: var(--color-text-secondary);
-        }
-
-        .employee-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(24em, 1fr));
-          gap: var(--space-md);
-        }
-
-        .employee-card {
-          border: 1px solid var(--color-border);
-          border-radius: 8px;
-          padding: 20px;
-          background: var(--color-surface);
-          box-shadow: 0 2px 4px var(--color-shadow);
-        }
-
-        .employee-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 16px;
-        }
-
-        .employee-name {
-          font-size: 18px;
-          font-weight: 600;
-          color: var(--color-text);
-          margin: 0;
-        }
-
-        .acknowledgment-status {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 14px;
-        }
-
-        .status-indicator {
-          width: 12px;
-          height: 12px;
-          border-radius: 50%;
-        }
-
-        .status-indicator.acknowledged {
-          background: var(--color-success, #10b981);
-        }
-
-        .status-indicator.pending {
-          background: var(--color-warning, #f59e0b);
-        }
-
-        .hours-breakdown {
-          margin-bottom: 16px;
-        }
-
-        .hours-row {
-          display: flex;
-          justify-content: space-between;
-          padding: 8px 0;
-          border-bottom: 1px solid var(--color-border-light, #e5e7eb);
-        }
-
-        .hours-row:last-child {
-          border-bottom: none;
-        }
-
-        .hours-label {
-          color: var(--color-text-secondary);
-        }
-
-        .hours-value {
-          font-weight: 500;
-          color: var(--color-text);
-        }
-
-        .acknowledge-btn {
-          width: 100%;
-          padding: 10px 16px;
-          background: var(--color-primary);
-          color: white;
-          border: none;
-          border-radius: 6px;
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background-color 0.3s ease;
-        }
-
-        .acknowledge-btn:hover {
-          background: var(--color-primary-hover);
-        }
-
-        .acknowledge-btn:disabled {
-          background: var(--color-disabled, #9ca3af);
-          cursor: not-allowed;
-        }
-
-        .acknowledged-info {
-          background: var(--color-success-light, #d1fae5);
-          border: 1px solid var(--color-success, #10b981);
-          border-radius: 6px;
-          padding: 12px;
-          margin-top: 12px;
-        }
-
-        .acknowledged-info p {
-          margin: 0;
-          font-size: 14px;
-          color: var(--color-success-dark, #065f46);
-        }
-      </style>
+      ${styles}
 
       <div class="header">
         <h2>Monthly Employee Review</h2>
@@ -480,7 +348,7 @@ export class AdminMonthlyReview extends BaseComponent {
             ? `
           <div class="acknowledged-info">
             <p><strong>Acknowledged by:</strong> ${employee.adminAcknowledgedBy}</p>
-            <p><strong>Date:</strong> ${new Date(employee.adminAcknowledgedAt || "").toLocaleDateString()}</p>
+            <p><strong>Date:</strong> ${employee.adminAcknowledgedAt ? formatDateForDisplay(employee.adminAcknowledgedAt.slice(0, 10)) : ""}</p>
           </div>
         `
             : `
