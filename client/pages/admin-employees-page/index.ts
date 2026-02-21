@@ -34,7 +34,7 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
     const buttonLabel = this._showForm ? "Cancel" : "Add Employee";
     return `
       ${styles}
-      <h2>Employee Management</h2>
+      <p class="capitalize">Review and Modify Employee PTO Rates and Carry Over hours</p>
       <div class="actions">
         <button class="add-btn" data-action="add-employee">${buttonLabel}</button>
       </div>

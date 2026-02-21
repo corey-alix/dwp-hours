@@ -49,7 +49,7 @@ export class AdminPtoRequestsPage
   protected render(): string {
     return `
       ${styles}
-      <h2>PTO Request Queue</h2>
+      <p class="capitalize">Review and Acknowledge Daily PTO Requests</p>
       <pto-request-queue></pto-request-queue>
     `;
   }

@@ -27,7 +27,7 @@ export class AdminMonthlyReviewPage
   protected render(): string {
     return `
       ${styles}
-      <h2>Monthly Employee Review</h2>
+      <p class="capitalize center">Review and acknowledge employee hours and PTO usage for the selected month.</p>
       <admin-monthly-review></admin-monthly-review>
     `;
   }

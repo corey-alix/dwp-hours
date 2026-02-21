@@ -20,25 +20,21 @@ export const styles = `<style>
 
   .toolbar {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px;
-    border-bottom: 1px solid var(--color-border);
-    background: var(--color-surface);
+    gap: var(--space-md);
   }
 
   .search-container {
-    display: flex;
+    display: grid;
+    gap: var(--space-sm);
+    grid-template-columns: 3fr 1fr;
     align-items: center;
-    gap: 10px;
   }
 
   .search-input {
-    padding: 8px 12px;
-    border: 1px solid var(--color-border);
-    border-radius: 4px;
-    font-size: 14px;
-    width: 250px;
+    padding: var(--space-sm) var(--space-md);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    font-size: var(--font-size-md);
     background: var(--color-background);
     color: var(--color-text);
   }
@@ -80,9 +76,9 @@ export const styles = `<style>
   .employee-grid {
     flex: 1;
     overflow-y: auto;
-    padding: 20px;
+    padding: var(--space-md);
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(18em, 1fr));
     gap: var(--space-md);
   }
 

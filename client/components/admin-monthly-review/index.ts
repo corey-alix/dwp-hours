@@ -274,11 +274,6 @@ export class AdminMonthlyReview extends BaseComponent {
     return `
       ${styles}
 
-      <div class="header">
-        <h2>Monthly Employee Review</h2>
-        <p>Review and acknowledge employee hours and PTO usage for the selected month.</p>
-      </div>
-
       <div class="month-selector">
         <label for="month-select">Select Month:</label>
         <input type="month" id="month-select" value="${this._selectedMonth}" />

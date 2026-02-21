@@ -37,7 +37,7 @@ export const styles = `
 
   .employee-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(24em, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(18em, 1fr));
     gap: var(--space-md);
   }
 
