@@ -57,13 +57,38 @@ export const appRoutes: AppRoutes = [
       requiresAuth: true,
       roles: ["Admin"],
     },
-    loader: async () => api.getEmployees(),
+    loader: async () => ({ employees: await api.getEmployees() }),
   },
   {
     path: "/admin/pto-requests",
     component: "admin-pto-requests-page",
     name: "PTO Requests",
     meta: { title: "PTO Request Queue", requiresAuth: true, roles: ["Admin"] },
+    loader: async () => {
+      const [employees, entries] = await Promise.all([
+        api.getEmployees(),
+        api.getPTOEntries(),
+      ]);
+      const pendingRequests = entries
+        .filter((e) => e.approved_by === null || e.approved_by === undefined)
+        .map((e) => {
+          const employee = employees.find(
+            (emp: { id: number }) => emp.id === e.employeeId,
+          );
+          return {
+            id: e.id,
+            employeeId: e.employeeId,
+            employeeName: employee?.name ?? "Unknown",
+            startDate: e.date,
+            endDate: e.date,
+            type: e.type,
+            hours: e.hours,
+            status: "pending" as const,
+            createdAt: e.createdAt,
+          };
+        });
+      return { requests: pendingRequests };
+    },
   },
   {
     path: "/admin/monthly-review",

@@ -1389,10 +1389,9 @@ initDatabase()
           const employees = await employeeRepo.find({
             where: whereCondition,
             order: { name: "ASC" },
-            select: ["id", "name", "identifier", "role", "hire_date"],
           });
 
-          res.json(employees);
+          res.json(employees.map((e) => serializeEmployee(e)));
         } catch (error) {
           logger.error(`Error getting employees: ${error}`);
           res.status(500).json({ error: "Internal server error" });
