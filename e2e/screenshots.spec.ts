@@ -71,13 +71,13 @@ test("PTO submission form screenshot", async ({ page }) => {
   );
 });
 
-test("admin-panel component screenshot", async ({ page }) => {
-  await page.goto("/components/admin-panel/test.html");
-  await page.waitForSelector("admin-panel", { timeout: 10000 });
+test("admin-employees-page component screenshot", async ({ page }) => {
+  await page.goto("/pages/admin-employees-page/test.html");
+  await page.waitForSelector("admin-employees-page", { timeout: 10000 });
   await stabilizePage(page);
   await compareAndUpdateScreenshot(
     await page.screenshot({ fullPage: true }),
-    "assets/admin-panel-component.png",
+    "assets/admin-employees-page-component.png",
   );
 });
 

@@ -1970,12 +1970,18 @@ initDatabase()
               .json({ error: "You can only modify your own PTO entries" });
           }
 
-          const { date, type, hours } = req.body;
+          const { date, type, hours, approved_by } = req.body;
 
           const updateData: any = {};
           if (date !== undefined) updateData.date = date;
           if (type !== undefined) updateData.type = type;
           if (hours !== undefined) updateData.hours = parseFloat(hours);
+          if (approved_by !== undefined) {
+            // Only admins can set approved_by
+            if (req.employee!.role === "Admin") {
+              updateData.approved_by = approved_by;
+            }
+          }
 
           const result = await ptoEntryDAL.updatePtoEntry(ptoIdNum, updateData);
 

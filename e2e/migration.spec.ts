@@ -30,13 +30,12 @@ test.describe("File-Based Data Migration API", () => {
     await page.waitForTimeout(1000);
 
     // Log in as admin to get authentication cookie
-    await page.goto("/");
-    await page.fill("#identifier", "admin@example.com");
-    await page.click('#login-form button[type="submit"]');
-    await page.waitForSelector("#login-message", { timeout: 10000 });
-    const magicLink = page.locator("#login-message a");
-    await magicLink.click();
-    await page.waitForSelector("#dashboard", { timeout: 10000 });
+    await page.goto("/login");
+    const loginPage = page.locator("login-page");
+    await expect(loginPage).toBeVisible();
+    await loginPage.locator("#identifier").fill("admin@example.com");
+    await loginPage.locator('#login-form button[type="submit"]').click();
+    await page.waitForURL(/\/submit-time-off/, { timeout: 10000 });
 
     // Execute file-based migration
     const response = await page.request.post("/api/migrate/file", {
@@ -120,13 +119,12 @@ test.describe("File-Based Data Migration API", () => {
 
   test("should handle missing Excel file gracefully", async ({ page }) => {
     // Log in as admin first
-    await page.goto("/");
-    await page.fill("#identifier", "admin@example.com");
-    await page.click('#login-form button[type="submit"]');
-    await page.waitForSelector("#login-message", { timeout: 10000 });
-    const magicLink = page.locator("#login-message a");
-    await magicLink.click();
-    await page.waitForSelector("#dashboard", { timeout: 10000 });
+    await page.goto("/login");
+    const loginPage = page.locator("login-page");
+    await expect(loginPage).toBeVisible();
+    await loginPage.locator("#identifier").fill("admin@example.com");
+    await loginPage.locator('#login-form button[type="submit"]').click();
+    await page.waitForURL(/\/submit-time-off/, { timeout: 10000 });
 
     const response = await page.request.post("/api/migrate/file", {
       data: {
@@ -143,13 +141,12 @@ test.describe("File-Based Data Migration API", () => {
 
   test("should validate employee email format", async ({ page }) => {
     // Log in as admin first
-    await page.goto("/");
-    await page.fill("#identifier", "admin@example.com");
-    await page.click('#login-form button[type="submit"]');
-    await page.waitForSelector("#login-message", { timeout: 10000 });
-    const magicLink = page.locator("#login-message a");
-    await magicLink.click();
-    await page.waitForSelector("#dashboard", { timeout: 10000 });
+    await page.goto("/login");
+    const loginPage = page.locator("login-page");
+    await expect(loginPage).toBeVisible();
+    await loginPage.locator("#identifier").fill("admin@example.com");
+    await loginPage.locator('#login-form button[type="submit"]').click();
+    await page.waitForURL(/\/submit-time-off/, { timeout: 10000 });
 
     const response = await page.request.post("/api/migrate/file", {
       data: {

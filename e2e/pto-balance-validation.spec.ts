@@ -8,30 +8,20 @@ test.describe("PTO Balance Validation", () => {
   }) => {
     const testDateStr = "2026-04-01";
 
-    await page.goto("/");
+    await page.goto("/login");
 
     // Login as John Doe (has ~12 hours available PTO)
-    await page.fill("#identifier", "john.doe@example.com");
-    await page.click('#login-form button[type="submit"]');
+    const loginPage = page.locator("login-page");
+    await expect(loginPage).toBeVisible();
+    await loginPage.locator("#identifier").fill("john.doe@example.com");
+    await loginPage.locator('#login-form button[type="submit"]').click();
 
-    await page.waitForSelector("#login-message a", { timeout: 10000 });
-    const magicLink = page.locator("#login-message a");
-    await expect(magicLink).toHaveAttribute("href", /token=.+&ts=\d+/);
-    await magicLink.click();
+    // Dev mode auto-validates and navigates to /submit-time-off
+    await page.waitForURL(/\/submit-time-off/, { timeout: 10000 });
 
-    await page.waitForSelector("#dashboard", { timeout: 10000 });
-    await expect(page.locator("#pto-status")).toBeVisible();
-
-    // Navigate to PTO form
-    await page.click("dashboard-navigation-menu .menu-toggle");
-    await page.click(
-      'dashboard-navigation-menu .menu-item[data-action="submit-time-off"]',
-    );
-    await expect(page.locator("#main-content > #pto-form")).not.toHaveClass(
-      /hidden/,
-    );
-
-    const form = page.locator("pto-entry-form");
+    const timeOffPage = page.locator("submit-time-off-page");
+    await expect(timeOffPage).toBeVisible();
+    const form = timeOffPage.locator("pto-entry-form");
     await expect(form).toBeVisible();
 
     // Fill form with 16 hours PTO (exceeds John's 12 hour balance)
@@ -97,28 +87,20 @@ test.describe("PTO Balance Validation", () => {
     // Wait a moment for database reload to complete
     await page.waitForTimeout(1000);
 
+    await page.goto("/login");
+
     // Login as Jane Smith (has sufficient PTO balance)
-    await page.fill("#identifier", "jane.smith@example.com");
-    await page.click('#login-form button[type="submit"]');
+    const loginPage = page.locator("login-page");
+    await expect(loginPage).toBeVisible();
+    await loginPage.locator("#identifier").fill("jane.smith@example.com");
+    await loginPage.locator('#login-form button[type="submit"]').click();
 
-    await page.waitForSelector("#login-message a", { timeout: 10000 });
-    const magicLink = page.locator("#login-message a");
-    await expect(magicLink).toHaveAttribute("href", /token=.+&ts=\d+/);
-    await magicLink.click();
+    // Dev mode auto-validates and navigates to /submit-time-off
+    await page.waitForURL(/\/submit-time-off/, { timeout: 10000 });
 
-    await page.waitForSelector("#dashboard", { timeout: 10000 });
-    await expect(page.locator("#pto-status")).toBeVisible();
-
-    // Navigate to PTO form
-    await page.click("dashboard-navigation-menu .menu-toggle");
-    await page.click(
-      'dashboard-navigation-menu .menu-item[data-action="submit-time-off"]',
-    );
-    await expect(page.locator("#main-content > #pto-form")).not.toHaveClass(
-      /hidden/,
-    );
-
-    const form = page.locator("pto-entry-form");
+    const timeOffPage = page.locator("submit-time-off-page");
+    await expect(timeOffPage).toBeVisible();
+    const form = timeOffPage.locator("pto-entry-form");
     await expect(form).toBeVisible();
 
     // Fill form with 8 hours PTO (within Jane's available balance)
@@ -168,19 +150,16 @@ test.describe("PTO Balance Validation", () => {
     // For now, we'll test the CSS class application logic
     // In a real scenario, we'd need seed data with negative balance or create it
 
-    await page.goto("/");
+    await page.goto("/login");
 
     // Login as John Doe (positive balance)
-    await page.fill("#identifier", "john.doe@example.com");
-    await page.click('#login-form button[type="submit"]');
+    const loginPage = page.locator("login-page");
+    await expect(loginPage).toBeVisible();
+    await loginPage.locator("#identifier").fill("john.doe@example.com");
+    await loginPage.locator('#login-form button[type="submit"]').click();
 
-    await page.waitForSelector("#login-message a", { timeout: 10000 });
-    const magicLink = page.locator("#login-message a");
-    await expect(magicLink).toHaveAttribute("href", /token=.+&ts=\d+/);
-    await magicLink.click();
-
-    await page.waitForSelector("#dashboard", { timeout: 10000 });
-    await expect(page.locator("#pto-status")).toBeVisible();
+    // Dev mode auto-validates and navigates to /submit-time-off
+    await page.waitForURL(/\/submit-time-off/, { timeout: 10000 });
 
     // Wait for PTO summary cards to load
     await page.waitForSelector("pto-summary-card", { timeout: 10000 });
@@ -200,25 +179,20 @@ test.describe("PTO Balance Validation", () => {
   test("should validate balance on form changes", async ({ page }) => {
     const testDateStr = "2026-04-03";
 
-    await page.goto("/");
+    await page.goto("/login");
 
     // Login as John Doe
-    await page.fill("#identifier", "john.doe@example.com");
-    await page.click('#login-form button[type="submit"]');
+    const loginPage = page.locator("login-page");
+    await expect(loginPage).toBeVisible();
+    await loginPage.locator("#identifier").fill("john.doe@example.com");
+    await loginPage.locator('#login-form button[type="submit"]').click();
 
-    await page.waitForSelector("#login-message a", { timeout: 10000 });
-    const magicLink = page.locator("#login-message a");
-    await expect(magicLink).toHaveAttribute("href", /token=.+&ts=\d+/);
-    await magicLink.click();
+    // Dev mode auto-validates and navigates to /submit-time-off
+    await page.waitForURL(/\/submit-time-off/, { timeout: 10000 });
 
-    await page.waitForSelector("#dashboard", { timeout: 10000 });
-
-    // Navigate to PTO form
-    await page.click("dashboard-navigation-menu .menu-toggle");
-    await page.click(
-      'dashboard-navigation-menu .menu-item[data-action="submit-time-off"]',
-    );
-    const form = page.locator("pto-entry-form");
+    const timeOffPage = page.locator("submit-time-off-page");
+    await expect(timeOffPage).toBeVisible();
+    const form = timeOffPage.locator("pto-entry-form");
 
     // Fill form with valid data first
     await form.locator("#start-date").fill(testDateStr);
@@ -254,25 +228,20 @@ test.describe("PTO Balance Validation", () => {
     // For John Doe, it's approximately 12 hours, but let's use a smaller amount
     const testDateStr = "2026-04-04";
 
-    await page.goto("/");
+    await page.goto("/login");
 
     // Login as John Doe
-    await page.fill("#identifier", "john.doe@example.com");
-    await page.click('#login-form button[type="submit"]');
+    const loginPage = page.locator("login-page");
+    await expect(loginPage).toBeVisible();
+    await loginPage.locator("#identifier").fill("john.doe@example.com");
+    await loginPage.locator('#login-form button[type="submit"]').click();
 
-    await page.waitForSelector("#login-message a", { timeout: 10000 });
-    const magicLink = page.locator("#login-message a");
-    await expect(magicLink).toHaveAttribute("href", /token=.+&ts=\d+/);
-    await magicLink.click();
+    // Dev mode auto-validates and navigates to /submit-time-off
+    await page.waitForURL(/\/submit-time-off/, { timeout: 10000 });
 
-    await page.waitForSelector("#dashboard", { timeout: 10000 });
-
-    // Navigate to PTO form
-    await page.click("dashboard-navigation-menu .menu-toggle");
-    await page.click(
-      'dashboard-navigation-menu .menu-item[data-action="submit-time-off"]',
-    );
-    const form = page.locator("pto-entry-form");
+    const timeOffPage = page.locator("submit-time-off-page");
+    await expect(timeOffPage).toBeVisible();
+    const form = timeOffPage.locator("pto-entry-form");
 
     // Try to submit exactly 12 hours (John's approximate balance)
     await form.locator("#start-date").fill(testDateStr);

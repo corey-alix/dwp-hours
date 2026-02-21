@@ -286,7 +286,7 @@ export const appRoutes: AppRoutes = [
   - [x] Expose `getUser()`, `hasRole(role)`, `isAuthenticated()` accessors
   - [x] Emit a `auth-state-changed` custom event when user logs in/out
 - [x] Create `client/auth/index.ts` barrel export
-- [ ] Unit tests for `AuthService` (Vitest, happy-dom)
+- [x] Unit tests for `AuthService` (Vitest, happy-dom)
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
 
@@ -303,7 +303,7 @@ export const appRoutes: AppRoutes = [
   - [x] Pass `URLSearchParams` from the current URL to `onRouteEnter` for query param consumption
 - [x] Create `client/router/routes.ts` with initial route definitions (empty placeholder components)
 - [x] Create `client/router/index.ts` barrel export
-- [ ] Unit tests for `Router` path matching, auth gating, and query param passing (Vitest, happy-dom)
+- [x] Unit tests for `Router` path matching, auth gating, and query param passing (Vitest, happy-dom)
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
 
@@ -312,9 +312,9 @@ export const appRoutes: AppRoutes = [
 - [x] Create `client/pages/login-page/index.ts` extending `BaseComponent` and implementing `PageComponent`
   - [x] Move login form HTML and event handling from `UIManager.handleLogin`
   - [x] Use `AuthService.requestMagicLink()` and `AuthService.validateToken()` internally
-  - [ ] Fire `login-success` custom event (bubbles, composed) with user data on successful auth
+  - [x] Fire `login-success` custom event (bubbles, composed) with user data on successful auth
 - [x] Create `client/pages/login-page/css.ts`
-- [ ] Create `client/pages/login-page/test.html` and `test.ts`
+- [x] Create `client/pages/login-page/test.html` and `test.ts`
 - [ ] Unit tests for login page rendering and event dispatch
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
@@ -327,7 +327,7 @@ export const appRoutes: AppRoutes = [
   - [x] Read query params `?month=N&year=YYYY` in `onRouteEnter` and call `ptoForm.navigateToMonth()` if present
   - [x] Contains `<pto-entry-form>`, `<month-summary>`, submit/cancel buttons in its template
 - [x] Create `client/pages/submit-time-off-page/css.ts`
-- [ ] Create `client/pages/submit-time-off-page/test.html` and `test.ts`
+- [x] Create `client/pages/submit-time-off-page/test.html` and `test.ts`
 - [ ] Unit tests for page data flow, event handling, and query param navigation
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
@@ -340,7 +340,7 @@ export const appRoutes: AppRoutes = [
   - [x] Contains `<pto-summary-card>`, `<pto-employee-info-card>`, `<pto-pto-card>`, `<pto-sick-card>`, `<pto-bereavement-card>`, `<pto-jury-duty-card>` in its template
   - [x] Handle `navigate-to-month` events by calling `router.navigate("/submit-time-off?month=N&year=YYYY")`
 - [x] Create `client/pages/current-year-summary-page/css.ts`
-- [ ] Create `client/pages/current-year-summary-page/test.html` and `test.ts`
+- [x] Create `client/pages/current-year-summary-page/test.html` and `test.ts`
 - [ ] Unit tests for data injection and card event handling
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
@@ -351,7 +351,7 @@ export const appRoutes: AppRoutes = [
   - [x] Move `UIManager.loadPriorYearReview` logic into `onRouteEnter`
   - [x] Contains `<prior-year-review>` in its template
 - [x] Create `client/pages/prior-year-summary-page/css.ts`
-- [ ] Create `client/pages/prior-year-summary-page/test.html` and `test.ts`
+- [x] Create `client/pages/prior-year-summary-page/test.html` and `test.ts`
 - [ ] Unit tests
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
@@ -423,10 +423,10 @@ Each former `admin-panel` sidebar view becomes its own routed page. The `admin-p
 
 - [x] Create `client/pages/admin-employees-page/index.ts` extending `BaseComponent` and implementing `PageComponent`
   - [x] Contains `<employee-list>` in its template
-  - [ ] Move employee CRUD orchestration, `showEmployeeForm`, `handleEmployeeSubmit` from `admin-panel` (currently stubbed with "coming soon" notifications)
-  - [ ] Move add/edit/delete event handling from `UIManager.handleAddEmployee`, `handleEditEmployee`, `handleDeleteEmployee`
+  - [x] Move employee CRUD orchestration, `showEmployeeForm`, `handleEmployeeSubmit` from `admin-panel` (currently stubbed with "coming soon" notifications)
+  - [x] Move add/edit/delete event handling from `UIManager.handleAddEmployee`, `handleEditEmployee`, `handleDeleteEmployee`
 - [x] Create `client/pages/admin-employees-page/css.ts`
-- [ ] Create `client/pages/admin-employees-page/test.html` and `test.ts`
+- [x] Create `client/pages/admin-employees-page/test.html` and `test.ts`
 - [ ] Unit tests
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
@@ -435,9 +435,9 @@ Each former `admin-panel` sidebar view becomes its own routed page. The `admin-p
 
 - [x] Create `client/pages/admin-pto-requests-page/index.ts` extending `BaseComponent` and implementing `PageComponent`
   - [x] Contains `<pto-request-queue>` in its template
-  - [ ] Move PTO request approve/reject event wiring from `admin-panel`
+  - [x] Move PTO request approve/reject event wiring from `admin-panel`
 - [x] Create `client/pages/admin-pto-requests-page/css.ts`
-- [ ] Create `client/pages/admin-pto-requests-page/test.html` and `test.ts`
+- [x] Create `client/pages/admin-pto-requests-page/test.html` and `test.ts`
 - [ ] Unit tests
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
@@ -448,7 +448,7 @@ Each former `admin-panel` sidebar view becomes its own routed page. The `admin-p
   - [x] Contains `<admin-monthly-review>` in its template
   - [x] Move admin acknowledgment dialog logic (`handleAdminAcknowledgeReview`, `submitAdminAcknowledgment`) from `UIManager`
 - [x] Create `client/pages/admin-monthly-review-page/css.ts`
-- [ ] Create `client/pages/admin-monthly-review-page/test.html` and `test.ts`
+- [x] Create `client/pages/admin-monthly-review-page/test.html` and `test.ts`
 - [ ] Unit tests
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
@@ -458,7 +458,7 @@ Each former `admin-panel` sidebar view becomes its own routed page. The `admin-p
 - [x] Create `client/pages/admin-settings-page/index.ts` extending `BaseComponent` and implementing `PageComponent`
   - [x] Placeholder settings UI (holidays, sick day limits, accrual rate rules)
 - [x] Create `client/pages/admin-settings-page/css.ts`
-- [ ] Create `client/pages/admin-settings-page/test.html` and `test.ts`
+- [x] Create `client/pages/admin-settings-page/test.html` and `test.ts`
 - [ ] Unit tests
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
@@ -477,7 +477,7 @@ Each former `admin-panel` sidebar view becomes its own routed page. The `admin-p
 - [x] Refactor `UIManager` to:
   - [x] Instantiate `AuthService` and `Router` with `appRoutes` and the `<main id="router-outlet">` outlet
   - [x] Delegate all auth to `AuthService`
-  - [ ] Listen for `login-success` event from `login-page` to update `AuthService` state and navigate to `/submit-time-off`
+  - [x] Listen for `login-success` event from `login-page` to update `AuthService` state and navigate to `/submit-time-off`
   - [x] Listen for `auth-state-changed` to show/hide `dashboard-navigation-menu`
   - [x] Remove **all** direct component references (`PtoEntryForm`, card components, etc.)
   - [x] Remove `hideAllSections`, `showLogin`, `showDashboard`, `handlePageChange`, and all page-specific load/render methods
@@ -506,14 +506,14 @@ Each former `admin-panel` sidebar view becomes its own routed page. The `admin-p
 
 ### Stage 12 — E2E & Regression Testing
 
-- [ ] Verify all existing Playwright E2E tests pass with the routed architecture
+- [x] Verify all existing Playwright E2E tests pass with the routed architecture
 - [ ] Add E2E test for route-based navigation (browser back/forward, direct URL access)
 - [ ] Add E2E test for auth gate (unauthenticated users redirected to `/login`)
 - [ ] Add E2E test for role-based access (non-admin accessing `/admin/*`)
 - [ ] Add E2E test for `navigate-to-month` cross-page flow (card click → `/submit-time-off?month=N&year=YYYY`)
 - [ ] Manual testing of all navigation flows
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 - [ ] Documentation updated (README, copilot-instructions)
 
 ## Implementation Notes

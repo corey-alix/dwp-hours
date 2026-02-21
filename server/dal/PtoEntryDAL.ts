@@ -25,6 +25,7 @@ export interface UpdatePtoEntryData {
   date?: string;
   hours?: number;
   type?: string;
+  approved_by?: number | null;
 }
 
 export class PtoEntryDAL {
@@ -238,6 +239,9 @@ export class PtoEntryDAL {
     }
     if (data.type) {
       existingEntry.type = normalizePTOType(data.type) as PTOType;
+    }
+    if (data.approved_by !== undefined) {
+      existingEntry.approved_by = data.approved_by;
     }
 
     const savedEntry = await this.ptoEntryRepo.save(existingEntry);

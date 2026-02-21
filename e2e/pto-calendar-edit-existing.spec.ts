@@ -19,41 +19,46 @@ test("index PTO calendar edit existing entry submits 8 hours", async ({
 }) => {
   test.setTimeout(15000);
 
-  await page.goto("/");
+  await page.goto("/login");
 
   // Log in as John Doe (who has the 80-hour PTO entry for 2026-07-01)
-  await page.fill("#identifier", "john.doe@example.com");
-  await page.click('#login-form button[type="submit"]');
+  const loginPage = page.locator("login-page");
+  await expect(loginPage).toBeVisible();
+  await loginPage.locator("#identifier").fill("john.doe@example.com");
+  await loginPage.locator('#login-form button[type="submit"]').click();
 
-  await page.waitForSelector("#login-message a", { timeout: 10000 });
-  const magicLink = page.locator("#login-message a");
-  await expect(magicLink).toHaveAttribute("href", /token=.+&ts=\d+/);
-  await magicLink.click();
+  // Dev mode auto-validates the magic link token and navigates to /submit-time-off
+  await page.waitForURL(/\/submit-time-off/, { timeout: 10000 });
 
-  await page.waitForSelector("#dashboard", { timeout: 10000 });
-
-  // Navigate to Current Year Summary page where PTO status is shown
+  // Navigate to Current Year Summary via nav menu
   const menu = page.locator("dashboard-navigation-menu");
+  const menuToggle = menu.locator("button.menu-toggle");
+  await expect(menuToggle).toBeVisible();
+  await menuToggle.click();
   const currentYearBtn = menu.locator(
     'button[data-action="current-year-summary"]',
   );
   await currentYearBtn.click();
 
-  await expect(page.locator("#pto-status")).toBeVisible();
+  // Wait for Current Year Summary page to render
+  await page.waitForURL(/\/current-year-summary/);
+  const summaryPage = page.locator("current-year-summary-page");
+  await expect(summaryPage).toBeVisible();
 
   // Wait for PTO status to load
   await page.waitForTimeout(5000);
 
   // Open navigation menu and click "Submit Time Off"
-  await page.click("dashboard-navigation-menu .menu-toggle");
+  await menuToggle.click();
   await page.click(
     'dashboard-navigation-menu .menu-item[data-action="submit-time-off"]',
   );
-  await expect(page.locator("#main-content > #pto-form")).not.toHaveClass(
-    /hidden/,
-  );
 
-  const form = page.locator("pto-entry-form");
+  await page.waitForURL(/\/submit-time-off/);
+  const timeOffPage = page.locator("submit-time-off-page");
+  await expect(timeOffPage).toBeVisible();
+
+  const form = timeOffPage.locator("pto-entry-form");
   await expect(form).toBeVisible();
 
   // Set start date to July 2026 to show July calendar
@@ -73,7 +78,8 @@ test("index PTO calendar edit existing entry submits 8 hours", async ({
 
   // Manually set PTO entries on the calendar for testing and ensure July is displayed
   await page.evaluate(() => {
-    const form = document.querySelector("pto-entry-form") as any;
+    const pageEl = document.querySelector("submit-time-off-page") as any;
+    const form = pageEl?.shadowRoot?.querySelector("pto-entry-form") as any;
     if (form && form.shadowRoot) {
       const calendar = form.shadowRoot.querySelector("pto-calendar") as any;
       if (calendar) {
@@ -104,7 +110,8 @@ test("index PTO calendar edit existing entry submits 8 hours", async ({
 
   // Click the cell to select it for editing (click-to-cycle: sets to existing hours first)
   await page.evaluate(() => {
-    const form = document.querySelector("pto-entry-form") as any;
+    const pageEl = document.querySelector("submit-time-off-page") as any;
+    const form = pageEl?.shadowRoot?.querySelector("pto-entry-form") as any;
     const calendar = form.shadowRoot.querySelector("pto-calendar") as any;
     const cell = calendar.shadowRoot.querySelector(
       '.day[data-date="2026-07-01"]',

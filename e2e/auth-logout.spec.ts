@@ -7,28 +7,21 @@ test.describe("Authentication Logout", () => {
     test.setTimeout(10000);
 
     // Step 1: Navigate to login page
-    await page.goto("/index.html");
-    await expect(page.locator("#login-form")).toBeVisible();
+    await page.goto("/login");
+    const loginPage = page.locator("login-page");
+    await expect(loginPage).toBeVisible();
 
-    // Step 2: Login using email address
-    await page.fill("#identifier", "john.doe@example.com");
-    await page.click('#login-form button[type="submit"]');
+    // Step 2: Login using email address (elements are inside login-page shadow DOM)
+    const loginForm = loginPage.locator("#login-form");
+    await expect(loginForm).toBeVisible();
+    await loginPage.locator("#identifier").fill("john.doe@example.com");
+    await loginPage.locator('#login-form button[type="submit"]').click();
 
-    // Step 3: Get the magic link and redirect to it
-    const magicLink = page.locator("#login-message a");
-    await expect(magicLink).toBeVisible();
-    await expect(magicLink).toHaveAttribute("href", /token=.+/);
-
-    const href = await magicLink.getAttribute("href");
-    expect(href).toBeTruthy();
-
-    // Navigate to the magic link URL
-    await page.goto(href!);
+    // Step 3: Wait for auto-login (dev mode auto-validates magic link token)
+    // After successful login, the router navigates to /submit-time-off
+    await page.waitForURL(/\/submit-time-off/);
 
     // Step 4: Verify cookie has been set
-    await expect(page.locator("#dashboard")).toBeVisible();
-
-    // Check that auth_hash cookie exists
     const cookies = await page.context().cookies();
     const authCookie = cookies.find((cookie) => cookie.name === "auth_hash");
     expect(authCookie).toBeTruthy();
@@ -45,8 +38,9 @@ test.describe("Authentication Logout", () => {
     await expect(logoutBtn).toBeVisible();
     await logoutBtn.click();
 
-    // Step 6: Verify we're back to login form
-    await expect(page.locator("#login-form")).toBeVisible(); // Should show login form again
+    // Step 6: Verify we're back to login page
+    await page.waitForURL(/\/login/);
+    await expect(page.locator("login-page")).toBeVisible();
 
     // Check that auth_hash cookie is no longer present
     const cookiesAfterLogout = await page.context().cookies();

@@ -28,32 +28,28 @@ test.describe("Employee Authentication & Workflow", () => {
     const testDateStr = "2026-02-10"; // Monday, past date
 
     // Navigate to the actual application
-    await page.goto("/");
+    await page.goto("/login");
 
     // Fill out login form with test user email
-    await page.fill("#identifier", "john.doe@example.com");
-    await page.click('#login-form button[type="submit"]');
+    const loginPage = page.locator("login-page");
+    await expect(loginPage).toBeVisible();
+    await loginPage.locator("#identifier").fill("john.doe@example.com");
+    await loginPage.locator('#login-form button[type="submit"]').click();
 
-    // Wait for magic link to appear
-    await page.waitForSelector("#login-message", { timeout: 10000 });
-    const magicLink = page.locator("#login-message a");
-    await expect(magicLink).toBeVisible();
-    await expect(magicLink).toHaveAttribute("href", /token=.+/);
-
-    // Click the magic link to login
-    await magicLink.click();
-
-    // Wait for dashboard to load
-    await page.waitForSelector("#dashboard", { timeout: 10000 });
+    // Dev mode auto-validates and navigates to /submit-time-off
+    await page.waitForURL(/\/submit-time-off/, { timeout: 10000 });
 
     // Navigate to Current Year Summary page where PTO status is shown
     const menu = page.locator("dashboard-navigation-menu");
+    const menuToggle = menu.locator("button.menu-toggle");
+    await expect(menuToggle).toBeVisible();
+    await menuToggle.click();
     const currentYearBtn = menu.locator(
       'button[data-action="current-year-summary"]',
     );
     await currentYearBtn.click();
 
-    await expect(page.locator("#pto-status")).toBeVisible();
+    await page.waitForURL(/\/current-year-summary/);
 
     // Verify we're in request mode by default (Phase 13)
     const accrualCard = page.locator("pto-accrual-card");

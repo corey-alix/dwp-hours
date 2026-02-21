@@ -5,44 +5,39 @@ test.describe("Sick Time Rendering Consistency", () => {
     page,
   }) => {
     // Navigate to login page
-    await page.goto("/index.html");
+    await page.goto("/login");
 
-    // Enter employee identifier (assuming john.doe@example.com has seeded data)
-    await page.fill("#identifier", "john.doe@example.com");
-    await page.click('button[type="submit"]');
+    // Login as John Doe
+    const loginPage = page.locator("login-page");
+    await expect(loginPage).toBeVisible();
+    await loginPage.locator("#identifier").fill("john.doe@example.com");
+    await loginPage.locator('#login-form button[type="submit"]').click();
 
-    // Get magic link from response (test mode returns it directly)
-    const messageDiv = page.locator("#login-message");
-    await expect(messageDiv).toBeVisible();
+    // Wait for auto-login (dev mode) to complete
+    await page.waitForURL(/\/submit-time-off/, { timeout: 10000 });
 
-    const linkElement = messageDiv.locator("a");
-    const magicLink = await linkElement.getAttribute("href");
-    expect(magicLink).toBeTruthy();
-
-    // Navigate to magic link
-    await page.goto(magicLink!);
-
-    // Wait for dashboard to load
-    await page.waitForSelector("#dashboard", { timeout: 10000 });
-
-    // Navigate to Current Year Summary page where PTO status is shown
+    // Navigate to Current Year Summary page
     const menu = page.locator("dashboard-navigation-menu");
+    const menuToggle = menu.locator("button.menu-toggle");
+    await expect(menuToggle).toBeVisible();
+    await menuToggle.click();
     const currentYearBtn = menu.locator(
       'button[data-action="current-year-summary"]',
     );
     await currentYearBtn.click();
 
-    await page.waitForSelector("#pto-status");
+    await page.waitForURL(/\/current-year-summary/);
+    const summaryPage = page.locator("current-year-summary-page");
+    await expect(summaryPage).toBeVisible();
 
-    // Check sick time card in dashboard
-    const sickCard = page.locator("pto-sick-card");
+    // Check sick time card
+    const sickCard = summaryPage.locator("pto-sick-card");
     await expect(sickCard).toBeVisible();
 
     // Extract usage entries from sick card
     const dashboardSickEntries = await sickCard.locator("li").allTextContents();
 
     // The data does NOT have sick time for 2/2/2026, so dashboard should NOT show it
-    // This test will FAIL if the UX incorrectly shows 2/2/2026, highlighting the bug
     const hasFeb2InDashboard = dashboardSickEntries.some(
       (entry) => entry.includes("2026-02-02") || entry.includes("2/2/2026"),
     );
@@ -52,22 +47,7 @@ test.describe("Sick Time Rendering Consistency", () => {
     const hasFeb17InDashboard = dashboardSickEntries.some(
       (entry) => entry.includes("2026-02-17") || entry.includes("2/17/2026"),
     );
-    // Note: Reports functionality is not yet implemented - it shows "Reports coming soon!" alert
-    // For now, we'll skip the reports comparison test
+    // Note: Reports functionality is not yet implemented
     // TODO: Re-enable this test once reports UI is implemented
-
-    // // Navigate to reports section
-    // await page.click('#view-reports-btn');
-    // // Handle the alert that appears
-    // page.on('dialog', async dialog => {
-    //   expect(dialog.message()).toBe('Reports coming soon!');
-    //   await dialog.accept();
-    // });
-
-    // // Since reports are not implemented, we can't test the report content yet
-    // // The dashboard test above is sufficient to detect the UX bug
-
-    // If the user reported seeing 2/2 in dashboard, this test will fail on the first assertion,
-    // confirming the UX rendering bug
   });
 });

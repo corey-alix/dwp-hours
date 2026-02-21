@@ -4,6 +4,7 @@ import "./components/index.js";
 // Re-export playground for testing
 export { TestWorkflow, initTestPage } from "./test.js";
 export * from "./components/test.js";
+export * from "./pages/test.js";
 
 // Import controller architecture
 import { TraceListener } from "./controller/TraceListener.js";

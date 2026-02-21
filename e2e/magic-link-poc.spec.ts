@@ -4,30 +4,27 @@ test.describe("Magic link POC", () => {
   test("posting email returns a magic link", async ({ page }) => {
     test.setTimeout(5000);
 
-    await page.goto("/index.html");
-    await expect(page.locator("#login-form")).toBeVisible();
+    await page.goto("/login");
+    const loginPage = page.locator("login-page");
+    await expect(loginPage).toBeVisible();
+    await expect(loginPage.locator("#login-form")).toBeVisible();
 
-    await page.fill("#identifier", "john.doe@example.com");
-    await page.click('#login-form button[type="submit"]');
+    await loginPage.locator("#identifier").fill("john.doe@example.com");
+    await loginPage.locator('#login-form button[type="submit"]').click();
 
-    const magicLink = page.locator("#login-message a");
-    await expect(magicLink).toBeVisible();
-    await expect(magicLink).toHaveAttribute("href", /token=.+/);
+    // Dev mode auto-validates the magic link token and navigates to /submit-time-off
+    await page.waitForURL(/\/submit-time-off/, { timeout: 10000 });
 
-    await magicLink.click();
-    await expect(page.locator("#dashboard")).toBeVisible();
-    await expect(page.locator("#pto-status")).toBeVisible();
+    const timeOffPage = page.locator("submit-time-off-page");
+    await expect(timeOffPage).toBeVisible();
 
-    await page.click("dashboard-navigation-menu .menu-toggle");
-    await page.click(
-      'dashboard-navigation-menu .menu-item[data-action="submit-time-off"]',
-    );
-    await expect(page.locator("#pto-form")).toBeVisible();
+    const form = timeOffPage.locator("pto-entry-form");
+    await expect(form).toBeVisible();
 
-    await page.fill("#start-date", "2026-02-05");
-    await page.fill("#end-date", "2026-02-05");
-    await page.selectOption("#pto-type", "Full PTO");
-    await page.fill("#hours", "8");
+    await form.locator("#start-date").fill("2026-02-05");
+    await form.locator("#end-date").fill("2026-02-05");
+    await form.locator("#pto-type").selectOption("Full PTO");
+    await form.locator("#hours").fill("8");
 
     const ptoResponsePromise = page.waitForResponse(
       (response) =>
@@ -35,9 +32,10 @@ test.describe("Magic link POC", () => {
         response.request().method() === "POST" &&
         response.status() === 201,
     );
-    await page.click('#pto-entry-form button[type="submit"]');
+    await form.locator('button[type="submit"]').click();
     await ptoResponsePromise;
 
-    await expect(page.locator("#dashboard")).toBeVisible();
+    // Verify we're still on submit-time-off page after submission
+    await expect(timeOffPage).toBeVisible();
   });
 });

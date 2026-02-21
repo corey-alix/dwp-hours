@@ -8,11 +8,13 @@ import { styles } from "./css.js";
 /**
  * Admin Employees page.
  * Contains `<employee-list>` and `<employee-form>` for managing employees.
+ * Handles add, edit, and delete employee operations.
  */
 export class AdminEmployeesPage extends BaseComponent implements PageComponent {
   private api = new APIClient();
   private _employees: any[] = [];
   private _showForm = false;
+  private _editEmployee: any = null;
 
   async onRouteEnter(
     _params: Record<string, string>,
@@ -21,6 +23,7 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
   ): Promise<void> {
     this._employees = (loaderData as any)?.employees ?? [];
     this._showForm = false;
+    this._editEmployee = null;
     this.requestUpdate();
 
     await new Promise((r) => setTimeout(r, 0));
@@ -28,11 +31,12 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
   }
 
   protected render(): string {
+    const buttonLabel = this._showForm ? "Cancel" : "Add Employee";
     return `
       ${styles}
       <h2>Employee Management</h2>
       <div class="actions">
-        <button class="add-btn" data-action="add-employee">${this._showForm ? "Cancel" : "Add Employee"}</button>
+        <button class="add-btn" data-action="add-employee">${buttonLabel}</button>
       </div>
       ${this._showForm ? "<employee-form></employee-form>" : ""}
       <employee-list></employee-list>
@@ -55,26 +59,79 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
 
     this.shadowRoot.addEventListener("employee-edit", ((e: CustomEvent) => {
       e.stopPropagation();
-      notifications.info(
-        `Edit employee ${e.detail.employeeId} feature coming soon!`,
-      );
+      this.handleEditEmployee(e.detail.employeeId);
     }) as EventListener);
 
     this.shadowRoot.addEventListener("employee-delete", ((e: CustomEvent) => {
       e.stopPropagation();
-      notifications.info(
-        `Delete employee ${e.detail.employeeId} feature coming soon!`,
-      );
+      this.handleDeleteEmployee(e.detail.employeeId);
     }) as EventListener);
 
     this.shadowRoot.addEventListener("employee-submit", ((e: CustomEvent) => {
       e.stopPropagation();
       this.handleEmployeeSubmit(e.detail);
     }) as EventListener);
+
+    this.shadowRoot.addEventListener("form-cancel", (() => {
+      this._showForm = false;
+      this._editEmployee = null;
+      this.requestUpdate();
+      requestAnimationFrame(() => this.populateList());
+    }) as EventListener);
+  }
+
+  private handleEditEmployee(employeeId: number): void {
+    const employee = this._employees.find((e: any) => e.id === employeeId);
+    if (!employee) {
+      notifications.error(`Employee ${employeeId} not found.`);
+      return;
+    }
+    this._editEmployee = employee;
+    this._showForm = true;
+    this.requestUpdate();
+
+    // Populate the form with the employee data after render
+    requestAnimationFrame(() => {
+      const form = this.shadowRoot.querySelector("employee-form") as any;
+      if (form) {
+        form.employee = employee;
+      }
+      this.populateList();
+    });
+  }
+
+  private handleDeleteEmployee(employeeId: number): void {
+    const employee = this._employees.find((e: any) => e.id === employeeId);
+    const name = employee?.name ?? `#${employeeId}`;
+
+    const dialog = document.createElement("confirmation-dialog") as any;
+    dialog.message = `Are you sure you want to delete employee "${name}"? This action cannot be undone.`;
+    dialog.confirmText = "Delete";
+    dialog.cancelText = "Cancel";
+
+    dialog.addEventListener("confirm", async () => {
+      dialog.remove();
+      try {
+        await this.api.deleteEmployee(employeeId);
+        notifications.success(`Employee "${name}" deleted successfully.`);
+        await this.refreshEmployees();
+      } catch (error) {
+        notifications.error(
+          `Failed to delete employee: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    });
+
+    dialog.addEventListener("cancel", () => {
+      dialog.remove();
+    });
+
+    document.body.appendChild(dialog);
   }
 
   private async handleEmployeeSubmit(detail: {
     employee: {
+      id?: number;
       name: string;
       identifier: string;
       ptoRate: number;
@@ -84,38 +141,57 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
     isEdit: boolean;
   }): Promise<void> {
     try {
-      const { employee } = detail;
-      // Server expects snake_case field names
-      await this.api.createEmployee({
-        name: employee.name,
-        identifier: employee.identifier,
-        ptoRate: employee.ptoRate,
-        carryoverHours: employee.carryoverHours,
-        hireDate: today(),
-        role: employee.role as "Employee" | "Admin",
-      });
-      notifications.success(`Employee "${employee.name}" added successfully!`);
-      this._showForm = false;
+      const { employee, isEdit } = detail;
 
-      // Refresh employee list
-      const employees = await this.api.getEmployees();
-      this._employees = employees;
-      this.requestUpdate();
-      await new Promise((r) => setTimeout(r, 0));
-      this.populateList();
+      if (isEdit && employee.id) {
+        await this.api.updateEmployee(employee.id, {
+          name: employee.name,
+          identifier: employee.identifier,
+          ptoRate: employee.ptoRate,
+          carryoverHours: employee.carryoverHours,
+          role: employee.role as "Employee" | "Admin",
+        });
+        notifications.success(
+          `Employee "${employee.name}" updated successfully!`,
+        );
+      } else {
+        await this.api.createEmployee({
+          name: employee.name,
+          identifier: employee.identifier,
+          ptoRate: employee.ptoRate,
+          carryoverHours: employee.carryoverHours,
+          hireDate: today(),
+          role: employee.role as "Employee" | "Admin",
+        });
+        notifications.success(
+          `Employee "${employee.name}" added successfully!`,
+        );
+      }
+
+      this._showForm = false;
+      this._editEmployee = null;
+      await this.refreshEmployees();
     } catch (error) {
       notifications.error(
-        `Failed to add employee: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to ${detail.isEdit ? "update" : "add"} employee: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
+  }
+
+  private async refreshEmployees(): Promise<void> {
+    const employees = await this.api.getEmployees();
+    this._employees = employees;
+    this.requestUpdate();
+    await new Promise((r) => setTimeout(r, 0));
+    this.populateList();
   }
 
   protected handleDelegatedClick(e: Event): void {
     const target = e.target as HTMLElement;
     if (target.dataset.action === "add-employee") {
       this._showForm = !this._showForm;
+      this._editEmployee = null;
       this.requestUpdate();
-      // Re-populate list after re-render
       requestAnimationFrame(() => this.populateList());
     }
   }

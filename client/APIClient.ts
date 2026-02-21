@@ -65,6 +65,24 @@ export class APIClient {
     return response.json();
   }
 
+  async delete(endpoint: string): Promise<any> {
+    const response = await fetch(`${this.baseURL}${endpoint}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+    if (!response.ok) {
+      const errorData = await response
+        .json()
+        .catch(() => ({ error: "Unknown error" }));
+      const error = new Error(
+        errorData.error || `HTTP ${response.status}: ${response.statusText}`,
+      );
+      (error as any).responseData = errorData;
+      throw error;
+    }
+    return response.json();
+  }
+
   // Typed API methods
   async requestAuthLink(
     identifier: string,
@@ -108,27 +126,29 @@ export class APIClient {
 
   async updatePTOEntry(
     id: number,
-    updates: Partial<{ date: string; hours: number; type: string }>,
+    updates: Partial<{
+      date: string;
+      hours: number;
+      type: string;
+      approved_by: number | null;
+    }>,
   ): Promise<ApiTypes.PTOUpdateResponse> {
     return this.put(`/pto/${id}`, updates);
   }
 
+  async approvePTOEntry(
+    id: number,
+    adminId: number,
+  ): Promise<ApiTypes.PTOUpdateResponse> {
+    return this.put(`/pto/${id}`, { approved_by: adminId });
+  }
+
+  async rejectPTOEntry(id: number): Promise<ApiTypes.GenericMessageResponse> {
+    return this.delete(`/pto/${id}`);
+  }
+
   async deletePTOEntry(id: number): Promise<ApiTypes.GenericMessageResponse> {
-    const response = await fetch(`${this.baseURL}/pto/${id}`, {
-      method: "DELETE",
-      credentials: "include",
-    });
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ error: "Unknown error" }));
-      const error = new Error(
-        errorData.error || `HTTP ${response.status}: ${response.statusText}`,
-      );
-      (error as any).responseData = errorData;
-      throw error;
-    }
-    return response.json();
+    return this.delete(`/pto/${id}`);
   }
 
   async submitHours(
@@ -189,21 +209,11 @@ export class APIClient {
     id: number,
     updates: Partial<ApiTypes.Employee>,
   ): Promise<ApiTypes.EmployeeUpdateResponse> {
-    const response = await fetch(`${this.baseURL}/employees/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(updates),
-    });
-    return response.json();
+    return this.put(`/employees/${id}`, updates);
   }
 
   async deleteEmployee(id: number): Promise<ApiTypes.GenericMessageResponse> {
-    const response = await fetch(`${this.baseURL}/employees/${id}`, {
-      method: "DELETE",
-    });
-    return response.json();
+    return this.delete(`/employees/${id}`);
   }
 
   async health(): Promise<ApiTypes.HealthResponse> {
