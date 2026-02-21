@@ -30,6 +30,12 @@ The goal is to:
 | 4   | `navigate-to-month` cross-page?  | **Query params** — navigate to `/submit-time-off?month=3&year=2026`. The Submit Time Off page reads `URLSearchParams` in `onRouteEnter` and calls `ptoForm.navigateToMonth()`.         |
 | 5   | Hybrid migration?                | **No hybrid** — switch to `#router-outlet` immediately. No one will use the app until this feature is complete.                                                                        |
 
+## Progress Update
+
+- **Latest work:** Implemented named-slot projection for `employee-list` and `admin-monthly-review`, projected per-employee `pto-balance-summary` and inline `employee-form` editors from `admin-employees-page`, and converted the `employee-form` submit flow to a view-model-driven `_isSubmitting` + `requestUpdate()` pattern to remove imperative submit DOM writes.
+- **Current focus:** Convert remaining imperative validation/class mutations in `employee-form` (Stage 8c) to view-model-driven rendering, make `admin-monthly-review` balance rendering fully declarative (Stage 8d), and add unit tests for the refactored components and E2E tests for route/auth flows.
+- **Verification:** `pnpm run build` and `pnpm run lint` completed successfully after these changes.
+
 ## Route System Design
 
 ### Core Types
@@ -386,7 +392,7 @@ Before wrapping these components in page wrappers, migrate them to conform to th
 
 - [x] Extract inline `STYLES` const to separate `css.ts` file
 - [x] Fix attribute handling: `employees` (array) must use private field + `requestUpdate()`, not JSON attribute serialization
-- [ ] Refactor embedded child components (`<employee-form>`, `<pto-balance-summary>`) to use named `<slot>` elements per "Named Slots Over Component Embedding" rule
+- [x] Refactor embedded child components (`<employee-form>`, `<pto-balance-summary>`) to use named `<slot>` elements per "Named Slots Over Component Embedding" rule
 - [x] Remove `_customEventsSetup` guard flag — use BaseComponent lifecycle for one-time setup (renamed to `_inputListenerSetup`)
 - [ ] Unit tests updated
 - [x] `pnpm run build` passes
@@ -396,7 +402,7 @@ Before wrapping these components in page wrappers, migrate them to conform to th
 
 - [x] Extract `renderStyles()` inline styles to separate `css.ts` file
 - [x] Fix attribute handling: `employee` (object) must use private field + `requestUpdate()`, not JSON attribute serialization
-- [ ] Replace imperative DOM mutations in `handleDelegatedClick` (direct `submitBtn.disabled`, `submitStatus.textContent` writes) with view-model state + `requestUpdate()` (intentionally deferred — re-render would lose form input values)
+- [x] Replace imperative DOM mutations in `handleDelegatedClick` (direct `submitBtn.disabled`, `submitStatus.textContent` writes) with view-model state + `requestUpdate()` (submit flow converted to view-model; remaining validation-class mutations pending)
 - [ ] Replace imperative CSS class mutations in `validateField` with view-model-driven rendering
 - [ ] Unit tests updated
 - [x] `pnpm run build` passes
@@ -410,7 +416,7 @@ Before wrapping these components in page wrappers, migrate them to conform to th
 - [x] Replace `this.update()` calls with `this.requestUpdate()` to use proper batching
 - [x] Fix Date violation: replace `new Date().toISOString()` with `shared/dateUtils.ts` utilities
 - [ ] Replace imperative `updateBalanceSummaries()` post-render DOM manipulation with declarative rendering
-- [ ] Refactor embedded `<pto-balance-summary>` to use named `<slot>` element
+- [x] Refactor embedded `<pto-balance-summary>` to use named `<slot>` element
 - [ ] Unit tests updated
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
@@ -531,6 +537,7 @@ Each former `admin-panel` sidebar view becomes its own routed page. The `admin-p
 - **Server SPA fallback** — `server.mts` needs a catch-all that returns `index.html` for non-API paths so that direct URL access (e.g., refreshing on `/admin/employees`) works. The dev server (`http-serve`) may already handle this; production (Express) needs the explicit route.
 - **Date handling** — follows project convention: all date operations use `shared/dateUtils.ts`, no `new Date()` outside that module.
 - **Business rules** — all validation/calculation logic stays in `shared/businessRules.ts`, consumed by loaders or page components.
+- **Linting:** Always run `pnpm run lint` after making code changes and fix any reported issues before committing or creating a PR. Lint errors can break CI and prevent successful builds; treat lint as part of the edit-verify cycle.
 
 ## Questions and Concerns
 

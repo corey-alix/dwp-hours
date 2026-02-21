@@ -152,7 +152,7 @@ export const seedPTOEntries: SeedPtoEntry[] = [
   },
   {
     employee_id: 2,
-    date: "2026-03-15",
+    date: "2026-03-16",
     type: "PTO",
     hours: 16,
     approved_by: null,
@@ -174,7 +174,7 @@ export const seedPTOEntries: SeedPtoEntry[] = [
   },
   {
     employee_id: 2,
-    date: "2026-08-01",
+    date: "2026-08-03",
     type: "PTO",
     hours: 80,
     approved_by: null,

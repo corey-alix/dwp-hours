@@ -115,11 +115,14 @@ export class AdminPtoRequestsPage
         this.api.getPTOEntries(),
       ]);
       const employeeMap = new Map(
-        (employees as any[]).map((e: any) => [e.id, e.name]),
+        (employees as { id: number; name: string }[]).map((e) => [
+          e.id,
+          e.name,
+        ]),
       );
-      this._requests = (entries as any[])
-        .filter((e: any) => !e.approvedBy)
-        .map((e: any) => ({
+      this._requests = entries
+        .filter((e) => e.approved_by === null || e.approved_by === undefined)
+        .map((e) => ({
           id: e.id,
           employeeId: e.employeeId,
           employeeName: employeeMap.get(e.employeeId) ?? "Unknown",
@@ -128,7 +131,7 @@ export class AdminPtoRequestsPage
           type: e.type,
           hours: e.hours,
           status: "pending" as const,
-          createdAt: e.date,
+          createdAt: e.createdAt,
         }));
       this.requestUpdate();
       await new Promise((r) => setTimeout(r, 0));

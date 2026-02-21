@@ -98,7 +98,9 @@ export class EmployeeList extends BaseComponent {
             <div class="employee-card" data-employee-id="${employee.id}">
                 <div class="employee-header">
                     <div>
-                        <pto-balance-summary data-employee-id="${employee.id}"></pto-balance-summary>
+                        <slot name="balance-${employee.id}">
+                          <pto-balance-summary data-employee-id="${employee.id}"></pto-balance-summary>
+                        </slot>
                         <h3 class="employee-name">${employee.name}</h3>
                         <p class="employee-identifier">${employee.identifier}</p>
                     </div>
@@ -129,7 +131,9 @@ export class EmployeeList extends BaseComponent {
   private renderInlineEditor(employee: Employee): string {
     return `
             <div class="inline-editor" data-employee-id="${employee.id}">
-                <employee-form employee='${JSON.stringify(employee)}' is-edit="true"></employee-form>
+                <slot name="editor-${employee.id}">
+                  <employee-form employee='${JSON.stringify(employee)}' is-edit="true"></employee-form>
+                </slot>
             </div>
         `;
   }

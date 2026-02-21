@@ -107,8 +107,6 @@ export class AdminMonthlyReview extends BaseComponent {
     this._employeeData = data;
     this._isLoading = false;
     this.requestUpdate();
-    // Set balance data after DOM update
-    setTimeout(() => this.updateBalanceSummaries(), 0);
   }
 
   // Method for parent to inject PTO entries data
@@ -118,8 +116,6 @@ export class AdminMonthlyReview extends BaseComponent {
   ): void {
     this._ptoEntries = data;
     this.requestUpdate();
-    // Update balance summaries when PTO data changes
-    setTimeout(() => this.updateBalanceSummaries(), 0);
   }
 
   private isAcknowledged(employeeId: number, month: string): boolean {
@@ -193,30 +189,16 @@ export class AdminMonthlyReview extends BaseComponent {
     );
   }
 
-  private updateBalanceSummaries(): void {
-    // Find all pto-balance-summary elements in the shadow DOM
-    const balanceSummaries = this.shadowRoot?.querySelectorAll(
-      "pto-balance-summary",
-    );
-    if (!balanceSummaries) return;
+  // NOTE: balance summary wiring is now declarative. Parent pages that
+  // project `pto-balance-summary` elements into the named slots should
+  // call `getBalanceDataForEmployee(employeeId)` and assign the returned
+  // `PtoBalanceData` to the slotted component via its `setBalanceData()`
+  // method. This removes imperative DOM mutation from the component and
+  // enables parent pages to control data injection for slotted children.
 
-    // Set balance data for each summary based on its data-employee-id
-    balanceSummaries.forEach((summary) => {
-      const employeeId = parseInt(
-        (summary as HTMLElement).getAttribute("data-employee-id") || "0",
-      );
-      if (employeeId > 0) {
-        try {
-          const balanceData = this.computeEmployeeBalanceData(employeeId);
-          (summary as PtoBalanceSummary).setBalanceData(balanceData);
-        } catch (error) {
-          console.error(
-            `Failed to compute balance data for employee ${employeeId}:`,
-            error,
-          );
-        }
-      }
-    });
+  /** Public accessor for parent components to retrieve computed balance data. */
+  getBalanceDataForEmployee(employeeId: number): PtoBalanceData {
+    return this.computeEmployeeBalanceData(employeeId);
   }
 
   private async handleAcknowledgeEmployee(employeeId: number): Promise<void> {
@@ -318,7 +300,9 @@ export class AdminMonthlyReview extends BaseComponent {
           </div>
         </div>
 
-        <pto-balance-summary data-employee-id="${employee.employeeId}"></pto-balance-summary>
+        <slot name="balance-${employee.employeeId}">
+          <pto-balance-summary data-employee-id="${employee.employeeId}"></pto-balance-summary>
+        </slot>
 
         <div class="hours-breakdown">
           <div class="hours-row">

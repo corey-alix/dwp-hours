@@ -39,7 +39,21 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
         <button class="add-btn" data-action="add-employee">${buttonLabel}</button>
       </div>
       ${this._showForm ? "<employee-form></employee-form>" : ""}
-      <employee-list></employee-list>
+      <employee-list>
+        ${this._employees
+          .map(
+            (emp) =>
+              `
+            <pto-balance-summary slot="balance-${emp.id}" data-employee-id="${emp.id}"></pto-balance-summary>
+            ${
+              this._editEmployee && this._editEmployee.id === emp.id
+                ? `<employee-form slot="editor-${emp.id}" is-edit="true"></employee-form>`
+                : ""
+            }
+          `,
+          )
+          .join("")}
+      </employee-list>
     `;
   }
 
@@ -47,6 +61,10 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
     const list = this.shadowRoot.querySelector("employee-list") as any;
     if (list && this._employees.length) {
       list.employees = this._employees;
+      // If an inline editor is active, tell the list which employee is being edited
+      list.editingEmployeeId = this._editEmployee
+        ? this._editEmployee.id
+        : null;
     }
   }
 
@@ -86,15 +104,18 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
       notifications.error(`Employee ${employeeId} not found.`);
       return;
     }
+    // Use inline editor inside employee-list rather than top-level form
     this._editEmployee = employee;
-    this._showForm = true;
+    this._showForm = false;
     this.requestUpdate();
 
-    // Populate the form with the employee data after render
+    // After render, populate the inline editor's property so it receives the object (not via attribute)
     requestAnimationFrame(() => {
-      const form = this.shadowRoot.querySelector("employee-form") as any;
-      if (form) {
-        form.employee = employee;
+      const inlineForm = this.shadowRoot.querySelector(
+        `employee-form[slot="editor-${employee.id}"]`,
+      ) as any;
+      if (inlineForm) {
+        inlineForm.employee = employee;
       }
       this.populateList();
     });

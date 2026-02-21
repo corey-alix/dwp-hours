@@ -16,6 +16,8 @@ export class EmployeeForm extends BaseComponent {
   private _employee: Employee | null = null;
   private _isEdit = false;
   private _isSubmitting = false;
+  private _errors: Record<string, string> = {};
+  private _stagedFormValues: Record<string, string> | null = null;
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -69,6 +71,8 @@ export class EmployeeForm extends BaseComponent {
   set employee(value: Employee | null) {
     this._employee = value;
     this._isEdit = !!value?.id;
+    this._stagedFormValues = null;
+    this._errors = {};
     this.requestUpdate();
   }
 
@@ -115,17 +119,17 @@ export class EmployeeForm extends BaseComponent {
                             Full Name <span class="required" aria-label="required">*</span>
                         </label>
                         <input
-                            type="text"
-                            id="name"
-                            name="name"
-                            class="form-input"
-                            value="${this._employee?.name || ""}"
-                            required
-                            aria-required="true"
-                            aria-describedby="name-error"
-                            aria-invalid="${this.hasError("name") ? "true" : "false"}"
+                          type="text"
+                          id="name"
+                          name="name"
+                          class="form-input ${this.hasError("name") ? "error" : ""}"
+                          value="${this._stagedFormValues?.name ?? this._employee?.name ?? ""}"
+                          required
+                          aria-required="true"
+                          aria-describedby="name-error"
+                          aria-invalid="${this.hasError("name") ? "true" : "false"}"
                         >
-                        <span class="error-message" id="name-error" role="alert" aria-live="polite"></span>
+                        <span class="error-message" id="name-error" role="alert" aria-live="polite">${this._errors["name"] ?? ""}</span>
                     </div>
 
                     <div class="form-group">
@@ -133,17 +137,17 @@ export class EmployeeForm extends BaseComponent {
                             Employee Email <span class="required" aria-label="required">*</span>
                         </label>
                         <input
-                            type="email"
-                            id="identifier"
-                            name="identifier"
-                            class="form-input"
-                            value="${this._employee?.identifier || ""}"
-                            required
-                            aria-required="true"
-                            aria-describedby="identifier-error"
-                            aria-invalid="${this.hasError("identifier") ? "true" : "false"}"
+                          type="email"
+                          id="identifier"
+                          name="identifier"
+                          class="form-input ${this.hasError("identifier") ? "error" : ""}"
+                          value="${this._stagedFormValues?.identifier ?? this._employee?.identifier ?? ""}"
+                          required
+                          aria-required="true"
+                          aria-describedby="identifier-error"
+                          aria-invalid="${this.hasError("identifier") ? "true" : "false"}"
                         >
-                        <span class="error-message" id="identifier-error" role="alert" aria-live="polite"></span>
+                        <span class="error-message" id="identifier-error" role="alert" aria-live="polite">${this._errors["identifier"] ?? ""}</span>
                     </div>
 
                     <div class="form-row">
@@ -152,18 +156,18 @@ export class EmployeeForm extends BaseComponent {
                                 PTO Rate (hrs/day)
                             </label>
                             <input
-                                type="number"
-                                id="ptoRate"
-                                name="ptoRate"
-                                class="form-input"
-                                value="${this._employee?.ptoRate || 0.71}"
-                                step="0.01"
-                                min="0"
-                                max="2"
-                                aria-describedby="ptoRate-error"
-                                aria-invalid="${this.hasError("ptoRate") ? "true" : "false"}"
+                              type="number"
+                              id="ptoRate"
+                              name="ptoRate"
+                              class="form-input ${this.hasError("ptoRate") ? "error" : ""}"
+                              value="${this._stagedFormValues?.ptoRate ?? this._employee?.ptoRate ?? 0.71}"
+                              step="0.01"
+                              min="0"
+                              max="2"
+                              aria-describedby="ptoRate-error"
+                              aria-invalid="${this.hasError("ptoRate") ? "true" : "false"}"
                             >
-                            <span class="error-message" id="ptoRate-error" role="alert" aria-live="polite"></span>
+                            <span class="error-message" id="ptoRate-error" role="alert" aria-live="polite">${this._errors["ptoRate"] ?? ""}</span>
                         </div>
 
                         <div class="form-group">
@@ -171,17 +175,17 @@ export class EmployeeForm extends BaseComponent {
                                 Carryover Hours
                             </label>
                             <input
-                                type="number"
-                                id="carryoverHours"
-                                name="carryoverHours"
-                                class="form-input"
-                                value="${this._employee?.carryoverHours || 0}"
-                                step="0.5"
-                                min="0"
-                                aria-describedby="carryoverHours-error"
-                                aria-invalid="${this.hasError("carryoverHours") ? "true" : "false"}"
+                              type="number"
+                              id="carryoverHours"
+                              name="carryoverHours"
+                              class="form-input ${this.hasError("carryoverHours") ? "error" : ""}"
+                              value="${this._stagedFormValues?.carryoverHours ?? this._employee?.carryoverHours ?? 0}"
+                              step="0.5"
+                              min="0"
+                              aria-describedby="carryoverHours-error"
+                              aria-invalid="${this.hasError("carryoverHours") ? "true" : "false"}"
                             >
-                            <span class="error-message" id="carryoverHours-error" role="alert" aria-live="polite"></span>
+                            <span class="error-message" id="carryoverHours-error" role="alert" aria-live="polite">${this._errors["carryoverHours"] ?? ""}</span>
                         </div>
                     </div>
 
@@ -190,8 +194,8 @@ export class EmployeeForm extends BaseComponent {
                             Role
                         </label>
                         <select id="role" name="role" class="form-select" aria-describedby="role-hint">
-                            <option value="Employee" ${this._employee?.role === "Employee" ? "selected" : ""}>Employee</option>
-                            <option value="Admin" ${this._employee?.role === "Admin" ? "selected" : ""}>Admin</option>
+                          <option value="Employee" ${(this._stagedFormValues?.role ?? this._employee?.role) === "Employee" ? "selected" : ""}>Employee</option>
+                          <option value="Admin" ${(this._stagedFormValues?.role ?? this._employee?.role) === "Admin" ? "selected" : ""}>Admin</option>
                         </select>
                         <span id="role-hint" class="sr-only">Select the employee's role in the system</span>
                     </div>
@@ -222,25 +226,16 @@ export class EmployeeForm extends BaseComponent {
       if (this._isSubmitting) {
         return;
       }
+      // Mark submitting and re-render action state after collecting data
       this._isSubmitting = true;
 
-      // Directly update button state without re-rendering to preserve form values
-      const submitBtn = this.shadowRoot?.querySelector(
-        "#submit-btn",
-      ) as HTMLButtonElement;
-      const submitStatus = this.shadowRoot?.querySelector(
-        "#submit-status",
-      ) as HTMLElement;
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.setAttribute("aria-disabled", "true");
-      }
-      if (submitStatus) {
-        submitStatus.textContent = "Submitting form...";
-      }
-
+      // Collect and validate form data before rendering to avoid losing user input
       const result = this.validateAndCollectData();
       if (result.isValid) {
+        // Update UI to submitting state
+        this.requestUpdate();
+
+        // Dispatch submit event with collected data
         this.dispatchEvent(
           new CustomEvent("employee-submit", {
             detail: { employee: result.employee, isEdit: this._isEdit },
@@ -248,19 +243,18 @@ export class EmployeeForm extends BaseComponent {
             composed: true,
           }),
         );
+
+        // Clear submitting state and staged values after dispatch so consumers can update
+        this._isSubmitting = false;
+        this._stagedFormValues = null;
+        this._errors = {};
+        this.requestUpdate();
       } else {
         // Focus first error field
         this.focusFirstError();
-      }
-      this._isSubmitting = false;
-
-      // Reset button state
-      if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.removeAttribute("aria-disabled");
-      }
-      if (submitStatus) {
-        submitStatus.textContent = "";
+        this._isSubmitting = false;
+        // Keep staged form values so user input is preserved when re-rendering
+        this.requestUpdate();
       }
     } else if (target.id === "cancel-btn") {
       this.dispatchEvent(
@@ -353,57 +347,57 @@ export class EmployeeForm extends BaseComponent {
 
   private validateForm(): boolean {
     let isValid = true;
-
+    // Capture current form values so a re-render preserves user input
     const nameInput = querySingle<HTMLInputElement>("#name", this.shadowRoot);
     const identifierInput = querySingle<HTMLInputElement>(
       "#identifier",
       this.shadowRoot,
     );
-
-    if (!this.validateField(nameInput)) isValid = false;
-    if (!this.validateField(identifierInput)) isValid = false;
-
-    // Validate PTO rate range
     const ptoRateInput = querySingle<HTMLInputElement>(
       "#ptoRate",
       this.shadowRoot,
     );
-    if (!this.validatePtoRate(ptoRateInput)) isValid = false;
-
-    // Validate carryover hours
     const carryoverInput = querySingle<HTMLInputElement>(
       "#carryoverHours",
       this.shadowRoot,
     );
+
+    this._stagedFormValues = {
+      name: nameInput?.value ?? "",
+      identifier: identifierInput?.value ?? "",
+      ptoRate: ptoRateInput?.value ?? "",
+      carryoverHours: carryoverInput?.value ?? "",
+      role:
+        this.shadowRoot?.querySelector<HTMLSelectElement>("#role")?.value ??
+        this._employee?.role ??
+        "Employee",
+    };
+
+    if (!this.validateField(nameInput)) isValid = false;
+    if (!this.validateField(identifierInput)) isValid = false;
+    if (!this.validatePtoRate(ptoRateInput)) isValid = false;
     if (!this.validateCarryoverHours(carryoverInput)) isValid = false;
 
     return isValid;
   }
 
   private hasError(fieldId: string): boolean {
-    const errorElement = this.shadowRoot?.querySelector(`#${fieldId}-error`);
-    return errorElement ? errorElement.textContent?.trim() !== "" : false;
+    const v = this._errors[fieldId];
+    return !!(v && v.trim() !== "");
   }
 
   private validateField(input: HTMLInputElement): boolean {
     const value = input.value.trim();
-    const errorElement = querySingle<HTMLElement>(
-      `#${input.id}-error`,
-      this.shadowRoot,
-    );
-
-    input.classList.remove("error");
-    errorElement.textContent = "";
+    // Clear previous error for this field
+    delete this._errors[input.id];
 
     if (input.hasAttribute("required") && !value) {
-      input.classList.add("error");
-      errorElement.textContent = "This field is required";
+      this._errors[input.id] = "This field is required";
       return false;
     }
 
     if (input.id === "identifier" && value && !this.isValidEmail(value)) {
-      input.classList.add("error");
-      errorElement.textContent = "Employee email must be a valid email address";
+      this._errors[input.id] = "Employee email must be a valid email address";
       return false;
     }
 
@@ -423,13 +417,7 @@ export class EmployeeForm extends BaseComponent {
 
   private validatePtoRate(input: HTMLInputElement): boolean {
     const value = input.value.trim();
-    const errorElement = querySingle<HTMLElement>(
-      "#ptoRate-error",
-      this.shadowRoot,
-    );
-
-    input.classList.remove("error");
-    errorElement.textContent = "";
+    delete this._errors["ptoRate"];
 
     if (!value) {
       // Optional field, use default
@@ -438,20 +426,17 @@ export class EmployeeForm extends BaseComponent {
 
     const rate = parseFloat(value);
     if (isNaN(rate)) {
-      input.classList.add("error");
-      errorElement.textContent = "PTO rate must be a valid number";
+      this._errors["ptoRate"] = "PTO rate must be a valid number";
       return false;
     }
 
     if (rate < 0) {
-      input.classList.add("error");
-      errorElement.textContent = "PTO rate cannot be negative";
+      this._errors["ptoRate"] = "PTO rate cannot be negative";
       return false;
     }
 
     if (rate > 2) {
-      input.classList.add("error");
-      errorElement.textContent = "PTO rate cannot exceed 2 hours per day";
+      this._errors["ptoRate"] = "PTO rate cannot exceed 2 hours per day";
       return false;
     }
 
@@ -460,13 +445,7 @@ export class EmployeeForm extends BaseComponent {
 
   private validateCarryoverHours(input: HTMLInputElement): boolean {
     const value = input.value.trim();
-    const errorElement = querySingle<HTMLElement>(
-      "#carryoverHours-error",
-      this.shadowRoot,
-    );
-
-    input.classList.remove("error");
-    errorElement.textContent = "";
+    delete this._errors["carryoverHours"];
 
     if (!value) {
       // Optional field, use default
@@ -475,20 +454,18 @@ export class EmployeeForm extends BaseComponent {
 
     const hours = parseFloat(value);
     if (isNaN(hours)) {
-      input.classList.add("error");
-      errorElement.textContent = "Carryover hours must be a valid number";
+      this._errors["carryoverHours"] = "Carryover hours must be a valid number";
       return false;
     }
 
     if (hours < 0) {
-      input.classList.add("error");
-      errorElement.textContent = "Carryover hours cannot be negative";
+      this._errors["carryoverHours"] = "Carryover hours cannot be negative";
       return false;
     }
 
     if (hours > 1000) {
-      input.classList.add("error");
-      errorElement.textContent = "Carryover hours cannot exceed 1000 hours";
+      this._errors["carryoverHours"] =
+        "Carryover hours cannot exceed 1000 hours";
       return false;
     }
 

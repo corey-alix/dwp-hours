@@ -425,12 +425,13 @@ initDatabase()
           // Insert seed PTO entries
           for (const entry of seedPTOEntries) {
             db.exec(
-              `INSERT INTO pto_entries (employee_id, date, type, hours, created_at) VALUES (?, ?, ?, ?, ?)`,
+              `INSERT INTO pto_entries (employee_id, date, type, hours, approved_by, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
               [
                 entry.employee_id,
                 entry.date,
                 entry.type,
                 entry.hours,
+                entry.approved_by ?? null,
                 new Date().toISOString(),
               ],
             );
