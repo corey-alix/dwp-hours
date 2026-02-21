@@ -52,6 +52,7 @@ This document outlines all remaining tasks to complete the DWP Hours Tracker app
 27. LATER: See ./TASKS/pto-summary-balance-slot.md for details — slot a month-summary into pto-summary-card showing remaining PTO balances
 28. LATER: See ./TASKS/ui-page-consolidation.md for details — consolidate dashboard pages (remove Schedule PTO & Employee Info pages, relocate components, re-wire navigate-to-month)
 29. LATER: See ./TASKS/pto-entry-form-multi-calendar.md for details — render all 12 months in pto-entry-form on large viewports (≥960px)
+30. LATER: See ./TASKS/ui-router-migration.md for details — decouple UIManager from concrete pages via a type-safe client-side router
 
 ## Task Dependencies
 
