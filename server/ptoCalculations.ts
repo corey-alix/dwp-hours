@@ -93,9 +93,8 @@ export function calculatePTOStatus(
   const currentDateComponents = parseDate(currentDate);
   const currentYear = currentDateComponents.year;
 
-  // Calculate used hours by type
-  const usedPTO = calculateUsedPTO(ptoEntries, "PTO");
-  const usedPTOCurrentYear = calculateUsedPTO(ptoEntries, "PTO", currentYear);
+  // Calculate used hours by type (all filtered to current year)
+  const usedPTO = calculateUsedPTO(ptoEntries, "PTO", currentYear);
   const usedSick = calculateUsedPTO(ptoEntries, "Sick", currentYear);
   const usedBereavement = calculateUsedPTO(
     ptoEntries,
@@ -156,8 +155,8 @@ export function calculatePTOStatus(
     },
     ptoTime: {
       allowed: startingPTOBalance,
-      used: usedPTOCurrentYear,
-      remaining: Math.max(0, startingPTOBalance - usedPTOCurrentYear),
+      used: usedPTO,
+      remaining: Math.max(0, startingPTOBalance - usedPTO),
     },
     bereavementTime: {
       allowed: 40,

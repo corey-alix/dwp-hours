@@ -164,9 +164,10 @@ export class PtoEntryForm extends BaseComponent {
 
         cal.selectedPtoType = this._activePtoType;
 
-        // Filter existing entries for this month
+        // Filter existing entries for this month and year
         const monthEntries = existingEntries.filter(
-          (e) => parseDate(e.date).month === m,
+          (e) =>
+            parseDate(e.date).month === m && parseDate(e.date).year === year,
         );
         cal.ptoEntries = monthEntries;
 
@@ -222,9 +223,10 @@ export class PtoEntryForm extends BaseComponent {
       summary.setAttribute("interactive", "");
       summary.setAttribute("active-type", this._activePtoType);
 
-      // Populate summary with existing scheduled hours for this month
+      // Populate summary with existing scheduled hours for this month and year
       const monthEntries = existingEntries.filter(
-        (e) => parseDate(e.date).month === month,
+        (e) =>
+          parseDate(e.date).month === month && parseDate(e.date).year === year,
       );
       this.updateSummaryHours(summary, monthEntries);
 
@@ -274,8 +276,10 @@ export class PtoEntryForm extends BaseComponent {
     ) as MonthSummary | null;
     if (!summary) return;
     const month = calendar.month;
+    const yearVal = calendar.year;
     const monthEntries = calendar.ptoEntries.filter(
-      (e) => parseDate(e.date).month === month,
+      (e) =>
+        parseDate(e.date).month === month && parseDate(e.date).year === yearVal,
     );
     this.updateSummaryHours(summary, monthEntries);
   }
@@ -773,8 +777,11 @@ export class PtoEntryForm extends BaseComponent {
       // Distribute entries to their respective month calendars
       for (const cal of this.getAllCalendars()) {
         const month = cal.month;
+        const calYear = cal.year;
         const monthEntries = ptoEntries.filter(
-          (e) => parseDate(e.date).month === month,
+          (e) =>
+            parseDate(e.date).month === month &&
+            parseDate(e.date).year === calYear,
         );
         cal.ptoEntries = monthEntries;
 

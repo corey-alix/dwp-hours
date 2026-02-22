@@ -19,6 +19,7 @@ This document outlines all remaining tasks to complete the DWP Hours Tracker app
 9. **[admin-panel.md](admin-panel.md)** - Defect: Edit button does not open employee form (missing `employee-edit` event listener)
 10. ✅ **[issue-prior-year-summary-color-regression.md](issue-prior-year-summary-color-regression.md)** - Fix summary value color inconsistency between scheduler and prior year review
 11. LATER: See ./TASKS/secure-magic-link-tokens.md for details
+12. See ./TASKS/issue-prior-year-pto-leaking.md for details — prior year PTO data leaking into current year summary calculations
 
 ### 🟡 Medium Priority (Backend/API Core Features)
 
