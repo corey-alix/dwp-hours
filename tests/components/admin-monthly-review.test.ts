@@ -342,6 +342,7 @@ describe("AdminMonthlyReview Component", () => {
           employee_id: e.employee_id,
           type: e.type,
           hours: e.hours,
+          date: e.date,
         })),
       );
       component.setEmployeeData(testData);

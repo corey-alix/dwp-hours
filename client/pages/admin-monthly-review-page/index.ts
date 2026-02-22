@@ -68,11 +68,12 @@ export class AdminMonthlyReviewPage
             if (!adminComp)
               throw new Error("admin-monthly-review element not found");
 
-            // Normalize PTO entries shape expected by businessRules (employee_id, type, hours)
+            // Normalize PTO entries shape expected by businessRules (employee_id, type, hours, date)
             const normalized = (ptoEntries || []).map((p: any) => ({
               employee_id: p.employeeId,
               type: p.type,
               hours: p.hours,
+              date: p.date,
             }));
             adminComp.setPtoEntries(normalized);
 
@@ -139,6 +140,7 @@ export class AdminMonthlyReviewPage
           employee_id: p.employeeId,
           type: p.type,
           hours: p.hours,
+          date: p.date,
         }));
         adminComp.setPtoEntries(normalized);
         adminComp.setEmployeeData(employeeData);

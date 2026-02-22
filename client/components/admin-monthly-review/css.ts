@@ -2,7 +2,6 @@ export const styles = `
 <style>
   :host {
     display: block;
-    padding: 20px;
   }
 
   .header {

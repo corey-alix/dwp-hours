@@ -33,6 +33,7 @@ export class AdminMonthlyReview extends BaseComponent {
     employee_id: number;
     type: PTOType;
     hours: number;
+    date: string;
   }> = [];
 
   static get observedAttributes() {
@@ -113,7 +114,12 @@ export class AdminMonthlyReview extends BaseComponent {
   // Method for parent to inject PTO entries data
   // Used for balance calculations in test scenarios
   setPtoEntries(
-    data: Array<{ employee_id: number; type: PTOType; hours: number }>,
+    data: Array<{
+      employee_id: number;
+      type: PTOType;
+      hours: number;
+      date: string;
+    }>,
   ): void {
     this._ptoEntries = data;
     this.requestUpdate();
@@ -182,11 +188,17 @@ export class AdminMonthlyReview extends BaseComponent {
       throw new Error(`Employee not found: ${employeeId}`);
     }
 
-    // Use injected PTO entries for balance calculations
+    // Filter PTO entries to the selected month's year to avoid
+    // prior-year data leaking into balance calculations
+    const selectedYear = this._selectedMonth.slice(0, 4);
+    const yearEntries = this._ptoEntries.filter((e) =>
+      e.date.startsWith(selectedYear),
+    );
+
     return computeEmployeeBalanceData(
       employeeId,
       employee.employeeName,
-      this._ptoEntries,
+      yearEntries,
     );
   }
 
