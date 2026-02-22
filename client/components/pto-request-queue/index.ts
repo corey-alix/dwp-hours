@@ -56,7 +56,6 @@ export class PtoRequestQueue extends BaseComponent {
                   .join("")
           }
         </div>
-        <slot name="balance-summary"></slot>
       </div>
     `;
   }
@@ -68,6 +67,7 @@ export class PtoRequestQueue extends BaseComponent {
 
     return `
       <div class="request-card" data-request-id="${request.id}">
+        <slot name="balance-${request.id}"></slot>
         <div class="request-header">
           <div class="employee-info">
             <h3 class="employee-name">${request.employeeName}</h3>

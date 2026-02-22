@@ -12,6 +12,7 @@ export const styles = `<style>
 
   .queue-header {
     display: flex;
+    justify-content: space-between;
     gap: var(--space-header);
     align-items: center;
     padding: var(--space-lg);
@@ -56,7 +57,6 @@ export const styles = `<style>
     display: flex;
     flex-wrap: wrap;
     overflow-y: auto;
-    padding: var(--space-lg);
   }
 
   .request-card {
