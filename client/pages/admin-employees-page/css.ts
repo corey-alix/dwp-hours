@@ -13,6 +13,11 @@ export const styles = `<style>
     margin-bottom: var(--space-md, 16px);
   }
 
+  month-summary {
+    margin-bottom: 1em;
+    justify-content: space-between;
+  }
+
   .add-btn {
     background: var(--color-primary, #007bff);
     color: white;

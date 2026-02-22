@@ -96,18 +96,16 @@ export class EmployeeList extends BaseComponent {
   private renderEmployeeCard(employee: Employee): string {
     return `
             <div class="employee-card" data-employee-id="${employee.id}">
-                <div class="employee-header">
-                    <div>
-                        <slot name="balance-${employee.id}">
-                          <pto-balance-summary data-employee-id="${employee.id}"></pto-balance-summary>
-                        </slot>
-                        <h3 class="employee-name">${employee.name}</h3>
-                        <p class="employee-identifier">${employee.identifier}</p>
+                <slot name="balance-${employee.id}"></slot>
+                <div class="employee-details">                
+                    <div class="detail-item">
+                        <span class="detail-label">Name</span>
+                        <p class="detail-value employee-identifier">${employee.name}</p>
                     </div>
-                    <span class="employee-role">${employee.role}</span>
-                </div>
-
-                <div class="employee-details">
+                    <div class="detail-item">
+                        <span class="detail-label">Email</span>
+                        <p class="detail-value employee-identifier">${employee.identifier}</p>
+                    </div>
                     <div class="detail-item">
                         <span class="detail-label">PTO Rate</span>
                         <span class="detail-value">${employee.ptoRate} hrs/day</span>

@@ -2,7 +2,7 @@ export const styles = `
 :host {
     display: flex;
     justify-content: space-around;
-    padding: var(--space-sm);
+    gap: var(--space-sm);
     background: var(--color-background);
     font-size: var(--font-size-sm);
     color: var(--color-text-secondary);

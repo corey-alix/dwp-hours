@@ -6,7 +6,7 @@ export const styles = `<style>
 
   #form-balance-summary {
     position: sticky;
-    top: 5.5em;
+    top: 64px;
     z-index: 1;
   }
 

@@ -3,6 +3,11 @@ import type { PageComponent } from "../../router/types.js";
 import { APIClient } from "../../APIClient.js";
 import { notifications } from "../../app.js";
 import { today } from "../../../shared/dateUtils.js";
+import {
+  BUSINESS_RULES_CONSTANTS,
+  type PTOType,
+} from "../../../shared/businessRules.js";
+import type { MonthSummary } from "../../components/month-summary/index.js";
 import { styles } from "./css.js";
 
 /**
@@ -13,6 +18,12 @@ import { styles } from "./css.js";
 export class AdminEmployeesPage extends BaseComponent implements PageComponent {
   private api = new APIClient();
   private _employees: any[] = [];
+  private _ptoEntries: Array<{
+    employee_id: number;
+    type: PTOType;
+    hours: number;
+    date: string;
+  }> = [];
   private _showForm = false;
   private _editEmployee: any = null;
 
@@ -24,10 +35,32 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
     this._employees = (loaderData as any)?.employees ?? [];
     this._showForm = false;
     this._editEmployee = null;
+
+    // Fetch PTO entries for balance calculations
+    try {
+      const ptoEntries = await this.api.getAdminPTOEntries();
+      const currentYear = today().slice(0, 4);
+      this._ptoEntries = (ptoEntries || [])
+        .filter((p: any) => p.date?.startsWith(currentYear))
+        .map((p: any) => ({
+          employee_id: p.employeeId,
+          type: p.type,
+          hours: p.hours,
+          date: p.date,
+        }));
+    } catch (error) {
+      console.error(
+        "Failed to fetch PTO entries for balance summaries:",
+        error,
+      );
+      this._ptoEntries = [];
+    }
+
     this.requestUpdate();
 
     await new Promise((r) => setTimeout(r, 0));
     this.populateList();
+    this.hydrateBalanceSummaries();
   }
 
   protected render(): string {
@@ -44,7 +77,7 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
           .map(
             (emp) =>
               `
-            <pto-balance-summary slot="balance-${emp.id}" data-employee-id="${emp.id}"></pto-balance-summary>
+            <month-summary slot="balance-${emp.id}" data-employee-id="${emp.id}"></month-summary>
             ${
               this._editEmployee && this._editEmployee.id === emp.id
                 ? `<employee-form slot="editor-${emp.id}" is-edit="true"></employee-form>`
@@ -66,6 +99,46 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
         ? this._editEmployee.id
         : null;
     }
+  }
+
+  /**
+   * Set balance data on each <month-summary> element rendered in light DOM.
+   * Computes used hours per PTO category from fetched PTO entries, then sets
+   * hours attributes (used) and `balances` property (annual limits) so
+   * month-summary displays "available−used".
+   */
+  private hydrateBalanceSummaries(): void {
+    if (this._ptoEntries.length === 0 && this._employees.length === 0) return;
+
+    const summaries = this.shadowRoot.querySelectorAll(
+      "month-summary",
+    ) as NodeListOf<MonthSummary>;
+
+    const limits: Record<string, number> = {
+      PTO: 80,
+      Sick: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.SICK,
+      Bereavement: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.OTHER,
+      "Jury Duty": BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.OTHER,
+    };
+
+    summaries.forEach((el) => {
+      const empIdAttr = el.getAttribute("data-employee-id");
+      if (!empIdAttr) return;
+      const empId = parseInt(empIdAttr, 10);
+
+      el.ptoHours = this.getUsedHours(empId, "PTO");
+      el.sickHours = this.getUsedHours(empId, "Sick");
+      el.bereavementHours = this.getUsedHours(empId, "Bereavement");
+      el.juryDutyHours = this.getUsedHours(empId, "Jury Duty");
+      el.balances = limits;
+    });
+  }
+
+  /** Get used hours for an employee in a specific PTO category. */
+  private getUsedHours(employeeId: number, category: string): number {
+    return this._ptoEntries
+      .filter((e) => e.employee_id === employeeId && e.type === category)
+      .reduce((sum, e) => sum + e.hours, 0);
   }
 
   private _customEventsSetup = false;
@@ -94,7 +167,10 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
       this._showForm = false;
       this._editEmployee = null;
       this.requestUpdate();
-      requestAnimationFrame(() => this.populateList());
+      requestAnimationFrame(() => {
+        this.populateList();
+        this.hydrateBalanceSummaries();
+      });
     }) as EventListener);
   }
 
@@ -118,6 +194,7 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
         inlineForm.employee = employee;
       }
       this.populateList();
+      this.hydrateBalanceSummaries();
     });
   }
 
@@ -200,11 +277,27 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
   }
 
   private async refreshEmployees(): Promise<void> {
-    const employees = await this.api.getEmployees();
+    const [employees, ptoEntries] = await Promise.all([
+      this.api.getEmployees(),
+      this.api.getAdminPTOEntries().catch((err) => {
+        console.error("Failed to refresh PTO entries:", err);
+        return [] as any[];
+      }),
+    ]);
     this._employees = employees;
+    const currentYear = today().slice(0, 4);
+    this._ptoEntries = (ptoEntries || [])
+      .filter((p: any) => p.date?.startsWith(currentYear))
+      .map((p: any) => ({
+        employee_id: p.employeeId,
+        type: p.type,
+        hours: p.hours,
+        date: p.date,
+      }));
     this.requestUpdate();
     await new Promise((r) => setTimeout(r, 0));
     this.populateList();
+    this.hydrateBalanceSummaries();
   }
 
   protected handleDelegatedClick(e: Event): void {
@@ -213,7 +306,10 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
       this._showForm = !this._showForm;
       this._editEmployee = null;
       this.requestUpdate();
-      requestAnimationFrame(() => this.populateList());
+      requestAnimationFrame(() => {
+        this.populateList();
+        this.hydrateBalanceSummaries();
+      });
     }
   }
 }

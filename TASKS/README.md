@@ -59,6 +59,7 @@ This document outlines all remaining tasks to complete the DWP Hours Tracker app
 33. DONE: See ./TASKS/admin-review-month-summary-integration.md for details — replace bespoke hours breakdown in admin-monthly-review with reusable month-summary component showing available−scheduled balances
 34. LATER: See ./TASKS/consolidate-pto-cards.md for details — replace four PTO card components with month-summary balances + unified detail card
 35. LATER: See ./TASKS/employee-name-info-card.md for details — display employee name as first row in pto-employee-info-card on current year summary page
+36. See ./TASKS/admin-employees-balance-hydration.md for details — hydrate pto-balance-summary cards with actual employee balance data on admin employees page
 
 ## Task Dependencies
 
