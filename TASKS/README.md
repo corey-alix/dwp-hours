@@ -7,20 +7,22 @@
 
 ## SOME WORK REMAINS
 
-- admin-employees-balance-hydration.md: Add PTO balance badges to employee cards, update E2E tests
-- admin-panel-test-data-integration.md: Implement event listener cleanup in components
-- approval-indicators-fix.md: Document design patterns and component architecture
-- authentication-middleware.md: Implement authentication for all protected endpoints, update client-side API calls
-- color-contrast-compliance.md: Verify contrast ratios, test in both themes, update tokens if needed
-- database-reset-reload-service.md: Ensure seed script idempotent, introduce DatabaseService
-- deployment-automation.md: Phase 2: Build Configuration, Phase 3: Environment Management
-- issue-pto-card-base-migration.md: Create shared utilities, migrate components
-- pto-calculations.md: Implement annual PTO allocation tracking, remove daily rate, add date range filtering, implement PTO projection
-- pto-calendar-flashing-fix.md: Change class declaration, convert to declarative rendering, migrate event handling
-- pto-cards-detailed-listings.md: Phase 1: Design component enhancement
-- security-production.md: Future security features (encryption, backup, audit logging, GDPR)
-- testing-suite.md: Configure automated test running, reporting, coverage thresholds, pre-commit hooks
-- user-data-migration-corey-alix.md: Phase 4: Validation and Documentation
+| TASK                                 | EFFORT | DESCRIPTION                                                                                                     |
+| ------------------------------------ | ------ | --------------------------------------------------------------------------------------------------------------- |
+| admin-employees-balance-hydration.md | 2      | Add PTO balance badges to employee cards, update E2E tests                                                      |
+| admin-panel-test-data-integration.md | 4      | Implement event listener cleanup in components                                                                  |
+| approval-indicators-fix.md           | 5      | Document design patterns and component architecture                                                             |
+| authentication-middleware.md         | 2      | Implement authentication for all protected endpoints, update client-side API calls                              |
+| color-contrast-compliance.md         | 3      | Verify contrast ratios, test in both themes, update tokens if needed                                            |
+| database-reset-reload-service.md     | 4      | Ensure seed script idempotent, introduce DatabaseService                                                        |
+| deployment-automation.md             | 5      | Phase 2: Build Configuration, Phase 3: Environment Management                                                   |
+| issue-pto-card-base-migration.md     | 4      | Create shared utilities, migrate components                                                                     |
+| pto-calculations.md                  | 4      | Implement annual PTO allocation tracking, remove daily rate, add date range filtering, implement PTO projection |
+| pto-calendar-flashing-fix.md         | 4      | Change class declaration, convert to declarative rendering, migrate event handling                              |
+| pto-cards-detailed-listings.md       | 2      | Phase 1: Design component enhancement                                                                           |
+| security-production.md               | 1      | Future security features (encryption, backup, audit logging, GDPR)                                              |
+| testing-suite.md                     | 3      | Configure automated test running, reporting, coverage thresholds, pre-commit hooks                              |
+| user-data-migration-corey-alix.md    | 2      | Phase 4: Validation and Documentation                                                                           |
 
 ## TESTS MISSING
 
