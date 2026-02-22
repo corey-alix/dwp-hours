@@ -4,6 +4,12 @@ export const styles = `<style>
     padding: var(--space-md, 16px);
   }
 
+  #form-balance-summary {
+    position: sticky;
+    top: 5.5em;
+    z-index: 1;
+  }
+
   .form-actions {
     display: flex;
     gap: var(--space-sm, 8px);

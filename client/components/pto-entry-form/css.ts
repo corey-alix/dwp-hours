@@ -62,13 +62,6 @@ export const styles = `
                     cursor: not-allowed;
                 }
 
-                /* Hide navigation header on touch devices */
-                @media (hover: none) and (pointer: coarse) {
-                    .calendar-header-nav {
-                        display: none;
-                    }
-                }
-
                 .required {
                     color: var(--color-error);
                 }

@@ -28,6 +28,9 @@ interface PtoRequest {
 /** Breakpoint at which all 12 months are shown in a grid */
 const MULTI_CALENDAR_BREAKPOINT = 960;
 
+/** localStorage key for persisting the selected month in single-calendar mode */
+const SELECTED_MONTH_STORAGE_KEY = "dwp-pto-form-selected-month";
+
 export class PtoEntryForm extends BaseComponent {
   /** MediaQueryList used to detect multi-calendar mode */
   private multiCalendarMql: MediaQueryList | null = null;
@@ -199,8 +202,7 @@ export class PtoEntryForm extends BaseComponent {
       cal.setAttribute("hide-header", "true");
       cal.setAttribute("hide-legend", "true");
 
-      const currentDate = today();
-      const { month } = parseDate(currentDate);
+      const month = this.getPersistedMonth();
       cal.setAttribute("month", month.toString());
       cal.setAttribute("year", year.toString());
       cal.setAttribute("selected-month", month.toString());
@@ -612,6 +614,7 @@ export class PtoEntryForm extends BaseComponent {
     calendar.setAttribute("month", newMonth.toString());
     calendar.setAttribute("year", newYear.toString());
     calendar.setAttribute("selected-month", newMonth.toString());
+    this.persistSelectedMonth(newMonth);
     this.updateMonthLabel(newMonth, newYear);
     this.updateSingleCalendarSummaryHours(calendar);
   }
@@ -820,8 +823,53 @@ export class PtoEntryForm extends BaseComponent {
         calendar.setAttribute("month", month.toString());
         calendar.setAttribute("year", year.toString());
         calendar.setAttribute("selected-month", month.toString());
+        this.persistSelectedMonth(month);
         this.updateMonthLabel(month, year);
       }
+    }
+  }
+
+  // ── Month persistence ──
+
+  /**
+   * Persist the selected month to localStorage so it survives
+   * submissions and page reloads in single-calendar mode.
+   */
+  private persistSelectedMonth(month: number): void {
+    try {
+      localStorage.setItem(SELECTED_MONTH_STORAGE_KEY, month.toString());
+    } catch {
+      // Storage unavailable — silent fallback
+    }
+  }
+
+  /**
+   * Retrieve the persisted month from localStorage, falling back
+   * to the current month if nothing is stored or storage is unavailable.
+   */
+  private getPersistedMonth(): number {
+    try {
+      const stored = localStorage.getItem(SELECTED_MONTH_STORAGE_KEY);
+      if (stored) {
+        const month = parseInt(stored, 10);
+        if (month >= 1 && month <= 12) return month;
+      }
+    } catch {
+      // Storage unavailable — fall through
+    }
+    const currentDate = today();
+    return parseDate(currentDate).month;
+  }
+
+  /**
+   * Clear the persisted month. Call when switching employees or
+   * when the stored value is no longer valid.
+   */
+  clearPersistedMonth(): void {
+    try {
+      localStorage.removeItem(SELECTED_MONTH_STORAGE_KEY);
+    } catch {
+      // Storage unavailable — silent fallback
     }
   }
 }

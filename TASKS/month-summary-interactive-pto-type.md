@@ -70,6 +70,17 @@ When the employee already has committed PTO entries for a month, each per-calend
 - [x] `pnpm run lint` passes
 - [ ] Manual test: existing scheduled PTO hours appear on the per-calendar month-summary in both view modes
 
+### Stage 3.6 — Persist selected month in single-calendar mode
+
+In single-calendar mode, submitting PTO resets the calendar to the current month. The user's selected month should be preserved across submissions and page reloads via `localStorage`.
+
+- [x] Persist the selected month (e.g., `YYYY-MM`) to `localStorage` when the user navigates months in single-calendar mode
+- [x] On initial render / after submission in single-calendar mode, restore the last-viewed month from `localStorage` instead of defaulting to the current month
+- [x] Clear or update the stored month when switching employees or when context invalidates the stored value
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+- [ ] Manual test: submit PTO on a non-current month in single-calendar mode, verify the calendar stays on that month after submission
+
 ### Stage 4 — Unit tests
 
 - [ ] Add Vitest tests for `<month-summary>` interactive behavior:
@@ -125,3 +136,8 @@ When the employee already has committed PTO entries for a month, each per-calend
 5. **Resolved**: Single-calendar mode did not update month-summary on selection changes — fixed by adding `handleSingleCalendarSelectionChanged` handler.
 6. **Resolved**: Pending selected cells were lost when switching between single/multi-calendar view modes — fixed by collecting and restoring `selectedCells` across `rebuildCalendars()`, with a new `selectedCells` setter on `<pto-calendar>`.
 7. **Resolved**: Per-calendar `<month-summary>` now displays existing committed PTO hours for the month. Added `updateSummaryHours()` helper that computes per-type totals and sets hour attributes. Wired into `setPtoData()`, `rebuildCalendars()`, and `updateCalendarMonth()` (single-calendar navigation). See Stage 3.5.
+8. **Resolved**: In single-calendar mode, submitting PTO while viewing a month other than the current month caused the calendar to reset to the current month. Fixed by persisting the selected month to `localStorage` (key: `dwp-pto-form-selected-month`) in `updateCalendarMonth()` and `navigateToMonth()`, and restoring it in `rebuildCalendars()` via `getPersistedMonth()`. A public `clearPersistedMonth()` method is available for external callers (e.g., employee switching). See Stage 3.6.
+9. **Open**: The `#form-balance-summary` `<month-summary>` in `<submit-time-off-page>` was originally positioned outside the scrollable calendar area so it could stay **sticky at the top** of the page while the user scrolls through lower months in multi-calendar mode. The interactive PTO type work kept its DOM position (sibling above `<pto-entry-form>`) but no `position: sticky` styling was applied, so on tall multi-calendar layouts the summary scrolls away. Possible solutions:
+   - **A) CSS `position: sticky`**: Add `position: sticky; top: 0; z-index: 10;` to `#form-balance-summary` in the `<submit-time-off-page>` css.ts. Simplest fix; works as long as no ancestor creates an overflow clipping context. May need a solid background to avoid content showing through behind it.
+   - **B) Fixed header slot**: Move the balance summary into a non-scrollable header area and make only the `<pto-entry-form>` scrollable (e.g., `overflow-y: auto` with a `max-height` or `flex: 1; overflow: auto` in a flex column layout on `:host`). Guarantees the summary never scrolls, but constrains the page layout more tightly.
+   - **C) Duplicate inside `<pto-entry-form>`**: Keep the page-level summary hidden / remove it and let the per-calendar `<month-summary>` instances (already present) serve double duty. The trade-off is that the overall balance view is lost — the user only sees per-month summaries, not the aggregate.
