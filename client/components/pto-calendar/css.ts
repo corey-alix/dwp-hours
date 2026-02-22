@@ -38,8 +38,8 @@ export const styles = `
 }
 
 .calendar-header {
-    font-weight: 600;
-    margin-bottom: 8px;
+    text-align: center;
+    text-transform: uppercase;
 }
 
 .calendar-grid {
@@ -91,8 +91,7 @@ export const styles = `
 }
 
 .day.selected {
-    border: 2px solid var(--color-primary);
-    box-shadow: 0 0 0 2px rgb(59 130 246 / 25%);
+    outline: 2px solid var(--color-primary);
 }
 
 .day .date {
