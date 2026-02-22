@@ -58,6 +58,7 @@ This document outlines all remaining tasks to complete the DWP Hours Tracker app
 32. LATER: See ./TASKS/month-summary-interactive-pto-type.md for details — interactive PTO type selection via month-summary headers (replaces calendar legend in multi-calendar mode)
 33. DONE: See ./TASKS/admin-review-month-summary-integration.md for details — replace bespoke hours breakdown in admin-monthly-review with reusable month-summary component showing available−scheduled balances
 34. LATER: See ./TASKS/consolidate-pto-cards.md for details — replace four PTO card components with month-summary balances + unified detail card
+35. LATER: See ./TASKS/employee-name-info-card.md for details — display employee name as first row in pto-employee-info-card on current year summary page
 
 ## Task Dependencies
 

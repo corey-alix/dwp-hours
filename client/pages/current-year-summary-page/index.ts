@@ -49,10 +49,9 @@ export class CurrentYearSummaryPage
   protected render(): string {
     return `
       ${styles}
+      <month-summary></month-summary>
       <div class="pto-summary">
         <pto-employee-info-card></pto-employee-info-card>
-        <pto-summary-card></pto-summary-card>
-        <month-summary></month-summary>
         <pto-pto-card></pto-pto-card>
       </div>
     `;
@@ -80,7 +79,12 @@ export class CurrentYearSummaryPage
       "pto-employee-info-card",
     );
     if (infoCard) {
+      const storedUser = localStorage.getItem("currentUser");
+      const employeeName = storedUser
+        ? (JSON.parse(storedUser) as { name?: string }).name
+        : undefined;
       infoCard.info = {
+        employeeName,
         hireDate: formatDateForDisplay(status.hireDate),
         nextRolloverDate: formatDateForDisplay(status.nextRolloverDate, {
           year: "numeric",
@@ -120,6 +124,7 @@ export class CurrentYearSummaryPage
       ptoCard.fullPtoEntries = (Array.isArray(entries) ? entries : []).filter(
         (e) => parseDate(e.date).year === year,
       );
+      ptoCard.isExpanded = true;
     }
   }
 

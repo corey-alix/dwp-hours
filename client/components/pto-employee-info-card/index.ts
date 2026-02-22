@@ -2,7 +2,22 @@ import { BaseComponent } from "../base-component.js";
 import { CARD_CSS } from "../utils/pto-card-css.js";
 import { renderCardShell, renderRow } from "../utils/pto-card-helpers.js";
 
+const EMPLOYEE_INFO_CSS = `
+  .employee-name-value {
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-lg);
+    color: var(--color-text);
+  }
+
+  .employee-name-missing {
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-lg);
+    color: var(--color-error);
+  }
+`;
+
 type EmployeeInfoData = {
+  employeeName?: string;
   hireDate: string;
   nextRolloverDate: string;
   carryoverHours?: number;
@@ -32,13 +47,19 @@ export class PtoEmployeeInfoCard extends BaseComponent {
 
   protected render(): string {
     if (!this.data) {
-      return `<style>${CARD_CSS}</style>${renderCardShell("Employee Information", "<div>Loading...</div>")}`;
+      return `<style>${CARD_CSS}${EMPLOYEE_INFO_CSS}</style>${renderCardShell("Employee Information", "<div>Loading...</div>")}`;
     }
+
+    const nameValue = this.data.employeeName
+      ? `<span class="employee-name-value">${this.data.employeeName}</span>`
+      : `<span class="employee-name-missing">&lt;MISSING&gt;</span>`;
+
     return `
-      <style>${CARD_CSS}</style>
+      <style>${CARD_CSS}${EMPLOYEE_INFO_CSS}</style>
       ${renderCardShell(
         "Employee Information",
         `
+        ${renderRow("Employee", nameValue)}
         ${renderRow("Hire Date", this.data.hireDate)}
         ${renderRow("Next Rollover", this.data.nextRolloverDate)}
         ${this.data.carryoverHours !== undefined ? renderRow("Carryover", `${this.data.carryoverHours.toFixed(1)} hours`) : ""}

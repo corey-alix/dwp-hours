@@ -1,8 +1,6 @@
 ---
 description: Generate a new specification document for adding a feature to the DWP Hours Tracker project, following the project's task management system.
 name: feature
-agent: agent
-tools: [read, edit, edit/createFile]
 ---
 
 # Feature Task Generator
