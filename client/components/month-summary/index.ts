@@ -135,6 +135,19 @@ export class MonthSummary extends BaseComponent {
     this.requestUpdate();
   }
 
+  // ── Complex property: balances (available hours per PTO type) ──
+
+  private _balances: Record<string, number> = {};
+
+  get balances(): Record<string, number> {
+    return this._balances;
+  }
+
+  set balances(value: Record<string, number>) {
+    this._balances = value;
+    this.requestUpdate();
+  }
+
   // ── Click handling ──
 
   protected handleDelegatedClick(e: Event): void {
@@ -166,8 +179,17 @@ export class MonthSummary extends BaseComponent {
   private renderItem(config: (typeof SUMMARY_TYPES)[number]): string {
     const hours = this.getHoursForAttr(config.attr);
     const delta = this._deltas[config.deltaKey] || 0;
-    const hasValue = hours > 0 || delta !== 0;
+    const balance = this._balances[config.deltaKey];
+    const hasBalance = balance !== undefined;
+    const hasValue = hours > 0 || delta !== 0 || hasBalance;
     const valueClass = hasValue ? config.cssClass : "";
+
+    // Balance mode: override type color with remaining-status color
+    let balanceClass = "";
+    if (hasBalance) {
+      const remaining = balance - hours;
+      balanceClass = remaining >= 0 ? "balance-positive" : "balance-negative";
+    }
 
     const isInteractive = this.interactive;
     const isActive = this.activeType === config.deltaKey;
@@ -188,10 +210,13 @@ export class MonthSummary extends BaseComponent {
         ? `<span class="summary-pending">${delta > 0 ? "+" : ""}${delta}</span>`
         : "";
 
+    // Display: "available-scheduled" when balances set, otherwise just scheduled hours
+    const displayValue = hasBalance ? `${balance}-${hours}` : `${hours}`;
+
     return `
       <div class="${itemClasses}" data-type="${config.deltaKey}"${ariaAttrs}>
         <span class="summary-label">${config.label}</span>
-        <span class="summary-value ${valueClass}" data-summary-type="${config.attr.replace("-hours", "")}">${hours}${deltaHtml}</span>
+        <span class="summary-value ${valueClass} ${balanceClass}" data-summary-type="${config.attr.replace("-hours", "")}">${displayValue}${deltaHtml}</span>
       </div>
     `;
   }

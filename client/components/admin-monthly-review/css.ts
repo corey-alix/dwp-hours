@@ -84,30 +84,6 @@ export const styles = `
     background: var(--color-warning, #f59e0b);
   }
 
-  .hours-breakdown {
-    margin-bottom: 16px;
-  }
-
-  .hours-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--color-border-light, #e5e7eb);
-  }
-
-  .hours-row:last-child {
-    border-bottom: none;
-  }
-
-  .hours-label {
-    color: var(--color-text-secondary);
-  }
-
-  .hours-value {
-    font-weight: 500;
-    color: var(--color-text);
-  }
-
   .acknowledge-btn {
     width: 100%;
     padding: 10px 16px;
@@ -131,11 +107,7 @@ export const styles = `
   }
 
   .acknowledged-info {
-    background: var(--color-success-light, #d1fae5);
-    border: 1px solid var(--color-success, #10b981);
-    border-radius: 6px;
-    padding: 12px;
-    margin-top: 12px;
+    text-align: center;
   }
 
   .acknowledged-info p {
@@ -144,43 +116,5 @@ export const styles = `
     color: var(--color-success-dark, #065f46);
   }
 
-  .balance-row {
-    display: flex;
-    gap: var(--space-sm, 8px);
-    flex-wrap: wrap;
-    margin-bottom: 12px;
-  }
-
-  .balance-badge {
-    display: inline-flex;
-    gap: var(--space-xs, 4px);
-    align-items: center;
-    padding: var(--space-xs, 4px) var(--space-sm, 8px);
-    border-radius: var(--border-radius, 4px);
-    font-size: var(--font-size-xs, 0.75rem);
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-  }
-
-  .badge-label {
-    font-weight: 500;
-  }
-
-  .badge-value {
-    font-weight: 600;
-  }
-
-  .balance-available .badge-value {
-    color: var(--color-success, #10b981);
-  }
-
-  .balance-exceeded .badge-value {
-    color: var(--color-error, #ef4444);
-  }
-
-  .balance-empty {
-    font-size: var(--font-size-xs, 0.75rem);
-    color: var(--color-text-secondary);
-  }
 </style>
 `;

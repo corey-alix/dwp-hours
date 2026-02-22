@@ -31,6 +31,29 @@ export function playground(): void {
   });
   document.body.insertBefore(toggleBtn, component);
 
+  // Add balance display toggle button
+  const balanceBtn = document.createElement("button");
+  balanceBtn.textContent = "Toggle Balances";
+  balanceBtn.style.margin = "8px";
+  let showBalances = false;
+  balanceBtn.addEventListener("click", () => {
+    showBalances = !showBalances;
+    if (showBalances) {
+      component.balances = {
+        PTO: 64,
+        Sick: 24,
+        Bereavement: 40,
+        "Jury Duty": 40,
+      };
+      testOutput.textContent =
+        "Balances applied: PTO 64, Sick 24, Bereavement 40, Jury Duty 40 (shows available-scheduled)";
+    } else {
+      component.balances = {};
+      testOutput.textContent = "Balances cleared";
+    }
+  });
+  document.body.insertBefore(balanceBtn, component);
+
   // Add zero values button
   const zeroBtn = document.createElement("button");
   zeroBtn.textContent = "Set All Zero";

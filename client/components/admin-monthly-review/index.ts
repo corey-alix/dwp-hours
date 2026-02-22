@@ -3,7 +3,6 @@ import { styles } from "./css.js";
 import type {
   AdminMonthlyReviewItem,
   PtoBalanceData,
-  PtoBalanceCategoryItem,
 } from "../../../shared/api-models.js";
 import {
   computeEmployeeBalanceData,
@@ -13,6 +12,9 @@ import {
   getCurrentMonth,
   formatDateForDisplay,
 } from "../../../shared/dateUtils.js";
+// Side-effect import: ensure <month-summary> custom element is registered
+import "../month-summary/index.js";
+import type { MonthSummary } from "../month-summary/index.js";
 
 // Admin Monthly Review Component Architecture:
 // This component implements the event-driven data flow pattern:
@@ -188,31 +190,51 @@ export class AdminMonthlyReview extends BaseComponent {
     );
   }
 
-  /** Render balance badges inline for the given employee. */
-  private renderBalanceSummary(employeeId: number): string {
-    if (this._ptoEntries.length === 0) {
-      return '<div class="balance-row"><span class="balance-empty">No balance data</span></div>';
+  /** Map PTO category name to the scheduled hours from AdminMonthlyReviewItem. */
+  private getScheduledHours(
+    employee: AdminMonthlyReviewItem,
+    category: string,
+  ): number {
+    switch (category) {
+      case "PTO":
+        return employee.ptoHours;
+      case "Sick":
+        return employee.sickHours;
+      case "Bereavement":
+        return employee.bereavementHours;
+      case "Jury Duty":
+        return employee.juryDutyHours;
+      default:
+        return 0;
     }
-    try {
-      const data = this.computeEmployeeBalanceData(employeeId);
-      if (data.categories.length === 0) {
-        return '<div class="balance-row"><span class="balance-empty">No categories</span></div>';
-      }
-      const badges = data.categories
-        .map((cat: PtoBalanceCategoryItem) => {
-          const statusClass =
-            cat.remaining >= 0 ? "balance-available" : "balance-exceeded";
-          return `
-            <span class="balance-badge ${statusClass}" aria-label="${cat.category}: ${cat.remaining} hours remaining">
-              <span class="badge-label">${cat.category}</span>
-              <span class="badge-value">${cat.remaining}h</span>
-            </span>`;
-        })
-        .join("");
-      return `<div class="balance-row" role="status" aria-label="PTO balance summary for ${data.employeeName}">${badges}</div>`;
-    } catch {
-      return '<div class="balance-row"><span class="balance-empty">Balance unavailable</span></div>';
-    }
+  }
+
+  /** After render, set complex `balances` property on each <month-summary>. */
+  protected override update(): void {
+    super.update();
+    if (this._ptoEntries.length === 0) return;
+    this.shadowRoot
+      .querySelectorAll<MonthSummary>("month-summary")
+      .forEach((ms) => {
+        const empId = parseInt(ms.dataset.employeeId || "0");
+        if (!empId) return;
+        try {
+          const balanceData = this.computeEmployeeBalanceData(empId);
+          const employee = this._employeeData.find(
+            (e) => e.employeeId === empId,
+          );
+          if (!employee || balanceData.categories.length === 0) return;
+          const balances: Record<string, number> = {};
+          for (const cat of balanceData.categories) {
+            // available = remaining + scheduled_this_month
+            balances[cat.category] =
+              cat.remaining + this.getScheduledHours(employee, cat.category);
+          }
+          ms.balances = balances;
+        } catch {
+          /* no balance data available */
+        }
+      });
   }
 
   private async handleAcknowledgeEmployee(employeeId: number): Promise<void> {
@@ -308,30 +330,13 @@ export class AdminMonthlyReview extends BaseComponent {
           </div>
         </div>
 
-        ${this.renderBalanceSummary(employee.employeeId)}
-
-        <div class="hours-breakdown">
-          <div class="hours-row">
-            <span class="hours-label">Total Hours</span>
-            <span class="hours-value">${employee.totalHours}</span>
-          </div>
-          <div class="hours-row">
-            <span class="hours-label">PTO Hours</span>
-            <span class="hours-value">${employee.ptoHours}</span>
-          </div>
-          <div class="hours-row">
-            <span class="hours-label">Sick Hours</span>
-            <span class="hours-value">${employee.sickHours}</span>
-          </div>
-          <div class="hours-row">
-            <span class="hours-label">Bereavement Hours</span>
-            <span class="hours-value">${employee.bereavementHours}</span>
-          </div>
-          <div class="hours-row">
-            <span class="hours-label">Jury Duty Hours</span>
-            <span class="hours-value">${employee.juryDutyHours}</span>
-          </div>
-        </div>
+        <month-summary
+          pto-hours="${employee.ptoHours}"
+          sick-hours="${employee.sickHours}"
+          bereavement-hours="${employee.bereavementHours}"
+          jury-duty-hours="${employee.juryDutyHours}"
+          data-employee-id="${employee.employeeId}"
+        ></month-summary>
 
         ${
           isAcknowledged

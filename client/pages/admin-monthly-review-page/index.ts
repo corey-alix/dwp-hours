@@ -125,6 +125,24 @@ export class AdminMonthlyReviewPage
       notifications.success(
         response.message || "Acknowledgment submitted successfully.",
       );
+
+      // Re-fetch data so the card re-renders with the acknowledged state
+      const adminComp = this.shadowRoot?.querySelector(
+        "admin-monthly-review",
+      ) as any;
+      if (adminComp) {
+        const [employeeData, ptoEntries] = await Promise.all([
+          this.api.getAdminMonthlyReview(month),
+          this.api.getAdminPTOEntries(),
+        ]);
+        const normalized = (ptoEntries || []).map((p: any) => ({
+          employee_id: p.employeeId,
+          type: p.type,
+          hours: p.hours,
+        }));
+        adminComp.setPtoEntries(normalized);
+        adminComp.setEmployeeData(employeeData);
+      }
     } catch (error: any) {
       console.error("Failed to submit admin acknowledgment:", error);
       notifications.error(

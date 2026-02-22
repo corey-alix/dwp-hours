@@ -80,6 +80,16 @@ export const styles = `
     font-weight: var(--font-weight-bold, 700);
 }
 
+/* Balance mode: override type color with remaining-status color */
+
+.summary-value.balance-positive {
+    color: var(--color-success);
+}
+
+.summary-value.balance-negative {
+    color: var(--color-warning);
+}
+
 @media (prefers-reduced-motion: reduce) {
 
     .summary-item.interactive {

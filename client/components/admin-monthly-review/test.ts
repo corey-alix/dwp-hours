@@ -8,8 +8,6 @@ import {
 } from "../../../shared/seedData.js";
 import { computeEmployeeBalanceData } from "../../../shared/businessRules.js";
 import type { AdminMonthlyReviewItem } from "../../../shared/api-models.js";
-import type { PtoBalanceSummary } from "../pto-balance-summary/index.js";
-import type { PtoBalanceData } from "../../../shared/api-models.js";
 
 // Admin Monthly Review Test Architecture:
 // This test harness implements the "seed data integration" testing pattern:
@@ -128,34 +126,6 @@ function playground() {
   const initialData = generateMonthlyData(currentMonth);
   monthlyReview.setEmployeeData(initialData);
   monthlyReview.setPtoEntries(seedPTOEntries);
-
-  // Set up balance summary data
-  const balanceSummary = monthlyReview.querySelector(
-    "pto-balance-summary",
-  ) as PtoBalanceSummary;
-  if (balanceSummary) {
-    // Compute aggregate balance data for all employees from seed data
-    const allBalances = seedEmployees.map((emp, idx) =>
-      computeEmployeeBalanceData(idx + 1, emp.name, seedPTOEntries),
-    );
-    const aggregateCategories = (
-      ["PTO", "Sick", "Bereavement", "Jury Duty"] as const
-    ).map((cat) => {
-      const totalRemaining = allBalances.reduce(
-        (sum, bal) =>
-          sum +
-          (bal.categories.find((c) => c.category === cat)?.remaining || 0),
-        0,
-      );
-      return { category: cat, remaining: totalRemaining };
-    });
-    const aggregateBalanceData: PtoBalanceData = {
-      employeeId: 0,
-      employeeName: "All Employees",
-      categories: aggregateCategories,
-    };
-    balanceSummary.setBalanceData(aggregateBalanceData);
-  }
 
   setOutput(
     `Admin Monthly Review component loaded with data for ${initialData.length} employees. Select a month and test acknowledgment functionality.`,
