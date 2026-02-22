@@ -2,6 +2,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { MonthSummary } from "../../client/components/month-summary/index.js";
+import { PTO_TYPES } from "../../client/shared/pto-types.js";
 
 describe("MonthSummary Component", () => {
   let component: MonthSummary;
@@ -25,7 +26,7 @@ describe("MonthSummary Component", () => {
       component.shadowRoot?.querySelectorAll(".summary-label") || [],
     ).map((el) => el.textContent);
 
-    expect(labels).toEqual(["PTO:", "Sick:", "Bereavement:", "Jury Duty:"]);
+    expect(labels).toEqual(PTO_TYPES.map((type) => type.label));
   });
 
   it("should render 0 values by default without color classes", () => {

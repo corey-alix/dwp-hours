@@ -303,15 +303,15 @@ describe("PTO Entry Form - Shadow DOM Template", () => {
       // Slot must be present in the template
       expect(source).toContain('name="pto-summary"');
 
-      // Slot must appear after form-header div and before calendar-view div in the HTML template.
+      // Slot must appear before calendar-header-nav div and before calendar-view div in the HTML template.
       // Use the actual HTML markup (not CSS class definitions) for ordering.
       const slotIdx = source.indexOf('name="pto-summary"');
-      const headerDivIdx = source.indexOf('class="form-header"');
+      const headerDivIdx = source.indexOf('class="calendar-header-nav"');
       const calendarDivIdx = source.indexOf('id="calendar-view"');
 
       expect(headerDivIdx).toBeGreaterThanOrEqual(0);
       expect(calendarDivIdx).toBeGreaterThan(0);
-      expect(slotIdx).toBeGreaterThan(headerDivIdx);
+      expect(slotIdx).toBeLessThan(headerDivIdx);
       expect(slotIdx).toBeLessThan(calendarDivIdx);
     });
 

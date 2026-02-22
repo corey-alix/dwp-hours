@@ -167,10 +167,10 @@ describe("PTO Calculations", () => {
       {
         id: 1,
         employee_id: 1,
-        date: "2024-01-01",
+        date: "2026-01-01", // Use current year for the test
         type: "PTO",
         hours: 1000, // Excessive PTO usage
-        created_at: "2024-01-01",
+        created_at: "2026-01-01",
       },
     ];
 

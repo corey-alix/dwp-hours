@@ -1,35 +1,6 @@
 import { BaseComponent } from "../base-component.js";
 import { styles } from "./css.js";
-
-/**
- * Summary type configuration mapping PTO types to CSS classes and attribute names.
- */
-const SUMMARY_TYPES = [
-  {
-    label: "PTO",
-    attr: "pto-hours",
-    cssClass: "summary-pto",
-    deltaKey: "PTO",
-  },
-  {
-    label: "Sick",
-    attr: "sick-hours",
-    cssClass: "summary-sick",
-    deltaKey: "Sick",
-  },
-  {
-    label: "Bereavement",
-    attr: "bereavement-hours",
-    cssClass: "summary-bereavement",
-    deltaKey: "Bereavement",
-  },
-  {
-    label: "Jury Duty",
-    attr: "jury-duty-hours",
-    cssClass: "summary-jury-duty",
-    deltaKey: "Jury Duty",
-  },
-] as const;
+import { PTO_TYPES } from "../../shared/pto-types.js";
 
 /**
  * <month-summary> — displays PTO hour totals grouped by type (PTO, Sick,
@@ -176,7 +147,7 @@ export class MonthSummary extends BaseComponent {
     return parseFloat(this.getAttribute(attr) || "0");
   }
 
-  private renderItem(config: (typeof SUMMARY_TYPES)[number]): string {
+  private renderItem(config: (typeof PTO_TYPES)[number]): string {
     const hours = this.getHoursForAttr(config.attr);
     const delta = this._deltas[config.deltaKey] || 0;
     const balance = this._balances[config.deltaKey];
@@ -233,7 +204,7 @@ export class MonthSummary extends BaseComponent {
 
     return `
       <style>${styles}</style>
-      ${SUMMARY_TYPES.map((t) => this.renderItem(t)).join("")}
+      ${PTO_TYPES.map((t) => this.renderItem(t)).join("")}
     `;
   }
 }

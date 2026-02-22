@@ -12,7 +12,7 @@ import {
   validatePTOBalance,
 } from "../../shared/businessRules.js";
 import { calculatePTOStatus } from "../ptoCalculations.js";
-import { dateToString } from "../../shared/dateUtils.js";
+import { dateToString, parseDate, formatDate } from "../../shared/dateUtils.js";
 
 export interface CreatePtoEntryData {
   employeeId: number;
@@ -117,8 +117,13 @@ export class PtoEntryDAL {
                 : entry.created_at,
           }));
 
-        // Calculate current PTO status
-        const ptoStatus = calculatePTOStatus(employeeData, ptoEntriesData);
+        // Calculate current PTO status for the year of the request
+        const requestYear = parseDate(data.date).year;
+        const ptoStatus = calculatePTOStatus(
+          employeeData,
+          ptoEntriesData,
+          formatDate(requestYear, 12, 31),
+        );
         const availableBalance = ptoStatus.availablePTO;
 
         // Validate PTO balance
