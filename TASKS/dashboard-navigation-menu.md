@@ -98,6 +98,16 @@ The menu component should provide intuitive navigation between these views while
 - **Menu Toggle**: Implement a hamburger-style menu toggle button that appears as a menu icon when collapsed. Position it statically in the top-right corner of the page for constant access. Default to collapsed state on mobile devices.
 - **Logout Integration**: The logout functionality has been integrated into the navigation menu as a separate menu item with distinct styling (red color) and event handling
 
+### Stage 7: Auto-Close Behavior
+
+- [x] Implement document-level click listener to close menu when clicking outside the component
+- [x] Implement document-level keydown listener to close menu on Escape key press
+- [x] Add listeners when menu opens, remove when menu closes
+- [x] Ensure cleanup in `disconnectedCallback` to prevent memory leaks
+- [x] Remove auto-close listeners in `selectPage` and `handleLogout` paths
+- [x] Verify no interference with existing menu toggle and page selection behavior
+- [x] Validation: `pnpm run build` and `pnpm run lint` pass, manual testing confirms auto-close on click outside and Escape
+
 ## Questions and Concerns
 
 2.

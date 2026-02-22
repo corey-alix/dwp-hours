@@ -14,6 +14,8 @@ export class DashboardNavigationMenu extends BaseComponent {
   private isMenuOpen = false;
   private isAnimating = false;
   private animationFallbackTimer: ReturnType<typeof setTimeout> | null = null;
+  private boundHandleDocumentClick = this.handleDocumentClick.bind(this);
+  private boundHandleDocumentKeydown = this.handleDocumentKeydown.bind(this);
 
   // Animation constants matching tokens.css --duration-normal, --easing-decelerate/--easing-accelerate
   private static readonly ANIM_DURATION_MS = 250;
@@ -30,6 +32,11 @@ export class DashboardNavigationMenu extends BaseComponent {
     if (name === "current-page" || name === "user-role") {
       this.requestUpdate();
     }
+  }
+
+  disconnectedCallback() {
+    this.removeAutoCloseListeners();
+    super.disconnectedCallback();
   }
 
   get userRole(): string {
@@ -135,9 +142,11 @@ export class DashboardNavigationMenu extends BaseComponent {
     }
 
     if (this.isMenuOpen) {
+      this.removeAutoCloseListeners();
       this.closeMenuAnimated();
     } else {
       this.openMenuAnimated();
+      this.addAutoCloseListeners();
     }
   }
 
@@ -276,7 +285,39 @@ export class DashboardNavigationMenu extends BaseComponent {
     element.style.opacity = "";
   }
 
+  /** Add document-level listeners for auto-close on outside click or Escape */
+  private addAutoCloseListeners(): void {
+    document.addEventListener("click", this.boundHandleDocumentClick);
+    document.addEventListener("keydown", this.boundHandleDocumentKeydown);
+  }
+
+  /** Remove document-level auto-close listeners */
+  private removeAutoCloseListeners(): void {
+    document.removeEventListener("click", this.boundHandleDocumentClick);
+    document.removeEventListener("keydown", this.boundHandleDocumentKeydown);
+  }
+
+  /** Close menu when clicking outside the component */
+  private handleDocumentClick(e: Event): void {
+    if (!this.isMenuOpen) return;
+    const path = e.composedPath();
+    if (!path.includes(this)) {
+      this.removeAutoCloseListeners();
+      this.closeMenuAnimated();
+    }
+  }
+
+  /** Close menu on Escape key press */
+  private handleDocumentKeydown(e: Event): void {
+    if (!this.isMenuOpen) return;
+    if ((e as KeyboardEvent).key === "Escape") {
+      this.removeAutoCloseListeners();
+      this.closeMenuAnimated();
+    }
+  }
+
   private selectPage(page: Page): void {
+    this.removeAutoCloseListeners();
     this.currentPage = page;
 
     // Dispatch custom event immediately for responsive feedback
@@ -294,6 +335,7 @@ export class DashboardNavigationMenu extends BaseComponent {
 
   private handleLogout(): void {
     // Close menu immediately — dashboard will be hidden by logout handler
+    this.removeAutoCloseListeners();
     this.isMenuOpen = false;
     this.requestUpdate();
 
