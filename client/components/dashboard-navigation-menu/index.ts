@@ -1,5 +1,10 @@
 import { BaseComponent } from "../base-component.js";
 import { DASHBOARD_NAVIGATION_MENU_CSS } from "./css.js";
+import {
+  adoptAnimations,
+  animateSlide,
+  type AnimationHandle,
+} from "../../animations/index.js";
 
 type Page =
   | "current-year-summary"
@@ -13,16 +18,9 @@ type Page =
 export class DashboardNavigationMenu extends BaseComponent {
   private isMenuOpen = false;
   private isAnimating = false;
-  private animationFallbackTimer: ReturnType<typeof setTimeout> | null = null;
+  private currentAnimation: AnimationHandle | null = null;
   private boundHandleDocumentClick = this.handleDocumentClick.bind(this);
   private boundHandleDocumentKeydown = this.handleDocumentKeydown.bind(this);
-
-  // Animation constants matching tokens.css --duration-normal, --easing-decelerate/--easing-accelerate
-  private static readonly ANIM_DURATION_MS = 250;
-  private static readonly ANIM_DURATION = "250ms";
-  private static readonly EASING_OPEN = "cubic-bezier(0, 0, 0.2, 1)";
-  private static readonly EASING_CLOSE = "cubic-bezier(0.4, 0, 1, 1)";
-  private static readonly SLIDE_DISTANCE = "-8px";
 
   static get observedAttributes() {
     return ["current-page", "user-role"];
@@ -32,6 +30,11 @@ export class DashboardNavigationMenu extends BaseComponent {
     if (name === "current-page" || name === "user-role") {
       this.requestUpdate();
     }
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    adoptAnimations(this.shadowRoot);
   }
 
   disconnectedCallback() {
@@ -150,36 +153,22 @@ export class DashboardNavigationMenu extends BaseComponent {
     }
   }
 
-  /** Cancel pending animation timer and clean up inline styles */
+  /** Cancel pending animation and clean up inline styles */
   private finalizeAnimation(): void {
-    if (this.animationFallbackTimer) {
-      clearTimeout(this.animationFallbackTimer);
-      this.animationFallbackTimer = null;
-    }
-    const menuItems = this.shadowRoot.querySelector(
-      ".menu-items",
-    ) as HTMLElement;
-    if (menuItems) {
-      this.cleanupAnimationStyles(menuItems);
+    if (this.currentAnimation) {
+      this.currentAnimation.cancel();
+      this.currentAnimation = null;
     }
     this.isAnimating = false;
   }
 
-  /** Check reduced motion preference at animation time per SKILL.md */
-  private prefersReducedMotion(): boolean {
-    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  }
-
   /**
-   * Animate menu open with slide-down motion (preferred over fade per SKILL.md).
-   * Uses inline styles to avoid class specificity issues.
-   * Forces synchronous reflow to commit initial position before transition.
+   * Animate menu open with slide-down motion.
+   * Delegates to the shared animation library's animateSlide helper.
    */
   private openMenuAnimated(): void {
     this.isMenuOpen = true;
     this.requestUpdate();
-
-    if (this.prefersReducedMotion()) return;
 
     const menuItems = this.shadowRoot.querySelector(
       ".menu-items",
@@ -187,54 +176,18 @@ export class DashboardNavigationMenu extends BaseComponent {
     if (!menuItems) return;
 
     this.isAnimating = true;
-
-    // Phase 1: Set initial hidden position (slide up + transparent)
-    menuItems.style.willChange = "transform, opacity";
-    menuItems.style.transform = `translateY(${DashboardNavigationMenu.SLIDE_DISTANCE})`;
-    menuItems.style.opacity = "0";
-
-    // Force synchronous reflow per SKILL.md
-    void menuItems.offsetHeight;
-
-    // Phase 2: Animate to final visible position
-    menuItems.style.transition = `transform ${DashboardNavigationMenu.ANIM_DURATION} ${DashboardNavigationMenu.EASING_OPEN}, opacity ${DashboardNavigationMenu.ANIM_DURATION} ${DashboardNavigationMenu.EASING_OPEN}`;
-    menuItems.style.transform = "translateY(0)";
-    menuItems.style.opacity = "1";
-
-    const onComplete = () => {
-      if (this.animationFallbackTimer) {
-        clearTimeout(this.animationFallbackTimer);
-        this.animationFallbackTimer = null;
-      }
-      menuItems.removeEventListener("transitionend", onEnd);
-      this.cleanupAnimationStyles(menuItems);
+    this.currentAnimation = animateSlide(menuItems, true);
+    this.currentAnimation.promise.then(() => {
+      this.currentAnimation = null;
       this.isAnimating = false;
-    };
-
-    const onEnd = (e: TransitionEvent) => {
-      if (e.propertyName !== "transform") return;
-      onComplete();
-    };
-    menuItems.addEventListener("transitionend", onEnd);
-
-    // Fallback timeout in case transitionend doesn't fire (element destroyed, test env, etc.)
-    this.animationFallbackTimer = setTimeout(
-      onComplete,
-      DashboardNavigationMenu.ANIM_DURATION_MS + 50,
-    );
+    });
   }
 
   /**
    * Animate menu close with slide-up motion.
-   * Animates before DOM update to ensure visual transition.
+   * Delegates to the shared animation library's animateSlide helper.
    */
   private closeMenuAnimated(): void {
-    if (this.prefersReducedMotion()) {
-      this.isMenuOpen = false;
-      this.requestUpdate();
-      return;
-    }
-
     const menuItems = this.shadowRoot.querySelector(
       ".menu-items",
     ) as HTMLElement;
@@ -245,44 +198,13 @@ export class DashboardNavigationMenu extends BaseComponent {
     }
 
     this.isAnimating = true;
-
-    // Animate to hidden position
-    menuItems.style.willChange = "transform, opacity";
-    menuItems.style.transition = `transform ${DashboardNavigationMenu.ANIM_DURATION} ${DashboardNavigationMenu.EASING_CLOSE}, opacity ${DashboardNavigationMenu.ANIM_DURATION} ${DashboardNavigationMenu.EASING_CLOSE}`;
-    menuItems.style.transform = `translateY(${DashboardNavigationMenu.SLIDE_DISTANCE})`;
-    menuItems.style.opacity = "0";
-
-    const onComplete = () => {
-      if (this.animationFallbackTimer) {
-        clearTimeout(this.animationFallbackTimer);
-        this.animationFallbackTimer = null;
-      }
-      menuItems.removeEventListener("transitionend", onEnd);
-      this.cleanupAnimationStyles(menuItems);
+    this.currentAnimation = animateSlide(menuItems, false);
+    this.currentAnimation.promise.then(() => {
+      this.currentAnimation = null;
       this.isMenuOpen = false;
       this.isAnimating = false;
       this.requestUpdate();
-    };
-
-    const onEnd = (e: TransitionEvent) => {
-      if (e.propertyName !== "transform") return;
-      onComplete();
-    };
-    menuItems.addEventListener("transitionend", onEnd);
-
-    // Fallback timeout in case transitionend doesn't fire (element destroyed, test env, etc.)
-    this.animationFallbackTimer = setTimeout(
-      onComplete,
-      DashboardNavigationMenu.ANIM_DURATION_MS + 50,
-    );
-  }
-
-  /** Clean up inline animation styles to prevent stale state per SKILL.md */
-  private cleanupAnimationStyles(element: HTMLElement): void {
-    element.style.willChange = "";
-    element.style.transition = "";
-    element.style.transform = "";
-    element.style.opacity = "";
+    });
   }
 
   /** Add document-level listeners for auto-close on outside click or Escape */

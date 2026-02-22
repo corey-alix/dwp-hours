@@ -17,6 +17,11 @@ import type { MonthSummary } from "../month-summary/index.js";
 import { computeSelectionDeltas } from "../utils/compute-selection-deltas.js";
 import { BaseComponent } from "../base-component.js";
 import { styles } from "./css.js";
+import {
+  adoptAnimations,
+  animateCarousel,
+  type AnimationHandle,
+} from "../../animations/index.js";
 
 interface PtoRequest {
   startDate: string;
@@ -70,6 +75,7 @@ export class PtoEntryForm extends BaseComponent {
 
   connectedCallback() {
     super.connectedCallback();
+    adoptAnimations(this.shadowRoot);
     this.setupSwipeListeners();
     this.setupMultiCalendarDetection();
     // After detection, calendars are built. Request PTO data from parent.
@@ -522,20 +528,12 @@ export class PtoEntryForm extends BaseComponent {
   }
 
   private isAnimating = false;
-
-  /** Check if user prefers reduced motion */
-  private prefersReducedMotion(): boolean {
-    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  }
+  private currentAnimation: AnimationHandle | null = null;
 
   /**
    * Carousel-style month navigation animation.
-   * Phase 1: Old month slides out in the swipe direction.
-   * Phase 2: Container instantly jumps to the opposite side (off-screen).
-   * Phase 3: New month slides in from the opposite side to center.
-   *
-   * Uses inline styles + forced reflow for reliable phase sequencing.
-   * Filters transitionend by propertyName to avoid double-firing.
+   * Delegates to the shared animation library's animateCarousel helper,
+   * which handles phase sequencing, reduced-motion, and inline style cleanup.
    */
   private navigateMonthWithAnimation(calendar: PtoCalendar, direction: number) {
     // Prevent overlapping animations
@@ -547,61 +545,18 @@ export class PtoEntryForm extends BaseComponent {
       this.shadowRoot,
     );
 
-    // direction > 0 = next month: old exits left (-100%), new enters from right (+100%)
-    // direction < 0 = prev month: old exits right (+100%), new enters from left (-100%)
-    const exitX = direction > 0 ? "-100%" : "100%";
-    const enterX = direction > 0 ? "100%" : "-100%";
-
-    const transitionValue =
-      "transform 0.2s ease-in-out, opacity 0.2s ease-in-out";
-
-    // Accessibility: skip animation for reduced-motion preference
-    if (this.prefersReducedMotion()) {
+    this.currentAnimation = animateCarousel(container, direction, () => {
       this.updateCalendarMonth(calendar, direction);
+    });
+    this.currentAnimation.promise.then(() => {
+      this.currentAnimation = null;
       this.isAnimating = false;
-      return;
-    }
+    });
+  }
 
-    // GPU hint for the animation duration
-    container.style.willChange = "transform, opacity";
-    container.style.transition = transitionValue;
-
-    // Phase 1: Slide old month out
-    container.style.transform = `translateX(${exitX})`;
-    container.style.opacity = "0";
-
-    const onSlideOutDone = (e: TransitionEvent) => {
-      if (e.propertyName !== "transform") return;
-      container.removeEventListener("transitionend", onSlideOutDone);
-
-      // Update month data while container is off-screen
-      this.updateCalendarMonth(calendar, direction);
-
-      // Phase 2: Instantly jump to opposite side (no transition)
-      container.style.transition = "none";
-      container.style.transform = `translateX(${enterX})`;
-
-      // Force synchronous style recalculation so the browser commits the position
-      void container.offsetHeight;
-
-      // Phase 3: Slide new month in from opposite side to center
-      container.style.transition = transitionValue;
-      container.style.transform = "translateX(0)";
-      container.style.opacity = "1";
-
-      const onSlideInDone = (e: TransitionEvent) => {
-        if (e.propertyName !== "transform") return;
-        container.removeEventListener("transitionend", onSlideInDone);
-        // Clean up all inline animation styles
-        container.style.willChange = "";
-        container.style.transition = "";
-        container.style.transform = "";
-        container.style.opacity = "";
-        this.isAnimating = false;
-      };
-      container.addEventListener("transitionend", onSlideInDone);
-    };
-    container.addEventListener("transitionend", onSlideOutDone);
+  /** Check if user prefers reduced motion */
+  private prefersReducedMotion(): boolean {
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   }
 
   /** Update the calendar to the next/previous month with fiscal-year wrap-around */

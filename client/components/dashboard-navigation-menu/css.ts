@@ -51,7 +51,7 @@ export const DASHBOARD_NAVIGATION_MENU_CSS = `
     cursor: pointer;
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-normal);
-    transition: background-color 0.2s ease;
+    transition: background-color var(--duration-fast) var(--easing-standard);
   }
 
   .menu-item:hover {

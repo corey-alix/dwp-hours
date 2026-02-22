@@ -34,7 +34,7 @@ export const styles = `
                 }
 
                 .calendar-container {
-                    /* Animation is driven by inline styles in navigateMonthWithAnimation() */
+                    /* Animation is driven by the shared animation library (animateCarousel) */
                 }
 
                 .nav-arrow {
@@ -45,7 +45,7 @@ export const styles = `
                     color: var(--color-text);
                     padding: var(--space-xs);
                     border-radius: var(--border-radius-sm);
-                    transition: background-color 0.2s ease;
+                    transition: background-color var(--duration-fast) var(--easing-standard);
                     width: 32px;
                     height: 32px;
                     display: flex;

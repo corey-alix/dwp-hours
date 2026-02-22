@@ -78,36 +78,36 @@ This will centralize animation definitions, improve maintainability, and ensure 
 
 #### Tokens & Foundation
 
-- [ ] Add semantic distance tokens to `tokens.css` (e.g., `--slide-distance: 100%`)
-- [ ] Verify existing animation tokens in `tokens.css` cover all needed durations/easings; add any missing ones
-- [ ] Create shared animation library structure under `client/animations/` (index.ts, animations.ts, types.ts)
-- [ ] Implement `animations.ts` referencing `tokens.css` vars — no `:root` redefinitions of durations/easings
-- [ ] Add slide keyframes (`slide-in-left`, `slide-in-right`, `slide-out-left`, `slide-out-right`) to `animations.ts`
-- [ ] Add utility classes for carousel animations (`.anim-slide-out-left`, `.anim-slide-in-right`, etc.)
-- [ ] Add `prefers-reduced-motion` media query in `animations.ts` that disables/reduces all animations
+- [x] Add semantic distance tokens to `tokens.css` (e.g., `--slide-distance: 100%`)
+- [x] Verify existing animation tokens in `tokens.css` cover all needed durations/easings; add any missing ones
+- [x] Create shared animation library structure under `client/animations/` (index.ts, animations.ts, types.ts)
+- [x] Implement `animations.ts` referencing `tokens.css` vars — no `:root` redefinitions of durations/easings
+- [x] Add slide keyframes (`slide-in-left`, `slide-in-right`, `slide-out-left`, `slide-out-right`) to `animations.ts`
+- [x] Add utility classes for carousel animations (`.anim-slide-out-left`, `.anim-slide-in-right`, etc.)
+- [x] Add `prefers-reduced-motion` media query in `animations.ts` that disables/reduces all animations
 
 #### dashboard-navigation-menu Migration
 
-- [ ] Replace hardcoded `transition: background-color 0.2s ease` with `var(--duration-fast)` and `var(--easing-standard)`
-- [ ] Adopt shared animation stylesheet in the component
-- [ ] Verify menu hover transition works correctly after migration
+- [x] Replace hardcoded `transition: background-color 0.2s ease` with `var(--duration-fast)` and `var(--easing-standard)`
+- [x] Adopt shared animation stylesheet in the component
+- [x] Verify menu hover transition works correctly after migration
 
 #### pto-entry-form Migration
 
-- [ ] Create `animateCarousel(container, direction)` helper in the animation library to abstract carousel logic
-- [ ] Refactor `navigateMonthWithAnimation()` to delegate to the animation-library helper
-- [ ] Remove inline `will-change`, `transition`, `transform`, `opacity` style manipulation from the component
-- [ ] Adopt shared animation stylesheet in the component
-- [ ] Verify carousel month navigation animates correctly in both directions
+- [x] Create `animateCarousel(container, direction, onUpdate)` helper in the animation library to abstract carousel logic
+- [x] Refactor `navigateMonthWithAnimation()` to delegate to the animation-library helper
+- [x] Remove inline `will-change`, `transition`, `transform`, `opacity` style manipulation from the component
+- [x] Adopt shared animation stylesheet in the component
+- [x] Verify carousel month navigation animates correctly in both directions
 
 #### Validation & Documentation
 
-- [ ] Update component-animation-library SKILL.md with new keyframes, helpers, and token references
-- [ ] Update Stylelint config if needed to enforce animation token usage
-- [ ] Run `pnpm run build` to ensure animation library compiles correctly
-- [ ] Manual testing: Verify carousel navigation and menu hover animations work smoothly
-- [ ] Confirm `prefers-reduced-motion` is respected in both components
-- [ ] Update task checklist and mark animation migration items completed
+- [x] Update component-animation-library SKILL.md with new keyframes, helpers, and token references
+- [x] Update Stylelint config if needed to enforce animation token usage
+- [x] Run `pnpm run build` to ensure animation library compiles correctly
+- [x] Manual testing: Verify carousel navigation and menu hover animations work smoothly
+- [x] Confirm `prefers-reduced-motion` is respected in both components
+- [x] Update task checklist and mark animation migration items completed
 
 ## Implementation Notes
 

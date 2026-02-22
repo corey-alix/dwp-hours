@@ -53,148 +53,167 @@ Common queries that should trigger this skill:
 ### Directory & Package Structure
 
 ```
-src/animations/
-├── index.ts                # public API + shared sheet
-├── animations.ts           # raw CSS string (the single source of truth)
-└── types.ts                # optional utility types
+client/animations/
+├── index.ts                # public API: shared sheet + JS animation helpers
+├── animations.ts           # raw CSS string (keyframes & utility classes)
+└── types.ts                # AnimationHandle interface
 ```
 
 ### Implementation Details
 
+#### Design Principles
+
+- **No `:root` redefinitions** — animation tokens (durations, easings, distances) are defined in `tokens.css`. The animation library references them via `var()`.
+- **CSS for declarative animations** — keyframes and utility classes in `animations.ts`.
+- **JS helpers for multi-phase animations** — `animateSlide()` and `animateCarousel()` in `index.ts` for complex sequenced transitions that CSS alone cannot express.
+- **AnimationHandle pattern** — JS helpers return `{ promise, cancel }` so callers can await completion or cancel mid-flight.
+
+#### tokens.css — Animation Tokens (source of truth)
+
+These tokens are defined in `client/tokens.css` and inherited into shadow DOMs:
+
+```css
+/* Animation Tokens */
+:root {
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
+  --easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --easing-decelerate: cubic-bezier(0, 0, 0.2, 1);
+  --easing-accelerate: cubic-bezier(0.4, 0, 1, 1);
+  --slide-distance: 100%;
+  --slide-offset: 8px;
+}
+```
+
 #### animations.ts — The CSS Source
 
-Keep all keyframes, tokens, and utility classes in a single file. Use `:root` vars + calc() for flexibility.
+Keyframes and utility classes reference tokens.css vars. No hardcoded durations, easings, or distances.
 
 ```typescript
 export const animationCSS = `
-  :root {
-    --anim-dur-short:   180ms;
-    --anim-dur-med:     360ms;
-    --anim-dur-long:    600ms;
-    --anim-ease-in:     cubic-bezier(0.4, 0, 1, 1);
-    --anim-ease-out:    cubic-bezier(0, 0, 0.2, 1);
-    --anim-ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
-    --anim-stagger:     60ms;
-    --slide-dist:       24px;
-    --scale-peak:       1.08;
-  }
-
   @keyframes fade-in {
     from { opacity: 0; }
     to   { opacity: 1; }
   }
 
   @keyframes slide-in-right {
-    from { transform: translateX(var(--slide-dist)); opacity: 0; }
+    from { transform: translateX(var(--slide-distance)); opacity: 0; }
     to   { transform: translateX(0); opacity: 1; }
   }
 
-  @keyframes slide-in-down {
-    from { transform: translateY(calc(-1 * var(--slide-dist))); opacity: 0; }
+  @keyframes slide-out-left {
+    from { transform: translateX(0); opacity: 1; }
+    to   { transform: translateX(calc(-1 * var(--slide-distance))); opacity: 0; }
+  }
+
+  @keyframes slide-down-in {
+    from { transform: translateY(calc(-1 * var(--slide-offset))); opacity: 0; }
     to   { transform: translateY(0); opacity: 1; }
   }
 
-  @keyframes pop {
-    0%   { transform: scale(0.92); opacity: 0; }
-    60%  { transform: scale(var(--scale-peak)); }
-    100% { transform: scale(1); opacity: 1; }
+  /* Utility classes */
+  .anim-slide-in-right {
+    animation: slide-in-right var(--duration-normal) var(--easing-decelerate) backwards;
   }
 
-  .anim-enter {
-    animation:
-      fade-in               var(--anim-dur-med) var(--anim-ease-out) backwards,
-      slide-in-right        var(--anim-dur-med) var(--anim-ease-out) backwards;
-    animation-delay: calc(var(--stagger-idx, 0) * var(--anim-stagger));
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .anim-slide-in-right, .anim-slide-out-left /* ... */ {
+      animation: none;
+    }
   }
-
-  .anim-enter-down {
-    animation:
-      fade-in               var(--anim-dur-med) var(--anim-ease-out) backwards,
-      slide-in-down         var(--anim-dur-med) var(--anim-ease-out) backwards;
-    animation-delay: calc(var(--stagger-idx, 0) * var(--anim-stagger));
-  }
-
-  .anim-pop {
-    animation: pop var(--anim-dur-short) var(--anim-ease-bounce) backwards;
-  }
-
-  /* Modifiers – stackable */
-  .anim-fast  { --anim-dur-med: var(--anim-dur-short); }
-  .anim-slow  { --anim-dur-med: var(--anim-dur-long); }
-  .anim-no-delay { animation-delay: 0ms !important; }
 `;
 ```
 
-#### index.ts — Construct & Export Shared Sheet
+#### index.ts — Shared Sheet + JS Helpers
 
 ```typescript
-import { animationCSS } from "./animations";
+import { animationCSS } from "./animations.js";
+import type { AnimationHandle } from "./types.js";
 
-let _sharedSheet: CSSStyleSheet | null = null;
-
+// Constructable stylesheet singleton
 export function getAnimationSheet(): CSSStyleSheet {
-  if (!_sharedSheet) {
-    _sharedSheet = new CSSStyleSheet();
-    _sharedSheet.replaceSync(animationCSS);
-  }
-  return _sharedSheet;
+  /* ... */
+}
+export function adoptAnimations(root: ShadowRoot | Document): void {
+  /* ... */
 }
 
-/** Optional: one-liner adoption helper */
-export function adoptAnimations(root: ShadowRoot | Document): void {
-  const sheet = getAnimationSheet();
-  // Preserve existing sheets (defensive)
-  root.adoptedStyleSheets = [
-    ...root.adoptedStyleSheets.filter((s) => s !== sheet),
-    sheet,
-  ];
+// JS animation helpers (read tokens from :root at animation time)
+export function animateSlide(
+  element: HTMLElement,
+  show: boolean,
+): AnimationHandle;
+export function animateCarousel(
+  container: HTMLElement,
+  direction: number,
+  onUpdate: () => void,
+): AnimationHandle;
+```
+
+#### types.ts — AnimationHandle
+
+```typescript
+export interface AnimationHandle {
+  /** Resolves when the animation completes or is cancelled. */
+  promise: Promise<void>;
+  /** Cancel the animation immediately, cleaning up all inline styles. */
+  cancel: () => void;
 }
 ```
 
 #### Usage in Web Components
 
 ```typescript
-import { getAnimationSheet } from "../animations/index";
+import { adoptAnimations, animateCarousel } from "../../animations/index.js";
+import type { AnimationHandle } from "../../animations/index.js";
 
-export class MyListItem extends HTMLElement {
-  constructor() {
-    super();
-    this.attachShadow({ mode: "open" });
-  }
+export class PtoEntryForm extends BaseComponent {
+  private currentAnimation: AnimationHandle | null = null;
 
   connectedCallback() {
-    // Adopt once — shared reference, no duplication
-    this.shadowRoot!.adoptedStyleSheets = [
-      ...this.shadowRoot!.adoptedStyleSheets,
-      getAnimationSheet(),
-    ];
+    super.connectedCallback();
+    adoptAnimations(this.shadowRoot);
+  }
 
-    const idx = Number(this.getAttribute("data-stagger") || "0");
+  private navigateMonth(calendar: PtoCalendar, direction: number) {
+    if (this.isAnimating) return;
+    this.isAnimating = true;
 
-    this.shadowRoot!.innerHTML = `
-      <div class="anim-enter" style="--stagger-idx: ${idx};">
-        <slot></slot>
-      </div>
-    `;
+    const container = this.shadowRoot.querySelector(
+      "#calendar-container",
+    ) as HTMLDivElement;
+    this.currentAnimation = animateCarousel(container, direction, () => {
+      this.updateCalendarMonth(calendar, direction);
+    });
+    this.currentAnimation.promise.then(() => {
+      this.currentAnimation = null;
+      this.isAnimating = false;
+    });
   }
 }
 ```
 
 ### Maintenance Guidelines
 
-- **Add new animation**: Append new `@keyframes` + utility class in `animations.ts`
-- **Change timing/easing globally**: Edit `:root` variables only
-- **Per-component override**: Set CSS vars on `:host`
-- **Per-instance control**: Inline styles for dynamic values
+- **Add new CSS animation**: Append `@keyframes` + utility class in `animations.ts`
+- **Add new JS animation helper**: Add function to `index.ts`, return `AnimationHandle`
+- **Change timing/easing globally**: Edit tokens in `tokens.css` — never hardcode in the library
+- **Per-component override**: Set CSS vars on `:host` or inline via `style` attribute
+- **Per-instance control**: Inline styles for dynamic values (e.g., `--stagger-idx`)
 - **Testing**: Snapshot CSS string, assert sheet rules, visual regression
-- **Optimization**: Keep under 2-3KB, use adoptedStyleSheets for performance
+- **Optimization**: Keep CSS under 2-3KB, use `adoptedStyleSheets` for zero-duplication
 
 ### Integration with Project
 
-- Works with existing CSS theming system (tokens.css)
-- Follows web component patterns in the project
-- Compatible with Shadow DOM isolation
-- Supports both light and dark themes
-- Integrates with project's build and testing workflows
+- All animation tokens defined in `tokens.css` (single source of truth)
+- Follows web component patterns (BaseComponent, shadow DOM)
+- `adoptAnimations()` integrates with `adoptedStyleSheets` — no style tag pollution
+- JS helpers read tokens at runtime via `getComputedStyle(document.documentElement)`
+- `AnimationHandle.cancel()` enables immediate cleanup when components toggle rapidly
+- Supports `prefers-reduced-motion` in both CSS (utility classes) and JS (helpers)
+- Compatible with both light and dark themes (no color definitions in the library)
+- Bundled automatically by esbuild from `client/app.ts`
 
 Last updated: February 22, 2026
