@@ -161,36 +161,6 @@ test("pto-accrual-card component screenshot", async ({ page }) => {
   );
 });
 
-test("pto-sick-card component screenshot", async ({ page }) => {
-  await page.goto("/components/pto-sick-card/test.html");
-  await page.waitForSelector("pto-sick-card", { timeout: 10000 });
-  await stabilizePage(page);
-  await compareAndUpdateScreenshot(
-    await page.screenshot({ fullPage: true }),
-    "assets/pto-sick-card-component.png",
-  );
-});
-
-test("pto-bereavement-card component screenshot", async ({ page }) => {
-  await page.goto("/components/pto-bereavement-card/test.html");
-  await page.waitForSelector("pto-bereavement-card", { timeout: 10000 });
-  await stabilizePage(page);
-  await compareAndUpdateScreenshot(
-    await page.screenshot({ fullPage: true }),
-    "assets/pto-bereavement-card-component.png",
-  );
-});
-
-test("pto-jury-duty-card component screenshot", async ({ page }) => {
-  await page.goto("/components/pto-jury-duty-card/test.html");
-  await page.waitForSelector("pto-jury-duty-card", { timeout: 10000 });
-  await stabilizePage(page);
-  await compareAndUpdateScreenshot(
-    await page.screenshot({ fullPage: true }),
-    "assets/pto-jury-duty-card-component.png",
-  );
-});
-
 test("pto-pto-card component screenshot", async ({ page }) => {
   await page.goto("/components/pto-pto-card/test.html");
   await page.waitForSelector("pto-pto-card", { timeout: 10000 });

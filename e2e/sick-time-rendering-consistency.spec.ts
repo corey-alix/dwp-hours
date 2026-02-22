@@ -30,21 +30,21 @@ test.describe("Sick Time Rendering Consistency", () => {
     const summaryPage = page.locator("current-year-summary-page");
     await expect(summaryPage).toBeVisible();
 
-    // Check sick time card
-    const sickCard = summaryPage.locator("pto-sick-card");
-    await expect(sickCard).toBeVisible();
+    // Check PTO detail card (now unified)
+    const ptoCard = summaryPage.locator("pto-pto-card");
+    await expect(ptoCard).toBeVisible();
 
-    // Extract usage entries from sick card
-    const dashboardSickEntries = await sickCard.locator("li").allTextContents();
+    // Extract usage entries from PTO card
+    const dashboardPtoEntries = await ptoCard.locator("li").allTextContents();
 
     // The data does NOT have sick time for 2/2/2026, so dashboard should NOT show it
-    const hasFeb2InDashboard = dashboardSickEntries.some(
+    const hasFeb2InDashboard = dashboardPtoEntries.some(
       (entry) => entry.includes("2026-02-02") || entry.includes("2/2/2026"),
     );
     expect(hasFeb2InDashboard).toBe(false); // Should be false based on correct data
 
     // Check that it does show existing dates like 2/17/2026
-    const hasFeb17InDashboard = dashboardSickEntries.some(
+    const hasFeb17InDashboard = dashboardPtoEntries.some(
       (entry) => entry.includes("2026-02-17") || entry.includes("2/17/2026"),
     );
     // Note: Reports functionality is not yet implemented

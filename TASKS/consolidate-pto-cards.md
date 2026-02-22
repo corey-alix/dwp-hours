@@ -27,7 +27,7 @@ The three other card components (`pto-sick-card`, `pto-bereavement-card`, `pto-j
 - [x] Update `pto-pto-card` tests (`test.ts`, `test.html`) to cover multi-type entries
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
-- [ ] Manual visual verification in `test.html`
+- [x] Manual visual verification in `test.html`
 
 ### Stage 2: Wire `<month-summary>` Balances in `current-year-summary-page`
 
@@ -38,21 +38,21 @@ The three other card components (`pto-sick-card`, `pto-bereavement-card`, `pto-j
 - [x] Remove imports for `PtoSickCard`, `PtoBereavementCard`, `PtoJuryDutyCard`
 - [x] Remove `buildUsageEntries` per-type calls for the deleted cards
 - [x] Update `setupCardListeners()` — only listen on the single `<pto-pto-card>`
-- [ ] Update `current-year-summary-page` tests (`test.ts`, `test.html`)
+- [x] Update `current-year-summary-page` tests (`test.ts`, `test.html`)
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
-- [ ] Manual visual verification of summary page
+- [x] Manual visual verification of summary page
 
 ### Stage 3: Remove Unused PTO Card Components
 
-- [ ] Delete `client/components/pto-sick-card/` folder
-- [ ] Delete `client/components/pto-bereavement-card/` folder
-- [ ] Delete `client/components/pto-jury-duty-card/` folder
+- [x] Delete `client/components/pto-sick-card/` folder
+- [x] Delete `client/components/pto-bereavement-card/` folder
+- [x] Delete `client/components/pto-jury-duty-card/` folder
 - [x] Remove their `customElements.define` registrations / imports from any barrel files
 - [x] Remove references from any other pages or components
-- [ ] Remove shared helpers in `utils/pto-card-helpers.ts` if no longer used (or trim unused functions)
-- [ ] Remove `utils/pto-card-css.ts` if no longer used (or trim)
-- [ ] Search codebase for remaining references to the deleted tags
+- [x] Remove shared helpers in `utils/pto-card-helpers.ts` if no longer used (or trim unused functions)
+- [x] Remove `utils/pto-card-css.ts` if no longer used (or trim)
+- [x] Search codebase for remaining references to the deleted tags
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
 
@@ -60,10 +60,10 @@ The three other card components (`pto-sick-card`, `pto-bereavement-card`, `pto-j
 
 - [x] Update `pto-pto-card/README.md` to reflect new "unified detail card" purpose
 - [x] Update `month-summary/README.md` if new usage patterns apply
-- [ ] Run full E2E test suite (`pnpm run test:e2e`) — fix any failures
-- [ ] Run unit test suite (`pnpm run test`) — fix any failures
-- [ ] Final manual smoke test of current-year-summary-page
-- [ ] Update this task checklist with completion status
+- [x] Run full E2E test suite (`pnpm run test:e2e`) — fix any failures
+- [x] Run unit test suite (`pnpm run test`) — fix any failures
+- [x] Final manual smoke test of current-year-summary-page
+- [x] Update this task checklist with completion status
 
 ## Implementation Notes
 
