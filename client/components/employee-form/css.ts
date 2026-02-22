@@ -2,46 +2,46 @@ export const styles = `<style>
   :host {
     display: block;
     background: var(--color-surface);
-    border-radius: 8px;
-    box-shadow: 0 2px 4px var(--color-shadow);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-md);
     max-width: 500px;
     margin: 0 auto;
   }
 
   .form-container {
-    padding: 24px;
+    padding: var(--space-lg);
   }
 
   .form-header {
-    margin-bottom: 24px;
+    margin-bottom: var(--space-lg);
     text-align: center;
   }
 
   .form-header h2 {
     margin: 0;
-    font-size: 24px;
-    font-weight: 600;
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
     color: var(--color-text);
   }
 
   .form-group {
-    margin-bottom: 20px;
+    margin-bottom: var(--space-md);
   }
 
   .form-label {
     display: block;
-    margin-bottom: 6px;
-    font-weight: 500;
+    margin-bottom: var(--space-xs);
+    font-weight: var(--font-weight-medium);
     color: var(--color-text);
-    font-size: 14px;
+    font-size: var(--font-size-sm);
   }
 
   .form-input {
     width: 100%;
-    padding: 10px 12px;
-    border: 1px solid var(--color-border);
-    border-radius: 4px;
-    font-size: 14px;
+    padding: var(--space-sm) var(--space-md);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-sm);
     transition: border-color 0.3s ease;
     box-sizing: border-box;
     background: var(--color-surface);
@@ -60,10 +60,10 @@ export const styles = `<style>
 
   .form-select {
     width: 100%;
-    padding: 10px 12px;
-    border: 1px solid var(--color-border);
-    border-radius: 4px;
-    font-size: 14px;
+    padding: var(--space-sm) var(--space-md);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-sm);
     background: var(--color-surface);
     color: var(--color-text);
     cursor: pointer;
@@ -78,33 +78,33 @@ export const styles = `<style>
 
   .error-message {
     color: var(--color-error);
-    font-size: 12px;
-    margin-top: 4px;
+    font-size: var(--font-size-xs);
+    margin-top: var(--space-xs);
     display: block;
   }
 
   .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 16px;
+    gap: var(--space-md);
   }
 
   .form-actions {
     display: flex;
-    gap: 12px;
+    gap: var(--space-sm);
     justify-content: flex-end;
-    margin-top: 32px;
-    padding-top: 20px;
-    border-top: 1px solid var(--color-border);
+    margin-top: var(--space-xl);
+    padding-top: var(--space-md);
+    border-top: var(--border-width) solid var(--color-border);
   }
 
   .btn {
-    padding: 10px 20px;
+    padding: var(--space-sm) var(--space-lg);
     border: none;
-    border-radius: 4px;
+    border-radius: var(--border-radius);
     cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
     transition: all 0.3s ease;
   }
 

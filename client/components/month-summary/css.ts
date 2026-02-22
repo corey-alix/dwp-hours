@@ -16,15 +16,15 @@ export const styles = `
 }
 
 .summary-label {
-    font-size: 10px;
-    margin-bottom: 2px;
+    font-size: var(--font-size-xs);
+    margin-bottom: var(--space-xs);
     border-bottom: var(--border-width) solid var(--color-border);
     text-transform: uppercase;
 }
 
 .summary-value {
-    font-size: 12px;
-    font-weight: 400;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-normal);
 }
 
 /* Color consistency: summary values match calendar day colors */
@@ -43,14 +43,14 @@ export const styles = `
 .summary-sick,
 .summary-bereavement,
 .summary-jury-duty {
-    font-size: 14px;
-    font-weight: 600;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
 }
 
 .summary-pending {
-    font-size: 11px;
+    font-size: var(--font-size-xs);
     opacity: 0.8;
-    margin-left: 1px;
+    margin-left: var(--space-xs);
 }
 
 /* Interactive mode: clickable labels for PTO type selection */
@@ -68,15 +68,15 @@ export const styles = `
 /* Active PTO type indicator: green checkmark + bolder label */
 
 .summary-item.active .summary-label {
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     font-weight: var(--font-weight-bold, 700);
     border-bottom-color: currentColor;
 }
 
 .summary-item.active .summary-label::after {
     content: "✓";
-    color: var(--color-success, #16a34a);
-    margin-left: 2px;
+    color: var(--color-success);
+    margin-left: var(--space-xs);
     font-weight: var(--font-weight-bold, 700);
 }
 

@@ -46,21 +46,21 @@ export const styles = `<style>
   }
 
   .search-container span {
-    font-size: 14px;
+    font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
   }
 
   .action-buttons {
     display: flex;
-    gap: 10px;
+    gap: var(--space-sm);
   }
 
   .btn {
-    padding: 8px 16px;
+    padding: var(--space-xs) var(--space-md);
     border: none;
-    border-radius: 4px;
+    border-radius: var(--border-radius);
     cursor: pointer;
-    font-size: 14px;
+    font-size: var(--font-size-sm);
     transition: background-color 0.3s ease;
   }
 
@@ -84,51 +84,51 @@ export const styles = `<style>
 
   .employee-card {
     background: var(--color-background);
-    border-radius: 8px;
-    padding: 16px;
-    box-shadow: 0 2px 4px var(--color-shadow);
-    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-lg);
+    padding: var(--space-md);
+    box-shadow: var(--shadow-md);
+    border: var(--border-width) solid var(--color-border);
     transition: box-shadow 0.3s ease;
   }
 
   .employee-card:hover {
-    box-shadow: 0 4px 8px var(--color-shadow-dark);
+    box-shadow: var(--shadow-lg);
   }
 
   .employee-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 12px;
+    margin-bottom: var(--space-sm);
   }
 
   .employee-name {
-    font-size: 18px;
-    font-weight: 600;
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
     color: var(--color-text);
     margin: 0;
   }
 
   .employee-identifier {
     color: var(--color-text-secondary);
-    font-size: 14px;
+    font-size: var(--font-size-sm);
     margin: 0;
   }
 
   .employee-role {
     background: var(--color-primary);
     color: var(--color-on-primary);
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 500;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--border-radius-xl);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
   }
 
   .employee-details {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 12px;
-    margin-bottom: 12px;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
   }
 
   .detail-item {
@@ -137,33 +137,33 @@ export const styles = `<style>
   }
 
   .detail-label {
-    font-size: 12px;
+    font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 4px;
+    letter-spacing: 0.025em;
+    margin-bottom: var(--space-xs);
   }
 
   .detail-value {
-    font-size: 14px;
-    font-weight: 500;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
     color: var(--color-text);
   }
 
   .employee-actions {
     display: flex;
-    gap: 8px;
+    gap: var(--space-xs);
     justify-content: flex-end;
   }
 
   .action-btn {
-    padding: 6px 12px;
-    border: 1px solid var(--color-border);
+    padding: var(--space-xs) var(--space-sm);
+    border: var(--border-width) solid var(--color-border);
     background: var(--color-surface);
     color: var(--color-text-secondary);
-    border-radius: 4px;
+    border-radius: var(--border-radius);
     cursor: pointer;
-    font-size: 12px;
+    font-size: var(--font-size-xs);
     transition: all 0.3s ease;
   }
 
@@ -194,22 +194,22 @@ export const styles = `<style>
 
   .empty-state {
     text-align: center;
-    padding: 40px;
+    padding: var(--space-2xl);
     color: var(--color-text-secondary);
     grid-column: 1 / -1;
   }
 
   .empty-state h3 {
-    margin: 0 0 10px;
-    font-size: 18px;
+    margin: 0 0 var(--space-sm) 0;
+    font-size: var(--font-size-lg);
     color: var(--color-text);
   }
 
   .inline-editor {
     background: var(--color-surface);
-    border-radius: 8px;
-    box-shadow: 0 2px 4px var(--color-shadow);
-    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-md);
+    border: var(--border-width) solid var(--color-border);
     grid-column: 1 / -1;
   }
 </style>`;

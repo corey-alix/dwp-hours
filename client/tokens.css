@@ -175,6 +175,11 @@
   --color-pto-jury-duty: var(--color-green-600);
   --color-pto-holiday: var(--color-orange-500);
 
+  /* Additional semantic colors */
+  --color-disabled: var(--color-gray-400);
+  --color-success-dark: var(--color-green-700);
+  --color-border-light: var(--color-gray-200);
+
   /* Responsive scaling factor */
   --scale-factor: 1;
 }
@@ -255,6 +260,21 @@
   --color-pto-bereavement: var(--color-purple-400);
   --color-pto-jury-duty: var(--color-green-400);
   --color-pto-holiday: var(--color-orange-400);
+
+  /* Dark theme additional colors */
+  --color-disabled: var(--color-gray-500);
+  --color-success-dark: var(--color-green-500);
+  --color-border-light: var(--color-gray-700);
+
+  /* Dark theme additional colors */
+  --color-disabled: var(--color-gray-500);
+  --color-success-dark: var(--color-green-500);
+  --color-border-light: var(--color-gray-700);
+
+  /* Dark theme additional colors */
+  --color-disabled: var(--color-gray-500);
+  --color-success-dark: var(--color-green-500);
+  --color-border-light: var(--color-gray-700);
 }
 
 [data-theme="light"] {

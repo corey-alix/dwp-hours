@@ -12,7 +12,7 @@ export const styles = `
 
 @media screen {
     .legend {
-        gap: 8px 12px;
+        gap: var(--space-xs) var(--space-sm);
     }
     .legend-item {
         gap: var(--space-lg);
@@ -33,7 +33,7 @@ export const styles = `
 }
 
 .calendar {
-    margin-top: 16px;
+    margin-top: var(--space-md);
     padding: var(--space-sm);
 }
 
@@ -50,7 +50,7 @@ export const styles = `
 
 .weekday {
     font-size: var(--font-size-sm);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     color: var(--color-text-secondary);
     text-align: center;
 }
@@ -59,7 +59,7 @@ export const styles = `
     position: relative;
     aspect-ratio: 1;
     border: var(--border-width) var(--border-style-solid) var(--color-border);
-    border-radius: 6px;
+    border-radius: var(--border-radius-sm);
     background: var(--color-surface);
     padding: var(--space-xs);
     font-size: clamp(var(--font-size-xs), 2vw, var(--font-size-sm));
@@ -82,7 +82,7 @@ export const styles = `
 
 .day.clickable:hover {
     transform: scale(1.05);
-    box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
+    box-shadow: var(--shadow-md);
 }
 
 .day.clickable:focus-visible,
@@ -95,7 +95,7 @@ export const styles = `
 }
 
 .day .date {
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     color: var(--color-text);
 }
 
@@ -159,8 +159,8 @@ export const styles = `
 .legend {
     display: flex;
     flex-wrap: wrap;
-    margin-top: 12px;
-    font-size: 12px;
+    margin-top: var(--space-sm);
+    font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
 }
 
@@ -171,8 +171,8 @@ export const styles = `
 
 .legend-item.clickable {
     cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 4px;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--border-radius);
 }
 
 .legend-item.clickable:hover {
@@ -187,19 +187,19 @@ export const styles = `
 
 .legend-item.selected {
     background: var(--color-primary-light);
-    border: 1px solid var(--color-primary);
-    font-weight: 600;
+    border: var(--border-width) solid var(--color-primary);
+    font-weight: var(--font-weight-semibold);
 }
 
 .legend-swatch {
     width: 10px;
     height: 10px;
-    border-radius: 2px;
-    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-sm);
+    border: var(--border-width) solid var(--color-border);
 }
 
 .submit-slot {
-    margin-top: 16px;
+    margin-top: var(--space-md);
     text-align: center;
 }
 

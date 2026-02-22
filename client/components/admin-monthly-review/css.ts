@@ -76,11 +76,11 @@ export const styles = `
   }
 
   .status-indicator.acknowledged {
-    background: var(--color-success, #10b981);
+    background: var(--color-success);
   }
 
   .status-indicator.pending {
-    background: var(--color-warning, #f59e0b);
+    background: var(--color-warning);
   }
 
   .acknowledge-btn {
@@ -101,7 +101,7 @@ export const styles = `
   }
 
   .acknowledge-btn:disabled {
-    background: var(--color-disabled, #9ca3af);
+    background: var(--color-disabled);
     cursor: not-allowed;
   }
 
@@ -111,8 +111,8 @@ export const styles = `
 
   .acknowledged-info p {
     margin: 0;
-    font-size: 14px;
-    color: var(--color-success-dark, #065f46);
+    font-size: var(--font-size-sm);
+    color: var(--color-success-dark);
   }
 
 </style>

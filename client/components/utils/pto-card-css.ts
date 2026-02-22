@@ -74,7 +74,7 @@ export const CARD_CSS = `
 
     .toggle-button {
         background: var(--color-primary);
-        color: black;
+        color: var(--color-on-primary);
         border: none;
         border-radius: var(--border-radius-md);
         padding: var(--space-sm) var(--space-md);
@@ -83,7 +83,7 @@ export const CARD_CSS = `
         display: flex;
         align-items: center;
         gap: var(--space-xs);
-        transition: background-color var(--transition-fast);
+        transition: background-color var(--duration-fast);
         margin: var(--space-md) 0;
         width: 100%;
         justify-content: center;
@@ -99,7 +99,7 @@ export const CARD_CSS = `
     }
 
     .chevron {
-        transition: transform var(--transition-fast);
+        transition: transform var(--duration-fast);
     }
 
     .chevron.expanded {
@@ -137,7 +137,7 @@ export const CARD_CSS = `
         justify-content: space-between;
         padding: var(--space-xs) 0;
         font-size: var(--font-size-sm);
-        border-bottom: 1px solid var(--color-border-light);
+        border-bottom: var(--border-width) solid var(--color-border-light);
     }
 
     .usage-list li:last-child {
@@ -148,7 +148,7 @@ export const CARD_CSS = `
         cursor: pointer;
         text-decoration: underline;
         color: var(--color-primary);
-        transition: background-color var(--transition-fast);
+        transition: background-color var(--duration-fast);
         padding: var(--space-xs);
         border-radius: var(--border-radius-sm);
         margin: calc(var(--space-xs) * -1);

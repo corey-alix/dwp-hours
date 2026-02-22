@@ -52,10 +52,9 @@ This section explains the conceptual purpose of each token category and when to 
 - `--color-warning-light`: Light background for warning-related areas, such as cautionary messages or alerts.
 - `--color-info`: Color for informational messages and neutral states. Used for general information that doesn't fit error/success/warning categories.
 - `--color-info-light`: Light background for info-related areas, such as informational tooltips or neutral messages.
-- `--color-focus`: Color for focus indicators, ensuring accessibility compliance for keyboard navigation.
-- `--color-shadow`: Subtle shadow color for depth and elevation. Used to create layered visual hierarchy.
-- `--color-shadow-dark`: Darker shadow for more pronounced elevation. Applied to elements that need stronger visual separation.
-- `--color-pto-vacation`, `--color-pto-sick`, `--color-pto-bereavement`, `--color-pto-jury-duty`, `--color-pto-holiday`: Specific colors for categorizing different types of PTO visually. Use consistently across all PTO-related elements to maintain recognition.
+- `--color-disabled`: Color for disabled states and inactive elements. Provides consistent visual feedback for non-interactive components.
+- `--color-success-dark`: Darker variant of success color for emphasis or text on light backgrounds.
+- `--color-border-light`: Lighter border color for subtle separations and secondary dividers.
 
 #### Typography Tokens
 

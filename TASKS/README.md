@@ -63,6 +63,7 @@
 - ci-cd-integration.md
 - consolidate-pto-cards.md
 - css-theming-implementation.md
+- css-token-compliance-audit.md
 - current-year-pto-scheduler.md
 - dashboard-navigation-menu.md
 - data-migration.md
