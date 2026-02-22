@@ -45,5 +45,23 @@ export function playground(): void {
   });
   document.body.insertBefore(zeroBtn, component);
 
+  // Add interactive mode toggle button
+  const interactiveBtn = document.createElement("button");
+  interactiveBtn.textContent = "Toggle Interactive";
+  interactiveBtn.style.margin = "8px";
+  interactiveBtn.addEventListener("click", () => {
+    component.interactive = !component.interactive;
+    if (component.interactive && !component.activeType) {
+      component.activeType = "PTO";
+    }
+    testOutput.textContent = `Interactive: ${component.interactive}, Active type: ${component.activeType}`;
+  });
+  document.body.insertBefore(interactiveBtn, component);
+
+  // Listen for pto-type-changed events
+  component.addEventListener("pto-type-changed", ((e: CustomEvent) => {
+    testOutput.textContent = `PTO type changed to: ${e.detail.type}`;
+  }) as EventListener);
+
   console.log("Month Summary playground initialized");
 }

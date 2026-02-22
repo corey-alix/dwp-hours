@@ -54,6 +54,7 @@ This document outlines all remaining tasks to complete the DWP Hours Tracker app
 29. LATER: See ./TASKS/pto-entry-form-multi-calendar.md for details — render all 12 months in pto-entry-form on large viewports (≥960px)
 30. LATER: See ./TASKS/ui-router-migration.md for details — decouple UIManager from concrete pages via a type-safe client-side router
 31. LATER: See ./TASKS/calendar-header-navigation.md for details — move month navigation buttons to flank the month name above the calendar
+32. LATER: See ./TASKS/month-summary-interactive-pto-type.md for details — interactive PTO type selection via month-summary headers (replaces calendar legend in multi-calendar mode)
 
 ## Task Dependencies
 

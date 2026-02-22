@@ -135,12 +135,19 @@ export class PtoCalendar extends BaseComponent {
     return this._selectedCells;
   }
 
+  set selectedCells(value: Map<string, number>) {
+    this._selectedCells = new Map(value);
+    this.requestUpdate();
+  }
+
   get selectedPtoType(): string | null {
     return this._selectedPtoType;
   }
 
   set selectedPtoType(value: string | null) {
+    if (this._selectedPtoType === value) return;
     this._selectedPtoType = value;
+    this.requestUpdate();
   }
 
   // ── Backward-compatible setter methods ──

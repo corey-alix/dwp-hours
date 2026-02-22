@@ -43,7 +43,14 @@ const SUMMARY_TYPES = [
  */
 export class MonthSummary extends BaseComponent {
   static get observedAttributes() {
-    return ["pto-hours", "sick-hours", "bereavement-hours", "jury-duty-hours"];
+    return [
+      "pto-hours",
+      "sick-hours",
+      "bereavement-hours",
+      "jury-duty-hours",
+      "interactive",
+      "active-type",
+    ];
   }
 
   // ── Attribute-backed primitive properties ──
@@ -80,6 +87,32 @@ export class MonthSummary extends BaseComponent {
     this.setAttribute("jury-duty-hours", value.toString());
   }
 
+  // ── Interactive mode properties ──
+
+  get interactive(): boolean {
+    return this.hasAttribute("interactive");
+  }
+
+  set interactive(value: boolean) {
+    if (value) {
+      this.setAttribute("interactive", "");
+    } else {
+      this.removeAttribute("interactive");
+    }
+  }
+
+  get activeType(): string | null {
+    return this.getAttribute("active-type");
+  }
+
+  set activeType(value: string | null) {
+    if (value !== null) {
+      this.setAttribute("active-type", value);
+    } else {
+      this.removeAttribute("active-type");
+    }
+  }
+
   attributeChangedCallback(
     _name: string,
     oldValue: string | null,
@@ -102,6 +135,28 @@ export class MonthSummary extends BaseComponent {
     this.requestUpdate();
   }
 
+  // ── Click handling ──
+
+  protected handleDelegatedClick(e: Event): void {
+    if (!this.interactive) return;
+
+    const target = e.target as HTMLElement;
+    const summaryItem = target.closest(".summary-item") as HTMLElement;
+    if (!summaryItem) return;
+
+    const type = summaryItem.dataset.type;
+    if (!type || type === this.activeType) return;
+
+    this.activeType = type;
+    this.dispatchEvent(
+      new CustomEvent("pto-type-changed", {
+        detail: { type },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
   // ── Rendering ──
 
   private getHoursForAttr(attr: string): number {
@@ -114,13 +169,27 @@ export class MonthSummary extends BaseComponent {
     const hasValue = hours > 0 || delta !== 0;
     const valueClass = hasValue ? config.cssClass : "";
 
+    const isInteractive = this.interactive;
+    const isActive = this.activeType === config.deltaKey;
+    const itemClasses = [
+      "summary-item",
+      isInteractive ? "interactive" : "",
+      isActive ? "active" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    const ariaAttrs = isInteractive
+      ? ` role="option" aria-selected="${isActive}" tabindex="0"`
+      : "";
+
     const deltaHtml =
       delta !== 0
         ? `<span class="summary-pending">${delta > 0 ? "+" : ""}${delta}</span>`
         : "";
 
     return `
-      <div class="summary-item">
+      <div class="${itemClasses}" data-type="${config.deltaKey}"${ariaAttrs}>
         <span class="summary-label">${config.label}</span>
         <span class="summary-value ${valueClass}" data-summary-type="${config.attr.replace("-hours", "")}">${hours}${deltaHtml}</span>
       </div>
@@ -128,6 +197,15 @@ export class MonthSummary extends BaseComponent {
   }
 
   protected render(): string {
+    // Set interactive ARIA attributes on the host element
+    if (this.interactive) {
+      this.setAttribute("role", "listbox");
+      this.setAttribute("aria-label", "PTO type selection");
+    } else {
+      this.removeAttribute("role");
+      this.removeAttribute("aria-label");
+    }
+
     return `
       <style>${styles}</style>
       ${SUMMARY_TYPES.map((t) => this.renderItem(t)).join("")}

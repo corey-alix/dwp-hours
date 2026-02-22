@@ -78,3 +78,40 @@ The component uses Shadow DOM encapsulation. Host element renders as a flex row.
 - `<current-year-pto-scheduler>` — uses attributes + `deltas` property for live editing feedback
 - `<prior-year-review>` — uses attributes only (read-only view)
 - `<pto-summary-card>` — slotted via `balance-summary` slot to display remaining available hours per PTO type on the Submit Time Off page
+- `<pto-entry-form>` — interactive mode for PTO type selection (replaces calendar legend in both single and multi-calendar modes)
+- `<submit-time-off-page>` — interactive balance summary for PTO type selection
+
+## Interactive Mode
+
+When the `interactive` attribute is present, summary labels become clickable PTO type selectors. The `active-type` attribute indicates the currently selected type, shown with a green checkmark (✓) and bolder text. One type is always active (no toggle/deselect). Default is `"PTO"`.
+
+### Interactive Attributes
+
+| Attribute     | Type    | Default | Description                                                        |
+| ------------- | ------- | ------- | ------------------------------------------------------------------ |
+| `interactive` | boolean | `false` | When present, labels become clickable for PTO type selection       |
+| `active-type` | string  | —       | Active PTO type: `"PTO"`, `"Sick"`, `"Bereavement"`, `"Jury Duty"` |
+
+### Events
+
+| Event              | Detail             | Description                                                                     |
+| ------------------ | ------------------ | ------------------------------------------------------------------------------- |
+| `pto-type-changed` | `{ type: string }` | Fired when the user clicks a different PTO type label. Bubbles and is composed. |
+
+### Interactive Usage
+
+```html
+<month-summary
+  interactive
+  active-type="PTO"
+  pto-hours="16"
+  sick-hours="8"
+></month-summary>
+```
+
+```typescript
+const summary = document.querySelector("month-summary");
+summary.addEventListener("pto-type-changed", (e: CustomEvent) => {
+  console.log("Selected PTO type:", e.detail.type);
+});
+```

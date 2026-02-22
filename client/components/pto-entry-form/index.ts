@@ -36,6 +36,9 @@ export class PtoEntryForm extends BaseComponent {
     this.setMultiCalendarMode(e.matches);
   };
 
+  /** Currently active PTO type, persisted across calendar rebuilds */
+  private _activePtoType: string = "PTO";
+
   static get observedAttributes() {
     return ["available-pto-balance"];
   }
@@ -130,9 +133,10 @@ export class PtoEntryForm extends BaseComponent {
       this.shadowRoot,
     );
 
-    // Preserve existing PTO entries from the current calendar(s) so
-    // they can be pushed into the new calendar instances.
+    // Preserve existing PTO entries and pending selections from the
+    // current calendar(s) so they survive the view-mode switch.
     const existingEntries = this.collectPtoEntries();
+    const pendingSelections = this.collectSelectedCells();
 
     container.innerHTML = "";
 
@@ -152,12 +156,35 @@ export class PtoEntryForm extends BaseComponent {
         cal.setAttribute("hide-legend", "true");
 
         const summary = document.createElement("month-summary") as MonthSummary;
+        summary.setAttribute("interactive", "");
+        summary.setAttribute("active-type", this._activePtoType);
+
+        cal.selectedPtoType = this._activePtoType;
 
         // Filter existing entries for this month
         const monthEntries = existingEntries.filter(
           (e) => parseDate(e.date).month === m,
         );
         cal.ptoEntries = monthEntries;
+
+        // Populate summary with existing scheduled hours for this month
+        this.updateSummaryHours(summary, monthEntries);
+
+        // Restore pending selections for this month
+        const monthSelections = new Map<string, number>();
+        for (const [date, hours] of pendingSelections) {
+          if (parseDate(date).month === m) {
+            monthSelections.set(date, hours);
+          }
+        }
+        if (monthSelections.size > 0) {
+          cal.selectedCells = monthSelections;
+          const deltas = computeSelectionDeltas(
+            cal.getSelectedRequests(),
+            monthEntries,
+          );
+          summary.deltas = deltas;
+        }
 
         card.appendChild(cal);
         card.appendChild(summary);
@@ -170,6 +197,7 @@ export class PtoEntryForm extends BaseComponent {
       const cal = document.createElement("pto-calendar") as PtoCalendar;
       cal.setAttribute("readonly", "false");
       cal.setAttribute("hide-header", "true");
+      cal.setAttribute("hide-legend", "true");
 
       const currentDate = today();
       const { month } = parseDate(currentDate);
@@ -177,13 +205,77 @@ export class PtoEntryForm extends BaseComponent {
       cal.setAttribute("year", year.toString());
       cal.setAttribute("selected-month", month.toString());
 
+      cal.selectedPtoType = this._activePtoType;
       cal.ptoEntries = existingEntries;
 
+      // Restore pending selections
+      if (pendingSelections.size > 0) {
+        cal.selectedCells = pendingSelections;
+      }
+
       container.appendChild(cal);
+
+      // Interactive month-summary for PTO type selection
+      const summary = document.createElement("month-summary") as MonthSummary;
+      summary.setAttribute("interactive", "");
+      summary.setAttribute("active-type", this._activePtoType);
+
+      // Populate summary with existing scheduled hours for this month
+      const monthEntries = existingEntries.filter(
+        (e) => parseDate(e.date).month === month,
+      );
+      this.updateSummaryHours(summary, monthEntries);
+
+      // Update summary deltas from restored selections
+      if (pendingSelections.size > 0) {
+        const deltas = computeSelectionDeltas(
+          cal.getSelectedRequests(),
+          existingEntries,
+        );
+        summary.deltas = deltas;
+      }
+
+      container.appendChild(summary);
 
       // Update the external month label
       this.updateMonthLabel(month, year);
     }
+  }
+
+  /**
+   * Compute per-PTO-type hour totals from a list of entries and apply them
+   * to a month-summary element via its hour attributes.
+   */
+  private updateSummaryHours(
+    summary: MonthSummary,
+    entries: ReadonlyArray<{ type: string; hours: number }>,
+  ): void {
+    const totals: Record<string, number> = {};
+    for (const entry of entries) {
+      totals[entry.type] = (totals[entry.type] || 0) + entry.hours;
+    }
+    summary.ptoHours = totals["PTO"] || 0;
+    summary.sickHours = totals["Sick"] || 0;
+    summary.bereavementHours = totals["Bereavement"] || 0;
+    summary.juryDutyHours = totals["Jury Duty"] || 0;
+  }
+
+  /**
+   * Update the single-calendar mode month-summary with the committed hours
+   * for the calendar's currently displayed month.
+   */
+  private updateSingleCalendarSummaryHours(calendar: PtoCalendar): void {
+    const container = this.shadowRoot.querySelector("#calendar-container");
+    if (!container) return;
+    const summary = container.querySelector(
+      "month-summary",
+    ) as MonthSummary | null;
+    if (!summary) return;
+    const month = calendar.month;
+    const monthEntries = calendar.ptoEntries.filter(
+      (e) => parseDate(e.date).month === month,
+    );
+    this.updateSummaryHours(summary, monthEntries);
   }
 
   /**
@@ -200,6 +292,24 @@ export class PtoEntryForm extends BaseComponent {
       entries.push(...(cal as PtoCalendar).ptoEntries);
     });
     return entries;
+  }
+
+  /**
+   * Collect pending (uncommitted) selected cells from all currently rendered
+   * calendars. Used to preserve selections when switching view modes.
+   */
+  private collectSelectedCells(): Map<string, number> {
+    const container = this.shadowRoot.querySelector("#calendar-container");
+    if (!container) return new Map();
+
+    const merged = new Map<string, number>();
+    const calendars = container.querySelectorAll("pto-calendar");
+    calendars.forEach((cal) => {
+      for (const [date, hours] of (cal as PtoCalendar).selectedCells) {
+        merged.set(date, hours);
+      }
+    });
+    return merged;
   }
 
   /**
@@ -223,6 +333,71 @@ export class PtoEntryForm extends BaseComponent {
     const existingEntries = calendar.ptoEntries;
     const deltas = computeSelectionDeltas(selectedRequests, existingEntries);
     summary.deltas = deltas;
+  }
+
+  /**
+   * Handle selection-changed events from the calendar in single-calendar mode.
+   * Updates the month-summary deltas for the single summary in the container.
+   */
+  private handleSingleCalendarSelectionChanged(e: Event): void {
+    const calendar = e.target as PtoCalendar;
+    if (!calendar) return;
+
+    const container = this.shadowRoot.querySelector("#calendar-container");
+    if (!container) return;
+
+    const summary = container.querySelector(
+      "month-summary",
+    ) as MonthSummary | null;
+    if (!summary) return;
+
+    const selectedRequests = calendar.getSelectedRequests();
+    const existingEntries = calendar.ptoEntries;
+    const deltas = computeSelectionDeltas(selectedRequests, existingEntries);
+    summary.deltas = deltas;
+  }
+
+  /**
+   * Handle PTO type change from an interactive month-summary.
+   * Updates all calendars' selectedPtoType and syncs all month-summaries,
+   * then recalculates deltas so the summary values reflect the new type.
+   */
+  private handlePtoTypeChanged(type: string): void {
+    this._activePtoType = type;
+    const calendars = this.getAllCalendars();
+    for (const cal of calendars) {
+      cal.selectedPtoType = type;
+    }
+    const container = this.shadowRoot.querySelector("#calendar-container");
+    if (!container) return;
+    const summaries = container.querySelectorAll("month-summary");
+    summaries.forEach((s) => {
+      (s as MonthSummary).activeType = type;
+    });
+
+    // Recalculate deltas for each calendar's month-summary after re-typing
+    for (const cal of calendars) {
+      const card = cal.closest(".month-card");
+      const summary = card
+        ? (card.querySelector("month-summary") as MonthSummary | null)
+        : (container.querySelector("month-summary") as MonthSummary | null);
+      if (summary) {
+        const selectedRequests = cal.getSelectedRequests();
+        const existingEntries = cal.ptoEntries;
+        summary.deltas = computeSelectionDeltas(
+          selectedRequests,
+          existingEntries,
+        );
+      }
+    }
+  }
+
+  /**
+   * Public API: set the active PTO type from external callers
+   * (e.g. submit-time-off-page balance summary).
+   */
+  setActivePtoType(type: string): void {
+    this.handlePtoTypeChanged(type);
   }
 
   protected render(): string {
@@ -261,8 +436,16 @@ export class PtoEntryForm extends BaseComponent {
     this.shadowRoot.addEventListener("selection-changed", (e: Event) => {
       if (this.isMultiCalendar) {
         this.handleMultiCalendarSelectionChanged(e);
+      } else {
+        this.handleSingleCalendarSelectionChanged(e);
       }
     });
+
+    // PTO type changes from interactive month-summary components
+    this.shadowRoot.addEventListener("pto-type-changed", ((e: CustomEvent) => {
+      const type = e.detail?.type;
+      if (type) this.handlePtoTypeChanged(type);
+    }) as EventListener);
   }
 
   protected handleDelegatedClick(e: Event): void {
@@ -430,6 +613,7 @@ export class PtoEntryForm extends BaseComponent {
     calendar.setAttribute("year", newYear.toString());
     calendar.setAttribute("selected-month", newMonth.toString());
     this.updateMonthLabel(newMonth, newYear);
+    this.updateSingleCalendarSummaryHours(calendar);
   }
 
   /** Update the month label text displayed in the custom navigation header. */
@@ -586,14 +770,23 @@ export class PtoEntryForm extends BaseComponent {
       // Distribute entries to their respective month calendars
       for (const cal of this.getAllCalendars()) {
         const month = cal.month;
-        cal.ptoEntries = ptoEntries.filter(
+        const monthEntries = ptoEntries.filter(
           (e) => parseDate(e.date).month === month,
         );
+        cal.ptoEntries = monthEntries;
+
+        // Update the adjacent month-summary with committed hours
+        const card = cal.closest(".month-card");
+        const summary = card?.querySelector(
+          "month-summary",
+        ) as MonthSummary | null;
+        if (summary) this.updateSummaryHours(summary, monthEntries);
       }
     } else {
       const calendar = this.getCalendar();
       if (calendar) {
         calendar.ptoEntries = ptoEntries;
+        this.updateSingleCalendarSummaryHours(calendar);
       }
     }
   }

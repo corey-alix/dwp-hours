@@ -52,4 +52,38 @@ export const styles = `
     opacity: 0.8;
     margin-left: 1px;
 }
+
+/* Interactive mode: clickable labels for PTO type selection */
+
+.summary-item.interactive {
+    cursor: pointer;
+    user-select: none;
+    transition: opacity var(--duration-fast, 150ms) var(--easing-standard);
+}
+
+.summary-item.interactive:hover {
+    opacity: 0.7;
+}
+
+/* Active PTO type indicator: green checkmark + bolder label */
+
+.summary-item.active .summary-label {
+    font-size: 12px;
+    font-weight: var(--font-weight-bold, 700);
+    border-bottom-color: currentColor;
+}
+
+.summary-item.active .summary-label::after {
+    content: "✓";
+    color: var(--color-success, #16a34a);
+    margin-left: 2px;
+    font-weight: var(--font-weight-bold, 700);
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .summary-item.interactive {
+        transition: none;
+    }
+}
 `;

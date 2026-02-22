@@ -63,7 +63,7 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
   protected render(): string {
     return `
       ${styles}
-      <month-summary id="form-balance-summary"></month-summary>
+      <month-summary id="form-balance-summary" interactive active-type="PTO"></month-summary>
       <pto-entry-form id="pto-entry-form"></pto-entry-form>
       <div class="form-actions">
         <button type="button" class="btn btn-secondary" data-action="cancel">Cancel</button>
@@ -99,6 +99,23 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
 
     this.shadowRoot.addEventListener("selection-changed", ((e: Event) => {
       e.stopPropagation();
+      this.handleSelectionChanged();
+    }) as EventListener);
+
+    this.shadowRoot.addEventListener("pto-type-changed", ((e: CustomEvent) => {
+      e.stopPropagation();
+      const type = e.detail?.type;
+      if (!type) return;
+
+      // Sync balance summary
+      const summary = this.getBalanceSummary();
+      if (summary) summary.activeType = type;
+
+      // Forward to pto-entry-form
+      const form = this.getPtoForm();
+      if (form) form.setActivePtoType(type);
+
+      // Recalculate balance summary deltas after re-typing
       this.handleSelectionChanged();
     }) as EventListener);
   }
