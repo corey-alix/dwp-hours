@@ -60,7 +60,7 @@ export const styles = `<style>
   }
 
   .request-card {
-    background: var(--color-surface);
+    background: var(--color-background);
     border-radius: var(--border-radius-lg);
     padding: var(--space-lg);
     margin-bottom: var(--space-md);

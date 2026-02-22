@@ -83,7 +83,7 @@ export const styles = `<style>
   }
 
   .employee-card {
-    background: var(--color-surface);
+    background: var(--color-background);
     border-radius: 8px;
     padding: 16px;
     box-shadow: 0 2px 4px var(--color-shadow);

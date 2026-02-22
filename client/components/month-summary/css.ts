@@ -18,6 +18,8 @@ export const styles = `
 .summary-label {
     font-size: 10px;
     margin-bottom: 2px;
+    border-bottom: var(--border-width) solid var(--color-border);
+    text-transform: uppercase;
 }
 
 .summary-value {

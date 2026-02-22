@@ -45,7 +45,7 @@ export const styles = `
     border: 1px solid var(--color-border);
     border-radius: 8px;
     padding: 20px;
-    background: var(--color-surface);
+    background: var(--color-background);
     box-shadow: 0 2px 4px var(--color-shadow);
   }
 

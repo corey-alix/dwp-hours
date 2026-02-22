@@ -25,6 +25,82 @@ The design system is centralized in `client/tokens.css` with the following categ
 - Borders: `--border-{property}-{variant}` (e.g., `--border-radius-lg`)
 - Shadows: `--shadow-{size}` (e.g., `--shadow-md`)
 
+### Token Usage Guidelines
+
+This section explains the conceptual purpose of each token category and when to apply them for consistent theming.
+
+#### Color Tokens
+
+- `--color-background`: The main page or application background color. Use for the root background or large areas that serve as the base layer.
+- `--color-surface`: Background color for cards, panels, modals, and other elevated elements that sit above the main background. Provides visual hierarchy by creating distinct content areas.
+- `--color-surface-hover`: Background color for interactive surface elements when hovered or focused. Enhances user feedback and indicates clickable areas.
+- `--color-text`: Primary text color for headings, body text, and important labels. Ensures high contrast and readability as the default text color.
+- `--color-text-secondary`: Secondary text color for subtitles, descriptions, and less important information. Provides visual hierarchy in text content without overwhelming the primary text.
+- `--color-text-muted`: Muted text color for placeholders, disabled states, and tertiary information. Used when text needs to be de-emphasized or appears less prominent.
+- `--color-border`: Default border color for form inputs, dividers, and structural elements. Creates subtle separation between UI elements.
+- `--color-border-hover`: Border color for interactive elements when hovered or focused. Indicates interactivity and improves accessibility.
+- `--color-primary`: Primary brand color for buttons, links, and key interactive elements. Represents the main action or brand identity in the interface.
+- `--color-primary-hover`: Hover state for primary elements. Provides visual feedback on interaction with primary actions.
+- `--color-primary-light`: Light variant of primary color, often used for backgrounds or subtle highlights related to primary elements.
+- `--color-secondary`: Secondary color for less prominent buttons, links, or accents. Supports primary color without competing for attention.
+- `--color-secondary-hover`: Hover state for secondary elements. Maintains consistency with primary hover patterns.
+- `--color-error`: Color for error states, validation messages, and destructive actions. Indicates problems, warnings, or critical issues.
+- `--color-error-light`: Light background for error-related areas, such as error message containers or validation feedback.
+- `--color-success`: Color for success states, confirmations, and positive feedback. Indicates successful operations or positive outcomes.
+- `--color-success-light`: Light background for success-related areas, such as confirmation messages or success indicators.
+- `--color-warning`: Color for warning states and cautionary information. Indicates potential issues that require attention.
+- `--color-warning-light`: Light background for warning-related areas, such as cautionary messages or alerts.
+- `--color-info`: Color for informational messages and neutral states. Used for general information that doesn't fit error/success/warning categories.
+- `--color-info-light`: Light background for info-related areas, such as informational tooltips or neutral messages.
+- `--color-focus`: Color for focus indicators, ensuring accessibility compliance for keyboard navigation.
+- `--color-shadow`: Subtle shadow color for depth and elevation. Used to create layered visual hierarchy.
+- `--color-shadow-dark`: Darker shadow for more pronounced elevation. Applied to elements that need stronger visual separation.
+- `--color-pto-vacation`, `--color-pto-sick`, `--color-pto-bereavement`, `--color-pto-jury-duty`, `--color-pto-holiday`: Specific colors for categorizing different types of PTO visually. Use consistently across all PTO-related elements to maintain recognition.
+
+#### Typography Tokens
+
+- `--font-family-base`: Default font family for body text and general use. Provides the primary typeface for most text content.
+- `--font-family-heading`: Font family for headings and titles. May differ from base font for better hierarchy and emphasis.
+- `--font-size-base`: Base font size, typically 1rem. Serves as the reference size for scaling other text elements.
+- `--font-size-xs`, `--font-size-sm`, `--font-size-md`, `--font-size-lg`, `--font-size-xl`, `--font-size-2xl`: Scaled font sizes for text hierarchy. Use progressively larger sizes for headings and smaller sizes for captions.
+- `--font-weight-normal`, `--font-weight-medium`, `--font-weight-semibold`, `--font-weight-bold`: Font weights for emphasis. Apply higher weights to important text and lower weights to body text.
+- `--line-height-base`: Standard line height for readability. Use for most body text to ensure comfortable reading.
+- `--line-height-tight`: Tighter line height for compact text. Apply to headings or dense information where space is limited.
+
+#### Spacing Tokens
+
+- `--space-xs`: Smallest spacing unit (4px), for tight spacing like padding between small elements or fine adjustments.
+- `--space-sm`: Small spacing (8px), for input padding, small gaps between elements, or compact layouts.
+- `--space-md`: Medium spacing (16px), standard padding and margins for most UI elements.
+- `--space-lg`: Large spacing (24px), for section spacing or larger gaps between related content groups.
+- `--space-xl`: Extra large spacing (32px), for major layout gaps or separation between distinct sections.
+- `--space-2xl`: Double extra large spacing (48px), for page sections or significant visual breaks.
+- `--space-header`: Specific spacing for header elements, ensuring consistent header layouts.
+
+#### Border Tokens
+
+- `--border-width`: Standard border width (1px). Use for most borders to maintain consistency.
+- `--border-width-thick`: Thicker border width (2px). Apply for emphasis or to create stronger visual separation.
+- `--border-radius`: Default border radius (4px). Use for buttons, inputs, and cards to soften edges.
+- `--border-radius-sm`, `--border-radius-md`, `--border-radius-lg`, `--border-radius-xl`: Different radius sizes for various UI elements. Smaller radii for compact elements, larger for spacious ones.
+- `--border-style-solid`: Solid border style. The primary border style for structural elements.
+
+#### Shadow Tokens
+
+- `--shadow-sm`: Small shadow for subtle elevation. Use for slight depth on flat elements.
+- `--shadow-md`: Medium shadow for cards and panels. Provides standard elevation for content containers.
+- `--shadow-lg`: Large shadow for modals and overlays. Creates strong visual separation for floating elements.
+- `--shadow-xl`: Extra large shadow for prominent elements. Use sparingly for elements requiring maximum attention.
+
+#### Animation Tokens
+
+- `--duration-fast`: Quick animations (150ms). Use for immediate feedback like button presses or small state changes.
+- `--duration-normal`: Standard animations (250ms). Apply to most transitions for smooth user experience.
+- `--duration-slow`: Slow animations (400ms). Use for larger state changes or entering/exiting elements.
+- `--easing-standard`: Standard easing curve. Provides natural motion for most animations.
+- `--easing-decelerate`: Decelerating easing. Use when elements come to rest or slow down.
+- `--easing-accelerate`: Accelerating easing. Apply when elements start moving or speed up.
+
 ### Theme Support
 
 - **Automatic**: Uses `prefers-color-scheme` media queries for system preference detection
@@ -50,7 +126,7 @@ When activated, follow this structured approach:
 2. **Validate Token Usage**: Ensure all colors use `var()` references, no hardcoded values
 3. **Apply Semantic Naming**: Use purpose-driven names (primary, error, success) over color-specific names (blue, red)
 4. **Update Tokens.css**: Add new tokens to the centralized file following established patterns
-5. **Update Components**: Modify component styles to reference new/updated tokens
+5. **Apply Tokens**: Modify styles to reference new/updated tokens
 6. **Test Theme Consistency**: Verify changes work in both light and dark themes
 7. **Run Enforcement**: Execute `npm run lint` to ensure Stylelint passes (bans hardcoded colors)
 
@@ -75,7 +151,7 @@ Components should:
 ## Examples
 
 - "Add a new warning color variant to the theme"
-- "Convert this component's hardcoded colors to use tokens"
+- "Convert hardcoded colors to use design tokens"
 - "How do I add spacing to a new component?"
 - "Fix this component to work in dark mode"
 - "What's the correct token for primary button colors?"
@@ -138,40 +214,5 @@ This skill maintains the project's vanilla CSS approach with no CSS-in-JS framew
 - **Consistent Experience**: All components and UI elements adapt automatically
 - **Battery Friendly**: Respects system settings that may optimize for battery life in dark mode
 - **Cross-Platform**: Works consistently across different operating systems and browsers
-- **Maintainable**: Semantic naming and hierarchical structure make theme updates easy
-
-### Component Adaptation Plan
-
-Each web component must be updated to use semantic CSS custom properties instead of hardcoded colors. The following plan outlines the theming adaptation for each component:
-
-- **admin-panel**: Update navigation background, borders, and text colors to use `--color-surface`, `--color-primary`, and `--color-text`
-- **confirmation-dialog**: ✅ Adapted modal background, button colors, and text to use `--color-surface`, `--color-primary`, `--color-error`, and `--color-text`
-- **data-table**: ✅ Adapted table headers, rows, borders, and hover states to use `--color-surface`, `--color-text`, and `--color-primary` variants
-- **employee-form**: ✅ Adapted form inputs, labels, borders, and validation states to use `--color-surface`, `--color-text`, `--color-primary`, and `--color-error`
-- **employee-list**: Update list items, action buttons, and status indicators to use `--color-surface`, `--color-text`, and `--color-primary`
-- **pto-calendar**: Adapt calendar grid, day cells, and PTO type color coding to use `--color-surface`, `--color-text`, and semantic PTO colors
-- **pto-request-queue**: Update request cards, status badges, and action buttons to use `--color-surface`, `--color-text`, `--color-primary`, and `--color-error`
-- **report-generator**: Adapt filter controls, export buttons, and report tables to use `--color-surface`, `--color-text`, and `--color-primary`
-- **pto-summary-card**: Update card background, text, and accent colors to use `--color-surface`, `--color-text`, and `--color-primary`
-- **pto-accrual-card**: Adapt grid layout, calendar icons, and accrual indicators to use `--color-surface`, `--color-text`, and `--color-primary`
-- **pto-sick-card**: Update card styling and date/hour list formatting to use `--color-surface`, `--color-text`, and `--color-error` for sick-specific theming
-- **pto-bereavement-card**: Adapt card background and bereavement entry styling to use `--color-surface`, `--color-text`, and bereavement-specific semantic colors
-- **pto-jury-duty-card**: Update card theming and jury duty entry formatting to use `--color-surface`, `--color-text`, and jury duty-specific colors
-- **pto-employee-info-card**: Adapt info display and metadata styling to use `--color-surface`, `--color-text`, and `--color-primary`
-
-### Implementation Steps
-
-1. **Audit Current Styles**: Review each component's CSS for hardcoded colors and identify semantic replacements
-2. **Define Missing Variables**: Add any component-specific semantic color variables to the theme system (e.g., `--color-pto-sick`, `--color-pto-bereavement`)
-3. **Update Component Styles**: Replace hardcoded colors with CSS custom property references
-4. **Test Theme Switching**: Verify all components adapt properly when system theme changes
-5. **Validate Accessibility**: Ensure contrast ratios remain compliant in both light and dark themes
-
-### Theming Tips for Consistency
-
-- **Design Tokens**: Define reusable tokens: e.g., `--font-size-base: 1rem; --border-width: 1px; --border-radius: 4px`
-- **Units and Scaling**: Prefer `rem` for fonts/sizes, `em` for borders/radii within components, avoid pixels
-- **Naming and Structure**: Consistent naming with category prefixes, modular files, use Sass/Less for complex maps
-- **Enforcement**: Stylelint rules to ban hardcoded values, enforce var() usage
-- **Best Practices**: Inherit via `:host` in web components, test with visual regression tools</content>
+- **Maintainable**: Semantic naming and hierarchical structure make theme updates easy</content>
   <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/.github/skills/css-theming-assistant/SKILL.md

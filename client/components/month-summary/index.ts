@@ -6,25 +6,25 @@ import { styles } from "./css.js";
  */
 const SUMMARY_TYPES = [
   {
-    label: "PTO:",
+    label: "PTO",
     attr: "pto-hours",
     cssClass: "summary-pto",
     deltaKey: "PTO",
   },
   {
-    label: "Sick:",
+    label: "Sick",
     attr: "sick-hours",
     cssClass: "summary-sick",
     deltaKey: "Sick",
   },
   {
-    label: "Bereavement:",
+    label: "Bereavement",
     attr: "bereavement-hours",
     cssClass: "summary-bereavement",
     deltaKey: "Bereavement",
   },
   {
-    label: "Jury Duty:",
+    label: "Jury Duty",
     attr: "jury-duty-hours",
     cssClass: "summary-jury-duty",
     deltaKey: "Jury Duty",

@@ -17,3 +17,4 @@ db/backups/
 test-results
 *.Identifier
 deploy
+AGENT_DIAGNOSTICS.log
