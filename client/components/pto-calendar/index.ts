@@ -14,7 +14,7 @@ import {
 import { BaseComponent } from "../base-component.js";
 import { styles, PTO_TYPE_COLORS } from "./css.js";
 
-const monthNames = [
+export const monthNames = [
   "January",
   "February",
   "March",
@@ -59,7 +59,14 @@ export class PtoCalendar extends BaseComponent {
 
   // ── Primitives: attribute-backed get/set ──
   static get observedAttributes() {
-    return ["month", "year", "selected-month", "readonly", "hide-legend"];
+    return [
+      "month",
+      "year",
+      "selected-month",
+      "readonly",
+      "hide-legend",
+      "hide-header",
+    ];
   }
 
   get month(): number {
@@ -104,6 +111,14 @@ export class PtoCalendar extends BaseComponent {
 
   set hideLegend(value: boolean) {
     this.setAttribute("hide-legend", value.toString());
+  }
+
+  get hideHeader(): boolean {
+    return this.getAttribute("hide-header") === "true";
+  }
+
+  set hideHeader(value: boolean) {
+    this.setAttribute("hide-header", value.toString());
   }
 
   // ── Complex value accessors ──
@@ -338,9 +353,13 @@ export class PtoCalendar extends BaseComponent {
 
     return `
             <div class="calendar">
-                <div class="calendar-header">
+                ${
+                  this.hideHeader
+                    ? ""
+                    : `<div class="calendar-header">
                     ${monthNames[this.month - 1]} ${this.year}
-                </div>
+                </div>`
+                }
                 <div class="calendar-grid">
                     ${weekdays.map((day) => `<div class="weekday">${day}</div>`).join("")}
                     ${calendarDates.map((dateStr) => this.renderDayCell(dateStr)).join("")}

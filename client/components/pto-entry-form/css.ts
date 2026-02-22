@@ -12,15 +12,21 @@ export const styles = `
                     padding: var(--space-sm);
                 }
 
-                .form-header {
-                    margin-bottom: var(--space-lg);
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                }
-
                 .hidden {
                     display: none;
+                }
+
+                .calendar-header-nav {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: var(--space-md);
+                }
+
+                .calendar-month-label {
+                    font-weight: var(--font-weight-semibold);
+                    text-transform: uppercase;
+                    color: var(--color-text);
                 }
 
                 .calendar-view {
@@ -29,24 +35,6 @@ export const styles = `
 
                 .calendar-container {
                     /* Animation is driven by inline styles in navigateMonthWithAnimation() */
-                }
-
-                .calendar-toolbar {
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    margin-bottom: var(--space-md);
-                }
-
-                .calendar-title {
-                    font-weight: var(--font-weight-semibold);
-                    color: var(--color-text);
-                }
-
-                .calendar-navigation {
-                    display: flex;
-                    align-items: center;
-                    gap: var(--space-sm);
                 }
 
                 .nav-arrow {
@@ -74,9 +62,9 @@ export const styles = `
                     cursor: not-allowed;
                 }
 
-                /* Hide navigation arrows on touch devices */
+                /* Hide navigation header on touch devices */
                 @media (hover: none) and (pointer: coarse) {
-                    .form-header, .calendar-navigation, .nav-arrow {
+                    .calendar-header-nav {
                         display: none;
                     }
                 }
@@ -110,7 +98,7 @@ export const styles = `
                     max-width: none;
                 }
 
-                :host(.multi-calendar) .form-header {
+                :host(.multi-calendar) .calendar-header-nav {
                     display: none;
                 }
 
