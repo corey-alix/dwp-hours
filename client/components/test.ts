@@ -10,10 +10,7 @@ import { playground as dataTable } from "./data-table/test.js";
 import { playground as ptoDashboard } from "./pto-dashboard/test.js";
 import { playground as ptoCalendar } from "./pto-calendar/test.js";
 import { playground as ptoSummaryCard } from "./pto-summary-card/test.js";
-import { playground as ptoBereavementCard } from "./pto-bereavement-card/test.js";
-import { playground as ptoJuryDutyCard } from "./pto-jury-duty-card/test.js";
 import { playground as ptoPtoCard } from "./pto-pto-card/test.js";
-import { playground as ptoSickCard } from "./pto-sick-card/test.js";
 import { playground as ptoEmployeeInfoCard } from "./pto-employee-info-card/test.js";
 import { playground as priorYearReview } from "./prior-year-review/test.js";
 import { playground as ptoBalanceSummary } from "./pto-balance-summary/test.js";
@@ -32,10 +29,7 @@ export {
   ptoDashboard,
   ptoCalendar,
   ptoSummaryCard,
-  ptoBereavementCard,
-  ptoJuryDutyCard,
   ptoPtoCard,
-  ptoSickCard,
   ptoEmployeeInfoCard,
   priorYearReview,
   ptoBalanceSummary,

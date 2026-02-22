@@ -56,7 +56,8 @@ This document outlines all remaining tasks to complete the DWP Hours Tracker app
 30. LATER: See ./TASKS/ui-router-migration.md for details — decouple UIManager from concrete pages via a type-safe client-side router
 31. LATER: See ./TASKS/calendar-header-navigation.md for details — move month navigation buttons to flank the month name above the calendar
 32. LATER: See ./TASKS/month-summary-interactive-pto-type.md for details — interactive PTO type selection via month-summary headers (replaces calendar legend in multi-calendar mode)
-33. LATER: See ./TASKS/admin-review-month-summary-integration.md for details — replace bespoke hours breakdown in admin-monthly-review with reusable month-summary component showing available−scheduled balances
+33. DONE: See ./TASKS/admin-review-month-summary-integration.md for details — replace bespoke hours breakdown in admin-monthly-review with reusable month-summary component showing available−scheduled balances
+34. LATER: See ./TASKS/consolidate-pto-cards.md for details — replace four PTO card components with month-summary balances + unified detail card
 
 ## Task Dependencies
 

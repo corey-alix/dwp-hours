@@ -1,36 +1,66 @@
-# PTO Card Component
+# Scheduled Time Off Card Component
 
-A web component for displaying PTO (Paid Time Off) information with approval indicators.
+A unified web component that displays all scheduled time off entries (PTO, Sick, Bereavement, Jury Duty) in a single reverse-chronological table with color-coded hours and approval indicators.
 
 ## Features
 
-- Displays PTO allowance, used hours, and remaining balance
-- Green checkbox beside "Used" when all PTO time is approved
-- Expandable details showing individual PTO entries by date
+- Displays all PTO types in a single expandable table
+- Color-coded hours by PTO type (vacation, sick, bereavement, jury duty)
+- Green checkmark (✓) for approved entries
+- Expandable details with "Show Details" toggle
 - Clickable dates for calendar navigation
 - Responsive design for mobile devices
 
 ## Usage
 
 ```html
-<pto-pto-card
-  data='{"allowed": 80, "used": 24, "remaining": 56}'
-  entries='[{"date": "2026-01-15", "hours": 8}, {"date": "2026-01-16", "hours": 8}]'
-  full-entries='[{"id": 1, "employeeId": 1, "date": "2026-01-15", "type": "PTO", "hours": 8, "createdAt": "2026-01-01T00:00:00Z", "approved_by": 3}]'
-></pto-pto-card>
+<pto-pto-card></pto-pto-card>
 ```
 
-## Attributes
+```typescript
+const card = document.querySelector<PtoPtoCard>("pto-pto-card");
+card.fullPtoEntries = [
+  {
+    id: 1,
+    employeeId: 1,
+    date: "2026-02-20",
+    type: "PTO",
+    hours: 8,
+    createdAt: "2026-01-01T00:00:00Z",
+    approved_by: 3,
+  },
+  {
+    id: 2,
+    employeeId: 1,
+    date: "2026-02-13",
+    type: "Sick",
+    hours: 8,
+    createdAt: "2026-01-01T00:00:00Z",
+    approved_by: 3,
+  },
+  {
+    id: 3,
+    employeeId: 1,
+    date: "2026-06-12",
+    type: "Bereavement",
+    hours: 8,
+    createdAt: "2026-01-01T00:00:00Z",
+    approved_by: null,
+  },
+];
+```
 
-- `data`: JSON string containing PTO bucket data
-  - `allowed`: Total PTO hours allowed (number)
-  - `used`: PTO hours already used (number)
-  - `remaining`: PTO hours remaining (number)
-- `entries`: JSON array of usage entries for display
-  - `date`: Date string in YYYY-MM-DD format
-  - `hours`: Hours used on that date (number)
-- `full-entries`: JSON array of full PTOEntry objects with approval status
-- `expanded`: Boolean attribute to control initial expansion state
+## Properties (Complex)
+
+| Property         | Type         | Default | Description                                       |
+| ---------------- | ------------ | ------- | ------------------------------------------------- |
+| `fullPtoEntries` | `PTOEntry[]` | `[]`    | All PTO entries to display (all types, all dates) |
+
+## Attributes (Primitives)
+
+| Attribute  | Type    | Default   | Description                              |
+| ---------- | ------- | --------- | ---------------------------------------- |
+| `expanded` | boolean | `"false"` | Controls the expand/collapse detail view |
 
 ## Data Structures
 
@@ -48,31 +78,29 @@ interface PTOEntry {
 }
 ```
 
+## Table Columns
+
+| Column | Description                                           |
+| ------ | ----------------------------------------------------- |
+| Date   | Clickable date link (navigates to calendar month)     |
+| Type   | PTO type label                                        |
+| Hours  | Hours value, color-coded by type with approval marker |
+
 ## Events
 
 - `navigate-to-month`: Fired when a date is clicked
   - `detail.month`: Month number (0-11)
   - `detail.year`: Year number
 
-## Styling
+## Color Coding
 
-The component uses shared PTO card CSS with the following approval indicator:
+Hours are color-coded by PTO type using design tokens:
 
-```css
-.card .label.approved::after {
-  content: " ✓";
-  color: var(--color-success);
-  font-weight: var(--font-weight-semibold);
-}
-```
+- PTO: `--color-pto-vacation`
+- Sick: `--color-pto-sick`
+- Bereavement: `--color-pto-bereavement`
+- Jury Duty: `--color-pto-jury-duty`
 
-## Approval Indicators
+## Consumers
 
-Green checkmark (✓) appears after the word 'Used' (displayed as 'Used ✓') when all PTO entries are approved. The checkmark is rendered via CSS using the `approved` class.
-
-## Dependencies
-
-- `SimplePtoBucketCard` base class
-- `PTO_CARD_CSS` shared styles
-- Date utility functions from `shared/dateUtils.js`
-- PTOEntry type from `shared/api-models.js`
+- `<current-year-summary-page>` — unified detail card showing all scheduled time off for the year

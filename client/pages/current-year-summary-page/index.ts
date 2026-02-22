@@ -1,11 +1,9 @@
 import { BaseComponent } from "../../components/base-component.js";
 import type { PageComponent } from "../../router/types.js";
 import type { PtoSummaryCard } from "../../components/pto-summary-card/index.js";
-import type { PtoSickCard } from "../../components/pto-sick-card/index.js";
-import type { PtoBereavementCard } from "../../components/pto-bereavement-card/index.js";
-import type { PtoJuryDutyCard } from "../../components/pto-jury-duty-card/index.js";
 import type { PtoPtoCard } from "../../components/pto-pto-card/index.js";
 import type { PtoEmployeeInfoCard } from "../../components/pto-employee-info-card/index.js";
+import type { MonthSummary } from "../../components/month-summary/index.js";
 import type * as ApiTypes from "../../../shared/api-models.js";
 import {
   getCurrentYear,
@@ -54,10 +52,8 @@ export class CurrentYearSummaryPage
       <div class="pto-summary">
         <pto-employee-info-card></pto-employee-info-card>
         <pto-summary-card></pto-summary-card>
+        <month-summary></month-summary>
         <pto-pto-card></pto-pto-card>
-        <pto-sick-card></pto-sick-card>
-        <pto-bereavement-card></pto-bereavement-card>
-        <pto-jury-duty-card></pto-jury-duty-card>
       </div>
     `;
   }
@@ -95,55 +91,34 @@ export class CurrentYearSummaryPage
       };
     }
 
-    // Sick card
-    const sickCard =
-      this.shadowRoot.querySelector<PtoSickCard>("pto-sick-card");
-    if (sickCard) {
-      sickCard.bucket = status.sickTime;
-      sickCard.usageEntries = this.buildUsageEntries(entries, year, "Sick");
-      sickCard.fullPtoEntries = entries.filter(
-        (e) => e.type === "Sick" && parseDate(e.date).year === year,
+    // Month summary — balances (allocated) and hours (used) per type
+    const monthSummary =
+      this.shadowRoot.querySelector<MonthSummary>("month-summary");
+    if (monthSummary) {
+      const yearEntries = (Array.isArray(entries) ? entries : []).filter(
+        (e) => parseDate(e.date).year === year,
       );
+      const usedByType: Record<string, number> = {};
+      for (const entry of yearEntries) {
+        usedByType[entry.type] = (usedByType[entry.type] ?? 0) + entry.hours;
+      }
+      monthSummary.ptoHours = usedByType["PTO"] ?? 0;
+      monthSummary.sickHours = usedByType["Sick"] ?? 0;
+      monthSummary.bereavementHours = usedByType["Bereavement"] ?? 0;
+      monthSummary.juryDutyHours = usedByType["Jury Duty"] ?? 0;
+      monthSummary.balances = {
+        PTO: status.ptoTime.allowed,
+        Sick: status.sickTime.allowed,
+        Bereavement: status.bereavementTime.allowed,
+        "Jury Duty": status.juryDutyTime.allowed,
+      };
     }
 
-    // Bereavement card
-    const bereavementCard = this.shadowRoot.querySelector<PtoBereavementCard>(
-      "pto-bereavement-card",
-    );
-    if (bereavementCard) {
-      bereavementCard.bucket = status.bereavementTime;
-      bereavementCard.usageEntries = this.buildUsageEntries(
-        entries,
-        year,
-        "Bereavement",
-      );
-      bereavementCard.fullPtoEntries = entries.filter(
-        (e) => e.type === "Bereavement" && parseDate(e.date).year === year,
-      );
-    }
-
-    // Jury duty card
-    const juryDutyCard =
-      this.shadowRoot.querySelector<PtoJuryDutyCard>("pto-jury-duty-card");
-    if (juryDutyCard) {
-      juryDutyCard.bucket = status.juryDutyTime;
-      juryDutyCard.usageEntries = this.buildUsageEntries(
-        entries,
-        year,
-        "Jury Duty",
-      );
-      juryDutyCard.fullPtoEntries = entries.filter(
-        (e) => e.type === "Jury Duty" && parseDate(e.date).year === year,
-      );
-    }
-
-    // PTO card
+    // Unified detail card — all entries for the year
     const ptoCard = this.shadowRoot.querySelector<PtoPtoCard>("pto-pto-card");
     if (ptoCard) {
-      ptoCard.bucket = status.ptoTime;
-      ptoCard.usageEntries = this.buildUsageEntries(entries, year, "PTO");
-      ptoCard.fullPtoEntries = entries.filter(
-        (e) => e.type === "PTO" && parseDate(e.date).year === year,
+      ptoCard.fullPtoEntries = (Array.isArray(entries) ? entries : []).filter(
+        (e) => parseDate(e.date).year === year,
       );
     }
   }
@@ -157,7 +132,6 @@ export class CurrentYearSummaryPage
     const handleNavToMonth = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       const { month, year } = detail;
-      // Navigate via the router
       window.dispatchEvent(
         new CustomEvent("router-navigate", {
           detail: { path: `/submit-time-off?month=${month}&year=${year}` },
@@ -165,43 +139,13 @@ export class CurrentYearSummaryPage
       );
     };
 
-    for (const tag of [
-      "pto-sick-card",
-      "pto-bereavement-card",
-      "pto-jury-duty-card",
-      "pto-pto-card",
-    ]) {
-      const card = this.shadowRoot.querySelector(tag);
-      if (card) {
-        card.addEventListener("navigate-to-month", handleNavToMonth);
-      }
+    const card = this.shadowRoot.querySelector("pto-pto-card");
+    if (card) {
+      card.addEventListener("navigate-to-month", handleNavToMonth);
     }
   }
 
   // ── Shared helpers (moved from UIManager) ─────────────────────
-
-  private buildUsageEntries(
-    entries: ApiTypes.PTOEntry[],
-    year: number,
-    type: string,
-  ): { date: string; hours: number }[] {
-    const safe = Array.isArray(entries) ? entries : [];
-    const hoursByDate = new Map<string, number>();
-
-    for (const entry of safe) {
-      if (entry.type !== type) continue;
-      const { year: ey } = parseDate(entry.date);
-      if (ey !== year) continue;
-      hoursByDate.set(
-        entry.date,
-        (hoursByDate.get(entry.date) ?? 0) + entry.hours,
-      );
-    }
-
-    return Array.from(hoursByDate.entries())
-      .map(([date, hours]) => ({ date, hours }))
-      .sort((a, b) => a.date.localeCompare(b.date));
-  }
 
   private computeAccrualFields(status: ApiTypes.PTOStatusResponse): {
     carryoverHours: number;

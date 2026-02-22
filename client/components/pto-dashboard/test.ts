@@ -1,12 +1,6 @@
 import { querySingle } from "../test-utils.js";
-import {
-  PtoBereavementCard,
-  PtoEmployeeInfoCard,
-  PtoJuryDutyCard,
-  PtoPtoCard,
-  PtoSickCard,
-  PtoSummaryCard,
-} from "./index.js";
+import { PtoEmployeeInfoCard, PtoPtoCard, PtoSummaryCard } from "./index.js";
+import type { MonthSummary } from "../month-summary/index.js";
 import { today, formatDateForDisplay } from "../../../shared/dateUtils.js";
 import { seedPTOEntries, seedEmployees } from "../../../shared/seedData.js";
 
@@ -130,38 +124,14 @@ const fullPtoEntries = ptoEntries.map((entry, index) => {
   };
 });
 
-// Filter entries by type
-const sickEntries = ptoEntries
-  .filter((e) => e.type === "Sick")
-  .map((e) => ({
-    date: e.date,
-    hours: e.hours,
-  }));
-
-const bereavementEntries = ptoEntries
-  .filter((e) => e.type === "Bereavement")
-  .map((e) => ({
-    date: e.date,
-    hours: e.hours,
-  }));
-
-const juryEntries = ptoEntries
-  .filter((e) => e.type === "Jury Duty")
-  .map((e) => ({
-    date: e.date,
-    hours: e.hours,
-  }));
-
 // formatDateForDisplay imported from shared/dateUtils.js
 
 export function playground(): void {
   console.log("Starting PTO dashboard playground test with API data...");
 
   const summary = querySingle<PtoSummaryCard>("pto-summary-card");
+  const monthSummary = querySingle<MonthSummary>("month-summary");
   const pto = querySingle<PtoPtoCard>("pto-pto-card");
-  const sick = querySingle<PtoSickCard>("pto-sick-card");
-  const bereavement = querySingle<PtoBereavementCard>("pto-bereavement-card");
-  const jury = querySingle<PtoJuryDutyCard>("pto-jury-duty-card");
   const info = querySingle<PtoEmployeeInfoCard>("pto-employee-info-card");
 
   summary.summary = {
@@ -171,32 +141,20 @@ export function playground(): void {
     carryoverFromPreviousYear: ptoStatus.carryoverFromPreviousYear,
   };
 
-  const ptoEntriesFiltered = approvedEntries
-    .filter((e) => e.type === "PTO")
-    .map((e) => ({
-      date: e.date,
-      hours: e.hours,
-    }));
+  // Month summary — balances (allocated) and hours (used) per type
+  monthSummary.ptoHours = ptoUsed;
+  monthSummary.sickHours = sickUsed;
+  monthSummary.bereavementHours = bereavementUsed;
+  monthSummary.juryDutyHours = juryUsed;
+  monthSummary.balances = {
+    PTO: ptoStatus.ptoTime.allowed,
+    Sick: ptoStatus.sickTime.allowed,
+    Bereavement: ptoStatus.bereavementTime.allowed,
+    "Jury Duty": ptoStatus.juryDutyTime.allowed,
+  };
 
-  pto.bucket = ptoStatus.ptoTime;
-  pto.usageEntries = ptoEntriesFiltered;
-  pto.fullPtoEntries = fullPtoEntries.filter(
-    (e) => e.type === "PTO" && e.approved_by !== null,
-  );
-
-  sick.bucket = ptoStatus.sickTime;
-  sick.usageEntries = sickEntries;
-  sick.fullPtoEntries = fullPtoEntries.filter((e) => e.type === "Sick");
-
-  bereavement.bucket = ptoStatus.bereavementTime;
-  bereavement.usageEntries = bereavementEntries;
-  bereavement.fullPtoEntries = fullPtoEntries.filter(
-    (e) => e.type === "Bereavement",
-  );
-
-  jury.bucket = ptoStatus.juryDutyTime;
-  jury.usageEntries = juryEntries;
-  jury.fullPtoEntries = fullPtoEntries.filter((e) => e.type === "Jury Duty");
+  // Unified detail card — all entries
+  pto.fullPtoEntries = fullPtoEntries;
 
   info.info = {
     hireDate: formatDateForDisplay(ptoStatus.hireDate),

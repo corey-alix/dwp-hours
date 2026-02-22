@@ -80,6 +80,8 @@ The component uses Shadow DOM encapsulation. Host element renders as a flex row.
 - `<pto-summary-card>` — slotted via `balance-summary` slot to display remaining available hours per PTO type on the Submit Time Off page
 - `<pto-entry-form>` — interactive mode for PTO type selection (replaces calendar legend in both single and multi-calendar modes)
 - `<submit-time-off-page>` — interactive balance summary for PTO type selection
+- `<admin-monthly-review>` — uses `balances` property for "available − scheduled" display per employee
+- `<current-year-summary-page>` — uses `balances` property to show annual PTO allocations vs. used hours
 
 ## Interactive Mode
 
