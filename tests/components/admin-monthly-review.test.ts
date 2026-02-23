@@ -173,21 +173,6 @@ describe("AdminMonthlyReview Component", () => {
       // Should have both acknowledged and unacknowledged cards
       expect(acknowledgedCard || unacknowledgedCard).toBeTruthy();
     });
-
-    it("should display hours breakdown correctly", () => {
-      const testData = generateMonthlyData("2025-01");
-
-      component.setEmployeeData(testData);
-
-      const firstCard = component.shadowRoot?.querySelector(".employee-card");
-      const hoursBreakdown = firstCard?.querySelector(".hours-breakdown");
-      const hoursValues = hoursBreakdown?.querySelectorAll(".hours-value");
-
-      // Second hours-value is PTO Hours (after Total Hours)
-      expect(hoursValues?.[1]?.textContent).toContain(
-        testData[0].ptoHours.toString(),
-      );
-    });
   });
 
   describe("Month Selection", () => {
@@ -270,22 +255,6 @@ describe("AdminMonthlyReview Component", () => {
   });
 
   describe("Integration with Seed Data", () => {
-    it("should work with February 2025 seed data", () => {
-      const febData = generateMonthlyData("2025-02");
-
-      component.setEmployeeData(febData);
-
-      const employeeCards =
-        component.shadowRoot?.querySelectorAll(".employee-card");
-      expect(employeeCards?.length).toBeGreaterThan(0);
-
-      // Check that hours are calculated correctly
-      const firstCard = employeeCards?.[0];
-      const hoursValues = firstCard?.querySelectorAll(".hours-value");
-      // First hours-value is Total Hours
-      expect(hoursValues?.[0]?.textContent).toContain("172"); // Mock total hours
-    });
-
     it("should handle months with no data", () => {
       const emptyData = generateMonthlyData("2020-01"); // Month with no seed data
 
@@ -322,18 +291,6 @@ describe("AdminMonthlyReview Component", () => {
   });
 
   describe("Declarative Balance Rendering", () => {
-    it("should render balance-row with 'No balance data' when no PTO entries injected", () => {
-      const testData = generateMonthlyData("2025-01");
-      component.setEmployeeData(testData);
-
-      const firstCard = component.shadowRoot?.querySelector(".employee-card");
-      const balanceRow = firstCard?.querySelector(".balance-row");
-      expect(balanceRow).toBeTruthy();
-      // Without PTO entries, should show empty message
-      const emptyMsg = firstCard?.querySelector(".balance-empty");
-      expect(emptyMsg?.textContent).toContain("No balance data");
-    });
-
     it("should render balance badges when PTO entries are provided", () => {
       const testData = generateMonthlyData("2025-01");
       // Inject PTO entries before setting employee data

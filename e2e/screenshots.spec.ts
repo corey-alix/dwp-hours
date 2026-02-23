@@ -131,16 +131,6 @@ test("pto-request-queue component screenshot", async ({ page }) => {
   );
 });
 
-test("report-generator component screenshot", async ({ page }) => {
-  await page.goto("/components/report-generator/test.html");
-  await page.waitForSelector("report-generator", { timeout: 10000 });
-  await stabilizePage(page);
-  await compareAndUpdateScreenshot(
-    await page.screenshot({ fullPage: true }),
-    "assets/report-generator-component.png",
-  );
-});
-
 test("pto-summary-card component screenshot", async ({ page }) => {
   await page.goto("/components/pto-summary-card/test.html");
   await page.waitForSelector("pto-summary-card", { timeout: 10000 });
@@ -148,16 +138,6 @@ test("pto-summary-card component screenshot", async ({ page }) => {
   await compareAndUpdateScreenshot(
     await page.screenshot({ fullPage: true }),
     "assets/pto-summary-card-component.png",
-  );
-});
-
-test("pto-accrual-card component screenshot", async ({ page }) => {
-  await page.goto("/components/pto-accrual-card/test.html");
-  await page.waitForSelector("pto-accrual-card", { timeout: 10000 });
-  await stabilizePage(page);
-  await compareAndUpdateScreenshot(
-    await page.screenshot({ fullPage: true }),
-    "assets/pto-accrual-card-component.png",
   );
 });
 

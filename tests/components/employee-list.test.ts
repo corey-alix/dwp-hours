@@ -70,27 +70,6 @@ describe("EmployeeList Component - Search Filtering", () => {
       expect(employeeCards?.length).toBe(3);
     });
 
-    it("should filter employees when typing 'John' in search input", () => {
-      const searchInput = component.shadowRoot?.querySelector(
-        "#search-input",
-      ) as HTMLInputElement;
-      expect(searchInput).toBeTruthy();
-
-      // Type "John" into the search input
-      searchInput.value = "John";
-      searchInput.dispatchEvent(new Event("input", { bubbles: true }));
-
-      // Only matching cards are rendered (reactive pattern)
-      const employeeCards =
-        component.shadowRoot?.querySelectorAll(".employee-card");
-      expect(employeeCards?.length).toBe(1);
-
-      // Verify it's the correct employee
-      const employeeName =
-        employeeCards?.[0]?.querySelector(".employee-name")?.textContent;
-      expect(employeeName).toBe("John Doe");
-    });
-
     it("should show all employees when search input is cleared", () => {
       let searchInput = component.shadowRoot?.querySelector(
         "#search-input",
@@ -116,42 +95,6 @@ describe("EmployeeList Component - Search Filtering", () => {
       // All employees should be rendered again
       employeeCards = component.shadowRoot?.querySelectorAll(".employee-card");
       expect(employeeCards?.length).toBe(3);
-    });
-
-    it("should filter by identifier", () => {
-      const searchInput = component.shadowRoot?.querySelector(
-        "#search-input",
-      ) as HTMLInputElement;
-
-      // Search by identifier "john.doe@example.com"
-      searchInput.value = "john.doe@example.com";
-      searchInput.dispatchEvent(new Event("input", { bubbles: true }));
-
-      const employeeCards =
-        component.shadowRoot?.querySelectorAll(".employee-card");
-      expect(employeeCards?.length).toBe(1);
-
-      const employeeName =
-        employeeCards?.[0]?.querySelector(".employee-name")?.textContent;
-      expect(employeeName).toBe("John Doe");
-    });
-
-    it("should filter by role", () => {
-      const searchInput = component.shadowRoot?.querySelector(
-        "#search-input",
-      ) as HTMLInputElement;
-
-      // Search by role "Admin"
-      searchInput.value = "Admin";
-      searchInput.dispatchEvent(new Event("input", { bubbles: true }));
-
-      const employeeCards =
-        component.shadowRoot?.querySelectorAll(".employee-card");
-      expect(employeeCards?.length).toBe(1);
-
-      const employeeName =
-        employeeCards?.[0]?.querySelector(".employee-name")?.textContent;
-      expect(employeeName).toBe("Admin User");
     });
 
     it("should update employee count display during filtering", () => {

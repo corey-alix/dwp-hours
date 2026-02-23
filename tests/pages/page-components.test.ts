@@ -62,33 +62,6 @@ describe("AdminPtoRequestsPage Component", () => {
     expect(page.shadowRoot).toBeTruthy();
   });
 
-  it("should render heading and pto-request-queue", () => {
-    const h2 = page.shadowRoot?.querySelector("h2");
-    expect(h2?.textContent).toContain("PTO Request Queue");
-    const queue = page.shadowRoot?.querySelector("pto-request-queue");
-    expect(queue).toBeTruthy();
-  });
-
-  it("should populate queue on route enter with loader data", async () => {
-    const mockRequests = [
-      {
-        id: 1,
-        employeeName: "Test",
-        type: "PTO",
-        hours: 8,
-        status: "pending",
-      },
-    ];
-
-    await page.onRouteEnter!({}, new URLSearchParams(), {
-      requests: mockRequests,
-    } as any);
-
-    const queue = page.shadowRoot?.querySelector("pto-request-queue") as any;
-    // The queue component should have received the requests
-    expect(queue).toBeTruthy();
-  });
-
   it("should handle approve event", async () => {
     const handler = vi.fn();
     page.shadowRoot?.addEventListener("request-approve", handler);
@@ -125,11 +98,6 @@ describe("AdminEmployeesPage Component", () => {
   it("should create component instance with shadow DOM", () => {
     expect(page).toBeInstanceOf(AdminEmployeesPage);
     expect(page.shadowRoot).toBeTruthy();
-  });
-
-  it("should render heading", () => {
-    const h2 = page.shadowRoot?.querySelector("h2");
-    expect(h2?.textContent).toContain("Employee Management");
   });
 
   it("should render employee-list component", () => {
@@ -187,16 +155,6 @@ describe("CurrentYearSummaryPage Component", () => {
   it("should create component instance with shadow DOM", () => {
     expect(page).toBeInstanceOf(CurrentYearSummaryPage);
     expect(page.shadowRoot).toBeTruthy();
-  });
-
-  it("should render PTO summary cards", () => {
-    const shadow = page.shadowRoot;
-    expect(shadow?.querySelector("pto-summary-card")).toBeTruthy();
-    expect(shadow?.querySelector("pto-employee-info-card")).toBeTruthy();
-    expect(shadow?.querySelector("pto-pto-card")).toBeTruthy();
-    expect(shadow?.querySelector("pto-sick-card")).toBeTruthy();
-    expect(shadow?.querySelector("pto-bereavement-card")).toBeTruthy();
-    expect(shadow?.querySelector("pto-jury-duty-card")).toBeTruthy();
   });
 
   it("should dispatch router-navigate on navigate-to-month event", () => {

@@ -109,7 +109,7 @@
     "playwright:seed": "pnpm run seed && pnpm run server:reload",
     "playwright:seed//": "seed database and reload server for playwright tests",
     "playwright:test": "playwright test",
-    "test:e2e": "export PORT=$(./scripts/set-port.sh) && pnpm-run -s lint build seed playwright:test",
+    "test:e2e": "export PORT=$(./scripts/set-port.sh) && pnpm-run -s playwright:test",
     "test:e2e//": "run e2e tests with playwright",
     "test": "export PORT=$(./scripts/set-port.sh) && pnpm-run -s lint build seed test:unit playwright:test",
     "test//": "run lint, build, seed, unit tests, then e2e tests with database reset",

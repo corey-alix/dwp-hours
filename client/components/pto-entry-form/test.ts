@@ -9,6 +9,14 @@ import {
   addDays,
   today,
   getNextBusinessDay,
+  getDayOfWeek,
+  SATURDAY,
+  SUNDAY,
+  MONDAY,
+  TUESDAY,
+  WEDNESDAY,
+  THURSDAY,
+  FRIDAY,
 } from "../../../shared/dateUtils.js";
 import { seedPTOEntries, seedEmployees } from "../../../shared/seedData.js";
 
@@ -117,10 +125,10 @@ describe("PTO Entry Form - Date Calculation Logic", () => {
       expect(calculateEndDateFromHours(startDate, hours)).toBe(expectedEndDate);
     });
 
-    test("multi-week spillover: 40 hours from Tuesday → following Tuesday", () => {
+    test("multi-week spillover: 40 hours from Tuesday → following Monday", () => {
       const startDate = "2026-02-10"; // Tuesday
       const hours = 40; // 5 workdays * 8 hours
-      const expectedEndDate = "2026-02-17"; // Following Tuesday
+      const expectedEndDate = "2026-02-16"; // Following Monday
       expect(calculateEndDateFromHours(startDate, hours)).toBe(expectedEndDate);
     });
 
@@ -134,7 +142,7 @@ describe("PTO Entry Form - Date Calculation Logic", () => {
     test("large hour values: 80 hours from Tuesday", () => {
       const startDate = "2026-02-10"; // Tuesday
       const hours = 80; // 10 workdays * 8 hours
-      const expectedEndDate = "2026-02-25"; // Two weeks later Tuesday
+      const expectedEndDate = "2026-02-23"; // Calculated end date
       expect(calculateEndDateFromHours(startDate, hours)).toBe(expectedEndDate);
     });
 
@@ -185,28 +193,36 @@ describe("PTO Entry Form - Date Calculation Logic", () => {
 
   describe("getNextBusinessDay", () => {
     test("Monday-Friday inputs return same day", () => {
+      expect(getDayOfWeek("2026-02-09")).toBe(MONDAY);
       expect(getNextBusinessDay("2026-02-09")).toBe("2026-02-09"); // Monday
+      expect(getDayOfWeek("2026-02-10")).toBe(TUESDAY);
       expect(getNextBusinessDay("2026-02-10")).toBe("2026-02-10"); // Tuesday
+      expect(getDayOfWeek("2026-02-11")).toBe(WEDNESDAY);
       expect(getNextBusinessDay("2026-02-11")).toBe("2026-02-11"); // Wednesday
+      expect(getDayOfWeek("2026-02-12")).toBe(THURSDAY);
       expect(getNextBusinessDay("2026-02-12")).toBe("2026-02-12"); // Thursday
+      expect(getDayOfWeek("2026-02-13")).toBe(FRIDAY);
       expect(getNextBusinessDay("2026-02-13")).toBe("2026-02-13"); // Friday
     });
 
     test("Saturday input returns Monday", () => {
       const saturday = "2026-02-14";
+      expect(getDayOfWeek(saturday)).toBe(SATURDAY);
       const expectedMonday = "2026-02-16";
       expect(getNextBusinessDay(saturday)).toBe(expectedMonday);
     });
 
     test("Sunday input returns Monday", () => {
       const sunday = "2026-02-15";
+      expect(getDayOfWeek(sunday)).toBe(SUNDAY);
       const expectedMonday = "2026-02-16";
       expect(getNextBusinessDay(sunday)).toBe(expectedMonday);
     });
 
     test("year boundary handling", () => {
-      const saturdayDec28 = "2025-12-28"; // Saturday
-      expect(getNextBusinessDay(saturdayDec28)).toBe("2025-12-30"); // Monday
+      const sundayDec28 = "2025-12-28"; // Sunday
+      expect(getDayOfWeek(sundayDec28)).toBe(SUNDAY);
+      expect(getNextBusinessDay(sundayDec28)).toBe("2025-12-29"); // Monday
     });
   });
 });

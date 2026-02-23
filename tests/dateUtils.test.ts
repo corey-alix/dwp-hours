@@ -168,6 +168,8 @@ describe("Date Utils", () => {
       expect(getDayOfWeek("2026-02-05")).toBe(4);
       // January 1, 2026 is a Thursday (4)
       expect(getDayOfWeek("2026-01-01")).toBe(4);
+      // February 23, 2026 is a Monday (1)
+      expect(getDayOfWeek("2026-02-23")).toBe(1);
     });
   });
 

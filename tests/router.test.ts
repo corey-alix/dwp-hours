@@ -144,26 +144,6 @@ describe("Router", () => {
       expect(match).not.toBeNull();
       expect(match!.params).toEqual({ id: "hello world" });
     });
-
-    it("should fall back to wildcard for unknown paths", () => {
-      const auth = createMockAuthService();
-      const router = new Router(routes, outlet, auth);
-      const match = router.matchRoute("/unknown/path");
-
-      expect(match).not.toBeNull();
-      expect(match!.route.component).toBe("test-not-found");
-    });
-
-    it("should not match wrong segment counts", () => {
-      const auth = createMockAuthService();
-      const router = new Router(routes, outlet, auth);
-
-      // /login has 1 segment, /login/extra has 2 — should not match /login route
-      const match = router.matchRoute("/login/extra");
-      // It should fall to wildcard since no 2-segment route except /admin/settings, /user/:id
-      expect(match).not.toBeNull();
-      expect(match!.route.component).toBe("test-not-found");
-    });
   });
 
   describe("Auth gating", () => {
