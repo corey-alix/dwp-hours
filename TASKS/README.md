@@ -97,6 +97,7 @@
 - pto-entry-form-multi-calendar.md
 - pto-form-enhancements.md
 - sticky-pto-form-elements.md
+- admin-month-lock-enforcement.md
 - tailwind-styling-pto-employee-info-card.md
 - theming-tips-consistency.md
 - ui-page-consolidation.md

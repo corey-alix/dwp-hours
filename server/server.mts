@@ -38,6 +38,8 @@ import {
   BUSINESS_RULES_CONSTANTS,
   MessageKey,
   validatePTOBalance,
+  validateMonthEditable,
+  formatLockedMessage,
 } from "../shared/businessRules.js";
 import { BACKUP_CONFIG } from "../shared/backupConfig.js";
 import {
@@ -173,6 +175,60 @@ function isFileMigrationRequest(
     typeof obj.employeeEmail === "string" &&
     typeof obj.filePath === "string"
   );
+}
+
+/**
+ * Checks whether a given employee/month combination is locked by an admin acknowledgement.
+ * Returns lock metadata (admin name, acknowledged timestamp) or null if the month is open.
+ */
+async function checkMonthLocked(
+  employeeId: number,
+  month: string,
+): Promise<{ lockedBy: string; lockedAt: string } | null> {
+  const adminAckRepo = dataSource.getRepository(AdminAcknowledgement);
+  const ack = await adminAckRepo.findOne({
+    where: { employee_id: employeeId, month },
+    relations: ["admin"],
+  });
+  if (!ack) return null;
+  const adminName = ack.admin?.name ?? `Admin #${ack.admin_id}`;
+  const lockedAt =
+    ack.acknowledged_at instanceof Date
+      ? ack.acknowledged_at.toISOString()
+      : String(ack.acknowledged_at);
+  return { lockedBy: adminName, lockedAt };
+}
+
+/**
+ * Helper that checks the month lock and, if locked, sends an HTTP 409 response.
+ * Returns `true` if the response was sent (caller should return early).
+ */
+async function rejectIfMonthLocked(
+  res: Response,
+  employeeId: number,
+  month: string,
+): Promise<boolean> {
+  const lockInfo = await checkMonthLocked(employeeId, month);
+  if (!lockInfo) return false;
+
+  const error = validateMonthEditable(true, {
+    adminName: lockInfo.lockedBy,
+    acknowledgedAt: lockInfo.lockedAt,
+  });
+
+  logger.warn(
+    `Month lock rejected: employee ${employeeId}, month ${month} — locked by ${lockInfo.lockedBy} at ${lockInfo.lockedAt}`,
+  );
+
+  res.status(409).json({
+    error: "month_locked",
+    message: formatLockedMessage(lockInfo.lockedBy, lockInfo.lockedAt),
+    lockedBy: lockInfo.lockedBy,
+    lockedAt: lockInfo.lockedAt,
+    field: error!.field,
+    messageKey: error!.messageKey,
+  });
+  return true;
 }
 
 const VERSION = `1.0.0`; // INCREMENT BEFORE EACH CHANGE
@@ -894,6 +950,11 @@ initDatabase()
               .json({ error: "Invalid month format. Use YYYY-MM" });
           }
 
+          // Check if the month is locked by an admin acknowledgement
+          if (await rejectIfMonthLocked(res, employeeId, month)) {
+            return;
+          }
+
           // Check if hours already exist for this month
           const existingHours = await monthlyHoursRepo.findOne({
             where: { employee_id: employeeId, month: month },
@@ -1014,6 +1075,11 @@ initDatabase()
             return res
               .status(400)
               .json({ error: "Invalid month format. Use YYYY-MM" });
+          }
+
+          // Check if the month is locked by an admin acknowledgement
+          if (await rejectIfMonthLocked(res, employeeId, month)) {
+            return;
           }
 
           // Check if acknowledgement already exists for this month
@@ -1990,6 +2056,12 @@ initDatabase()
                 .json({ error: "Invalid employee ID or hours" });
             }
 
+            // Check if the month is locked by an admin acknowledgement
+            const reqMonth = reqDate.substring(0, 7); // YYYY-MM
+            if (await rejectIfMonthLocked(res, empIdNum, reqMonth)) {
+              return;
+            }
+
             // Handle 0-hour requests: unschedule an existing entry
             if (reqHoursNum === 0) {
               const existingEntry = await ptoEntryRepo.findOne({
@@ -2146,6 +2218,14 @@ initDatabase()
             return res.status(404).json({ error: "PTO entry not found" });
           }
 
+          // Check if the month is locked by an admin acknowledgement
+          const entryMonth = ptoEntry.date.substring(0, 7); // YYYY-MM
+          if (
+            await rejectIfMonthLocked(res, ptoEntry.employee_id, entryMonth)
+          ) {
+            return;
+          }
+
           if (
             ptoEntry.employee_id !== authenticatedEmployeeId &&
             req.employee!.role !== "Admin"
@@ -2219,6 +2299,14 @@ initDatabase()
 
           if (!ptoEntry) {
             return res.status(404).json({ error: "PTO entry not found" });
+          }
+
+          // Check if the month is locked by an admin acknowledgement
+          const deleteMonth = ptoEntry.date.substring(0, 7); // YYYY-MM
+          if (
+            await rejectIfMonthLocked(res, ptoEntry.employee_id, deleteMonth)
+          ) {
+            return;
           }
 
           if (

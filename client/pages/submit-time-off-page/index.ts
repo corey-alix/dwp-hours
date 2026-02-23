@@ -239,7 +239,9 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
       this.updateBalanceSummary(status);
     } catch (error: any) {
       console.error("Error submitting PTO request:", error);
-      if (error.responseData?.fieldErrors) {
+      if (error.responseData?.error === "month_locked") {
+        notifications.error(error.responseData.message);
+      } else if (error.responseData?.fieldErrors) {
         const messages = error.responseData.fieldErrors.map(
           (err: any) => `${err.field}: ${err.message}`,
         );

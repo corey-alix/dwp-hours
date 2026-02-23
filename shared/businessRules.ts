@@ -8,6 +8,21 @@ export interface ValidationError {
   messageKey: string;
 }
 
+/**
+ * Extended validation error that includes month-lock metadata.
+ * Returned by `validateMonthEditable` when a month is locked.
+ */
+export interface MonthLockValidationError extends ValidationError {
+  lockedBy: string;
+  lockedAt: string;
+}
+
+/** Information about an admin month lock. */
+export interface MonthLockInfo {
+  adminName: string;
+  acknowledgedAt: string;
+}
+
 // Business rules constants
 export const BUSINESS_RULES_CONSTANTS = {
   HOUR_INCREMENT: 4,
@@ -42,6 +57,8 @@ export const VALIDATION_MESSAGES = {
   "date.future_limit": "Entries cannot be made into the next year",
   "month.acknowledged":
     "This month has been acknowledged by the administrator and is no longer editable",
+  "month.locked":
+    "This month was locked by {lockedBy} on {lockedAt} and is no longer editable",
 } as const;
 
 export const SUCCESS_MESSAGES = {
@@ -173,15 +190,43 @@ export function validateDateFutureLimit(date: Date): ValidationError | null {
 }
 
 /**
- * Validates that the month is not acknowledged (editable)
+ * Validates that the month is not acknowledged (editable).
+ * When `lockInfo` is provided the returned error carries the admin name
+ * and timestamp so the caller can surface a descriptive message.
  */
 export function validateMonthEditable(
   isAcknowledged: boolean,
-): ValidationError | null {
+  lockInfo?: MonthLockInfo,
+): MonthLockValidationError | null {
   if (isAcknowledged) {
-    return { field: "month", messageKey: "month.acknowledged" };
+    if (lockInfo) {
+      return {
+        field: "month",
+        messageKey: "month.locked",
+        lockedBy: lockInfo.adminName,
+        lockedAt: lockInfo.acknowledgedAt,
+      };
+    }
+    return {
+      field: "month",
+      messageKey: "month.acknowledged",
+      lockedBy: "unknown",
+      lockedAt: "unknown",
+    };
   }
   return null;
+}
+
+/**
+ * Formats the `month.locked` message by substituting placeholders.
+ */
+export function formatLockedMessage(
+  lockedBy: string,
+  lockedAt: string,
+): string {
+  return VALIDATION_MESSAGES["month.locked"]
+    .replace("{lockedBy}", lockedBy)
+    .replace("{lockedAt}", lockedAt);
 }
 
 /**

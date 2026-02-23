@@ -7,8 +7,11 @@ import {
   validateDateString,
   validateAnnualLimits,
   validatePTOBalance,
+  validateMonthEditable,
+  formatLockedMessage,
   VALIDATION_MESSAGES,
   type PTOType,
+  type MonthLockValidationError,
 } from "../shared/businessRules.js";
 
 describe("Business Rules Validation", () => {
@@ -198,11 +201,45 @@ describe("Business Rules Validation", () => {
         "hours.exceed_pto_balance",
         "date.future_limit",
         "month.acknowledged",
+        "month.locked",
       ];
 
       expectedKeys.forEach((key) => {
         expect(VALIDATION_MESSAGES).toHaveProperty(key);
       });
+    });
+  });
+
+  describe("validateMonthEditable", () => {
+    it("should return null when month is not acknowledged", () => {
+      expect(validateMonthEditable(false)).toBeNull();
+    });
+
+    it("should return error when month is acknowledged without lock info", () => {
+      const result = validateMonthEditable(true);
+      expect(result).not.toBeNull();
+      expect(result!.messageKey).toBe("month.acknowledged");
+    });
+
+    it("should return MonthLockValidationError with lock metadata when lock info provided", () => {
+      const result = validateMonthEditable(true, {
+        adminName: "Jane Admin",
+        acknowledgedAt: "2026-02-15T10:00:00.000Z",
+      }) as MonthLockValidationError;
+      expect(result).not.toBeNull();
+      expect(result.messageKey).toBe("month.locked");
+      expect(result.lockedBy).toBe("Jane Admin");
+      expect(result.lockedAt).toBe("2026-02-15T10:00:00.000Z");
+    });
+  });
+
+  describe("formatLockedMessage", () => {
+    it("should substitute placeholders in the locked message", () => {
+      const msg = formatLockedMessage("Jane Admin", "2026-02-15T10:00:00.000Z");
+      expect(msg).toContain("Jane Admin");
+      expect(msg).toContain("2026-02-15T10:00:00.000Z");
+      expect(msg).not.toContain("{lockedBy}");
+      expect(msg).not.toContain("{lockedAt}");
     });
   });
 });

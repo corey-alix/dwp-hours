@@ -83,6 +83,7 @@ describe("Business Rules", () => {
         "hours.exceed_pto_balance",
         "date.future_limit",
         "month.acknowledged",
+        "month.locked",
       ];
 
       requiredKeys.forEach((key) => {
