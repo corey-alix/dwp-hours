@@ -6,6 +6,21 @@ import {
 } from "../../../shared/dateUtils.js";
 import type { PTOEntry } from "../../../shared/api-models.js";
 
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
 /** Map PTO type to its CSS color class for color-coded hours. */
 const TYPE_CSS_CLASS: Record<string, string> = {
   PTO: "type-pto",
@@ -120,13 +135,48 @@ const CARD_STYLES = `
 
   /* PTO type color coding */
 
-  .type-pto { color: var(--color-text); }
+  .type-pto { color: var(--color-pto-vacation); }
 
-  .type-sick { color: var(--color-text); }
+  .type-sick { color: var(--color-pto-sick); }
 
-  .type-bereavement { color: var(--color-text); }
+  .type-bereavement { color: var(--color-pto-bereavement); }
 
-  .type-jury-duty { color: var(--color-text); }
+  .type-jury-duty { color: var(--color-pto-jury-duty); }
+
+  /* Month group separator rows */
+
+  .month-separator td {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: var(--space-sm) var(--space-sm) var(--space-xs);
+    border-bottom: 2px solid var(--color-border);
+    background: var(--color-surface);
+  }
+
+  .month-subtotal td {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-secondary);
+    padding: var(--space-xs) var(--space-sm);
+    border-bottom: 2px solid var(--color-border);
+  }
+
+  /* Approval legend */
+
+  .legend {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    text-align: right;
+    margin-top: var(--space-sm);
+  }
+
+  .legend .checkmark {
+    color: var(--color-success);
+    font-weight: var(--font-weight-semibold);
+  }
 
   .empty {
     font-size: var(--font-size-sm);
@@ -157,6 +207,9 @@ const CARD_STYLES = `
 export class PtoPtoCard extends BaseComponent {
   private fullEntries: PTOEntry[] = [];
   private expanded: boolean = false;
+  private _expandedRestored = false;
+
+  private static readonly STORAGE_KEY = "pto-pto-card-expanded";
 
   static get observedAttributes() {
     return ["expanded"];
@@ -177,6 +230,25 @@ export class PtoPtoCard extends BaseComponent {
   set isExpanded(value: boolean) {
     this.expanded = value;
     this.setAttribute("expanded", value.toString());
+    try {
+      localStorage.setItem(PtoPtoCard.STORAGE_KEY, value.toString());
+    } catch {
+      // localStorage unavailable — ignore
+    }
+  }
+
+  /** Restore expanded state from localStorage if available (once). */
+  private restoreExpandedState(): void {
+    if (this._expandedRestored) return;
+    this._expandedRestored = true;
+    try {
+      const stored = localStorage.getItem(PtoPtoCard.STORAGE_KEY);
+      if (stored !== null) {
+        this.expanded = stored === "true";
+      }
+    } catch {
+      // localStorage unavailable — ignore
+    }
   }
 
   set fullPtoEntries(value: PTOEntry[]) {
@@ -206,31 +278,60 @@ export class PtoPtoCard extends BaseComponent {
       b.date.localeCompare(a.date),
     );
 
-    const rows = sorted
-      .map((entry) => {
-        const dateLabel = isValidDateString(entry.date)
-          ? formatDateForDisplay(entry.date)
-          : entry.date;
-        const dateAttr = isValidDateString(entry.date)
-          ? `data-date="${entry.date}"`
-          : "";
-        const clickableClass = isValidDateString(entry.date)
-          ? "usage-date"
-          : "";
-        const tabIndex = isValidDateString(entry.date) ? 'tabindex="0"' : "";
-        const ariaLabel = isValidDateString(entry.date)
-          ? `aria-label="Navigate to ${dateLabel} in calendar"`
-          : "";
-        const isApproved =
-          entry.approved_by !== null && entry.approved_by !== undefined;
-        const approvedClass = isApproved ? " approved" : "";
-        const typeClass = TYPE_CSS_CLASS[entry.type] || "";
+    // Group by month
+    const groups: { key: string; label: string; entries: PTOEntry[] }[] = [];
+    let currentKey = "";
+    for (const entry of sorted) {
+      const { year, month } = parseDate(entry.date);
+      const key = `${year}-${month}`;
+      if (key !== currentKey) {
+        currentKey = key;
+        groups.push({
+          key,
+          label: `${MONTH_NAMES[month - 1]} ${year}`,
+          entries: [],
+        });
+      }
+      groups[groups.length - 1].entries.push(entry);
+    }
 
-        return `<tr>
+    const rows = groups
+      .map((group) => {
+        const groupRows = group.entries
+          .map((entry) => {
+            const dateLabel = isValidDateString(entry.date)
+              ? formatDateForDisplay(entry.date)
+              : entry.date;
+            const dateAttr = isValidDateString(entry.date)
+              ? `data-date="${entry.date}"`
+              : "";
+            const clickableClass = isValidDateString(entry.date)
+              ? "usage-date"
+              : "";
+            const tabIndex = isValidDateString(entry.date)
+              ? 'tabindex="0"'
+              : "";
+            const ariaLabel = isValidDateString(entry.date)
+              ? `aria-label="Navigate to ${dateLabel} in calendar"`
+              : "";
+            const isApproved =
+              entry.approved_by !== null && entry.approved_by !== undefined;
+            const approvedClass = isApproved ? " approved" : "";
+            const typeClass = TYPE_CSS_CLASS[entry.type] || "";
+
+            return `<tr>
         <td class="text-left"><span class="${clickableClass}${approvedClass}" ${dateAttr} ${tabIndex} ${ariaLabel}>${dateLabel}</span></td>
-        <td class="text-left">${entry.type}</td>
+        <td class="text-left ${typeClass}">${entry.type}</td>
         <td class="text-right ${typeClass}">${entry.hours.toFixed(1)}</td>
       </tr>`;
+          })
+          .join("");
+
+        const subtotal = group.entries.reduce((sum, e) => sum + e.hours, 0);
+        const separatorRow = `<tr class="month-separator"><td colspan="3">${group.label}</td></tr>`;
+        const subtotalRow = `<tr class="month-subtotal"><td colspan="2" class="text-left">Subtotal</td><td class="text-right">${subtotal.toFixed(1)}</td></tr>`;
+
+        return `${separatorRow}${groupRows}${subtotalRow}`;
       })
       .join("");
 
@@ -243,10 +344,20 @@ export class PtoPtoCard extends BaseComponent {
   }
 
   protected render(): string {
+    this.restoreExpandedState();
+
+    const hasApproved = this.fullEntries.some(
+      (e) => e.approved_by !== null && e.approved_by !== undefined,
+    );
+    const legend =
+      hasApproved && this.expanded
+        ? `<div class="legend"><span class="checkmark">✓</span> = Admin approved</div>`
+        : "";
+
     const body =
       this.fullEntries.length === 0
         ? `<div class="empty">No scheduled time off.</div>`
-        : `${this.renderToggle()}${this.renderTable()}`;
+        : `${this.renderToggle()}${this.renderTable()}${legend}`;
 
     return `<style>${CARD_STYLES}</style>
       <div class="card">
@@ -258,7 +369,7 @@ export class PtoPtoCard extends BaseComponent {
   protected handleDelegatedClick(e: Event): void {
     const target = e.target as HTMLElement;
     if (target.matches(".toggle-button") || target.closest(".toggle-button")) {
-      this.expanded = !this.expanded;
+      this.isExpanded = !this.expanded;
       this.requestUpdate();
       return;
     }

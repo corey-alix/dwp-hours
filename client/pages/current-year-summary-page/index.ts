@@ -1,6 +1,5 @@
 import { BaseComponent } from "../../components/base-component.js";
 import type { PageComponent } from "../../router/types.js";
-import type { PtoSummaryCard } from "../../components/pto-summary-card/index.js";
 import type { PtoPtoCard } from "../../components/pto-pto-card/index.js";
 import type { PtoEmployeeInfoCard } from "../../components/pto-employee-info-card/index.js";
 import type { MonthSummary } from "../../components/month-summary/index.js";
@@ -47,9 +46,18 @@ export class CurrentYearSummaryPage
   }
 
   protected render(): string {
+    const year = getCurrentYear();
     return `
       ${styles}
-      <month-summary></month-summary>
+      <h2 class="page-heading">${year} Year Summary</h2>
+      <div class="sticky-balance">
+        <div class="balance-heading">Available Balance</div>
+        <month-summary id="balance-summary"></month-summary>
+      </div>
+      <div class="used-summary">
+        <div class="balance-heading">Used This Year</div>
+        <month-summary id="used-summary"></month-summary>
+      </div>
       <div class="pto-summary">
         <pto-employee-info-card></pto-employee-info-card>
         <pto-pto-card></pto-pto-card>
@@ -61,18 +69,6 @@ export class CurrentYearSummaryPage
     if (!this._loaderData) return;
     const { status, entries } = this._loaderData;
     const year = getCurrentYear();
-
-    // Summary card
-    const summaryCard =
-      this.shadowRoot.querySelector<PtoSummaryCard>("pto-summary-card");
-    if (summaryCard) {
-      summaryCard.summary = {
-        annualAllocation: status.annualAllocation,
-        availablePTO: status.availablePTO,
-        usedPTO: status.usedPTO,
-        carryoverFromPreviousYear: status.carryoverFromPreviousYear,
-      };
-    }
 
     // Employee info card
     const infoCard = this.shadowRoot.querySelector<PtoEmployeeInfoCard>(
@@ -91,27 +87,40 @@ export class CurrentYearSummaryPage
       };
     }
 
-    // Month summary — balances (allocated) and hours (used) per type
-    const monthSummary =
-      this.shadowRoot.querySelector<MonthSummary>("month-summary");
-    if (monthSummary) {
-      const yearEntries = (Array.isArray(entries) ? entries : []).filter(
-        (e) => parseDate(e.date).year === year,
-      );
-      const usedByType: Record<string, number> = {};
-      for (const entry of yearEntries) {
-        usedByType[entry.type] = (usedByType[entry.type] ?? 0) + entry.hours;
-      }
-      monthSummary.ptoHours = usedByType["PTO"] ?? 0;
-      monthSummary.sickHours = usedByType["Sick"] ?? 0;
-      monthSummary.bereavementHours = usedByType["Bereavement"] ?? 0;
-      monthSummary.juryDutyHours = usedByType["Jury Duty"] ?? 0;
-      monthSummary.balances = {
+    // Compute used hours by type
+    const yearEntries = (Array.isArray(entries) ? entries : []).filter(
+      (e) => parseDate(e.date).year === year,
+    );
+    const usedByType: Record<string, number> = {};
+    for (const entry of yearEntries) {
+      usedByType[entry.type] = (usedByType[entry.type] ?? 0) + entry.hours;
+    }
+
+    // Balance summary — available balance per type (sticky bar)
+    const balanceSummary =
+      this.shadowRoot.querySelector<MonthSummary>("#balance-summary");
+    if (balanceSummary) {
+      balanceSummary.ptoHours = usedByType["PTO"] ?? 0;
+      balanceSummary.sickHours = usedByType["Sick"] ?? 0;
+      balanceSummary.bereavementHours = usedByType["Bereavement"] ?? 0;
+      balanceSummary.juryDutyHours = usedByType["Jury Duty"] ?? 0;
+      balanceSummary.balances = {
         PTO: status.ptoTime.allowed,
         Sick: status.sickTime.allowed,
         Bereavement: status.bereavementTime.allowed,
         "Jury Duty": status.juryDutyTime.allowed,
       };
+    }
+
+    // Used summary — raw hours used per type (non-sticky)
+    const usedSummary =
+      this.shadowRoot.querySelector<MonthSummary>("#used-summary");
+    if (usedSummary) {
+      usedSummary.ptoHours = usedByType["PTO"] ?? 0;
+      usedSummary.sickHours = usedByType["Sick"] ?? 0;
+      usedSummary.bereavementHours = usedByType["Bereavement"] ?? 0;
+      usedSummary.juryDutyHours = usedByType["Jury Duty"] ?? 0;
+      // No balances property — show raw used hours only
     }
 
     // Unified detail card — all entries for the year
@@ -120,7 +129,7 @@ export class CurrentYearSummaryPage
       ptoCard.fullPtoEntries = (Array.isArray(entries) ? entries : []).filter(
         (e) => parseDate(e.date).year === year,
       );
-      ptoCard.isExpanded = true;
+      // Expanded state restored from localStorage by the card itself
     }
   }
 

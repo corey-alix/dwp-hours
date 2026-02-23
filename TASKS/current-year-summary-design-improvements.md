@@ -28,70 +28,70 @@ Screenshot and shadow DOM captured via `pnpm screenshot /current-year-summary jo
 
 The page has no title and the summary bar lacks the "Available Balance" heading that was added to the submit-time-off page.
 
-- [ ] Add a page heading (e.g., `<h2>2026 Year Summary</h2>`) using `getCurrentYear()`
-- [ ] Add a `<div class="balance-heading">Available Balance</div>` above `<month-summary>` (following Implementation Learning #6 — sibling div, not inside component)
-- [ ] Style the heading and balance label using existing design tokens
-- [ ] Verify sticky behavior of `<month-summary>` is preserved (currently `top: 56px`)
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] Add a page heading (e.g., `<h2>2026 Year Summary</h2>`) using `getCurrentYear()`
+- [x] Add a `<div class="balance-heading">Available Balance</div>` above `<month-summary>` (following Implementation Learning #6 — sibling div, not inside component)
+- [x] Style the heading and balance label using existing design tokens
+- [x] Verify sticky behavior of `<month-summary>` is preserved (currently `top: 56px`)
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ### Stage 2: Add Used-This-Year Summary
 
 Employees can see available balance but not how much they've used. Adding a "used" context helps employees understand their consumption.
 
-- [ ] Add a second `<month-summary>` instance below the balance bar showing total hours _used_ per type (the data is already computed — `pto-hours`, `sick-hours`, etc. attributes)
-- [ ] Add a `<div class="balance-heading">Used This Year</div>` label above the second `<month-summary>` (same sibling-div pattern as the Available Balance heading)
-- [ ] The second `<month-summary>` should NOT use balance mode — show raw hours only (no `balances` property)
-- [ ] Ensure the used summary does not clutter the sticky bar — place it below the sticky section as a non-sticky element
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] Add a second `<month-summary>` instance below the balance bar showing total hours _used_ per type (the data is already computed — `pto-hours`, `sick-hours`, etc. attributes)
+- [x] Add a `<div class="balance-heading">Used This Year</div>` label above the second `<month-summary>` (same sibling-div pattern as the Available Balance heading)
+- [x] The second `<month-summary>` should NOT use balance mode — show raw hours only (no `balances` property)
+- [x] Ensure the used summary does not clutter the sticky bar — place it below the sticky section as a non-sticky element
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ### Stage 3: Add PTO Type Color Coding to Entry Table
 
 All type CSS classes resolve to `color: var(--color-text)`, making every row look identical. Types should be visually differentiated.
 
-- [ ] Update `.type-pto`, `.type-sick`, `.type-bereavement`, `.type-jury-duty` in `pto-pto-card` styles to use the matching `--color-pto-*` tokens (`--color-pto-vacation`, `--color-pto-sick`, `--color-pto-bereavement`, `--color-pto-jury-duty`)
-- [ ] Apply color to the Type column text (not just the Hours column) for better scanability
-- [ ] Verify contrast ratios meet WCAG AA in both light and dark themes
-- [ ] Ensure the color change doesn't conflict with the `.approved::after` checkmark color
-- [ ] Write or update Vitest unit tests for type color class application
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
-- [ ] `pnpm run lint:css` passes
+- [x] Update `.type-pto`, `.type-sick`, `.type-bereavement`, `.type-jury-duty` in `pto-pto-card` styles to use the matching `--color-pto-*` tokens (`--color-pto-vacation`, `--color-pto-sick`, `--color-pto-bereavement`, `--color-pto-jury-duty`)
+- [x] Apply color to the Type column text (not just the Hours column) for better scanability
+- [x] Verify contrast ratios meet WCAG AA in both light and dark themes
+- [x] Ensure the color change doesn't conflict with the `.approved::after` checkmark color
+- [x] Write or update Vitest unit tests for type color class application
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+- [x] `pnpm run lint:css` passes
 
 ### Stage 4: Add Monthly Grouping to Entry Table
 
 A flat chronological list becomes hard to scan with many entries. Visual month separators or subtotals improve readability.
 
-- [ ] Group entries by month (e.g., "February 2026", "March 2026") with static separator rows or section headings in the table
-- [ ] Add per-month subtotals showing total hours for that month
-- [ ] Maintain reverse-chronological order within each group
-- [ ] Use alternating row background colors or visual separators between month groups — no collapsible sections
-- [ ] Ensure grouping works with navigate-to-month click behavior (clicking a date navigates to /submit-time-off)
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] Group entries by month (e.g., "February 2026", "March 2026") with static separator rows or section headings in the table
+- [x] Add per-month subtotals showing total hours for that month
+- [x] Maintain reverse-chronological order within each group
+- [x] Use alternating row background colors or visual separators between month groups — no collapsible sections
+- [x] Ensure grouping works with navigate-to-month click behavior (clicking a date navigates to /submit-time-off)
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ### Stage 5: Clean Up Dead Code and Improve Card Layout
 
 The `pto-summary-card` querySelector is dead code. The two-card grid may benefit from layout refinement.
 
-- [ ] Remove the dead `summaryCard` querySelector and related `summary` property assignment in `populateCards()`
-- [ ] Remove the unused `PtoSummaryCard` type import
-- [ ] Evaluate card widths on wide viewports — consider adjusting `minmax(18em, 1fr)` for better space use or switching to a stacked layout
-- [ ] Consider making the Employee Info card narrower (it has fewer rows) and Scheduled Time Off card wider (the table benefits from horizontal space)
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] Remove the dead `summaryCard` querySelector and related `summary` property assignment in `populateCards()`
+- [x] Remove the unused `PtoSummaryCard` type import
+- [x] Evaluate card widths on wide viewports — consider adjusting `minmax(18em, 1fr)` for better space use or switching to a stacked layout
+- [x] Consider making the Employee Info card narrower (it has fewer rows) and Scheduled Time Off card wider (the table benefits from horizontal space)
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ### Stage 6: Add Approval Legend and Polish
 
 The ✓ indicator on approved entries has no explanation. Small polish items improve comprehension.
 
-- [ ] Add a legend or tooltip explaining the ✓ approval indicator (e.g., a small note below the table header or an info icon)
-- [ ] Consider persisting the toggle (expanded/collapsed) state in localStorage to remember user preference
-- [ ] Ensure the "No scheduled time off" empty state renders correctly when no entries exist
-- [ ] Manual testing with various data scenarios (no entries, all approved, mixed types, negative balances)
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] Add a legend or tooltip explaining the ✓ approval indicator (e.g., a small note below the table header or an info icon)
+- [x] Consider persisting the toggle (expanded/collapsed) state in localStorage to remember user preference
+- [x] Ensure the "No scheduled time off" empty state renders correctly when no entries exist
+- [x] Manual testing with various data scenarios (no entries, all approved, mixed types, negative balances)
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ## Implementation Notes
 

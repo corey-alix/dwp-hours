@@ -199,4 +199,169 @@ describe("PtoPtoCard", () => {
       }),
     );
   });
+
+  it("should apply PTO type color classes to type and hours columns", () => {
+    const entries: PTOEntry[] = [
+      {
+        id: 1,
+        employeeId: 1,
+        date: "2025-01-15",
+        type: "PTO",
+        hours: 8,
+        createdAt: "",
+        approved_by: null,
+      },
+      {
+        id: 2,
+        employeeId: 1,
+        date: "2025-01-16",
+        type: "Sick",
+        hours: 4,
+        createdAt: "",
+        approved_by: null,
+      },
+      {
+        id: 3,
+        employeeId: 1,
+        date: "2025-02-10",
+        type: "Bereavement",
+        hours: 8,
+        createdAt: "",
+        approved_by: null,
+      },
+      {
+        id: 4,
+        employeeId: 1,
+        date: "2025-03-05",
+        type: "Jury Duty",
+        hours: 8,
+        createdAt: "",
+        approved_by: null,
+      },
+    ];
+    component.fullPtoEntries = entries;
+    component.isExpanded = true;
+
+    const typeCells = component.shadowRoot?.querySelectorAll(
+      ".entry-table td.text-left:nth-child(2)",
+    );
+    expect(typeCells).toBeTruthy();
+    const classes = Array.from(typeCells!).map((td) => {
+      if (td.classList.contains("type-pto")) return "type-pto";
+      if (td.classList.contains("type-sick")) return "type-sick";
+      if (td.classList.contains("type-bereavement")) return "type-bereavement";
+      if (td.classList.contains("type-jury-duty")) return "type-jury-duty";
+      return "none";
+    });
+    expect(classes).toContain("type-pto");
+    expect(classes).toContain("type-sick");
+    expect(classes).toContain("type-bereavement");
+    expect(classes).toContain("type-jury-duty");
+  });
+
+  it("should render month separator rows and subtotals", () => {
+    const entries: PTOEntry[] = [
+      {
+        id: 1,
+        employeeId: 1,
+        date: "2025-01-15",
+        type: "PTO",
+        hours: 8,
+        createdAt: "",
+        approved_by: null,
+      },
+      {
+        id: 2,
+        employeeId: 1,
+        date: "2025-01-16",
+        type: "Sick",
+        hours: 4,
+        createdAt: "",
+        approved_by: null,
+      },
+      {
+        id: 3,
+        employeeId: 1,
+        date: "2025-02-10",
+        type: "PTO",
+        hours: 8,
+        createdAt: "",
+        approved_by: null,
+      },
+    ];
+    component.fullPtoEntries = entries;
+    component.isExpanded = true;
+
+    const separators =
+      component.shadowRoot?.querySelectorAll(".month-separator");
+    expect(separators?.length).toBe(2);
+    expect(separators?.[0].textContent).toContain("February 2025");
+    expect(separators?.[1].textContent).toContain("January 2025");
+
+    const subtotals = component.shadowRoot?.querySelectorAll(".month-subtotal");
+    expect(subtotals?.length).toBe(2);
+    // Feb: 8.0, Jan: 12.0 (8+4)
+    expect(subtotals?.[0].textContent).toContain("8.0");
+    expect(subtotals?.[1].textContent).toContain("12.0");
+  });
+
+  it("should render approval legend when approved entries exist", () => {
+    const entries: PTOEntry[] = [
+      {
+        id: 1,
+        employeeId: 1,
+        date: "2025-01-15",
+        type: "PTO",
+        hours: 8,
+        createdAt: "",
+        approved_by: 3,
+      },
+    ];
+    component.fullPtoEntries = entries;
+    component.isExpanded = true;
+
+    const legend = component.shadowRoot?.querySelector(".legend");
+    expect(legend).toBeTruthy();
+    expect(legend?.textContent).toContain("Admin approved");
+  });
+
+  it("should not render approval legend when no approved entries", () => {
+    const entries: PTOEntry[] = [
+      {
+        id: 1,
+        employeeId: 1,
+        date: "2025-01-15",
+        type: "PTO",
+        hours: 8,
+        createdAt: "",
+        approved_by: null,
+      },
+    ];
+    component.fullPtoEntries = entries;
+    component.isExpanded = true;
+
+    const legend = component.shadowRoot?.querySelector(".legend");
+    expect(legend).toBeFalsy();
+  });
+
+  it("should persist expanded state to localStorage", () => {
+    const entries: PTOEntry[] = [
+      {
+        id: 1,
+        employeeId: 1,
+        date: "2025-01-15",
+        type: "PTO",
+        hours: 8,
+        createdAt: "",
+        approved_by: null,
+      },
+    ];
+    component.fullPtoEntries = entries;
+
+    component.isExpanded = true;
+    expect(localStorage.getItem("pto-pto-card-expanded")).toBe("true");
+
+    component.isExpanded = false;
+    expect(localStorage.getItem("pto-pto-card-expanded")).toBe("false");
+  });
 });
