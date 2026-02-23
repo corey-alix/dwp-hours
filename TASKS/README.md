@@ -8,6 +8,7 @@
 - Email Magic Link.md
 - employee-month-acknowledgement-prompt.md
 - markdown-rendering.md
+- prior-year-summary-design-improvements.md
 - submit-time-off-design-improvements.md
 
 ## SOME WORK REMAINS

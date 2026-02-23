@@ -15,7 +15,7 @@ export const styles = `<style>
   .sticky-balance {
     position: sticky;
     top: 56px;
-    z-index: 10;
+    z-index: 1;
     background: var(--color-background);
     margin-bottom: var(--space-sm);
   }
