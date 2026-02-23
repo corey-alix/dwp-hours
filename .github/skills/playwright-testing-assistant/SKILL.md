@@ -1,3 +1,8 @@
+---
+name: playwright-testing-assistant
+description: Provides guidance for implementing end-to-end tests using Playwright, following best practices for test structure, reliability, and maintainability.
+---
+
 # Playwright Testing Assistant
 
 ## Description

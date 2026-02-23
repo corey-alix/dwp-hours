@@ -1,3 +1,8 @@
+---
+name: vitest-testing-assistant
+description: Provides guidance for implementing unit and integration tests using Vitest, following best practices for test structure, mocking, and coverage.
+---
+
 # Vitest Testing Assistant
 
 ## Description

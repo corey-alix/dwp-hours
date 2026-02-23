@@ -1,3 +1,8 @@
+---
+name: css-theming-assistant
+description: Specialized skill for maintaining and extending the DWP Hours Tracker's design system using CSS custom properties for centralized theming.
+---
+
 # CSS Theming Assistant - DWP Hours Tracker Design System
 
 ## Description

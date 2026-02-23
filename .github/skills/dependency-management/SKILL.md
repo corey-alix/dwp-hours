@@ -1,3 +1,8 @@
+---
+name: dependency-management
+description: Manages task dependencies, suggests next logical tasks based on current progress, and explains blocking relationships between tasks.
+---
+
 # Dependency and Priority Management
 
 ## Description

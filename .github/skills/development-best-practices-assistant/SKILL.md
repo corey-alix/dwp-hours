@@ -1,3 +1,8 @@
+---
+name: development-best-practices-assistant
+description: Specialized assistant providing guidance on development best practices and learnings derived from implementing the DWP Hours Tracker.
+---
+
 # Development Best Practices Assistant
 
 ## Description

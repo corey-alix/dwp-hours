@@ -1,3 +1,8 @@
+---
+name: staged-action-plan
+description: Specialized assistant for breaking down complex tasks into testable, incremental stages with clear validation criteria.
+---
+
 # Staged Action Plan
 
 ## Description

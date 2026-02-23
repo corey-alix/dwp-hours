@@ -1,3 +1,8 @@
+---
+name: tsconfig-configuration-assistant
+description: Specialized skill for assisting with TypeScript configuration setup, optimization, and troubleshooting in the DWP Hours Tracker project.
+---
+
 # TSConfig Configuration Assistant
 
 ## Description

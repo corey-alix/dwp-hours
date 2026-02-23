@@ -1,3 +1,8 @@
+---
+name: date-management-assistant
+description: Specialized assistant for implementing consistent date handling patterns using YYYY-MM-DD string format to avoid timezone issues.
+---
+
 # Date Management Assistant
 
 ## Description

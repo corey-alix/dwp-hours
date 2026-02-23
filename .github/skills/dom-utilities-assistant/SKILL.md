@@ -1,3 +1,8 @@
+---
+name: dom-utilities-assistant
+description: Specialized assistant for implementing robust DOM manipulation patterns using the bespoke DOM utility library for type-safe element queries.
+---
+
 # DOM Utilities Assistant
 
 ## Description

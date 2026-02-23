@@ -1,3 +1,8 @@
+---
+name: component-animation-library
+description: Specialized assistant for designing and maintaining a generic, shared animation system for web components using embedded CSS in TypeScript.
+---
+
 # Component Animation Library
 
 ## Description

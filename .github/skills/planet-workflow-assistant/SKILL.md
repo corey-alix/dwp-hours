@@ -1,3 +1,8 @@
+---
+name: planet-workflow-assistant
+description: Specialized assistant for managing the planet branch workflow, providing guided feature development with planet-based staging environments.
+---
+
 # Planet Workflow Assistant
 
 ## Description

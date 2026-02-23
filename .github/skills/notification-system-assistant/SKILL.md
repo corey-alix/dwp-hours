@@ -1,3 +1,8 @@
+---
+name: notification-system-assistant
+description: Specialized assistant for implementing the bespoke notification/toaster system in the DWP Hours Tracker.
+---
+
 # Notification System Assistant
 
 ## Description

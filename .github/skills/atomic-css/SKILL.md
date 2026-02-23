@@ -1,3 +1,8 @@
+---
+name: atomic-css
+description: Specialized assistant for implementing and maintaining atomic CSS utilities in the DWP Hours Tracker frontend.
+---
+
 # Atomic CSS
 
 ## Description

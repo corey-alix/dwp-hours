@@ -1,3 +1,10 @@
+---
+name: planet-workflow
+description: Assist developers with the planet branch workflow for feature development, including creating features, finishing them, promoting planets, and maintaining repository hygiene.
+mode: agent
+tools: [git, execute, read, edit, search]
+---
+
 # Planet Workflow Assistant
 
 Assist developers with the planet branch workflow for feature development, including creating features, finishing them, promoting planets, and maintaining repository hygiene.

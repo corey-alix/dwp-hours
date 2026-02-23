@@ -1,3 +1,8 @@
+---
+name: architecture-guidance
+description: Provides guidance on design decisions, architecture choices, and implementation approaches that align with the project's approved tech stack and patterns.
+---
+
 # Architecture and Design Guidance
 
 ## Description

@@ -1,3 +1,10 @@
+---
+name: skill
+description: Guide for creating new specialized agent skills for the DWP Hours Tracker project, providing a template and best practices.
+mode: agent
+tools: [read, edit, edit/createFile]
+---
+
 # Skill Creation Guide
 
 ## Overview

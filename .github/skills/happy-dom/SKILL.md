@@ -1,3 +1,8 @@
+---
+name: happy-dom
+description: Documents verified Happy DOM shadow DOM event behavior and guides agents away from unnecessary re-entrancy guards.
+---
+
 # Happy DOM Event Handling
 
 ## Description

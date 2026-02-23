@@ -1,3 +1,8 @@
+---
+name: testing-strategy
+description: Advises on appropriate testing approaches, recommends testing levels, and ensures comprehensive test coverage for business logic and edge cases.
+---
+
 # Testing Strategy Advisor
 
 ## Description

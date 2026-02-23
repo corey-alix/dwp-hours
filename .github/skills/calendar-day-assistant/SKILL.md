@@ -1,3 +1,8 @@
+---
+name: calendar-day-assistant
+description: Specialized assistant for determining the day of the week for any date in 2026, particularly useful for E2E testing.
+---
+
 # Calendar Day Assistant
 
 ## Description

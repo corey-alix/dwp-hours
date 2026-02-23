@@ -1,3 +1,8 @@
+---
+name: rfc-9457-problem-details
+description: Specialized assistant for implementing RFC 9457 compliant problem details in HTTP API error responses.
+---
+
 # RFC 9457 Problem Details Assistant
 
 ## Description

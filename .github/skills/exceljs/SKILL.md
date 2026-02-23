@@ -1,3 +1,8 @@
+---
+name: exceljs
+description: Specialized assistant for using ExcelJS to read, manipulate, and write spreadsheet data and styles to XLSX and JSON formats.
+---
+
 # exceljs.skill.md
 
 ## Introduction

@@ -1,3 +1,8 @@
+---
+name: pto-calculation-rules-assistant
+description: Specialized assistant for understanding and implementing PTO calculation rules, business logic, and accrual formulas in the DWP Hours Tracker.
+---
+
 # PTO Calculation Rules Assistant
 
 ## Description

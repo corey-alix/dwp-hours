@@ -1,3 +1,8 @@
+---
+name: css-animation-assistant
+description: Specialized assistant for implementing CSS animations in the DWP Hours Tracker frontend, ensuring compliance with performance, accessibility, and maintainability standards.
+---
+
 # CSS Animation Assistant
 
 ## Description

@@ -1,3 +1,8 @@
+---
+name: package-json-commenter
+description: Ensures any new or modified package.json script commands include a paired comment entry describing the command.
+---
+
 # Package.json Command Commenter
 
 ## Description

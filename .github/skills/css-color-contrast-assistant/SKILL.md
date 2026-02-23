@@ -1,3 +1,8 @@
+---
+name: css-color-contrast-assistant
+description: Specialized assistant for ensuring accessible, readable UI by adhering to color contrast standards in CSS, following WCAG 2.1 AA/AAA compliance.
+---
+
 # CSS Color Contrast Assistant
 
 ## Description

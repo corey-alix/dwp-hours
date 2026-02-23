@@ -1,3 +1,8 @@
+---
+name: sql-js-database-assistant
+description: Provides guidance for working with sql.js database operations, including query optimization, prepared statements, and schema management.
+---
+
 # SQL.js Database Assistant
 
 ## Description

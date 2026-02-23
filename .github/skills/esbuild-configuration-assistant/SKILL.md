@@ -1,3 +1,8 @@
+---
+name: esbuild-configuration-assistant
+description: Specialized skill for configuring and optimizing ESBuild bundler setup in the DWP Hours Tracker project.
+---
+
 # ESBuild Configuration Assistant
 
 ## Description

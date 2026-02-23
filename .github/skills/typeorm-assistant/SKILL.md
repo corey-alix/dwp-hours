@@ -1,3 +1,8 @@
+---
+name: typeorm-assistant
+description: Specialized assistant for TypeORM usage in the DWP Hours Tracker project, providing guidance on entity creation, queries, relationships, and migrations.
+---
+
 # TypeORM Assistant
 
 ## Description

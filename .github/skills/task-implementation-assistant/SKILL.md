@@ -1,3 +1,8 @@
+---
+name: task-implementation-assistant
+description: Helps users implement tasks from the TASKS folder by providing step-by-step guidance and ensuring compliance with project standards.
+---
+
 # Task Implementation Assistant
 
 ## Description

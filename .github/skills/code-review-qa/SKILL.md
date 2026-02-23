@@ -1,3 +1,8 @@
+---
+name: code-review-qa
+description: Reviews code implementations against project standards, ensuring TypeScript compliance, proper error handling, input validation, and security best practices.
+---
+
 # Code Review and Quality Assurance
 
 ## Description

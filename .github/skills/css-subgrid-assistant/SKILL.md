@@ -1,3 +1,8 @@
+---
+name: css-subgrid-assistant
+description: Guides developers in implementing CSS subgrid layouts for proper grid alignment based on MDN Web Docs documentation.
+---
+
 # CSS Subgrid Assistant
 
 ## Description

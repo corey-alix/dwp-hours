@@ -1,4 +1,8 @@
-````markdown
+---
+name: inline-css
+description: Efficiently manage CSS imports in TypeScript codebases, understanding tsc vs esbuild behavior for fast, low-config, maintainable setups.
+---
+
 # Agent Skill: Handling CSS Imports in TypeScript Projects (tsc vs esbuild)
 
 **Skill Name**  
@@ -37,6 +41,7 @@ Enable arbitrary non-JS imports without errors:
   },
 }
 ```
+
 ````
 
 Optional — explicit module declaration for CSS Modules:
@@ -54,7 +59,7 @@ declare module "*.module.css" {
 }
 ```
 
-→ `tsc` never emits CSS or JS code for it.  
+→ `tsc` never emits CSS or JS code for it.
 → Use with esbuild / vite / rollup for actual bundling.
 
 **esbuild — Recommended Default (fast & clean)**
@@ -87,16 +92,16 @@ await esbuild.build({
 
 **Patterns – Pick One per Project**
 
-1. **Browser SPA (Vite / esbuild dev + build)**  
-   → `import "./App.css"` → auto-injected styles  
+1. **Browser SPA (Vite / esbuild dev + build)**
+   → `import "./App.css"` → auto-injected styles
    → Use `local-css` for modules
 
-2. **Library / Component (emits JS + separate CSS)**  
-   → `--bundle --splitting` + external CSS handling  
+2. **Library / Component (emits JS + separate CSS)**
+   → `--bundle --splitting` + external CSS handling
    → Or emit CSS separately: `esbuild --entryPoints=src/index.ts src/index.css --outdir=dist`
 
-3. **SSR / full inline (rare)**  
-   → Use plugin or custom loader → collect CSS strings  
+3. **SSR / full inline (rare)**
+   → Use plugin or custom loader → collect CSS strings
    → esbuild alone does **not** inline to JS string by default (unlike style-loader)
 
 **Quick Checklist (Maintainable Setup)**
@@ -107,12 +112,9 @@ await esbuild.build({
 - [ ] Avoid custom plugins unless you need PostCSS / Sass transforms
 - [ ] Test: `import classes from "./Button.module.css"; classes.primary` → autocompletes & typesafe
 
-**Verdict**  
-**tsc** → types only, no inlining, no emission  
+**Verdict**
+**tsc** → types only, no inlining, no emission
 **esbuild** → inlines/injects CSS automatically when bundling → fastest path for most projects in 2026
 
 Use this skill when: onboarding new TS+CSS repo, debugging "CSS not applying", choosing bundler.
-
-```
-
-```
+````
