@@ -79,10 +79,13 @@ class ThemeTester {
 
   private toggleTheme(): void {
     const html = document.documentElement;
-    const currentTheme = html.getAttribute("data-theme") || "light";
-    const newTheme = currentTheme === "light" ? "dark" : "light";
+    const isDark = html.getAttribute("data-theme") === "dark";
 
-    html.setAttribute("data-theme", newTheme);
+    if (isDark) {
+      html.removeAttribute("data-theme");
+    } else {
+      html.setAttribute("data-theme", "dark");
+    }
     this.updateThemeInfo();
 
     document.body.classList.toggle("theme-transition");
@@ -97,7 +100,7 @@ class ThemeTester {
 
   private updateThemeInfo(): void {
     const html = document.documentElement;
-    const currentTheme = html.getAttribute("data-theme") || "auto";
+    const currentTheme = html.getAttribute("data-theme") || "light";
     if (this.currentThemeSpan) {
       this.currentThemeSpan.textContent =
         currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1);
