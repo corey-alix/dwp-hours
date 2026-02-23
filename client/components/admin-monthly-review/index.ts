@@ -25,6 +25,7 @@ import {
   NAV_SYMBOLS,
   adoptAnimations,
   animateCarousel,
+  animateSlide,
   setupSwipeNavigation,
 } from "../../css-extensions/index.js";
 import type {
@@ -437,21 +438,55 @@ export class AdminMonthlyReview extends BaseComponent {
   /** Toggle the inline calendar for a given employee card.
    *  Always resets to the review month when re-opening. */
   private toggleCalendar(employeeId: number): void {
-    if (this._expandedCalendars.has(employeeId)) {
-      this._expandedCalendars.delete(employeeId);
-      this._swipeListenerCards.delete(employeeId);
-      // Destroy swipe handle on collapse
-      const handle = this._swipeHandles.get(employeeId);
-      if (handle) {
-        handle.destroy();
-        this._swipeHandles.delete(employeeId);
-      }
-    } else {
+    const expanding = !this._expandedCalendars.has(employeeId);
+
+    if (expanding) {
       // Reset displayed month to the review month on every open
       this._calendarMonths.set(employeeId, this._selectedMonth);
       this._expandedCalendars.add(employeeId);
+
+      this.requestUpdate();
+
+      // Animate the calendar sliding into view
+      requestAnimationFrame(() => {
+        const card = this.shadowRoot.querySelector(
+          `.employee-card[data-employee-id="${employeeId}"]`,
+        );
+        const container = card?.querySelector(
+          ".inline-calendar-container",
+        ) as HTMLElement | null;
+        if (container) {
+          animateSlide(container, true);
+          container.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+      });
+    } else {
+      // Animate collapse before removing from DOM
+      const card = this.shadowRoot.querySelector(
+        `.employee-card[data-employee-id="${employeeId}"]`,
+      );
+      const container = card?.querySelector(
+        ".inline-calendar-container",
+      ) as HTMLElement | null;
+
+      const finishCollapse = () => {
+        this._expandedCalendars.delete(employeeId);
+        this._swipeListenerCards.delete(employeeId);
+        const handle = this._swipeHandles.get(employeeId);
+        if (handle) {
+          handle.destroy();
+          this._swipeHandles.delete(employeeId);
+        }
+        this.requestUpdate();
+      };
+
+      if (container) {
+        const anim = animateSlide(container, false);
+        anim.promise.then(finishCollapse);
+      } else {
+        finishCollapse();
+      }
     }
-    this.requestUpdate();
   }
 
   // ── Swipe navigation ──

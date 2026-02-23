@@ -44,8 +44,12 @@ export function adoptAnimations(root: ShadowRoot | Document): void {
 
 // ── Token reader ──
 
-/** Read a CSS custom property value from :root, with a fallback. */
-function getToken(name: string, fallback: string): string {
+/** Read a CSS custom property value, checking the element first then :root. */
+function getToken(name: string, fallback: string, el?: Element): string {
+  if (el) {
+    const val = getComputedStyle(el).getPropertyValue(name).trim();
+    if (val) return val;
+  }
   return (
     getComputedStyle(document.documentElement).getPropertyValue(name).trim() ||
     fallback
@@ -97,12 +101,12 @@ export function animateSlide(
     resolvePromise = resolve;
   });
 
-  const duration = getToken("--duration-normal", "250ms");
+  const duration = getToken("--duration-normal", "250ms", element);
   const durationMs = parseFloat(duration);
   const easing = show
-    ? getToken("--easing-decelerate", "cubic-bezier(0, 0, 0.2, 1)")
-    : getToken("--easing-accelerate", "cubic-bezier(0.4, 0, 1, 1)");
-  const offset = getToken("--slide-offset", "8px");
+    ? getToken("--easing-decelerate", "cubic-bezier(0, 0, 0.2, 1)", element)
+    : getToken("--easing-accelerate", "cubic-bezier(0.4, 0, 1, 1)", element);
+  const offset = getToken("--slide-offset", "8px", element);
   const transitionValue = `transform ${duration} ${easing}, opacity ${duration} ${easing}`;
 
   function onComplete() {

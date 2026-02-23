@@ -368,7 +368,8 @@ describe("AdminMonthlyReview Component", () => {
       }
     });
 
-    it("should toggle inline calendar on View Calendar button click", () => {
+    it("should toggle inline calendar on View Calendar button click", async () => {
+      vi.useFakeTimers();
       const testData = generateMonthlyData("2026-02");
       component.setPtoEntries(
         seedPTOEntries.map((e: SeedPtoEntry) => ({
@@ -402,10 +403,12 @@ describe("AdminMonthlyReview Component", () => {
       ) as HTMLElement;
       expect(updatedBtn?.textContent?.trim()).toBe("Hide Calendar");
 
-      // Click again to collapse
+      // Click again to collapse (animation plays first, then DOM updates)
       updatedBtn.click();
+      await vi.advanceTimersByTimeAsync(400);
       calendars = component.shadowRoot?.querySelectorAll("pto-calendar");
       expect(calendars?.length).toBe(0);
+      vi.useRealTimers();
     });
 
     it("should render inline calendar in readonly mode", () => {
@@ -633,6 +636,7 @@ describe("AdminMonthlyReview Component", () => {
     });
 
     it("should reset to review month when calendar is hidden and re-opened", async () => {
+      vi.useFakeTimers();
       const testData = generateMonthlyData("2026-02");
       component.setPtoEntries(
         seedPTOEntries.map((e: SeedPtoEntry) => ({
@@ -667,11 +671,12 @@ describe("AdminMonthlyReview Component", () => {
       let navLabel = component.shadowRoot?.querySelector(".nav-label");
       expect(navLabel?.textContent?.trim()).toBe("April 2026");
 
-      // Collapse
+      // Collapse (wait for animation to finish)
       const hideBtn = component.shadowRoot?.querySelector(
         ".view-calendar-btn",
       ) as HTMLElement;
       hideBtn.click();
+      await vi.advanceTimersByTimeAsync(400);
 
       // Re-open — should reset to review month (February 2026)
       const viewBtn = component.shadowRoot?.querySelector(
@@ -685,6 +690,7 @@ describe("AdminMonthlyReview Component", () => {
       const calendar = component.shadowRoot?.querySelector("pto-calendar");
       expect(calendar?.getAttribute("month")).toBe("2");
       expect(calendar?.getAttribute("year")).toBe("2026");
+      vi.useRealTimers();
     });
 
     it("should dispatch calendar-month-data-request event for non-review months", () => {

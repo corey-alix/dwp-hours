@@ -135,6 +135,8 @@ export const styles = `
     overflow: hidden;
     border-top: 1px solid var(--color-border);
     padding-top: var(--space-sm, 8px);
+    --slide-offset: 16px;
+    --duration-normal: 200ms;
   }
 
   @media (prefers-reduced-motion: reduce) {
