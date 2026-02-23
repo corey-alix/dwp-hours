@@ -40,6 +40,9 @@ import {
   validatePTOBalance,
   validateMonthEditable,
   formatLockedMessage,
+  validateAdminCanLockMonth,
+  formatMonthNotEndedMessage,
+  getEarliestAdminLockDate,
 } from "../shared/businessRules.js";
 import { BACKUP_CONFIG } from "../shared/backupConfig.js";
 import {
@@ -1149,6 +1152,66 @@ initDatabase()
       },
     );
 
+    // Delete employee acknowledgement (unlock)
+    app.delete(
+      "/api/acknowledgements/:id",
+      authenticate(() => dataSource, log),
+      async (req, res) => {
+        try {
+          const { id } = req.params;
+          const ackId = parseInt(id as string);
+          const employeeId = req.employee!.id;
+
+          if (isNaN(ackId)) {
+            return res
+              .status(400)
+              .json({ error: "Invalid acknowledgement ID" });
+          }
+
+          const acknowledgementRepo = dataSource.getRepository(Acknowledgement);
+          const adminAckRepo = dataSource.getRepository(AdminAcknowledgement);
+
+          const ack = await acknowledgementRepo.findOne({
+            where: { id: ackId },
+          });
+
+          if (!ack) {
+            return res.status(404).json({ error: "Acknowledgement not found" });
+          }
+
+          // Verify ownership
+          if (ack.employee_id !== employeeId) {
+            return res.status(403).json({ error: "Forbidden" });
+          }
+
+          // Check if admin has locked this month
+          const adminAck = await adminAckRepo.findOne({
+            where: { employee_id: employeeId, month: ack.month },
+          });
+
+          if (adminAck) {
+            logger.info(
+              `Acknowledgement unlock failed: Admin has locked month ${ack.month} for employee ${employeeId}`,
+            );
+            return res.status(409).json({
+              error: "month.admin_locked_cannot_unlock",
+              message: VALIDATION_MESSAGES["month.admin_locked_cannot_unlock"],
+            });
+          }
+
+          await acknowledgementRepo.remove(ack);
+
+          logger.info(
+            `Acknowledgement ${ackId} removed for employee ${employeeId}, month ${ack.month}`,
+          );
+          res.json({ message: "Acknowledgement removed successfully" });
+        } catch (error) {
+          logger.error(`Error removing acknowledgement: ${error}`);
+          res.status(500).json({ error: "Internal server error" });
+        }
+      },
+    );
+
     // Monthly summary for acknowledgements
     app.get(
       "/api/monthly-summary/:month",
@@ -1284,6 +1347,35 @@ initDatabase()
             return res
               .status(400)
               .json({ error: "Invalid month format. Use YYYY-MM" });
+          }
+
+          // Guard: month must have fully ended
+          const monthEndedError = validateAdminCanLockMonth(monthStr, today());
+          if (monthEndedError) {
+            const earliestDate = getEarliestAdminLockDate(monthStr);
+            logger.info(
+              `Admin acknowledgement submission failed: Month ${monthStr} has not ended yet. Earliest lock date: ${earliestDate}`,
+            );
+            return res.status(409).json({
+              error: "month_not_ended",
+              message: formatMonthNotEndedMessage(earliestDate),
+              earliestDate,
+            });
+          }
+
+          // Guard: employee must have acknowledged first
+          const acknowledgementRepo = dataSource.getRepository(Acknowledgement);
+          const employeeAck = await acknowledgementRepo.findOne({
+            where: { employee_id: employeeIdNum, month: monthStr },
+          });
+          if (!employeeAck) {
+            logger.info(
+              `Admin acknowledgement submission failed: Employee ${employeeIdNum} has not acknowledged month ${monthStr}`,
+            );
+            return res.status(409).json({
+              error: "employee_not_acknowledged",
+              message: VALIDATION_MESSAGES["employee.not_acknowledged"],
+            });
           }
 
           // Check if admin acknowledgement already exists for this month

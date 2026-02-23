@@ -4,6 +4,12 @@ import { Router, appRoutes } from "./router";
 import { notifications } from "./app";
 import { DashboardNavigationMenu } from "./components";
 import { querySingle, addEventListener } from "./components/test-utils";
+import {
+  isFirstSessionVisit,
+  updateActivityTimestamp,
+} from "./shared/activityTracker";
+import { getPriorMonth } from "../shared/businessRules";
+import { today, parseDate } from "../shared/dateUtils";
 
 // Import page components so they register with customElements
 import "./pages/index";
@@ -34,9 +40,15 @@ export class UIManager {
       const user = await this.authService.initialize();
       if (user) {
         this.showNav(true);
+
+        // Check for unacknowledged prior month on new session
+        const shouldPrompt = await this.checkPriorMonthAcknowledgement();
+
         // Navigate to the current URL (or default)
         const path = window.location.pathname;
-        if (path === "/" || path === "/login") {
+        if (shouldPrompt) {
+          // Navigation already handled by checkPriorMonthAcknowledgement
+        } else if (path === "/" || path === "/login") {
           await this.router.navigate("/submit-time-off");
         } else {
           this.router.start();
@@ -186,6 +198,46 @@ export class UIManager {
       heading.textContent = UIManager.PAGE_LABELS[path] ?? "DWP Hours Tracker";
     } catch {
       // Heading not in DOM
+    }
+  }
+
+  /**
+   * On new sessions (8+ hours since last activity), check whether the
+   * immediately preceding month has been acknowledged by the employee.
+   * If not, navigate to that month on the submit-time-off page and show
+   * a notification prompting the user to lock it.
+   *
+   * @returns `true` if navigation was triggered (caller should skip default nav)
+   */
+  private async checkPriorMonthAcknowledgement(): Promise<boolean> {
+    try {
+      const firstVisit = isFirstSessionVisit();
+      updateActivityTimestamp();
+
+      if (!firstVisit) return false;
+
+      const { acknowledgements } = await this.api.getAcknowledgements();
+      const currentDate = today();
+      const priorMonth = getPriorMonth(currentDate);
+      const { year, month } = parseDate(priorMonth + "-01");
+
+      const isAcknowledged = acknowledgements.some(
+        (ack: { month: string }) => ack.month === priorMonth,
+      );
+
+      if (isAcknowledged) return false;
+
+      // Navigate to the unacknowledged month
+      notifications.info(
+        `Please review and lock ${priorMonth} before continuing.`,
+      );
+      await this.router.navigate(
+        `/submit-time-off?month=${month}&year=${year}`,
+      );
+      return true;
+    } catch (error) {
+      console.error("Error checking prior month acknowledgement:", error);
+      return false;
     }
   }
 }

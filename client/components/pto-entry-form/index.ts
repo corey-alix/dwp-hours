@@ -540,6 +540,12 @@ export class PtoEntryForm extends BaseComponent {
     this.persistSelectedMonth(newMonth);
     this.updateMonthLabel(newMonth, newYear);
     this.updateSingleCalendarSummaryHours(calendar);
+    this.dispatchEvent(
+      new CustomEvent("month-changed", {
+        detail: { month: newMonth, year: newYear },
+        bubbles: true,
+      }),
+    );
   }
 
   /** Update the month label text displayed in the custom navigation header. */
@@ -751,6 +757,12 @@ export class PtoEntryForm extends BaseComponent {
         calendar.setAttribute("selected-month", month.toString());
         this.persistSelectedMonth(month);
         this.updateMonthLabel(month, year);
+        this.dispatchEvent(
+          new CustomEvent("month-changed", {
+            detail: { month, year },
+            bubbles: true,
+          }),
+        );
       }
     }
   }

@@ -165,6 +165,12 @@ export class APIClient {
     return this.get("/acknowledgements");
   }
 
+  async deleteAcknowledgement(
+    id: number,
+  ): Promise<ApiTypes.GenericMessageResponse> {
+    return this.delete(`/acknowledgements/${id}`);
+  }
+
   async getMonthlySummary(
     month: string,
   ): Promise<ApiTypes.MonthlySummaryResponse> {

@@ -11,6 +11,9 @@ import { notifications } from "../../app.js";
 import { adoptToolbar } from "../../css-extensions/index.js";
 import { styles } from "./css.js";
 
+/** Lock state for the currently displayed month */
+type MonthLockState = "unlocked" | "employee-locked" | "admin-locked";
+
 interface LoaderData {
   status: ApiTypes.PTOStatusResponse;
   entries: ApiTypes.PTOEntry[];
@@ -24,6 +27,10 @@ interface LoaderData {
 export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
   private api = new APIClient();
   private _loaderData: LoaderData | null = null;
+  private _lockState: MonthLockState = "unlocked";
+  private _currentAckId: number | null = null;
+  private _adminLockInfo: { lockedBy: string; lockedAt: string } | null = null;
+  private _acknowledgements: ApiTypes.Acknowledgement[] = [];
 
   connectedCallback() {
     super.connectedCallback();
@@ -60,6 +67,9 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
     if (month && year) {
       form.navigateToMonth(parseInt(month, 10), parseInt(year, 10));
     }
+
+    // Fetch acknowledgement state for the displayed month
+    await this.refreshLockState();
   }
 
   onRouteLeave(): boolean {
@@ -69,9 +79,11 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
   protected render(): string {
     return `
       ${styles}
+      <div id="lock-banner" class="lock-banner hidden"></div>
       <month-summary id="form-balance-summary" interactive active-type="PTO"></month-summary>
       <pto-entry-form id="pto-entry-form"></pto-entry-form>
       <div class="toolbar">
+        <button type="button" class="btn btn-lock" data-action="toggle-lock">🔓 Lock Month</button>
         <button type="button" class="btn btn-secondary" data-action="cancel">Cancel</button>
         <button type="button" class="btn btn-primary" data-action="submit">Submit</button>
       </div>
@@ -124,6 +136,10 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
       // Recalculate balance summary deltas after re-typing
       this.handleSelectionChanged();
     }) as EventListener);
+
+    this.shadowRoot.addEventListener("month-changed", (() => {
+      this.refreshLockState();
+    }) as EventListener);
   }
 
   protected handleDelegatedClick(e: Event): void {
@@ -131,6 +147,7 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
     const action = target.dataset.action;
     if (action === "cancel") this.handleCancel();
     else if (action === "submit") this.handleSubmit();
+    else if (action === "toggle-lock") this.handleToggleLock();
   }
 
   // ── Helpers ──────────────────────────────────────────────────
@@ -248,6 +265,197 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
         notifications.error(`PTO request failed: ${messages.join("; ")}`);
       } else {
         notifications.error("Failed to submit PTO request. Please try again.");
+      }
+    }
+  }
+
+  // ── Lock / Unlock ────────────────────────────────────────────
+
+  /**
+   * Returns the YYYY-MM string for the month the calendar is currently showing.
+   */
+  private getDisplayedMonth(): string | null {
+    const form = this.getPtoForm();
+    if (!form) return null;
+    const cal = form.shadowRoot?.querySelector("pto-calendar");
+    if (!cal) return null;
+    const m = cal.getAttribute("month");
+    const y = cal.getAttribute("year");
+    if (!m || !y) return null;
+    return `${y}-${m.padStart(2, "0")}`;
+  }
+
+  /**
+   * Fetch acknowledgements + admin lock state for the displayed month
+   * and apply the corresponding UI state.
+   */
+  private async refreshLockState(): Promise<void> {
+    const month = this.getDisplayedMonth();
+    if (!month) return;
+
+    try {
+      const { acknowledgements } = await this.api.getAcknowledgements();
+      this._acknowledgements = acknowledgements;
+
+      const employeeAck = acknowledgements.find(
+        (a: ApiTypes.Acknowledgement) => a.month === month,
+      );
+
+      if (employeeAck) {
+        this._currentAckId = employeeAck.id;
+        // Check admin lock
+        const lockInfo = await this.checkAdminLock(month);
+        if (lockInfo) {
+          this._lockState = "admin-locked";
+          this._adminLockInfo = lockInfo;
+        } else {
+          this._lockState = "employee-locked";
+          this._adminLockInfo = null;
+        }
+      } else {
+        this._lockState = "unlocked";
+        this._currentAckId = null;
+        this._adminLockInfo = null;
+      }
+    } catch {
+      this._lockState = "unlocked";
+      this._currentAckId = null;
+      this._adminLockInfo = null;
+    }
+
+    this.applyLockStateUI();
+  }
+
+  /**
+   * Try to determine if the admin has locked this month.
+   * We attempt a lightweight check: if PTO submission would return
+   * month_locked, we know the admin has locked it. We leverage
+   * the monthly-summary endpoint which is available to employees.
+   * For now, we try to detect via the existing acknowledgements data flow.
+   */
+  private async checkAdminLock(
+    _month: string,
+  ): Promise<{ lockedBy: string; lockedAt: string } | null> {
+    // If the month was previously admin-locked and nothing changed, keep it.
+    // The server enforces admin locks; we probe by checking if the month
+    // is editable. A dedicated endpoint could be added later.
+    // For now, return null — admin lock state is detected reactively
+    // when the employee attempts to unlock or submit.
+    return null;
+  }
+
+  /**
+   * Apply visual state based on current _lockState.
+   */
+  private applyLockStateUI(): void {
+    const lockBtn = this.shadowRoot.querySelector<HTMLButtonElement>(
+      "[data-action='toggle-lock']",
+    );
+    const submitBtn = this.shadowRoot.querySelector<HTMLButtonElement>(
+      "[data-action='submit']",
+    );
+    const cancelBtn = this.shadowRoot.querySelector<HTMLButtonElement>(
+      "[data-action='cancel']",
+    );
+    const banner = this.shadowRoot.querySelector<HTMLElement>("#lock-banner");
+    const form = this.getPtoForm();
+    const cal = form?.shadowRoot?.querySelector("pto-calendar");
+
+    switch (this._lockState) {
+      case "unlocked":
+        if (lockBtn) {
+          lockBtn.textContent = "🔓 Lock Month";
+          lockBtn.classList.remove("btn-unlock", "hidden");
+          lockBtn.classList.add("btn-lock");
+        }
+        if (submitBtn) submitBtn.disabled = false;
+        if (cancelBtn) cancelBtn.disabled = false;
+        if (banner) {
+          banner.textContent = "";
+          banner.classList.add("hidden");
+        }
+        if (cal) cal.setAttribute("readonly", "false");
+        break;
+
+      case "employee-locked":
+        if (lockBtn) {
+          lockBtn.textContent = "🔒 Unlock Month";
+          lockBtn.classList.remove("btn-lock", "hidden");
+          lockBtn.classList.add("btn-unlock");
+        }
+        if (submitBtn) submitBtn.disabled = true;
+        if (cancelBtn) cancelBtn.disabled = true;
+        if (banner) {
+          banner.textContent =
+            "You have locked this month. Click Unlock to make changes.";
+          banner.classList.remove("hidden");
+          banner.classList.add("banner-employee");
+          banner.classList.remove("banner-admin");
+        }
+        if (cal) cal.setAttribute("readonly", "true");
+        break;
+
+      case "admin-locked": {
+        if (lockBtn) lockBtn.classList.add("hidden");
+        if (submitBtn) submitBtn.disabled = true;
+        if (cancelBtn) cancelBtn.disabled = true;
+        const info = this._adminLockInfo;
+        if (banner) {
+          banner.textContent = info
+            ? `This month was locked by ${info.lockedBy} on ${info.lockedAt} and is no longer editable.`
+            : "This month has been locked by the administrator and is no longer editable.";
+          banner.classList.remove("hidden");
+          banner.classList.add("banner-admin");
+          banner.classList.remove("banner-employee");
+        }
+        if (cal) cal.setAttribute("readonly", "true");
+        break;
+      }
+    }
+  }
+
+  /**
+   * Toggle lock/unlock for the displayed month.
+   */
+  private async handleToggleLock(): Promise<void> {
+    const month = this.getDisplayedMonth();
+    if (!month) return;
+
+    if (this._lockState === "unlocked") {
+      // Lock the month
+      try {
+        await this.api.submitAcknowledgement(month);
+        notifications.success("Month locked successfully.");
+        await this.refreshLockState();
+      } catch (error: any) {
+        if (error.responseData?.error === "month_locked") {
+          // Admin already locked — refresh state
+          notifications.error(error.responseData.message);
+          await this.refreshLockState();
+        } else {
+          notifications.error(
+            error.responseData?.error ??
+              "Failed to lock month. Please try again.",
+          );
+        }
+      }
+    } else if (this._lockState === "employee-locked" && this._currentAckId) {
+      // Unlock the month
+      try {
+        await this.api.deleteAcknowledgement(this._currentAckId);
+        notifications.success("Month unlocked successfully.");
+        await this.refreshLockState();
+      } catch (error: any) {
+        if (error.responseData?.error === "month.admin_locked_cannot_unlock") {
+          this._lockState = "admin-locked";
+          this.applyLockStateUI();
+          notifications.error(error.responseData.message);
+        } else {
+          notifications.error(
+            error.responseData?.error ??
+              "Failed to unlock month. Please try again.",
+          );
+        }
       }
     }
   }

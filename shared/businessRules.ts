@@ -1,4 +1,9 @@
-import { getDayOfWeek, getWorkdaysBetween } from "./dateUtils.js";
+import {
+  getDayOfWeek,
+  getWorkdaysBetween,
+  parseDate,
+  formatDate,
+} from "./dateUtils.js";
 import type { PtoBalanceData } from "./api-models.d.ts";
 
 export type PTOType = "Sick" | "PTO" | "Bereavement" | "Jury Duty";
@@ -38,6 +43,8 @@ export const BUSINESS_RULES_CONSTANTS = {
     END_OF_YEAR_MONTH: 11, // December (0-based)
     END_OF_YEAR_DAY: 31,
   },
+  /** Inactivity threshold (ms) before the app treats a visit as a new session. */
+  SESSION_INACTIVITY_THRESHOLD_MS: 8 * 60 * 60 * 1000, // 8 hours
 } as const;
 
 export const VALIDATION_MESSAGES = {
@@ -59,6 +66,12 @@ export const VALIDATION_MESSAGES = {
     "This month has been acknowledged by the administrator and is no longer editable",
   "month.locked":
     "This month was locked by {lockedBy} on {lockedAt} and is no longer editable",
+  "employee.not_acknowledged":
+    "Employee must acknowledge this month before admin can lock it",
+  "month.not_ended":
+    "This month has not ended yet. Admin can lock starting {earliestDate}",
+  "month.admin_locked_cannot_unlock":
+    "This month has been locked by the administrator and cannot be unlocked",
 } as const;
 
 export const SUCCESS_MESSAGES = {
@@ -227,6 +240,86 @@ export function formatLockedMessage(
   return VALIDATION_MESSAGES["month.locked"]
     .replace("{lockedBy}", lockedBy)
     .replace("{lockedAt}", lockedAt);
+}
+
+/**
+ * Validates that an admin can lock a month.
+ * The month must have fully ended (current date >= 1st of the following month).
+ * @param month - YYYY-MM string
+ * @param currentDate - YYYY-MM-DD string (today)
+ * @returns ValidationError if the month has not ended, null otherwise
+ */
+export function validateAdminCanLockMonth(
+  month: string,
+  currentDate: string,
+): ValidationError | null {
+  // Parse month string "YYYY-MM" to get the first day of the next month
+  const match = month.match(/^(\d{4})-(\d{2})$/);
+  if (!match) {
+    return { field: "month", messageKey: "date.invalid" };
+  }
+  const year = parseInt(match[1], 10);
+  const mo = parseInt(match[2], 10);
+
+  // First day of the month AFTER the target month
+  let nextYear = year;
+  let nextMonth = mo + 1;
+  if (nextMonth > 12) {
+    nextYear++;
+    nextMonth = 1;
+  }
+  const earliestDate = formatDate(nextYear, nextMonth, 1);
+
+  // Current date must be >= earliestDate
+  if (currentDate < earliestDate) {
+    return { field: "month", messageKey: "month.not_ended" };
+  }
+  return null;
+}
+
+/**
+ * Formats the `month.not_ended` message by substituting the {earliestDate} placeholder.
+ */
+export function formatMonthNotEndedMessage(earliestDate: string): string {
+  return VALIDATION_MESSAGES["month.not_ended"].replace(
+    "{earliestDate}",
+    earliestDate,
+  );
+}
+
+/**
+ * Computes the earliest date an admin can lock a given month.
+ * @param month - YYYY-MM string
+ * @returns YYYY-MM-DD string for the 1st of the following month
+ */
+export function getEarliestAdminLockDate(month: string): string {
+  const match = month.match(/^(\d{4})-(\d{2})$/);
+  if (!match) return "";
+  const year = parseInt(match[1], 10);
+  const mo = parseInt(match[2], 10);
+  let nextYear = year;
+  let nextMonth = mo + 1;
+  if (nextMonth > 12) {
+    nextYear++;
+    nextMonth = 1;
+  }
+  return formatDate(nextYear, nextMonth, 1);
+}
+
+/**
+ * Returns the YYYY-MM string for the month immediately before the given date.
+ * @param currentDate - YYYY-MM-DD string
+ * @returns YYYY-MM string for the prior month
+ */
+export function getPriorMonth(currentDate: string): string {
+  const { year, month } = parseDate(currentDate);
+  let priorMonth = month - 1;
+  let priorYear = year;
+  if (priorMonth < 1) {
+    priorMonth = 12;
+    priorYear--;
+  }
+  return `${priorYear.toString().padStart(4, "0")}-${priorMonth.toString().padStart(2, "0")}`;
 }
 
 /**

@@ -4,6 +4,7 @@
 
 - admin-review-acknowledge-animation.md
 - Email Magic Link.md
+- employee-month-acknowledgement-prompt.md
 - markdown-rendering.md
 
 ## SOME WORK REMAINS

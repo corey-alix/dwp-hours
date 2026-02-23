@@ -9,7 +9,12 @@ import {
   validatePTOBalance,
   validateMonthEditable,
   formatLockedMessage,
+  validateAdminCanLockMonth,
+  formatMonthNotEndedMessage,
+  getEarliestAdminLockDate,
+  getPriorMonth,
   VALIDATION_MESSAGES,
+  BUSINESS_RULES_CONSTANTS,
   type PTOType,
   type MonthLockValidationError,
 } from "../shared/businessRules.js";
@@ -202,6 +207,9 @@ describe("Business Rules Validation", () => {
         "date.future_limit",
         "month.acknowledged",
         "month.locked",
+        "employee.not_acknowledged",
+        "month.not_ended",
+        "month.admin_locked_cannot_unlock",
       ];
 
       expectedKeys.forEach((key) => {
@@ -240,6 +248,85 @@ describe("Business Rules Validation", () => {
       expect(msg).toContain("2026-02-15T10:00:00.000Z");
       expect(msg).not.toContain("{lockedBy}");
       expect(msg).not.toContain("{lockedAt}");
+    });
+  });
+
+  describe("BUSINESS_RULES_CONSTANTS.SESSION_INACTIVITY_THRESHOLD_MS", () => {
+    it("should be 8 hours in milliseconds", () => {
+      expect(BUSINESS_RULES_CONSTANTS.SESSION_INACTIVITY_THRESHOLD_MS).toBe(
+        8 * 60 * 60 * 1000,
+      );
+    });
+  });
+
+  describe("validateAdminCanLockMonth", () => {
+    it("should return null when month has fully ended", () => {
+      // February 2026 ends on 2026-02-28; checking on 2026-03-01 should pass
+      expect(validateAdminCanLockMonth("2026-02", "2026-03-01")).toBeNull();
+    });
+
+    it("should return null when well past the month end", () => {
+      expect(validateAdminCanLockMonth("2026-01", "2026-03-15")).toBeNull();
+    });
+
+    it("should return error when current date is within the month", () => {
+      const result = validateAdminCanLockMonth("2026-02", "2026-02-15");
+      expect(result).not.toBeNull();
+      expect(result!.messageKey).toBe("month.not_ended");
+    });
+
+    it("should return error when current date is last day of the month", () => {
+      const result = validateAdminCanLockMonth("2026-02", "2026-02-28");
+      expect(result).not.toBeNull();
+      expect(result!.messageKey).toBe("month.not_ended");
+    });
+
+    it("should handle December → January year rollover", () => {
+      expect(validateAdminCanLockMonth("2025-12", "2026-01-01")).toBeNull();
+      const result = validateAdminCanLockMonth("2025-12", "2025-12-31");
+      expect(result).not.toBeNull();
+    });
+
+    it("should return error for invalid month format", () => {
+      const result = validateAdminCanLockMonth("invalid", "2026-03-01");
+      expect(result).not.toBeNull();
+      expect(result!.messageKey).toBe("date.invalid");
+    });
+  });
+
+  describe("formatMonthNotEndedMessage", () => {
+    it("should substitute the earliestDate placeholder", () => {
+      const msg = formatMonthNotEndedMessage("2026-03-01");
+      expect(msg).toContain("2026-03-01");
+      expect(msg).not.toContain("{earliestDate}");
+    });
+  });
+
+  describe("getEarliestAdminLockDate", () => {
+    it("should return 1st of next month", () => {
+      expect(getEarliestAdminLockDate("2026-02")).toBe("2026-03-01");
+    });
+
+    it("should handle December → January", () => {
+      expect(getEarliestAdminLockDate("2025-12")).toBe("2026-01-01");
+    });
+
+    it("should return empty string for invalid input", () => {
+      expect(getEarliestAdminLockDate("bad")).toBe("");
+    });
+  });
+
+  describe("getPriorMonth", () => {
+    it("should return the month before", () => {
+      expect(getPriorMonth("2026-02-23")).toBe("2026-01");
+    });
+
+    it("should handle January → December year rollback", () => {
+      expect(getPriorMonth("2026-01-15")).toBe("2025-12");
+    });
+
+    it("should handle March → February", () => {
+      expect(getPriorMonth("2026-03-01")).toBe("2026-02");
     });
   });
 });
