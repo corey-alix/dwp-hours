@@ -183,7 +183,7 @@ export class MonthSummary extends BaseComponent {
 
     // Display: "available-scheduled" when balances set, otherwise just scheduled hours
     const displayValue = hasBalance
-      ? `${balance}-${hours}`
+      ? `${balance.toFixed(0)}-${hours}`
       : `${hours.toFixed(0)}`;
 
     return `
