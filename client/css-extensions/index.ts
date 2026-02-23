@@ -25,8 +25,13 @@ export {
   adoptAnimations,
   animateSlide,
   animateCarousel,
+  setupSwipeNavigation,
 } from "./animations/index.js";
-export type { AnimationHandle } from "./animations/index.js";
+export type {
+  AnimationHandle,
+  SwipeNavigationHandle,
+  ListenerHost,
+} from "./animations/index.js";
 
 // ── Toolbar ──
 export { getToolbarSheet, adoptToolbar } from "./toolbar/index.js";

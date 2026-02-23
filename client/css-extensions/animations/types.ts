@@ -8,3 +8,14 @@ export interface AnimationHandle {
   /** Cancel the animation immediately, cleaning up all inline styles. */
   cancel: () => void;
 }
+
+/**
+ * Handle returned by {@link setupSwipeNavigation}, allowing the caller
+ * to cancel in-flight animations or tear down touch listeners.
+ */
+export interface SwipeNavigationHandle {
+  /** Cancel any in-flight carousel animation. */
+  cancel(): void;
+  /** Remove touch listeners and release resources. */
+  destroy(): void;
+}

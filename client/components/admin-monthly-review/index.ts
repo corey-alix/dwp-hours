@@ -25,8 +25,12 @@ import {
   NAV_SYMBOLS,
   adoptAnimations,
   animateCarousel,
+  setupSwipeNavigation,
 } from "../../css-extensions/index.js";
-import type { AnimationHandle } from "../../css-extensions/index.js";
+import type {
+  SwipeNavigationHandle,
+  ListenerHost,
+} from "../../css-extensions/index.js";
 
 // Admin Monthly Review Component Architecture:
 // This component implements the event-driven data flow pattern:
@@ -52,11 +56,8 @@ export class AdminMonthlyReview extends BaseComponent {
   private _expandedCalendars: Set<number> = new Set();
   /** Per-card navigated month (employee ID → YYYY-MM). Reset on collapse. */
   private _calendarMonths: Map<number, string> = new Map();
-  // ── Swipe navigation state ──
-  private _swipeStartX: number | null = null;
-  private _swipeStartY: number | null = null;
-  private _isAnimating = false;
-  private _currentAnimation: AnimationHandle | null = null;
+  /** Per-card swipe navigation handles for memory-safe cleanup */
+  private _swipeHandles: Map<number, SwipeNavigationHandle> = new Map();
   /** Track which calendar containers already have swipe listeners attached */
   private _swipeListenerCards: Set<number> = new Set();
 
@@ -439,6 +440,12 @@ export class AdminMonthlyReview extends BaseComponent {
     if (this._expandedCalendars.has(employeeId)) {
       this._expandedCalendars.delete(employeeId);
       this._swipeListenerCards.delete(employeeId);
+      // Destroy swipe handle on collapse
+      const handle = this._swipeHandles.get(employeeId);
+      if (handle) {
+        handle.destroy();
+        this._swipeHandles.delete(employeeId);
+      }
     } else {
       // Reset displayed month to the review month on every open
       this._calendarMonths.set(employeeId, this._selectedMonth);
@@ -450,8 +457,9 @@ export class AdminMonthlyReview extends BaseComponent {
   // ── Swipe navigation ──
 
   /**
-   * Register touch listeners on an `.inline-calendar-container` for swipe
-   * month navigation. Uses addListener() for memory-safe automatic cleanup.
+   * Register swipe gesture detection on an `.inline-calendar-container`.
+   * Delegates to the shared setupSwipeNavigation() helper which handles
+   * touch detection, animation guards, and animateCarousel.
    */
   private setupSwipeForCard(employeeId: number): void {
     if (this._swipeListenerCards.has(employeeId)) return;
@@ -465,55 +473,24 @@ export class AdminMonthlyReview extends BaseComponent {
 
     this._swipeListenerCards.add(employeeId);
 
-    // Touch event listeners for swipe gesture detection
-    // Purpose: Enable intuitive month navigation on touch devices
-    // Performance: Minimal event listeners, hardware-accelerated animations
-    // Accessibility: Works with screen readers, respects reduced motion preferences
-    this.addListener(container, "touchstart", ((e: TouchEvent) => {
-      this._swipeStartX = e.touches[0].clientX;
-      this._swipeStartY = e.touches[0].clientY;
-    }) as EventListener);
-
-    this.addListener(container, "touchend", ((e: TouchEvent) => {
-      if (this._swipeStartX === null || this._swipeStartY === null) return;
-
-      const endX = e.changedTouches[0].clientX;
-      const endY = e.changedTouches[0].clientY;
-
-      const deltaX = endX - this._swipeStartX;
-      const deltaY = endY - this._swipeStartY;
-
-      // Minimum swipe distance threshold (50px) to prevent accidental navigation
-      const minSwipeDistance = 50;
-
-      // Ensure horizontal swipe is dominant over vertical scrolling
-      if (
-        Math.abs(deltaX) > Math.abs(deltaY) &&
-        Math.abs(deltaX) > minSwipeDistance
-      ) {
-        // Direction: swipe left = next month (+1), swipe right = prev month (-1)
-        const direction: -1 | 1 = deltaX > 0 ? -1 : 1;
-        this.navigateMonthWithAnimation(employeeId, direction);
-      }
-
-      // Reset touch coordinates
-      this._swipeStartX = null;
-      this._swipeStartY = null;
-    }) as EventListener);
+    const handle = setupSwipeNavigation(
+      this as unknown as ListenerHost,
+      container,
+      (direction) => {
+        this.navigateCalendarMonth(employeeId, direction);
+      },
+    );
+    this._swipeHandles.set(employeeId, handle);
   }
 
   /**
-   * Carousel-style month navigation animation.
-   * Delegates to the shared animation library's animateCarousel helper,
-   * which handles phase sequencing, reduced-motion, and inline style cleanup.
+   * Carousel-style month navigation for arrow button clicks.
+   * Delegates to animateCarousel directly (swipe uses setupSwipeNavigation).
    */
   private navigateMonthWithAnimation(
     employeeId: number,
     direction: -1 | 1,
   ): void {
-    // Prevent overlapping animations
-    if (this._isAnimating) return;
-
     const card = this.shadowRoot.querySelector(
       `.employee-card[data-employee-id="${employeeId}"]`,
     );
@@ -526,13 +503,8 @@ export class AdminMonthlyReview extends BaseComponent {
       return;
     }
 
-    this._isAnimating = true;
-    this._currentAnimation = animateCarousel(container, direction, () => {
+    animateCarousel(container, direction, () => {
       this.navigateCalendarMonth(employeeId, direction);
-    });
-    this._currentAnimation.promise.then(() => {
-      this._currentAnimation = null;
-      this._isAnimating = false;
     });
   }
 

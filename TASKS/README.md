@@ -48,6 +48,7 @@
 - pto-request-queue-balance-summary.md: Update E2E tests, manual testing
 - pto-summary-balance-slot.md: Build and lint, manual verification
 - secure-magic-link-tokens.md: Lint validation, build checks
+- swipe-carousel-navigation-dedup.md: Manual swipe test on mobile viewport, E2E regression check
 - ui-router-migration.md: Manual testing of navigation flows
 - zero-hour-pto-unschedule.md: Build and lint, manual testing of 0-hour submissions
 

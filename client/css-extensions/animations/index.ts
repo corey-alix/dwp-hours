@@ -10,9 +10,9 @@
  */
 
 import { animationCSS } from "./animations.js";
-import type { AnimationHandle } from "./types.js";
+import type { AnimationHandle, SwipeNavigationHandle } from "./types.js";
 
-export type { AnimationHandle } from "./types.js";
+export type { AnimationHandle, SwipeNavigationHandle } from "./types.js";
 
 // ── Constructable stylesheet singleton ──
 
@@ -266,6 +266,123 @@ export function animateCarousel(
         onUpdate();
         cleanup();
       }
+    },
+  };
+}
+
+// ── setupSwipeNavigation — reusable swipe-to-navigate helper ──
+
+/** Minimum horizontal distance (px) to recognise a swipe. */
+const SWIPE_THRESHOLD = 50;
+
+/**
+ * Narrow interface for the listener-tracking capability needed by
+ * `setupSwipeNavigation`. Matches {@link BaseComponent.addListener}.
+ */
+export interface ListenerHost {
+  addListener(
+    element: EventTarget,
+    event: string,
+    handler: EventListener,
+  ): void;
+}
+
+/**
+ * Attach swipe gesture detection and animated carousel navigation to a
+ * container element.
+ *
+ * Touch listeners are registered via the host's `addListener()` for
+ * memory-safe automatic cleanup. Animation state (guard flag and
+ * current handle) is encapsulated in the returned closure — callers
+ * do **not** need their own `isAnimating` / `currentAnimation` fields.
+ *
+ * @param host       Object with an `addListener` method (typically a
+ *                   `BaseComponent` instance) used to register touch
+ *                   handlers for automatic lifecycle cleanup.
+ * @param container  The DOM element to listen for touch events on and
+ *                   to animate with `animateCarousel()`.
+ * @param onNavigate Callback invoked with `-1` (prev) or `1` (next)
+ *                   while the container is off-screen during the
+ *                   carousel animation — swap content here.
+ * @returns A {@link SwipeNavigationHandle} with `cancel()` and
+ *          `destroy()` methods.
+ */
+export function setupSwipeNavigation(
+  host: ListenerHost,
+  container: HTMLElement,
+  onNavigate: (direction: -1 | 1) => void,
+): SwipeNavigationHandle {
+  let swipeStartX: number | null = null;
+  let swipeStartY: number | null = null;
+  let isAnimating = false;
+  let currentAnimation: AnimationHandle | null = null;
+  let destroyed = false;
+
+  const onTouchStart = ((e: TouchEvent) => {
+    if (destroyed) return;
+    swipeStartX = e.touches[0].clientX;
+    swipeStartY = e.touches[0].clientY;
+  }) as EventListener;
+
+  const onTouchEnd = ((e: TouchEvent) => {
+    if (destroyed) return;
+    if (swipeStartX === null || swipeStartY === null) return;
+
+    const endX = e.changedTouches[0].clientX;
+    const endY = e.changedTouches[0].clientY;
+
+    const deltaX = endX - swipeStartX;
+    const deltaY = endY - swipeStartY;
+
+    // Reset touch coordinates
+    swipeStartX = null;
+    swipeStartY = null;
+
+    // Ensure horizontal swipe is dominant over vertical scrolling
+    if (
+      Math.abs(deltaX) <= Math.abs(deltaY) ||
+      Math.abs(deltaX) < SWIPE_THRESHOLD
+    ) {
+      return;
+    }
+
+    // Direction: swipe right (deltaX > 0) = previous, swipe left = next
+    const direction: -1 | 1 = deltaX > 0 ? -1 : 1;
+    navigateWithAnimation(direction);
+  }) as EventListener;
+
+  function navigateWithAnimation(direction: -1 | 1): void {
+    if (isAnimating || destroyed) return;
+    isAnimating = true;
+
+    currentAnimation = animateCarousel(container, direction, () => {
+      onNavigate(direction);
+    });
+    currentAnimation.promise.then(() => {
+      currentAnimation = null;
+      isAnimating = false;
+    });
+  }
+
+  // Register listeners via host for automatic lifecycle cleanup
+  host.addListener(container, "touchstart", onTouchStart);
+  host.addListener(container, "touchend", onTouchEnd);
+
+  return {
+    cancel() {
+      if (currentAnimation) {
+        currentAnimation.cancel();
+        currentAnimation = null;
+        isAnimating = false;
+      }
+    },
+    destroy() {
+      destroyed = true;
+      this.cancel();
+      // Listeners are removed by host's cleanup (disconnectedCallback)
+      // but mark state so callbacks become no-ops immediately.
+      swipeStartX = null;
+      swipeStartY = null;
     },
   };
 }

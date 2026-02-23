@@ -20,7 +20,9 @@ import { styles } from "./css.js";
 import {
   adoptAnimations,
   animateCarousel,
-  type AnimationHandle,
+  setupSwipeNavigation,
+  type SwipeNavigationHandle,
+  type ListenerHost,
 } from "../../css-extensions/index.js";
 
 /** Breakpoint at which all 12 months are shown in a grid */
@@ -39,6 +41,9 @@ export class PtoEntryForm extends BaseComponent {
 
   /** Currently active PTO type, persisted across calendar rebuilds */
   private _activePtoType: string = "PTO";
+
+  /** Swipe navigation handle for the calendar container */
+  private _swipeHandle: SwipeNavigationHandle | null = null;
 
   static get observedAttributes() {
     return ["available-pto-balance"];
@@ -460,90 +465,56 @@ export class PtoEntryForm extends BaseComponent {
     const action = actionEl.dataset.action;
     if (action === "prev-month") {
       const calendar = this.getCalendar();
-      if (calendar) this.navigateMonthWithAnimation(calendar, -1);
+      if (calendar) this.navigateMonth(calendar, -1);
     } else if (action === "next-month") {
       const calendar = this.getCalendar();
-      if (calendar) this.navigateMonthWithAnimation(calendar, 1);
+      if (calendar) this.navigateMonth(calendar, 1);
     }
   }
 
   // ── Swipe navigation ──
 
-  private _swipeStartX: number | null = null;
-  private _swipeStartY: number | null = null;
-
   /**
-   * Register touch listeners on #calendar-container for swipe month navigation.
-   * Uses addListener() for memory-safe automatic cleanup in disconnectedCallback.
+   * Register swipe gesture detection on #calendar-container.
+   * Delegates to the shared setupSwipeNavigation() helper which
+   * handles touch detection, animation guards, and animateCarousel.
    */
   private setupSwipeListeners(): void {
-    const container = this.shadowRoot.querySelector("#calendar-container");
+    const container = this.shadowRoot.querySelector(
+      "#calendar-container",
+    ) as HTMLElement | null;
     if (!container) return;
 
-    // Touch event listeners for swipe gesture detection
-    // Purpose: Enable intuitive month navigation on touch devices
-    // Performance: Minimal event listeners, hardware-accelerated animations
-    // Accessibility: Works with screen readers, respects reduced motion preferences
-    this.addListener(container, "touchstart", ((e: TouchEvent) => {
-      this._swipeStartX = e.touches[0].clientX;
-      this._swipeStartY = e.touches[0].clientY;
-    }) as EventListener);
-
-    this.addListener(container, "touchend", ((e: TouchEvent) => {
-      if (this._swipeStartX === null || this._swipeStartY === null) return;
-
-      const endX = e.changedTouches[0].clientX;
-      const endY = e.changedTouches[0].clientY;
-
-      const deltaX = endX - this._swipeStartX;
-      const deltaY = endY - this._swipeStartY;
-
-      // Minimum swipe distance threshold (50px) to prevent accidental navigation
-      const minSwipeDistance = 50;
-
-      // Ensure horizontal swipe is dominant over vertical scrolling
-      if (
-        Math.abs(deltaX) > Math.abs(deltaY) &&
-        Math.abs(deltaX) > minSwipeDistance
-      ) {
+    this._swipeHandle = setupSwipeNavigation(
+      this as unknown as ListenerHost,
+      container,
+      (direction) => {
         const calendar = this.getCalendar();
-        if (!calendar) return;
-
-        // Trigger smooth month navigation with visual feedback
-        // Direction: positive = next month, negative = previous month
-        this.navigateMonthWithAnimation(calendar, deltaX > 0 ? -1 : 1);
-      }
-
-      // Reset touch coordinates
-      this._swipeStartX = null;
-      this._swipeStartY = null;
-    }) as EventListener);
+        if (calendar) this.updateCalendarMonth(calendar, direction);
+      },
+    );
   }
 
-  private isAnimating = false;
-  private currentAnimation: AnimationHandle | null = null;
-
   /**
-   * Carousel-style month navigation animation.
-   * Delegates to the shared animation library's animateCarousel helper,
-   * which handles phase sequencing, reduced-motion, and inline style cleanup.
+   * Navigate the calendar to the next/previous month with carousel animation.
+   * Used by arrow button clicks. Swipe gestures go through _swipeHandle.
    */
-  private navigateMonthWithAnimation(calendar: PtoCalendar, direction: number) {
-    // Prevent overlapping animations
-    if (this.isAnimating) return;
-    this.isAnimating = true;
+  private navigateMonth(calendar: PtoCalendar, direction: number): void {
+    // In multi-calendar mode, arrow navigation is hidden
+    if (this.isMultiCalendar) return;
 
-    const container = querySingle<HTMLDivElement>(
+    const container = this.shadowRoot.querySelector(
       "#calendar-container",
-      this.shadowRoot,
-    );
-
-    this.currentAnimation = animateCarousel(container, direction, () => {
+    ) as HTMLElement | null;
+    if (!container) {
+      // Fallback: navigate without animation
       this.updateCalendarMonth(calendar, direction);
-    });
-    this.currentAnimation.promise.then(() => {
-      this.currentAnimation = null;
-      this.isAnimating = false;
+      return;
+    }
+
+    // Delegate to animateCarousel directly for arrow-button navigation
+    animateCarousel(container, direction, () => {
+      this.updateCalendarMonth(calendar, direction);
     });
   }
 

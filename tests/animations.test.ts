@@ -1,13 +1,15 @@
 // @vitest-environment happy-dom
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { animationCSS } from "../client/css-extensions/animations/animations.js";
 import {
   getAnimationSheet,
   adoptAnimations,
   animateSlide,
   animateCarousel,
+  setupSwipeNavigation,
 } from "../client/css-extensions/index.js";
+import type { ListenerHost } from "../client/css-extensions/index.js";
 
 // ── animationCSS snapshot ──
 
@@ -197,5 +199,143 @@ describe("animateCarousel", () => {
     handle.cancel();
     await handle.promise;
     expect(callCount).toBe(1);
+  });
+});
+
+// ── setupSwipeNavigation ──
+
+describe("setupSwipeNavigation", () => {
+  let container: HTMLElement;
+  let host: ListenerHost & {
+    _listeners: Array<{ el: EventTarget; ev: string; fn: EventListener }>;
+  };
+  const originalMatchMedia = window.matchMedia;
+
+  beforeEach(() => {
+    container = document.createElement("div");
+    document.body.appendChild(container);
+
+    // Minimal ListenerHost implementation that tracks registered listeners
+    const listeners: Array<{ el: EventTarget; ev: string; fn: EventListener }> =
+      [];
+    host = {
+      _listeners: listeners,
+      addListener(element: EventTarget, event: string, handler: EventListener) {
+        element.addEventListener(event, handler);
+        listeners.push({ el: element, ev: event, fn: handler });
+      },
+    };
+
+    // Mock reduced-motion so animateCarousel calls onUpdate synchronously
+    // (happy-dom does not fire transitionend events)
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes("prefers-reduced-motion"),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+      onchange: null,
+    })) as typeof window.matchMedia;
+  });
+
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia;
+  });
+
+  /** Helper: dispatch touchstart + touchend on the container via raw events */
+  function simulateSwipe(
+    startX: number,
+    startY: number,
+    endX: number,
+    endY: number,
+  ) {
+    // Use basic Event + monkey-patched touch arrays for happy-dom compatibility
+    const startEvt = new Event("touchstart", { bubbles: true }) as any;
+    startEvt.touches = [{ clientX: startX, clientY: startY }];
+    container.dispatchEvent(startEvt);
+
+    const endEvt = new Event("touchend", { bubbles: true }) as any;
+    endEvt.changedTouches = [{ clientX: endX, clientY: endY }];
+    container.dispatchEvent(endEvt);
+  }
+
+  it("returns a handle with cancel and destroy methods", () => {
+    const handle = setupSwipeNavigation(host, container, () => {});
+    expect(typeof handle.cancel).toBe("function");
+    expect(typeof handle.destroy).toBe("function");
+    handle.destroy();
+  });
+
+  it("registers touchstart and touchend listeners via host.addListener", () => {
+    setupSwipeNavigation(host, container, () => {});
+    const events = host._listeners.map((l) => l.ev);
+    expect(events).toContain("touchstart");
+    expect(events).toContain("touchend");
+  });
+
+  it("calls onNavigate(1) for a leftward swipe (next)", () => {
+    let navigatedDirection: number | null = null;
+    setupSwipeNavigation(host, container, (dir) => {
+      navigatedDirection = dir;
+    });
+
+    // Swipe left: start at 200, end at 100 (deltaX = -100, next)
+    simulateSwipe(200, 100, 100, 100);
+    expect(navigatedDirection).toBe(1);
+  });
+
+  it("calls onNavigate(-1) for a rightward swipe (prev)", () => {
+    let navigatedDirection: number | null = null;
+    setupSwipeNavigation(host, container, (dir) => {
+      navigatedDirection = dir;
+    });
+
+    // Swipe right: start at 100, end at 200 (deltaX = +100, prev)
+    simulateSwipe(100, 100, 200, 100);
+    expect(navigatedDirection).toBe(-1);
+  });
+
+  it("does NOT navigate when swipe distance is below threshold (50px)", () => {
+    let called = false;
+    setupSwipeNavigation(host, container, () => {
+      called = true;
+    });
+
+    // Swipe only 30px — below 50px threshold
+    simulateSwipe(100, 100, 130, 100);
+    expect(called).toBe(false);
+  });
+
+  it("does NOT navigate when vertical swipe dominates", () => {
+    let called = false;
+    setupSwipeNavigation(host, container, () => {
+      called = true;
+    });
+
+    // Vertical-dominant swipe: 20px horizontal, 100px vertical
+    simulateSwipe(100, 100, 120, 200);
+    expect(called).toBe(false);
+  });
+
+  it("does NOT navigate after destroy() is called", () => {
+    let called = false;
+    const handle = setupSwipeNavigation(host, container, () => {
+      called = true;
+    });
+
+    handle.destroy();
+
+    // Valid swipe that would normally trigger navigation
+    simulateSwipe(200, 100, 100, 100);
+    expect(called).toBe(false);
+  });
+
+  it("cancel() is safe to call when no animation is in-flight", () => {
+    const handle = setupSwipeNavigation(host, container, () => {});
+    // Should not throw
+    expect(() => handle.cancel()).not.toThrow();
+    handle.destroy();
   });
 });
