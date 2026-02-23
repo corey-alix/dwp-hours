@@ -78,10 +78,9 @@ describe("APIClient", () => {
       });
 
       const request = {
-        employeeId: 1,
         date: "2026-03-06",
         hours: 4,
-        type: "PTO",
+        type: "PTO" as const,
       };
       const result = await apiClient.createPTOEntry(request);
 
@@ -117,8 +116,8 @@ describe("APIClient", () => {
       });
 
       const requests = [
-        { employeeId: 1, date: "2026-03-06", hours: 4, type: "PTO" },
-        { employeeId: 1, date: "2026-03-07", hours: 8, type: "PTO" },
+        { date: "2026-03-06", hours: 4, type: "PTO" as const },
+        { date: "2026-03-07", hours: 8, type: "PTO" as const },
       ];
       const result = await apiClient.createPTOEntry({ requests });
 

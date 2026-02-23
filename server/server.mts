@@ -57,6 +57,11 @@ import type {
   AcknowledgementSubmitResponse,
   AdminAcknowledgementSubmitResponse,
   AdminMonthlyReviewItem,
+  EmployeeCreateRequest,
+  EmployeeUpdateRequest,
+  PTOCreateRequest,
+  PTOBulkCreateRequest,
+  PTOUpdateRequest,
 } from "../shared/api-models.js";
 import {
   serializePTOEntry,
@@ -66,6 +71,107 @@ import {
   serializeAdminAcknowledgement,
 } from "../shared/entity-transforms.js";
 import { logger, log } from "../shared/logger.js";
+
+// Type guard functions for runtime validation
+function isEmployeeCreateRequest(obj: any): obj is EmployeeCreateRequest {
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    typeof obj.name === "string" &&
+    typeof obj.identifier === "string" &&
+    typeof obj.ptoRate === "number" &&
+    typeof obj.carryoverHours === "number" &&
+    typeof obj.hireDate === "string" &&
+    typeof obj.role === "string"
+  );
+}
+
+function isEmployeeUpdateRequest(obj: any): obj is EmployeeUpdateRequest {
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    (obj.name === undefined || typeof obj.name === "string") &&
+    (obj.identifier === undefined || typeof obj.identifier === "string") &&
+    (obj.ptoRate === undefined || typeof obj.ptoRate === "number") &&
+    (obj.carryoverHours === undefined ||
+      typeof obj.carryoverHours === "number") &&
+    (obj.hireDate === undefined || typeof obj.hireDate === "string") &&
+    (obj.role === undefined || typeof obj.role === "string")
+  );
+}
+
+function isPTOCreateRequest(obj: any): obj is PTOCreateRequest {
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    typeof obj.date === "string" &&
+    typeof obj.hours === "number" &&
+    typeof obj.type === "string"
+  );
+}
+
+function isPTOBulkCreateRequest(obj: any): obj is PTOBulkCreateRequest {
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    Array.isArray(obj.requests) &&
+    obj.requests.every(isPTOCreateRequest)
+  );
+}
+
+function isPTOUpdateRequest(obj: any): obj is PTOUpdateRequest {
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    (obj.date === undefined || typeof obj.date === "string") &&
+    (obj.hours === undefined || typeof obj.hours === "number") &&
+    (obj.type === undefined || typeof obj.type === "string") &&
+    (obj.approved_by === undefined ||
+      obj.approved_by === null ||
+      typeof obj.approved_by === "number")
+  );
+}
+
+function isHoursSubmitRequest(
+  obj: any,
+): obj is { month: string; hours: number | string } {
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    typeof obj.month === "string" &&
+    (typeof obj.hours === "number" ||
+      (typeof obj.hours === "string" && !isNaN(parseFloat(obj.hours))))
+  );
+}
+
+function isAcknowledgementSubmitRequest(obj: any): obj is { month: string } {
+  return (
+    typeof obj === "object" && obj !== null && typeof obj.month === "string"
+  );
+}
+
+function isAdminAcknowledgementSubmitRequest(
+  obj: any,
+): obj is { employeeId: string | number; month: string } {
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    (typeof obj.employeeId === "string" ||
+      typeof obj.employeeId === "number") &&
+    typeof obj.month === "string"
+  );
+}
+
+function isFileMigrationRequest(
+  obj: any,
+): obj is { employeeEmail: string; filePath: string } {
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    typeof obj.employeeEmail === "string" &&
+    typeof obj.filePath === "string"
+  );
+}
 
 const VERSION = `1.0.0`; // INCREMENT BEFORE EACH CHANGE
 const START_TIME = new Date().toISOString();
@@ -729,6 +835,9 @@ initDatabase()
       authenticate(() => dataSource, log),
       async (req, res) => {
         try {
+          if (!isHoursSubmitRequest(req.body)) {
+            return res.status(400).json({ error: "Invalid request body" });
+          }
           const { month, hours } = req.body;
           const employeeId = req.employee!.id; // Use authenticated user's ID
 
@@ -741,7 +850,8 @@ initDatabase()
               .json({ error: "Month and hours are required" });
           }
 
-          const hoursNum = parseFloat(hours);
+          const hoursNum =
+            typeof hours === "string" ? parseFloat(hours) : hours;
 
           if (isNaN(hoursNum)) {
             logger.info(`Hours submission failed: Invalid hours (${hours})`);
@@ -869,6 +979,9 @@ initDatabase()
       authenticate(() => dataSource, log),
       async (req, res) => {
         try {
+          if (!isAcknowledgementSubmitRequest(req.body)) {
+            return res.status(400).json({ error: "Invalid request body" });
+          }
           const { month } = req.body;
           const employeeId = req.employee!.id; // Use authenticated user's ID
 
@@ -1057,6 +1170,9 @@ initDatabase()
       authenticateAdmin(() => dataSource, log),
       async (req, res) => {
         try {
+          if (!isAdminAcknowledgementSubmitRequest(req.body)) {
+            return res.status(400).json({ error: "Invalid request body" });
+          }
           const { employeeId, month } = req.body;
           const adminId = req.employee!.id; // Use authenticated admin's ID
 
@@ -1069,7 +1185,7 @@ initDatabase()
               .json({ error: "Employee ID and month are required" });
           }
 
-          const employeeIdNum = parseInt(employeeId);
+          const employeeIdNum = parseInt(String(employeeId));
 
           if (isNaN(employeeIdNum)) {
             logger.info(
@@ -1440,14 +1556,11 @@ initDatabase()
       authenticateAdmin(() => dataSource, log),
       async (req, res) => {
         try {
-          const {
-            name,
-            identifier,
-            pto_rate,
-            carryover_hours,
-            hire_date,
-            role,
-          } = req.body;
+          if (!isEmployeeCreateRequest(req.body)) {
+            return res.status(400).json({ error: "Invalid request body" });
+          }
+          const { name, identifier, ptoRate, carryoverHours, hireDate, role } =
+            req.body;
 
           // Validation
           if (!name || typeof name !== "string" || name.trim().length === 0) {
@@ -1481,11 +1594,19 @@ initDatabase()
           employee.name = name.trim();
           employee.identifier = identifier;
           employee.pto_rate =
-            pto_rate !== undefined ? parseFloat(pto_rate) : 0.71;
+            ptoRate !== undefined
+              ? typeof ptoRate === "string"
+                ? parseFloat(ptoRate)
+                : ptoRate
+              : 0.71;
           employee.carryover_hours =
-            carryover_hours !== undefined ? parseFloat(carryover_hours) : 0;
-          employee.hire_date = hire_date
-            ? new Date(hire_date)
+            carryoverHours !== undefined
+              ? typeof carryoverHours === "string"
+                ? parseFloat(carryoverHours)
+                : carryoverHours
+              : 0;
+          employee.hire_date = hireDate
+            ? new Date(hireDate)
             : new Date(today());
           employee.role = role || "Employee";
 
@@ -1517,14 +1638,11 @@ initDatabase()
             return res.status(400).json({ error: "Invalid employee ID" });
           }
 
-          const {
-            name,
-            identifier,
-            pto_rate,
-            carryover_hours,
-            hire_date,
-            role,
-          } = req.body;
+          if (!isEmployeeUpdateRequest(req.body)) {
+            return res.status(400).json({ error: "Invalid request body" });
+          }
+          const { name, identifier, ptoRate, carryoverHours, hireDate, role } =
+            req.body;
 
           const employeeRepo = dataSource.getRepository(Employee);
           const employee = await employeeRepo.findOne({
@@ -1572,10 +1690,15 @@ initDatabase()
           // Update fields if provided
           if (name !== undefined) employee.name = name;
           if (identifier !== undefined) employee.identifier = identifier;
-          if (pto_rate !== undefined) employee.pto_rate = parseFloat(pto_rate);
-          if (carryover_hours !== undefined)
-            employee.carryover_hours = parseFloat(carryover_hours);
-          if (hire_date !== undefined) employee.hire_date = new Date(hire_date);
+          if (ptoRate !== undefined)
+            employee.pto_rate =
+              typeof ptoRate === "string" ? parseFloat(ptoRate) : ptoRate;
+          if (carryoverHours !== undefined)
+            employee.carryover_hours =
+              typeof carryoverHours === "string"
+                ? parseFloat(carryoverHours)
+                : carryoverHours;
+          if (hireDate !== undefined) employee.hire_date = new Date(hireDate);
           if (role !== undefined) employee.role = role;
 
           await employeeRepo.save(employee);
@@ -1800,7 +1923,14 @@ initDatabase()
       authenticate(() => dataSource, log),
       async (req, res) => {
         try {
-          const { date, hours, type, requests } = req.body;
+          if (
+            !isPTOCreateRequest(req.body) &&
+            !isPTOBulkCreateRequest(req.body)
+          ) {
+            return res.status(400).json({ error: "Invalid request body" });
+          }
+          const body = req.body as PTOCreateRequest | PTOBulkCreateRequest;
+          const { date, hours, type, requests } = body as any; // Type assertion for destructuring
           const authenticatedEmployeeId = req.employee!.id;
 
           // Handle both single request and multiple requests
@@ -2012,12 +2142,17 @@ initDatabase()
               .json({ error: "You can only modify your own PTO entries" });
           }
 
+          if (!isPTOUpdateRequest(req.body)) {
+            return res.status(400).json({ error: "Invalid request body" });
+          }
           const { date, type, hours, approved_by } = req.body;
 
           const updateData: any = {};
           if (date !== undefined) updateData.date = date;
           if (type !== undefined) updateData.type = type;
-          if (hours !== undefined) updateData.hours = parseFloat(hours);
+          if (hours !== undefined)
+            updateData.hours =
+              typeof hours === "string" ? parseFloat(hours) : hours;
           if (approved_by !== undefined) {
             // Only admins can set approved_by
             if (req.employee!.role === "Admin") {
@@ -2220,6 +2355,9 @@ initDatabase()
       authenticateAdmin(() => dataSource, log),
       async (req, res) => {
         try {
+          if (!isFileMigrationRequest(req.body)) {
+            return res.status(400).json({ error: "Invalid request body" });
+          }
           const { employeeEmail, filePath } = req.body;
           if (!filePath) {
             return res.status(400).json({ error: "File path is required" });

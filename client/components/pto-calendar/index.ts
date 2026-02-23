@@ -4,6 +4,8 @@ import {
   validatePTOType,
   VALIDATION_MESSAGES,
   MessageKey,
+  type PTOType,
+  normalizePTOType,
 } from "../../../shared/businessRules.js";
 import {
   getCalendarDates,
@@ -33,7 +35,7 @@ export const monthNames = [
 export interface CalendarEntry {
   date: string;
   hours: number;
-  type: string;
+  type: PTOType;
   id?: number; // For existing entries being updated
 }
 
@@ -41,7 +43,7 @@ export interface PTOEntry {
   id: number;
   employeeId: number;
   date: string;
-  type: "PTO" | "Sick" | "Bereavement" | "Jury Duty";
+  type: PTOType;
   hours: number;
   createdAt: string;
   approved_by?: number | null;
@@ -51,7 +53,7 @@ export class PtoCalendar extends BaseComponent {
   // ── Complex values: private fields with get/set ──
   private _ptoEntries: PTOEntry[] = [];
   private _selectedCells: Map<string, number> = new Map();
-  private _selectedPtoType: string | null = null;
+  private _selectedPtoType: PTOType | null = null;
 
   // ── View-model focus state ──
   private _focusedDate: string | null = null;
@@ -141,13 +143,13 @@ export class PtoCalendar extends BaseComponent {
     this.requestUpdate();
   }
 
-  get selectedPtoType(): string | null {
+  get selectedPtoType(): PTOType | null {
     return this._selectedPtoType;
   }
 
   set selectedPtoType(value: string | null) {
     if (this._selectedPtoType === value) return;
-    this._selectedPtoType = value;
+    this._selectedPtoType = value ? normalizePTOType(value) : null;
     this.requestUpdate();
   }
 
@@ -320,7 +322,8 @@ export class PtoCalendar extends BaseComponent {
           this.shadowRoot.querySelectorAll(".legend-item.clickable"),
         );
         this._focusedLegendIndex = legendItems.indexOf(legendItem);
-        this._selectedPtoType = this._selectedPtoType === type ? null : type;
+        this._selectedPtoType =
+          this._selectedPtoType === type ? null : normalizePTOType(type);
         this._lastFocusArea = "legend";
         this.requestUpdate();
       }
@@ -528,7 +531,8 @@ export class PtoCalendar extends BaseComponent {
         const type = target.dataset.type;
         if (type) {
           this._focusedLegendIndex = currentIndex;
-          this._selectedPtoType = this._selectedPtoType === type ? null : type;
+          this._selectedPtoType =
+            this._selectedPtoType === type ? null : normalizePTOType(type);
           this._lastFocusArea = "legend";
           this.requestUpdate();
         }

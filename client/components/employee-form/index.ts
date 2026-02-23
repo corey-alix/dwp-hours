@@ -244,6 +244,11 @@ export class EmployeeForm extends BaseComponent {
           }),
         );
 
+        // Update the employee property with submitted values so form shows correct data
+        if (result.employee) {
+          this._employee = result.employee;
+        }
+
         // Clear submitting state and staged values after dispatch so consumers can update
         this._isSubmitting = false;
         this._stagedFormValues = null;

@@ -113,9 +113,7 @@ export class APIClient {
   }
 
   async createPTOEntry(
-    request:
-      | { date: string; hours: number; type: string }
-      | { requests: Array<{ date: string; hours: number; type: string }> },
+    request: ApiTypes.PTOCreateRequest | ApiTypes.PTOBulkCreateRequest,
   ): Promise<{
     message: string;
     ptoEntry: ApiTypes.PTOEntry;
@@ -126,12 +124,7 @@ export class APIClient {
 
   async updatePTOEntry(
     id: number,
-    updates: Partial<{
-      date: string;
-      hours: number;
-      type: string;
-      approved_by: number | null;
-    }>,
+    updates: ApiTypes.PTOUpdateRequest,
   ): Promise<ApiTypes.PTOUpdateResponse> {
     return this.put(`/pto/${id}`, updates);
   }
@@ -200,7 +193,7 @@ export class APIClient {
   }
 
   async createEmployee(
-    employee: Omit<ApiTypes.Employee, "id" | "hash">,
+    employee: ApiTypes.EmployeeCreateRequest,
   ): Promise<ApiTypes.EmployeeCreateResponse> {
     return this.post("/employees", employee);
   }
@@ -211,7 +204,7 @@ export class APIClient {
 
   async updateEmployee(
     id: number,
-    updates: Partial<ApiTypes.Employee>,
+    updates: ApiTypes.EmployeeUpdateRequest,
   ): Promise<ApiTypes.EmployeeUpdateResponse> {
     return this.put(`/employees/${id}`, updates);
   }

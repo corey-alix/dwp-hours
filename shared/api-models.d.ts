@@ -13,6 +13,42 @@ export interface Employee {
   hash?: string;
 }
 
+// Request payload types (what the client sends to the server)
+export interface EmployeeCreateRequest {
+  name: string;
+  identifier: string;
+  ptoRate: number;
+  carryoverHours: number;
+  hireDate: string;
+  role: string;
+}
+
+export interface EmployeeUpdateRequest {
+  name?: string;
+  identifier?: string;
+  ptoRate?: number;
+  carryoverHours?: number;
+  hireDate?: string;
+  role?: string;
+}
+
+export interface PTOCreateRequest {
+  date: string;
+  hours: number;
+  type: "PTO" | "Sick" | "Bereavement" | "Jury Duty";
+}
+
+export interface PTOBulkCreateRequest {
+  requests: PTOCreateRequest[];
+}
+
+export interface PTOUpdateRequest {
+  date?: string;
+  hours?: number;
+  type?: "PTO" | "Sick" | "Bereavement" | "Jury Duty";
+  approved_by?: number | null;
+}
+
 export interface PTOEntry {
   id: number;
   employeeId: number;
