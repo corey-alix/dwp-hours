@@ -5,11 +5,14 @@
 
 import { getWorkDays, getTotalWorkDaysInYear } from "./workDays.js";
 import { parseDate, formatDate, today } from "../shared/dateUtils.js";
+import { BUSINESS_RULES_CONSTANTS } from "../shared/businessRules.js";
+
+const { BASELINE_PTO_HOURS_PER_YEAR } = BUSINESS_RULES_CONSTANTS;
 
 export interface PTOStatus {
   employeeId: number;
   hireDate: string;
-  annualAllocation: number; // 96 hours PTO
+  annualAllocation: number; // derived from employee.pto_rate * work days (default rate = BASELINE_PTO_HOURS_PER_YEAR / totalWorkDays)
   availablePTO: number;
   usedPTO: number;
   carryoverFromPreviousYear: number;
@@ -64,15 +67,16 @@ export interface Employee {
  */
 function calculateProratedAllocation(employee: Employee, year: number): number {
   const hireDate = parseDate(employee.hire_date);
+  const fullAllocation = employee.pto_rate * getTotalWorkDaysInYear(year);
   if (hireDate.year < year) {
-    return 96;
+    return fullAllocation;
   } else if (hireDate.year === year) {
     if (hireDate.month <= 2) {
       // Jan or Feb (1-based months)
-      return 96; // Hired in Jan or Feb, full allocation
+      return fullAllocation; // Hired in Jan or Feb, full allocation
     }
     const monthsRemaining = 12 - hireDate.month + 1; // Months from hire month to Dec
-    return 96 * (monthsRemaining / 12);
+    return fullAllocation * (monthsRemaining / 12);
   } else {
     return 0; // Hired after the year
   }
@@ -116,9 +120,8 @@ export function calculatePTOStatus(
   const availablePTO = startingPTOBalance - usedPTO;
 
   // Calculate monthly accruals for display (current year) - informational only
-  // Use fixed allocation rate: 96 hours / total work days in year
   const totalWorkDays = getTotalWorkDaysInYear(currentYear);
-  const allocationRate = 96 / totalWorkDays;
+  const allocationRate = employee.pto_rate;
 
   const monthlyAccruals = [];
   for (let month = 1; month <= 12; month++) {
@@ -190,7 +193,10 @@ export function calculateYearEndCarryover(
 
   // Starting balance: annual allocation + carryover from previous year
   const hireDate = parseDate(employee.hire_date);
-  const annualAllocation = hireDate.year <= year ? 96 : 0;
+  const annualAllocation =
+    hireDate.year <= year
+      ? employee.pto_rate * getTotalWorkDaysInYear(year)
+      : 0;
   const startingBalance = annualAllocation + employee.carryover_hours;
 
   // Available at year end = starting balance - used PTO

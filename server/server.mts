@@ -19,6 +19,7 @@ import {
   AdminAcknowledgement,
 } from "./entities/index.js";
 import { calculatePTOStatus } from "./ptoCalculations.js";
+import { getTotalWorkDaysInYear } from "./workDays.js";
 import {
   dateToString,
   getDateComponents,
@@ -34,6 +35,7 @@ import { PtoEntryDAL } from "./dal/PtoEntryDAL.js";
 import {
   VALIDATION_MESSAGES,
   SUCCESS_MESSAGES,
+  BUSINESS_RULES_CONSTANTS,
   MessageKey,
   validatePTOBalance,
 } from "../shared/businessRules.js";
@@ -1598,7 +1600,8 @@ initDatabase()
               ? typeof ptoRate === "string"
                 ? parseFloat(ptoRate)
                 : ptoRate
-              : 0.71;
+              : BUSINESS_RULES_CONSTANTS.BASELINE_PTO_HOURS_PER_YEAR /
+                getTotalWorkDaysInYear(new Date().getFullYear());
           employee.carryover_hours =
             carryoverHours !== undefined
               ? typeof carryoverHours === "string"

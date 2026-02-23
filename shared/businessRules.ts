@@ -12,6 +12,8 @@ export interface ValidationError {
 export const BUSINESS_RULES_CONSTANTS = {
   HOUR_INCREMENT: 4,
   WEEKEND_DAYS: [0, 6] as number[], // Sunday = 0, Saturday = 6
+  /** Default annual PTO allocation for new hires (hours). */
+  BASELINE_PTO_HOURS_PER_YEAR: 96,
   ANNUAL_LIMITS: {
     SICK: 24,
     OTHER: 40, // Bereavement and Jury Duty

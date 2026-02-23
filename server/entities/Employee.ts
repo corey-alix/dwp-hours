@@ -3,6 +3,7 @@ import { PtoEntry } from "./PtoEntry.js";
 import { MonthlyHours } from "./MonthlyHours.js";
 import { Acknowledgement } from "./Acknowledgement.js";
 import { AdminAcknowledgement } from "./AdminAcknowledgement.js";
+import { BUSINESS_RULES_CONSTANTS } from "../../shared/businessRules.js";
 
 @Entity("employees")
 export class Employee {
@@ -15,7 +16,10 @@ export class Employee {
   @Column({ type: "text", unique: true })
   identifier!: string;
 
-  @Column({ type: "real", default: 0.71 })
+  @Column({
+    type: "real",
+    default: BUSINESS_RULES_CONSTANTS.BASELINE_PTO_HOURS_PER_YEAR / 261,
+  })
   pto_rate!: number;
 
   @Column({ type: "real", default: 0 })
