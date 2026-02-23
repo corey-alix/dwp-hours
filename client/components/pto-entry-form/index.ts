@@ -23,15 +23,8 @@ import {
   type AnimationHandle,
 } from "../../css-extensions/index.js";
 
-interface PtoRequest {
-  startDate: string;
-  endDate: string;
-  ptoType: string;
-  hours: number;
-}
-
 /** Breakpoint at which all 12 months are shown in a grid */
-const MULTI_CALENDAR_BREAKPOINT = 960;
+const MULTI_CALENDAR_BREAKPOINT = 1024;
 
 /** localStorage key for persisting the selected month in single-calendar mode */
 const SELECTED_MONTH_STORAGE_KEY = "dwp-pto-form-selected-month";

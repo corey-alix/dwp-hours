@@ -84,7 +84,6 @@ export const styles = `
   }
 
   .acknowledge-btn {
-    width: 100%;
     padding: 10px 16px;
     background: var(--color-primary);
     color: white;
@@ -113,6 +112,36 @@ export const styles = `
     margin: 0;
     font-size: var(--font-size-sm);
     color: var(--color-success-dark);
+  }
+
+  .view-calendar-btn {
+    padding: 10px 16px;
+    background: var(--color-secondary, #6c757d);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+
+  .view-calendar-btn:hover {
+    background: var(--color-secondary-hover, #5a6268);
+  }
+
+  .inline-calendar-container {
+    margin-top: var(--space-sm, 8px);
+    overflow: hidden;
+    border-top: 1px solid var(--color-border);
+    padding-top: var(--space-sm, 8px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .view-calendar-btn,
+    .acknowledge-btn {
+      transition: none;
+    }
   }
 
 </style>

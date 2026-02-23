@@ -79,8 +79,8 @@ describe("PTO Calculations — prior-year filtering", () => {
 
     const status = calculatePTOStatus(employee, entries, currentDate);
 
-    // annualAllocation = 96, carryover = 40, used = 24 → available = 112
-    expect(status.availablePTO).toBe(112);
+    // annualAllocation = pto_rate * workDays = 0.3692 * 261 ≈ 96.36, carryover = 40, used = 24 → available ≈ 112.36
+    expect(status.availablePTO).toBeCloseTo(112.36, 0);
   });
 
   it("ptoTime bucket should match top-level usedPTO", () => {

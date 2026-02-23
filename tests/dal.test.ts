@@ -170,29 +170,27 @@ describe("PtoEntryDAL", () => {
     });
 
     it("should reject PTO request exceeding available balance", async () => {
-      // Create an employee with limited PTO balance
+      // Create an employee with limited remaining PTO balance
       const employeeRepo = dataSource.getRepository(Employee);
       await employeeRepo.save({
         id: 2,
         name: "Limited PTO Employee",
         identifier: "LIMITED001",
-        pto_rate: 0, // No accrual
-        carryover_hours: 0, // No carryover
-        hire_date: new Date("2024-01-01"), // Hired this year
+        pto_rate: 0.71, // Standard accrual rate (~186h/year)
+        carryover_hours: 0,
+        hire_date: new Date("2024-01-01"),
         role: "Employee",
       });
 
-      // For a hire in January 2024, they get prorated allocation
-      // January hire gets 12/12 = 96 hours, but let's use up most of it
-      // First, create existing PTO entries that use up 92 hours, leaving 4 available
+      // Use up most PTO, leaving ~2 hours available
       await dal.createPtoEntry({
         employeeId: 2,
         date: "2024-02-01",
-        hours: 92, // Use up most PTO
+        hours: 184, // Use up most PTO
         type: "PTO",
       });
 
-      // Now try to request 8 hours when only 4 are available
+      // Now try to request 8 hours when only ~2 are available
       const data = {
         employeeId: 2,
         date: "2024-02-05",
@@ -212,13 +210,13 @@ describe("PtoEntryDAL", () => {
         id: 3,
         name: "Sufficient PTO Employee",
         identifier: "SUFFICIENT001",
-        pto_rate: 0,
+        pto_rate: 0.71, // Standard accrual rate (~186h/year)
         carryover_hours: 0,
         hire_date: new Date("2024-01-01"),
         role: "Employee",
       });
 
-      // Use some PTO, leaving plenty available
+      // Use some PTO, leaving plenty available (~170h remaining)
       await dal.createPtoEntry({
         employeeId: 3,
         date: "2024-02-01",
@@ -226,7 +224,7 @@ describe("PtoEntryDAL", () => {
         type: "PTO",
       });
 
-      // Request 8 hours when 80 are available (96 - 16 = 80)
+      // Request 8 hours when ~170 are available
       const data = {
         employeeId: 3,
         date: "2024-02-05",
@@ -235,31 +233,35 @@ describe("PtoEntryDAL", () => {
       };
 
       const errors = await dal.validatePtoEntryData(data);
+      if (errors.length > 0) {
+        console.log("Errors:", JSON.stringify(errors, null, 2));
+      }
       expect(errors).toHaveLength(0);
     });
 
     it("should allow PTO request exactly matching available balance", async () => {
       // Create an employee with exact PTO balance
+      // pto_rate: 0.5 * 262 work days = 131 + 1 carryover = 132 total (exact in floating point)
       const employeeRepo = dataSource.getRepository(Employee);
       await employeeRepo.save({
         id: 4,
         name: "Exact PTO Employee",
         identifier: "EXACT001",
-        pto_rate: 0,
-        carryover_hours: 0,
+        pto_rate: 0.5,
+        carryover_hours: 1,
         hire_date: new Date("2024-01-01"),
         role: "Employee",
       });
 
-      // Use PTO to leave exactly 8 hours available
+      // Use PTO to leave exactly 8 hours available (132 - 124 = 8)
       await dal.createPtoEntry({
         employeeId: 4,
         date: "2024-02-01",
-        hours: 88, // 96 - 88 = 8 remaining
+        hours: 124,
         type: "PTO",
       });
 
-      // Request exactly 8 hours
+      // Request exactly 8 hours (matches remaining balance)
       const data = {
         employeeId: 4,
         date: "2024-02-05",
@@ -272,27 +274,27 @@ describe("PtoEntryDAL", () => {
     });
 
     it("should not validate PTO balance for non-PTO types", async () => {
-      // Create an employee with no PTO balance
+      // Create an employee with nearly exhausted PTO balance
       const employeeRepo = dataSource.getRepository(Employee);
       await employeeRepo.save({
         id: 5,
         name: "No PTO Employee",
         identifier: "NOPTO001",
-        pto_rate: 0,
+        pto_rate: 0.71, // Standard accrual rate (~186h/year)
         carryover_hours: 0,
         hire_date: new Date("2024-01-01"),
         role: "Employee",
       });
 
-      // Use up all PTO
+      // Use up most PTO (leaving ~2 hours)
       await dal.createPtoEntry({
         employeeId: 5,
         date: "2024-02-01",
-        hours: 96,
+        hours: 184,
         type: "PTO",
       });
 
-      // Should allow Sick time even with no PTO balance
+      // Should allow Sick time even with nearly exhausted PTO balance
       const data = {
         employeeId: 5,
         date: "2024-02-05",
@@ -339,30 +341,30 @@ describe("PtoEntryDAL", () => {
     });
 
     it("should prevent PTO creation when balance is insufficient", async () => {
-      // Create an employee with limited PTO balance
+      // Create an employee with limited remaining PTO balance
       const employeeRepo = dataSource.getRepository(Employee);
       await employeeRepo.save({
         id: 6,
         name: "Blocked PTO Employee",
         identifier: "BLOCKED001",
-        pto_rate: 0,
+        pto_rate: 0.71, // Standard accrual rate (~186h/year)
         carryover_hours: 0,
         hire_date: new Date("2024-01-01"),
         role: "Employee",
       });
 
-      // Use up most PTO
+      // Use up most PTO (leaving ~2 hours)
       await dal.createPtoEntry({
         employeeId: 6,
         date: "2024-02-01",
-        hours: 92,
+        hours: 184,
         type: "PTO",
       });
 
       const data = {
         employeeId: 6,
         date: "2024-02-05",
-        hours: 8, // Requesting more than available (only 4 left)
+        hours: 8, // Requesting more than available (~2 left)
         type: "PTO",
       };
 
@@ -381,13 +383,13 @@ describe("PtoEntryDAL", () => {
         id: 7,
         name: "Allowed PTO Employee",
         identifier: "ALLOWED001",
-        pto_rate: 0,
+        pto_rate: 0.71, // Standard accrual rate (~186h/year)
         carryover_hours: 0,
         hire_date: new Date("2024-01-01"),
         role: "Employee",
       });
 
-      // Use some PTO
+      // Use some PTO (~170 remaining)
       await dal.createPtoEntry({
         employeeId: 7,
         date: "2024-02-01",
@@ -398,7 +400,7 @@ describe("PtoEntryDAL", () => {
       const data = {
         employeeId: 7,
         date: "2024-02-05",
-        hours: 8, // 80 hours still available
+        hours: 8, // ~170 hours still available
         type: "PTO",
       };
 

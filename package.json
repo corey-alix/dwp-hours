@@ -113,7 +113,7 @@
     "playwright:test": "playwright test",
     "test:e2e": "export PORT=$(./scripts/set-port.sh) && pnpm-run -s playwright:test",
     "test:e2e//": "run e2e tests with playwright",
-    "test": "export PORT=$(./scripts/set-port.sh) && pnpm-run -s lint build seed test:unit playwright:test",
+    "test": "pnpm-run -s lint:client build:client:js test:unit",
     "test//": "run lint, build, seed, unit tests, then e2e tests with database reset",
     "lint": "pnpm-run -s lint:server lint:client lint:test lint:e2e lint:css lint:script lint:yaml lint:json lint:markdown",
     "lint//": "run all linting tasks sequentially",

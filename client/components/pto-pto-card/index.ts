@@ -32,6 +32,9 @@ const CARD_STYLES = `
     .card { padding: var(--space-sm); }
   }
 
+  .text-left { text-align: left; }
+  .text-right { text-align: right; }
+
   .card h4 {
     text-align: center;
     background: var(--color-surface);
@@ -44,7 +47,7 @@ const CARD_STYLES = `
   }
 
   .toggle-button {
-    background: var(--color-primary);
+    background: var(--color-secondary);
     color: black;
     border: none;
     border-radius: var(--border-radius-md);
@@ -60,7 +63,7 @@ const CARD_STYLES = `
     justify-content: center;
   }
 
-  .toggle-button:hover { background: var(--color-primary-hover); }
+  .toggle-button:hover { background: var(--color-secondary-hover); }
 
   .toggle-button:focus {
     outline: 2px solid var(--color-focus);
@@ -78,7 +81,6 @@ const CARD_STYLES = `
   }
 
   .entry-table th {
-    text-align: left;
     font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
     border-bottom: 1px solid var(--color-border);
@@ -225,16 +227,16 @@ export class PtoPtoCard extends BaseComponent {
         const typeClass = TYPE_CSS_CLASS[entry.type] || "";
 
         return `<tr>
-        <td><span class="${clickableClass}${approvedClass}" ${dateAttr} ${tabIndex} ${ariaLabel}>${dateLabel}</span></td>
-        <td>${entry.type}</td>
-        <td class="${typeClass}">${entry.hours.toFixed(1)}</td>
+        <td class="text-left"><span class="${clickableClass}${approvedClass}" ${dateAttr} ${tabIndex} ${ariaLabel}>${dateLabel}</span></td>
+        <td class="text-left">${entry.type}</td>
+        <td class="text-right ${typeClass}">${entry.hours.toFixed(1)}</td>
       </tr>`;
       })
       .join("");
 
     return `
       <table class="entry-table">
-        <thead><tr><th>Date</th><th>Type</th><th>Hours</th></tr></thead>
+        <thead><tr><th class="text-left">Date</th><th class="text-left">Type</th><th class="text-right">Hours</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     `;

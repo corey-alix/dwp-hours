@@ -86,11 +86,7 @@ export class CurrentYearSummaryPage
       infoCard.info = {
         employeeName,
         hireDate: formatDateForDisplay(status.hireDate),
-        nextRolloverDate: formatDateForDisplay(status.nextRolloverDate, {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        }),
+        nextRolloverDate: formatDateForDisplay(status.nextRolloverDate),
         ...this.computeAccrualFields(status),
       };
     }

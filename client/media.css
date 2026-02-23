@@ -9,11 +9,8 @@
   }
 
   body {
-    padding: var(--space-lg);
-  }
-
-  header {
-    padding: var(--space-xs);
+    padding-left: var(--space-xs);
+    padding-right: var(--space-xs);
   }
 
   form {
@@ -24,11 +21,8 @@
 /* Responsive design */
 @media (min-width: 360px) {
   body {
-    padding: var(--space-sm);
-  }
-
-  header {
-    padding: var(--space-sm);
+    padding-left: var(--space-sm);
+    padding-right: var(--space-sm);
   }
 
   form {
@@ -42,6 +36,11 @@
 
 /* Responsive design */
 @media (min-width: 720px) {
+  body {
+    padding-left: var(--space-lg);
+    padding-right: var(--space-lg);
+  }
+
   form {
     padding: var(--space-lg);
   }

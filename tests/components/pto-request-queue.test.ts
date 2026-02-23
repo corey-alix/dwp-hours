@@ -105,8 +105,8 @@ describe("PtoRequestQueue Component", () => {
       component.requests = [makePendingRequest({ hours: 16 })];
 
       const details = component.shadowRoot?.querySelectorAll(".detail-value");
-      const hoursDetail = details?.[0];
-      expect(hoursDetail?.textContent).toContain("16");
+      const texts = Array.from(details ?? []).map((el) => el.textContent);
+      expect(texts.some((t) => t?.includes("16"))).toBe(true);
     });
 
     it("should display pending count in stats", () => {

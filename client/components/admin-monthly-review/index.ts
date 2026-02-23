@@ -15,6 +15,10 @@ import {
 // Side-effect import: ensure <month-summary> custom element is registered
 import "../month-summary/index.js";
 import type { MonthSummary } from "../month-summary/index.js";
+// Side-effect import: ensure <pto-calendar> custom element is registered
+import "../pto-calendar/index.js";
+import type { PtoCalendar } from "../pto-calendar/index.js";
+import { adoptToolbar } from "../../css-extensions/index.js";
 
 // Admin Monthly Review Component Architecture:
 // This component implements the event-driven data flow pattern:
@@ -34,7 +38,10 @@ export class AdminMonthlyReview extends BaseComponent {
     type: PTOType;
     hours: number;
     date: string;
+    approved_by?: number | null;
   }> = [];
+  /** Track which employee IDs have their inline calendar expanded */
+  private _expandedCalendars: Set<number> = new Set();
 
   static get observedAttributes() {
     return ["selected-month"];
@@ -42,6 +49,7 @@ export class AdminMonthlyReview extends BaseComponent {
 
   connectedCallback() {
     super.connectedCallback();
+    adoptToolbar(this.shadowRoot);
     this.requestEmployeeData();
   }
 
@@ -53,6 +61,8 @@ export class AdminMonthlyReview extends BaseComponent {
     if (oldValue === newValue) return;
     if (name === "selected-month" && newValue) {
       this._selectedMonth = newValue;
+      // Collapse all calendars when month changes
+      this._expandedCalendars.clear();
       this.requestEmployeeData();
       this.requestUpdate();
     }
@@ -119,6 +129,7 @@ export class AdminMonthlyReview extends BaseComponent {
       type: PTOType;
       hours: number;
       date: string;
+      approved_by?: number | null;
     }>,
   ): void {
     this._ptoEntries = data;
@@ -221,31 +232,55 @@ export class AdminMonthlyReview extends BaseComponent {
     }
   }
 
-  /** After render, set complex `balances` property on each <month-summary>. */
+  /** After render, set complex `balances` property on each <month-summary>
+   *  and inject PTO entries into expanded inline calendars. */
   protected override update(): void {
     super.update();
-    if (this._ptoEntries.length === 0) return;
-    this.shadowRoot
-      .querySelectorAll<MonthSummary>("month-summary")
-      .forEach((ms) => {
-        const empId = parseInt(ms.dataset.employeeId || "0");
-        if (!empId) return;
-        try {
-          const balanceData = this.computeEmployeeBalanceData(empId);
-          const employee = this._employeeData.find(
-            (e) => e.employeeId === empId,
-          );
-          if (!employee || balanceData.categories.length === 0) return;
-          const balances: Record<string, number> = {};
-          for (const cat of balanceData.categories) {
-            // available = remaining + scheduled_this_month
-            balances[cat.category] =
-              cat.remaining + this.getScheduledHours(employee, cat.category);
+
+    // Balance badge injection
+    if (this._ptoEntries.length > 0) {
+      this.shadowRoot
+        .querySelectorAll<MonthSummary>("month-summary")
+        .forEach((ms) => {
+          const empId = parseInt(ms.dataset.employeeId || "0");
+          if (!empId) return;
+          try {
+            const balanceData = this.computeEmployeeBalanceData(empId);
+            const employee = this._employeeData.find(
+              (e) => e.employeeId === empId,
+            );
+            if (!employee || balanceData.categories.length === 0) return;
+            const balances: Record<string, number> = {};
+            for (const cat of balanceData.categories) {
+              // available = remaining + scheduled_this_month
+              balances[cat.category] =
+                cat.remaining + this.getScheduledHours(employee, cat.category);
+            }
+            ms.balances = balances;
+          } catch {
+            /* no balance data available */
           }
-          ms.balances = balances;
-        } catch {
-          /* no balance data available */
-        }
+        });
+    }
+
+    // Inject PTO entries into expanded inline calendars
+    this.shadowRoot
+      .querySelectorAll<PtoCalendar>("pto-calendar")
+      .forEach((cal) => {
+        const empId = parseInt(cal.dataset.employeeId || "0");
+        if (!empId) return;
+        const empEntries = this._ptoEntries
+          .filter((e) => e.employee_id === empId)
+          .map((e, idx) => ({
+            id: idx + 1,
+            employeeId: empId,
+            date: e.date,
+            type: e.type,
+            hours: e.hours,
+            createdAt: "",
+            approved_by: e.approved_by ?? null,
+          }));
+        cal.setPtoEntries(empEntries);
       });
   }
 
@@ -288,6 +323,8 @@ export class AdminMonthlyReview extends BaseComponent {
     ) as HTMLInputElement;
     if (monthInput) {
       this._selectedMonth = monthInput.value;
+      // Collapse all calendars when month changes
+      this._expandedCalendars.clear();
       this.requestEmployeeData();
       return;
     }
@@ -302,6 +339,27 @@ export class AdminMonthlyReview extends BaseComponent {
       }
       return;
     }
+
+    // Handle view-calendar toggle buttons
+    if (target.classList.contains("view-calendar-btn")) {
+      const employeeId = parseInt(
+        target.getAttribute("data-employee-id") || "0",
+      );
+      if (employeeId) {
+        this.toggleCalendar(employeeId);
+      }
+      return;
+    }
+  }
+
+  /** Toggle the inline calendar for a given employee card. */
+  private toggleCalendar(employeeId: number): void {
+    if (this._expandedCalendars.has(employeeId)) {
+      this._expandedCalendars.delete(employeeId);
+    } else {
+      this._expandedCalendars.add(employeeId);
+    }
+    this.requestUpdate();
   }
 
   protected render(): string {
@@ -331,6 +389,11 @@ export class AdminMonthlyReview extends BaseComponent {
 
   private renderEmployeeCard(employee: AdminMonthlyReviewItem): string {
     const isAcknowledged = employee.acknowledgedByAdmin;
+    const isCalendarExpanded = this._expandedCalendars.has(employee.employeeId);
+    // Parse month/year from selectedMonth (YYYY-MM)
+    const [yearStr, monthStr] = this._selectedMonth.split("-");
+    const calMonth = parseInt(monthStr, 10);
+    const calYear = parseInt(yearStr, 10);
 
     return `
       <div class="employee-card" data-employee-id="${employee.employeeId}">
@@ -358,11 +421,35 @@ export class AdminMonthlyReview extends BaseComponent {
             <p><strong>Date:</strong> ${employee.adminAcknowledgedAt ? formatDateForDisplay(employee.adminAcknowledgedAt.slice(0, 10)) : ""}</p>
           </div>
         `
-            : `
-          <button class="acknowledge-btn" data-employee-id="${employee.employeeId}">
-            Acknowledge Review
+            : ""
+        }
+
+        <div class="toolbar">
+          <button class="view-calendar-btn" data-employee-id="${employee.employeeId}">
+            ${isCalendarExpanded ? "Hide Calendar" : "View Calendar"}
           </button>
-        `
+          ${
+            !isAcknowledged
+              ? `<button class="acknowledge-btn" data-employee-id="${employee.employeeId}">
+              Acknowledge Review
+            </button>`
+              : ""
+          }
+        </div>
+
+        ${
+          isCalendarExpanded
+            ? `<div class="inline-calendar-container">
+              <pto-calendar
+                month="${calMonth}"
+                year="${calYear}"
+                readonly="true"
+                hide-legend="true"
+                hide-header="true"
+                data-employee-id="${employee.employeeId}"
+              ></pto-calendar>
+            </div>`
+            : ""
         }
       </div>
     `;

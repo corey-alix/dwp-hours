@@ -4,10 +4,15 @@ export const styles = `<style>
     padding: var(--space-md, 16px);
   }
 
-  #form-balance-summary {
+  month-summary {
     position: sticky;
-    top: 64px;
+    top: 80px;
     z-index: 1;
+    background: var(--color-surface);
+  }
+
+  pto-entry-form {
+    margin-top: 40px;
   }
 
   .btn {

@@ -62,10 +62,10 @@ export class PtoEmployeeInfoCard extends BaseComponent {
         ${renderRow("Employee", nameValue)}
         ${renderRow("Hire Date", this.data.hireDate)}
         ${renderRow("Next Rollover", this.data.nextRolloverDate)}
-        ${this.data.carryoverHours !== undefined ? renderRow("Carryover", `${this.data.carryoverHours.toFixed(1)} hours`) : ""}
+        ${this.data.carryoverHours !== undefined ? renderRow("Carryover", `${this.data.carryoverHours.toFixed(0)} hours`) : ""}
         ${this.data.ptoRatePerDay !== undefined ? renderRow("PTO Rate", `${this.data.ptoRatePerDay.toFixed(2)} hrs/day`) : ""}
-        ${this.data.accrualToDate !== undefined ? renderRow("Accrued YTD", `${this.data.accrualToDate.toFixed(1)} hours`) : ""}
-        ${this.data.annualAllocation !== undefined ? renderRow("Annual Allocation", `${this.data.annualAllocation.toFixed(1)} hours`) : ""}
+        ${this.data.accrualToDate !== undefined ? renderRow("Accrued YTD", `${this.data.accrualToDate.toFixed(0)} hours`) : ""}
+        ${this.data.annualAllocation !== undefined ? renderRow("Annual Allocation", `${this.data.annualAllocation.toFixed(0)} hours`) : ""}
       `,
       )}
       <slot name="balance-summary"></slot>

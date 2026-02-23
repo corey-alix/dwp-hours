@@ -300,6 +300,7 @@ describe("AdminMonthlyReview Component", () => {
           type: e.type,
           hours: e.hours,
           date: e.date,
+          approved_by: e.approved_by ?? null,
         })),
       );
       component.setEmployeeData(testData);
@@ -326,6 +327,175 @@ describe("AdminMonthlyReview Component", () => {
         'slot[name^="balance-"]',
       );
       expect(slots?.length || 0).toBe(0);
+    });
+  });
+
+  describe("Inline Calendar Toggle", () => {
+    it("should render a View Calendar button in every employee card", () => {
+      const testData = generateMonthlyData("2025-01");
+      component.setEmployeeData(testData);
+
+      const buttons =
+        component.shadowRoot?.querySelectorAll(".view-calendar-btn");
+      expect(buttons?.length).toBe(testData.length);
+    });
+
+    it("should render a toolbar in every employee card", () => {
+      const testData = generateMonthlyData("2025-01");
+      component.setEmployeeData(testData);
+
+      const toolbars = component.shadowRoot?.querySelectorAll(".toolbar");
+      expect(toolbars?.length).toBe(testData.length);
+    });
+
+    it("should show View Calendar button for acknowledged cards", () => {
+      const testData = generateMonthlyData("2025-01");
+      component.setEmployeeData(testData);
+
+      // Find an acknowledged card
+      const acknowledgedEmployee = testData.find(
+        (emp) => emp.acknowledgedByAdmin,
+      );
+      if (acknowledgedEmployee) {
+        const card = component.shadowRoot?.querySelector(
+          `.employee-card[data-employee-id="${acknowledgedEmployee.employeeId}"]`,
+        );
+        const viewBtn = card?.querySelector(".view-calendar-btn");
+        expect(viewBtn).toBeTruthy();
+        // Acknowledged cards should NOT have acknowledge button
+        const ackBtn = card?.querySelector(".acknowledge-btn");
+        expect(ackBtn).toBeFalsy();
+      }
+    });
+
+    it("should toggle inline calendar on View Calendar button click", () => {
+      const testData = generateMonthlyData("2026-02");
+      component.setPtoEntries(
+        seedPTOEntries.map((e: SeedPtoEntry) => ({
+          employee_id: e.employee_id,
+          type: e.type,
+          hours: e.hours,
+          date: e.date,
+          approved_by: e.approved_by ?? null,
+        })),
+      );
+      component.setEmployeeData(testData);
+
+      // No calendars initially
+      let calendars = component.shadowRoot?.querySelectorAll("pto-calendar");
+      expect(calendars?.length).toBe(0);
+
+      // Click the View Calendar button for the first employee
+      const firstBtn = component.shadowRoot?.querySelector(
+        ".view-calendar-btn",
+      ) as HTMLElement;
+      expect(firstBtn).toBeTruthy();
+      firstBtn.click();
+
+      // Calendar should now be visible
+      calendars = component.shadowRoot?.querySelectorAll("pto-calendar");
+      expect(calendars?.length).toBe(1);
+
+      // Button text should change
+      const updatedBtn = component.shadowRoot?.querySelector(
+        ".view-calendar-btn",
+      ) as HTMLElement;
+      expect(updatedBtn?.textContent?.trim()).toBe("Hide Calendar");
+
+      // Click again to collapse
+      updatedBtn.click();
+      calendars = component.shadowRoot?.querySelectorAll("pto-calendar");
+      expect(calendars?.length).toBe(0);
+    });
+
+    it("should render inline calendar in readonly mode", () => {
+      const testData = generateMonthlyData("2026-02");
+      component.setPtoEntries(
+        seedPTOEntries.map((e: SeedPtoEntry) => ({
+          employee_id: e.employee_id,
+          type: e.type,
+          hours: e.hours,
+          date: e.date,
+          approved_by: e.approved_by ?? null,
+        })),
+      );
+      component.setEmployeeData(testData);
+
+      // Expand calendar for first employee
+      const firstBtn = component.shadowRoot?.querySelector(
+        ".view-calendar-btn",
+      ) as HTMLElement;
+      firstBtn.click();
+
+      const calendar = component.shadowRoot?.querySelector("pto-calendar");
+      expect(calendar?.getAttribute("readonly")).toBe("true");
+      expect(calendar?.getAttribute("hide-legend")).toBe("true");
+      expect(calendar?.getAttribute("hide-header")).toBe("true");
+    });
+
+    it("should filter PTO entries per employee for inline calendar", () => {
+      const testData = generateMonthlyData("2026-02");
+      component.setPtoEntries(
+        seedPTOEntries.map((e: SeedPtoEntry) => ({
+          employee_id: e.employee_id,
+          type: e.type,
+          hours: e.hours,
+          date: e.date,
+          approved_by: e.approved_by ?? null,
+        })),
+      );
+      component.setEmployeeData(testData);
+
+      // Expand calendar for first employee (id=1)
+      const firstBtn = component.shadowRoot?.querySelector(
+        ".view-calendar-btn",
+      ) as HTMLElement;
+      firstBtn.click();
+
+      const calendar = component.shadowRoot?.querySelector(
+        "pto-calendar",
+      ) as any;
+      expect(calendar).toBeTruthy();
+      expect(calendar?.dataset.employeeId).toBe("1");
+
+      // The calendar's ptoEntries should only contain entries for employee 1
+      const entries = calendar?.ptoEntries || [];
+      for (const entry of entries) {
+        expect(entry.employeeId).toBe(1);
+      }
+    });
+
+    it("should collapse all calendars when month changes", () => {
+      const testData = generateMonthlyData("2026-02");
+      component.setPtoEntries(
+        seedPTOEntries.map((e: SeedPtoEntry) => ({
+          employee_id: e.employee_id,
+          type: e.type,
+          hours: e.hours,
+          date: e.date,
+          approved_by: e.approved_by ?? null,
+        })),
+      );
+      component.setEmployeeData(testData);
+
+      // Expand a calendar
+      const firstBtn = component.shadowRoot?.querySelector(
+        ".view-calendar-btn",
+      ) as HTMLElement;
+      firstBtn.click();
+
+      let calendars = component.shadowRoot?.querySelectorAll("pto-calendar");
+      expect(calendars?.length).toBe(1);
+
+      // Change selected month via attribute
+      component.setAttribute("selected-month", "2026-03");
+
+      // After re-render with new data, calendars should be collapsed
+      const newData = generateMonthlyData("2026-03");
+      component.setEmployeeData(newData);
+
+      calendars = component.shadowRoot?.querySelectorAll("pto-calendar");
+      expect(calendars?.length).toBe(0);
     });
   });
 });

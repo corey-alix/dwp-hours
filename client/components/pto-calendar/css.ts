@@ -20,10 +20,6 @@ export const styles = `
 }
 
 @media (max-width: 480px) {
-    .calendar {
-        transform: scale(var(--scale-factor, 0.8));
-        transform-origin: top left;
-    }
     .legend {
         gap: var(--space-xs);
     }

@@ -28,6 +28,8 @@ body {
   line-height: var(--line-height-base);
   color: var(--color-text);
   background-color: var(--color-surface);
+  transform: scale(var(--scale-factor, 1));
+  transform-origin: top;
 }
 
 header {

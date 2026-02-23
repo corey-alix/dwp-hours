@@ -74,6 +74,7 @@ export class AdminMonthlyReviewPage
               type: p.type,
               hours: p.hours,
               date: p.date,
+              approved_by: p.approved_by ?? null,
             }));
             adminComp.setPtoEntries(normalized);
 
@@ -141,6 +142,7 @@ export class AdminMonthlyReviewPage
           type: p.type,
           hours: p.hours,
           date: p.date,
+          approved_by: p.approved_by ?? null,
         }));
         adminComp.setPtoEntries(normalized);
         adminComp.setEmployeeData(employeeData);

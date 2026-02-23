@@ -3,9 +3,6 @@ export const styles = `
     display: flex;
     justify-content: space-around;
     gap: var(--space-sm);
-    background: var(--color-background);
-    font-size: var(--font-size-sm);
-    color: var(--color-text-secondary);
 }
 
 .summary-item {

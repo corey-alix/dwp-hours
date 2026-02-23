@@ -26,6 +26,7 @@
 
 ## TESTS MISSING
 
+- admin-review-inline-calendar.md: Update test.html demo, manual testing of toggle behavior
 - admin-monthly-review-per-employee-balances.md: Update test data with balance calculations, manual testing
 - app-run-entry-point.md: Stage 5: Regression testing
 - backup.md: Add E2E tests for backup triggering

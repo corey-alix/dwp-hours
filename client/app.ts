@@ -32,7 +32,7 @@ export class App {
 
 function setupResponsiveScaling() {
   const updateScale = () => {
-    const scale = Math.min(1, window.innerWidth / 320);
+    const scale = 1;
     document.documentElement.style.setProperty(
       "--scale-factor",
       scale.toString(),

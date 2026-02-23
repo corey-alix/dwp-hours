@@ -114,19 +114,20 @@ describe("PTO Calculations", () => {
       currentDate,
     );
 
+    // annualAllocation = pto_rate * totalWorkDays = 0.71 * 262 = 186.02
     expect(status.employeeId).toBe(1);
-    expect(status.annualAllocation).toBe(96);
-    expect(status.availablePTO).toBeCloseTo(66, 0); // 96 + 10 - 40
+    expect(status.annualAllocation).toBeCloseTo(186.02, 1);
+    expect(status.availablePTO).toBeCloseTo(156.02, 0); // 186.02 + 10 - 40
     expect(status.usedPTO).toBe(40); // Only PTO
     expect(status.carryoverFromPreviousYear).toBe(10);
     expect(status.monthlyAccruals).toHaveLength(12);
     expect(status.monthlyAccruals[0].month).toBe(1); // January
-    expect(status.monthlyAccruals[0].hours).toBeCloseTo(8.43, 2); // 96/262 * 23 ≈ 8.43
+    expect(status.monthlyAccruals[0].hours).toBeCloseTo(16.33, 2); // 0.71 * 23 = 16.33
     expect(status.sickTime.used).toBe(8);
     expect(status.sickTime.remaining).toBe(16); // 24 - 8
-    expect(status.ptoTime.allowed).toBe(106); // 96 + 10
+    expect(status.ptoTime.allowed).toBeCloseTo(196.02, 0); // 186.02 + 10
     expect(status.ptoTime.used).toBe(40);
-    expect(status.ptoTime.remaining).toBeCloseTo(66, 0);
+    expect(status.ptoTime.remaining).toBeCloseTo(156.02, 0);
     expect(status.bereavementTime.used).toBe(8);
     expect(status.bereavementTime.remaining).toBe(32); // 40 - 8
     expect(status.juryDutyTime.used).toBe(0);
@@ -152,8 +153,8 @@ describe("PTO Calculations", () => {
       yearEndDate,
     );
 
-    expect(status.annualAllocation).toBe(96);
-    expect(status.availablePTO).toBeCloseTo(66, 0); // 96 + 10 - 40
+    expect(status.annualAllocation).toBeCloseTo(186.02, 1);
+    expect(status.availablePTO).toBeCloseTo(156.02, 0); // 186.02 + 10 - 40
     expect(status.monthlyAccruals).toHaveLength(12);
   });
 
@@ -184,7 +185,7 @@ describe("PTO Calculations", () => {
       mockPTOEntries,
       2024,
     );
-    expect(carryover).toBeCloseTo(66, 0); // 96 + 10 - 40
+    expect(carryover).toBeCloseTo(156.02, 0); // 186.02 + 10 - 40
   });
 
   it("should apply carryover limit", () => {
@@ -221,9 +222,9 @@ describe("PTO Calculations", () => {
       currentDate,
     );
 
-    // Prorated allocation: 96 * (7/12) = 56 hours (hired in June, months remaining)
-    expect(status.annualAllocation).toBeCloseTo(56, 1);
-    expect(status.availablePTO).toBeCloseTo(56, 1); // No usage
+    // Prorated allocation: 186.02 * (7/12) ≈ 108.51 hours (hired in June, months remaining)
+    expect(status.annualAllocation).toBeCloseTo(108.51, 0);
+    expect(status.availablePTO).toBeCloseTo(108.51, 0); // No usage
     // Monthly accruals should start from June
     expect(status.monthlyAccruals[0].month).toBe(6); // June
     expect(status.monthlyAccruals).toHaveLength(7); // June to Dec

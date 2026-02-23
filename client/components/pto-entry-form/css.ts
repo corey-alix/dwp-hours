@@ -1,11 +1,6 @@
 export const styles = `
                 :host {
                     display: block;
-                    background: var(--color-surface);
-                    border-radius: var(--border-radius-lg);
-                    box-shadow: var(--shadow-md);
-                    max-width: clamp(480px, 100cqw, 60vh);
-                    margin: 0 auto;
                 }
 
                 .hidden {

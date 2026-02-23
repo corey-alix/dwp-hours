@@ -141,6 +141,25 @@ monthlyReview.addEventListener("admin-acknowledge", (e) => {
 - `employeeId`: Number - The ID of the employee being acknowledged
 - `month`: String - The month being acknowledged (YYYY-MM format)
 
+## Features
+
+### Inline Calendar
+
+Each employee card includes a **"View Calendar"** toggle button in the toolbar. Clicking it reveals a readonly `<pto-calendar>` inline within the card, showing that employee's PTO entries for the month under review.
+
+- Calendar renders in **readonly** mode with hidden legend and header for a compact view
+- PTO entries are filtered per-employee and injected automatically
+- Toggling the button switches between "View Calendar" and "Hide Calendar"
+- All calendars collapse when the selected month changes
+- Available on both pending and acknowledged cards
+
+### Toolbar Layout
+
+Employee cards use the shared CSS-extensions toolbar layout (`.toolbar` via `adoptToolbar()`) to evenly distribute action buttons:
+
+- **View Calendar** — always present, toggles inline `<pto-calendar>`
+- **Acknowledge Review** — only shown on pending (unacknowledged) cards
+
 ## Styling
 
 The component uses CSS custom properties for theming:
