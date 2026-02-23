@@ -102,6 +102,8 @@
     "git:branch:list//": "list all local and remote branches",
     "git:branch:clean": "git branch -d $(git branch --merged | grep -v -E \"(main|mercury|mars|earth|saturn|jupiter|\\*)\" | xargs) 2>/dev/null || true",
     "git:branch:clean//": "delete merged local branches (legacy - use branch:cleanup for planet workflow)",
+    "git:clean": "bash scripts/git/purge-non-worktree-branches.sh",
+    "git:clean//": "delete all local and remote branches not checked out by a worktree",
     "test:unit": "vitest --run",
     "test:unit//": "run unit tests with vitest",
     "test:unit:date-fns:tz": "tsx scripts/test-date-fns-timezones.mts",
