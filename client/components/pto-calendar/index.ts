@@ -12,6 +12,7 @@ import {
   isInMonth,
   parseDate,
   isWeekend,
+  today,
 } from "../../../shared/dateUtils.js";
 import { CALENDAR_SYMBOLS } from "../../../shared/calendar-symbols.js";
 import { BaseComponent } from "../base-component.js";
@@ -421,6 +422,7 @@ export class PtoCalendar extends BaseComponent {
           : "day";
     const emptyClass = isCurrentMonth ? "" : "empty";
     const selectedClass = isSelected ? "selected" : "";
+    const todayClass = dateStr === today() ? "today" : "";
     const clickableClass = !this.isReadonly && isNav ? "clickable" : "";
     const tabindexAttr = clickableClass
       ? `tabindex="${dateStr === this._focusedDate ? "0" : "-1"}"`
@@ -457,7 +459,7 @@ export class PtoCalendar extends BaseComponent {
     const { day } = parseDate(dateStr);
 
     return `
-      <div class="${dayClass} ${emptyClass} ${selectedClass} ${clickableClass}${partialDayClass}" data-date="${dateStr}" ${tabindexAttr} role="gridcell">
+      <div class="${dayClass} ${emptyClass} ${selectedClass} ${clickableClass} ${todayClass}${partialDayClass}" data-date="${dateStr}" ${tabindexAttr} role="gridcell">
           ${checkmarkElement}
           <div class="date">${day}</div>
           <div class="${hoursClass}">${hoursDisplay}</div>

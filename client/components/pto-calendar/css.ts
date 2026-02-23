@@ -90,6 +90,11 @@ export const styles = `
     outline: 2px solid var(--color-primary);
 }
 
+.day.today .date {
+    opacity: 0.8;
+    transform: scale(2);
+}
+
 .day .date {
     font-weight: var(--font-weight-semibold);
     color: var(--color-text);
