@@ -165,6 +165,7 @@
   --color-text: var(--color-gray-900);
   --color-text-secondary: var(--color-gray-600);
   --color-text-muted: var(--color-gray-500);
+  --color-text-inverse: #fff;
   --color-border: var(--color-gray-300);
   --color-border-hover: var(--color-gray-400);
   --color-shadow: rgba(0, 0, 0, 0.1);
@@ -196,6 +197,7 @@
   --color-text: var(--color-gray-100);
   --color-text-secondary: var(--color-gray-400);
   --color-text-muted: var(--color-gray-500);
+  --color-text-inverse: var(--color-gray-900);
   --color-border: var(--color-gray-600);
   --color-border-hover: var(--color-gray-500);
   --color-shadow: rgba(0, 0, 0, 0.3);

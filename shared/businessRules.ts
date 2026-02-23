@@ -8,6 +8,22 @@ import type { PtoBalanceData } from "./api-models.d.ts";
 
 export type PTOType = "Sick" | "PTO" | "Bereavement" | "Jury Duty";
 
+/** Canonical month name list (1-indexed via `MONTH_NAMES[monthNumber - 1]`). */
+export const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+] as const;
+
 export interface ValidationError {
   field: string;
   messageKey: string;

@@ -8,4 +8,5 @@
  */
 
 // Re-export monthNames for any remaining consumers
+/** @deprecated Use `MONTH_NAMES` from `shared/businessRules.js` instead. */
 export { monthNames } from "./pto-card-helpers.js";

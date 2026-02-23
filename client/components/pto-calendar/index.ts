@@ -17,21 +17,10 @@ import {
 import { CALENDAR_SYMBOLS } from "../../../shared/calendar-symbols.js";
 import { BaseComponent } from "../base-component.js";
 import { styles, PTO_TYPE_COLORS } from "./css.js";
+import { MONTH_NAMES } from "../../../shared/businessRules.js";
 
-export const monthNames = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
+/** @deprecated Use `MONTH_NAMES` from `shared/businessRules.js` instead. */
+export const monthNames = MONTH_NAMES;
 
 export interface CalendarEntry {
   date: string;

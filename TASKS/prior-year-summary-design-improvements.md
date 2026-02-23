@@ -31,101 +31,101 @@ The `monthNames` array is duplicated in 5 files across the codebase. CSS for PTO
 
 **Month names consolidation** — move canonical `MONTH_NAMES` to `shared/businessRules.ts` and update all consumers:
 
-- [ ] Add `MONTH_NAMES` constant to `shared/businessRules.ts`
-- [ ] Update `client/components/prior-year-review/index.ts` to import from `businessRules`
-- [ ] Update `client/components/pto-pto-card/index.ts` to import from `businessRules`
-- [ ] Update `client/components/pto-calendar/index.ts` to import from `businessRules`
-- [ ] Update `client/components/utils/pto-card-helpers.ts` to import from `businessRules`
-- [ ] Update `shared/testDataGenerators.ts` to import from `businessRules`
-- [ ] Remove all local `monthNames` / `MONTH_NAMES` array declarations from the above files
-- [ ] Verify all consumers still render month names correctly
+- [x] Add `MONTH_NAMES` constant to `shared/businessRules.ts`
+- [x] Update `client/components/prior-year-review/index.ts` to import from `businessRules`
+- [x] Update `client/components/pto-pto-card/index.ts` to import from `businessRules`
+- [x] Update `client/components/pto-calendar/index.ts` to import from `businessRules`
+- [x] Update `client/components/utils/pto-card-helpers.ts` to import from `businessRules`
+- [x] Update `shared/testDataGenerators.ts` to import from `businessRules`
+- [x] Remove all local `monthNames` / `MONTH_NAMES` array declarations from the above files
+- [x] Verify all consumers still render month names correctly
 
 **PTO type day-cell CSS consolidation** — extract reusable PTO day-cell color styles to `client/css-extensions/`:
 
-- [ ] Create `client/css-extensions/pto-day-colors/` module with `.type-PTO`, `.type-Sick`, `.type-Bereavement`, `.type-Jury-Duty` background color rules and white text override
-- [ ] Provide `getPtoDayColorsSheet()` and `adoptPtoDayColors()` helpers following the existing css-extensions pattern
-- [ ] Export from `client/css-extensions/index.ts`
-- [ ] Update `prior-year-review` to adopt the shared sheet instead of inline CSS for type colors
-- [ ] Remove the `PTO_TYPE_COLORS` JS object from `prior-year-review/index.ts`
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
-- [ ] All existing tests pass
+- [x] Create `client/css-extensions/pto-day-colors/` module with `.type-PTO`, `.type-Sick`, `.type-Bereavement`, `.type-Jury-Duty` background color rules and white text override
+- [x] Provide `getPtoDayColorsSheet()` and `adoptPtoDayColors()` helpers following the existing css-extensions pattern
+- [x] Export from `client/css-extensions/index.ts`
+- [x] Update `prior-year-review` to adopt the shared sheet instead of inline CSS for type colors
+- [x] Remove the `PTO_TYPE_COLORS` JS object from `prior-year-review/index.ts`
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+- [x] All existing tests pass
 
 ### Stage 1: Add Page Heading
 
 The page should have a title consistent with the `/current-year-summary` page pattern.
 
-- [ ] Add a `<h2>` page heading (e.g., "2025 Prior Year Summary") to the page template using the year from the loaded data
-- [ ] Style the heading using the same `.page-heading` class and design tokens as `/current-year-summary`
-- [ ] Move heading styles to the page's `css.ts` file
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] Add a `<h2>` page heading (e.g., "2025 Prior Year Summary") to the page template using the year from the loaded data
+- [x] Style the heading using the same `.page-heading` class and design tokens as `/current-year-summary`
+- [x] Move heading styles to the page's `css.ts` file
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ### Stage 2: Add Annual Summary
 
 Provide an at-a-glance annual usage total at the top of the page, similar to the `<balance-table>` on `/current-year-summary`.
 
-- [ ] Add an annual "Used" summary section above the calendar grid showing total hours per PTO type for the entire year
-- [ ] Use a `<month-summary>` instance with aggregated annual totals (sum all 12 months' summaries)
-- [ ] Compute annual totals from the month summaries in the `PTOYearReviewResponse` data
-- [ ] Make the annual summary sticky (consistent with `/current-year-summary` behavior)
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] Add an annual "Used" summary section above the calendar grid showing total hours per PTO type for the entire year
+- [x] Use a `<month-summary>` instance with aggregated annual totals (sum all 12 months' summaries)
+- [x] Compute annual totals from the month summaries in the `PTOYearReviewResponse` data
+- [x] Make the annual summary sticky (consistent with `/current-year-summary` behavior)
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ### Stage 3: Extract CSS to `css.ts` File
 
 All component CSS should follow the project's convention of separate `css.ts` files.
 
-- [ ] Create `client/components/prior-year-review/css.ts` with the inline styles extracted from `render()`
-- [ ] Import and use the exported `styles` constant in the `render()` method
-- [ ] Remove the `PTO_TYPE_COLORS` JS object — use direct CSS custom property references in the `css.ts` file
-- [ ] Verify the component renders identically after extraction
-- [ ] Write or update Vitest tests to confirm rendering is unaffected
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
-- [ ] `pnpm run lint:css` passes
+- [x] Create `client/components/prior-year-review/css.ts` with the inline styles extracted from `render()`
+- [x] Import and use the exported `styles` constant in the `render()` method
+- [x] Remove the `PTO_TYPE_COLORS` JS object — use direct CSS custom property references in the `css.ts` file
+- [x] Verify the component renders identically after extraction
+- [x] Write or update Vitest tests to confirm rendering is unaffected
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+- [x] `pnpm run lint:css` passes
 
 ### Stage 4: Replace Hardcoded Values with Design Tokens
 
 All spacing, sizing, and color values should reference `tokens.css` custom properties.
 
-- [ ] Replace `padding: 16px` → `var(--space-md)`
-- [ ] Replace `padding: 32px` → `var(--space-xl)` or appropriate token
-- [ ] Replace `gap: 16px` → `var(--space-md)`
-- [ ] Replace `border-radius: 8px` → `var(--radius-md)`
-- [ ] Replace `border-radius: 4px` → `var(--radius-sm)`
-- [ ] Replace `font-size: 10px`, `11px`, `8px` → `var(--font-size-xs)` or appropriate tokens
-- [ ] Replace `min-height: 24px` → appropriate token or remove if `aspect-ratio` handles sizing
-- [ ] Replace `gap: 2px` → `var(--space-xs)` or a minimal gap token
-- [ ] Replace `margin-bottom: 4px` → `var(--space-xs)`
-- [ ] Replace `padding: 12px` → `var(--space-sm)`
-- [ ] Replace `padding: 8px` → `var(--space-sm)` or `var(--space-xs)`
-- [ ] Replace `color: white` → `var(--color-text-inverse)` or appropriate token (add to `tokens.css` if missing)
-- [ ] Replace `max-width: 1540px` → a design-token-based constraint or remove the cap
-- [ ] Center the grid with `margin: 0 auto` on the `.months-grid`
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] Replace `padding: 16px` → `var(--space-md)`
+- [x] Replace `padding: 32px` → `var(--space-xl)` or appropriate token
+- [x] Replace `gap: 16px` → `var(--space-md)`
+- [x] Replace `border-radius: 8px` → `var(--radius-md)`
+- [x] Replace `border-radius: 4px` → `var(--radius-sm)`
+- [x] Replace `font-size: 10px`, `11px`, `8px` → `var(--font-size-xs)` or appropriate tokens
+- [x] Replace `min-height: 24px` → appropriate token or remove if `aspect-ratio` handles sizing
+- [x] Replace `gap: 2px` → `var(--space-xs)` or a minimal gap token
+- [x] Replace `margin-bottom: 4px` → `var(--space-xs)`
+- [x] Replace `padding: 12px` → `var(--space-sm)`
+- [x] Replace `padding: 8px` → `var(--space-sm)` or `var(--space-xs)`
+- [x] Replace `color: white` → `var(--color-text-inverse)` or appropriate token (add to `tokens.css` if missing)
+- [x] Replace `max-width: 1540px` → a design-token-based constraint or remove the cap
+- [x] Center the grid with `margin: 0 auto` on the `.months-grid`
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ### Stage 5: Add Type Color Legend
 
 Users need a visual key explaining what each calendar day color means.
 
-- [ ] Add a legend section showing PTO type colors and labels (e.g., colored squares with "PTO", "Sick", "Bereavement", "Jury Duty")
-- [ ] Position the legend above or below the calendar grid — not inside individual month cards
-- [ ] Use the same `--color-pto-*` design tokens as the calendar day cells
-- [ ] Ensure the legend is visible on mobile (consider horizontal scrolling or wrapping)
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] Add a legend section showing PTO type colors and labels (e.g., colored squares with "PTO", "Sick", "Bereavement", "Jury Duty")
+- [x] Position the legend above or below the calendar grid — not inside individual month cards
+- [x] Use the same `--color-pto-*` design tokens as the calendar day cells
+- [x] Ensure the legend is visible on mobile (consider horizontal scrolling or wrapping)
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ### Stage 6: Switch to Mobile-First CSS
 
 The current `@media (max-width: 768px)` pattern is inconsistent with the project's mobile-first approach.
 
-- [ ] Refactor `.months-grid` to default to `grid-template-columns: 1fr` (mobile-first)
-- [ ] Add `@media (min-width: 768px)` breakpoint for multi-column grid layout
-- [ ] Verify calendar card rendering at 375px viewport width
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] Refactor `.months-grid` to default to `grid-template-columns: 1fr` (mobile-first)
+- [x] Add `@media (min-width: 768px)` breakpoint for multi-column grid layout
+- [x] Verify calendar card rendering at 375px viewport width
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ## Implementation Notes
 

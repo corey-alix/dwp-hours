@@ -43,3 +43,9 @@ export {
   adoptNavigation,
   NAV_SYMBOLS,
 } from "./navigation/index.js";
+
+// ── PTO Day Colors ──
+export {
+  getPtoDayColorsSheet,
+  adoptPtoDayColors,
+} from "./pto-day-colors/index.js";

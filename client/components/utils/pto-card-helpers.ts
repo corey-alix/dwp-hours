@@ -7,21 +7,10 @@ import {
   formatDateForDisplay,
 } from "../../../shared/dateUtils.js";
 import type { PTOEntry } from "../../../shared/api-models.js";
+import { MONTH_NAMES } from "../../../shared/businessRules.js";
 
-export const monthNames = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
+/** @deprecated Use `MONTH_NAMES` from `shared/businessRules.js` instead. */
+export const monthNames = MONTH_NAMES;
 
 /** Wraps body content in the standard card shell markup. */
 export function renderCardShell(title: string, body: string): string {

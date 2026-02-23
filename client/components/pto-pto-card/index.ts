@@ -5,21 +5,7 @@ import {
   formatDateForDisplay,
 } from "../../../shared/dateUtils.js";
 import type { PTOEntry } from "../../../shared/api-models.js";
-
-const MONTH_NAMES = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
+import { MONTH_NAMES } from "../../../shared/businessRules.js";
 
 /** Map PTO type to its CSS color class for color-coded hours. */
 const TYPE_CSS_CLASS: Record<string, string> = {

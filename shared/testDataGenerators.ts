@@ -35,6 +35,7 @@
 
 import { SHEET_TEMPLATE } from "./SHEET_TEMPLATE";
 import { parseMMDDYY, getWeeksInMonth } from "./dateUtils";
+import { MONTH_NAMES } from "./businessRules";
 
 interface JsonSheet {
   cells: {
@@ -410,21 +411,9 @@ export function extractMonthCellRange(
   const startCol = headerCol - 2;
 
   // Get month number from name
-  const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
-  const monthIndex = monthNames.indexOf(monthName);
+  const monthIndex = MONTH_NAMES.indexOf(
+    monthName as (typeof MONTH_NAMES)[number],
+  );
   if (monthIndex === -1) return null;
 
   const monthNum = monthIndex + 1;

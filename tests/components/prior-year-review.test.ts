@@ -171,9 +171,9 @@ describe("PriorYearReview Component", () => {
       const monthsGrid = component.shadowRoot?.querySelector(".months-grid");
       expect(monthsGrid).toBeDefined();
 
-      // Check that CSS contains responsive rules
+      // Check that CSS contains responsive rules (mobile-first: min-width)
       const styleElement = component.shadowRoot?.querySelector("style");
-      expect(styleElement?.textContent).toContain("@media (max-width: 768px)");
+      expect(styleElement?.textContent).toContain("@media (min-width: 768px)");
     });
   });
 
@@ -257,7 +257,7 @@ describe("PriorYearReview Component", () => {
   });
 
   describe("CSS Styling", () => {
-    it("should include all required CSS variables", () => {
+    it("should adopt PTO day-colors stylesheet", () => {
       component.data = {
         year: 2025,
         months: [
@@ -287,15 +287,12 @@ describe("PriorYearReview Component", () => {
         ),
       };
 
-      const styleContent =
-        component.shadowRoot?.querySelector("style")?.textContent;
-      expect(styleContent).toContain("var(--color-pto-vacation)");
-      expect(styleContent).toContain("var(--color-pto-sick)");
-      expect(styleContent).toContain("var(--color-pto-bereavement)");
-      expect(styleContent).toContain("var(--color-pto-jury-duty)");
+      // PTO type colors are now applied via adoptedStyleSheets
+      const adoptedSheets = component.shadowRoot?.adoptedStyleSheets ?? [];
+      expect(adoptedSheets.length).toBeGreaterThan(0);
     });
 
-    it("should apply correct colors to PTO types", () => {
+    it("should apply correct CSS classes for PTO types", () => {
       const data: PTOYearReviewResponse = {
         year: 2025,
         months: [
@@ -331,20 +328,19 @@ describe("PriorYearReview Component", () => {
       };
       component.data = data;
 
-      const styleContent =
-        component.shadowRoot?.querySelector("style")?.textContent;
-      expect(styleContent).toContain(
-        ".type-PTO { background: var(--color-pto-vacation); }",
-      );
-      expect(styleContent).toContain(
-        ".type-Sick { background: var(--color-pto-sick); }",
-      );
-      expect(styleContent).toContain(
-        ".type-Bereavement { background: var(--color-pto-bereavement); }",
-      );
-      expect(styleContent).toContain(
-        ".type-Jury-Duty { background: var(--color-pto-jury-duty); }",
-      );
+      // Verify day cells have correct type classes
+      const ptoDays = component.shadowRoot?.querySelectorAll(".type-PTO") ?? [];
+      const sickDays =
+        component.shadowRoot?.querySelectorAll(".type-Sick") ?? [];
+      const bereavementDays =
+        component.shadowRoot?.querySelectorAll(".type-Bereavement") ?? [];
+      const juryDutyDays =
+        component.shadowRoot?.querySelectorAll(".type-Jury-Duty") ?? [];
+
+      expect(ptoDays.length).toBeGreaterThan(0);
+      expect(sickDays.length).toBeGreaterThan(0);
+      expect(bereavementDays.length).toBeGreaterThan(0);
+      expect(juryDutyDays.length).toBeGreaterThan(0);
     });
   });
 });
