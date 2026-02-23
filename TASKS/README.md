@@ -3,6 +3,7 @@
 ## NOT STARTED
 
 - admin-monthly-review-design-improvements.md
+- admin-pto-requests-design-improvements.md
 - admin-review-acknowledge-animation.md
 - current-year-summary-design-improvements.md
 - Email Magic Link.md
