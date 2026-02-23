@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { CALENDAR_SYMBOLS } from "../shared/calendar-symbols.js";
 
 test("pto-calendar component test", async ({ page }) => {
   await page.goto("/components/pto-calendar/test.html");
@@ -113,8 +114,8 @@ test("pto-calendar component test", async ({ page }) => {
     ) as HTMLElement;
     cell.click();
   });
-  // After second click: 8 → 4 hours (shows ○ indicator for partial day)
-  await expect(hoursIndicator).toContainText("○");
+  // After second click: 8 → 4 hours (shows ½ indicator for partial day)
+  await expect(hoursIndicator).toContainText(CALENDAR_SYMBOLS.HOURS_PARTIAL);
 
   // Click again to cycle to 0 hours (removes selection)
   await page.evaluate(() => {

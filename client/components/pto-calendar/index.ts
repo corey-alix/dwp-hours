@@ -11,6 +11,7 @@ import {
   parseDate,
   isWeekend,
 } from "../../../shared/dateUtils.js";
+import { CALENDAR_SYMBOLS } from "../../../shared/calendar-symbols.js";
 import { BaseComponent } from "../base-component.js";
 import { styles, PTO_TYPE_COLORS } from "./css.js";
 
@@ -422,7 +423,7 @@ export class PtoCalendar extends BaseComponent {
       ? `tabindex="${dateStr === this._focusedDate ? "0" : "-1"}"`
       : "";
 
-    // Hours display: ● for full day (8h), ○ for partial (<8h), ✕ for clearing
+    // Hours display: ● for full day (8h), ½ for partial (<8h), ✕ for clearing
     const displayHours = isClearing
       ? 0
       : isSelected
@@ -434,14 +435,14 @@ export class PtoCalendar extends BaseComponent {
     let hoursClass = "hours";
     let partialDayClass = "";
     if (isClearing) {
-      hoursDisplay = "✕";
+      hoursDisplay = CALENDAR_SYMBOLS.HOURS_CLEARING;
       hoursClass = "hours hours-clearing";
     } else if (displayHours > 0) {
       if (displayHours >= 8) {
-        hoursDisplay = "●";
+        hoursDisplay = CALENDAR_SYMBOLS.HOURS_FULL;
         hoursClass = "hours hours-full";
       } else {
-        hoursDisplay = "½";
+        hoursDisplay = CALENDAR_SYMBOLS.HOURS_PARTIAL;
         hoursClass = "hours hours-partial";
         partialDayClass = " partial-day";
       }
