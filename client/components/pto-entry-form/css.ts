@@ -8,10 +8,6 @@ export const styles = `
                     margin: 0 auto;
                 }
 
-                .form-container {
-                    padding: var(--space-sm);
-                }
-
                 .hidden {
                     display: none;
                 }

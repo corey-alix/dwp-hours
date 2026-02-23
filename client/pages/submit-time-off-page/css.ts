@@ -10,13 +10,6 @@ export const styles = `<style>
     z-index: 1;
   }
 
-  .form-actions {
-    display: flex;
-    gap: var(--space-sm, 8px);
-    justify-content: flex-end;
-    margin-top: var(--space-md, 16px);
-  }
-
   .btn {
     padding: var(--space-sm, 8px) var(--space-md, 16px);
     border: none;

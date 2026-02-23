@@ -8,6 +8,7 @@ import { isWeekend, addDays } from "../../../shared/dateUtils.js";
 import type { CalendarEntry } from "../../components/pto-calendar/index.js";
 import { APIClient } from "../../APIClient.js";
 import { notifications } from "../../app.js";
+import { adoptToolbar } from "../../css-extensions/index.js";
 import { styles } from "./css.js";
 
 interface LoaderData {
@@ -23,6 +24,11 @@ interface LoaderData {
 export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
   private api = new APIClient();
   private _loaderData: LoaderData | null = null;
+
+  connectedCallback() {
+    super.connectedCallback();
+    adoptToolbar(this.shadowRoot);
+  }
 
   async onRouteEnter(
     _params: Record<string, string>,
@@ -65,7 +71,7 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
       ${styles}
       <month-summary id="form-balance-summary" interactive active-type="PTO"></month-summary>
       <pto-entry-form id="pto-entry-form"></pto-entry-form>
-      <div class="form-actions">
+      <div class="toolbar">
         <button type="button" class="btn btn-secondary" data-action="cancel">Cancel</button>
         <button type="button" class="btn btn-primary" data-action="submit">Submit</button>
       </div>
