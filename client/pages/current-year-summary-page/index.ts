@@ -2,7 +2,7 @@ import { BaseComponent } from "../../components/base-component.js";
 import type { PageComponent } from "../../router/types.js";
 import type { PtoPtoCard } from "../../components/pto-pto-card/index.js";
 import type { PtoEmployeeInfoCard } from "../../components/pto-employee-info-card/index.js";
-import type { MonthSummary } from "../../components/month-summary/index.js";
+import type { BalanceTable } from "../../components/balance-table/index.js";
 import type * as ApiTypes from "../../../shared/api-models.js";
 import {
   getCurrentYear,
@@ -51,12 +51,7 @@ export class CurrentYearSummaryPage
       ${styles}
       <h2 class="page-heading">${year} Year Summary</h2>
       <div class="sticky-balance">
-        <div class="balance-heading">Available Balance</div>
-        <month-summary id="balance-summary"></month-summary>
-      </div>
-      <div class="used-summary">
-        <div class="balance-heading">Used This Year</div>
-        <month-summary id="used-summary"></month-summary>
+        <balance-table></balance-table>
       </div>
       <div class="pto-summary">
         <pto-employee-info-card></pto-employee-info-card>
@@ -96,31 +91,28 @@ export class CurrentYearSummaryPage
       usedByType[entry.type] = (usedByType[entry.type] ?? 0) + entry.hours;
     }
 
-    // Balance summary — available balance per type (sticky bar)
-    const balanceSummary =
-      this.shadowRoot.querySelector<MonthSummary>("#balance-summary");
-    if (balanceSummary) {
-      balanceSummary.ptoHours = usedByType["PTO"] ?? 0;
-      balanceSummary.sickHours = usedByType["Sick"] ?? 0;
-      balanceSummary.bereavementHours = usedByType["Bereavement"] ?? 0;
-      balanceSummary.juryDutyHours = usedByType["Jury Duty"] ?? 0;
-      balanceSummary.balances = {
-        PTO: status.ptoTime.allowed,
-        Sick: status.sickTime.allowed,
-        Bereavement: status.bereavementTime.allowed,
-        "Jury Duty": status.juryDutyTime.allowed,
+    // Balance table — unified Issued / Used / Avail grid
+    const balanceTable =
+      this.shadowRoot.querySelector<BalanceTable>("balance-table");
+    if (balanceTable) {
+      balanceTable.data = {
+        pto: {
+          issued: status.ptoTime.allowed,
+          used: usedByType["PTO"] ?? 0,
+        },
+        sick: {
+          issued: status.sickTime.allowed,
+          used: usedByType["Sick"] ?? 0,
+        },
+        bereavement: {
+          issued: status.bereavementTime.allowed,
+          used: usedByType["Bereavement"] ?? 0,
+        },
+        juryDuty: {
+          issued: status.juryDutyTime.allowed,
+          used: usedByType["Jury Duty"] ?? 0,
+        },
       };
-    }
-
-    // Used summary — raw hours used per type (non-sticky)
-    const usedSummary =
-      this.shadowRoot.querySelector<MonthSummary>("#used-summary");
-    if (usedSummary) {
-      usedSummary.ptoHours = usedByType["PTO"] ?? 0;
-      usedSummary.sickHours = usedByType["Sick"] ?? 0;
-      usedSummary.bereavementHours = usedByType["Bereavement"] ?? 0;
-      usedSummary.juryDutyHours = usedByType["Jury Duty"] ?? 0;
-      // No balances property — show raw used hours only
     }
 
     // Unified detail card — all entries for the year

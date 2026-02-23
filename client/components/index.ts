@@ -17,3 +17,4 @@ export { DebugConsole } from "./debug-console/index.js";
 export { PtoNotification } from "./pto-notification/index.js";
 export { DashboardNavigationMenu } from "./dashboard-navigation-menu/index.js";
 export { MonthSummary } from "./month-summary/index.js";
+export { BalanceTable } from "./balance-table/index.js";

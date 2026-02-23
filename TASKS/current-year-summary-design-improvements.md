@@ -35,16 +35,30 @@ The page has no title and the summary bar lacks the "Available Balance" heading 
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
 
-### Stage 2: Add Used-This-Year Summary
+### Stage 2: Replace Balance Bar with Balance Table
 
-Employees can see available balance but not how much they've used. Adding a "used" context helps employees understand their consumption.
+Replace the dual `<month-summary>` instances (Available Balance + Used This Year) with a single unified `<balance-table>` component showing Issued, Used, and Available in a compact grid. Consolidate Bereavement + Jury Duty into "Other" to keep to 4 columns for mobile.
 
-- [x] Add a second `<month-summary>` instance below the balance bar showing total hours _used_ per type (the data is already computed — `pto-hours`, `sick-hours`, etc. attributes)
-- [x] Add a `<div class="balance-heading">Used This Year</div>` label above the second `<month-summary>` (same sibling-div pattern as the Available Balance heading)
-- [x] The second `<month-summary>` should NOT use balance mode — show raw hours only (no `balances` property)
-- [x] Ensure the used summary does not clutter the sticky bar — place it below the sticky section as a non-sticky element
+Target layout:
+
+|        | PTO | Sick | Other |
+| ------ | --- | ---- | ----- |
+| Issued | 225 | 24   | 80    |
+| Used   | 112 | 32   | 48    |
+| Avail  | 113 | -8   | 32    |
+
+- [x] Create a new `<balance-table>` component in `client/components/balance-table/`
+- [x] Accept properties for per-type issued, used, and available values
+- [x] Consolidate Bereavement + Jury Duty into an "Other" column
+- [x] Apply negative-balance styling (warning color) to Avail cells with negative values
+- [x] Style using design tokens; ensure readability at 375px viewport width (~85px per column)
+- [x] Remove the existing dual `<month-summary>` + `<div class="balance-heading">` pattern from the page template
+- [x] Replace with the new `<balance-table>` component
+- [x] Ensure sticky behavior is preserved (the balance table should be sticky at `top: 56px`)
+- [x] Write Vitest unit tests for `<balance-table>` rendering and negative-balance styling
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
+- [x] `pnpm run lint:css` passes
 
 ### Stage 3: Add PTO Type Color Coding to Entry Table
 
@@ -112,11 +126,16 @@ The ✓ indicator on approved entries has no explanation. Small polish items imp
 1. **Balance heading added as sibling div, not inside `<month-summary>`** — The "Available Balance" label should be added as a `<div class="balance-heading">` above `<month-summary>` in the page template, rather than modifying the `month-summary` component. This keeps `month-summary` generic and reusable.
 2. **Day cell min-size change is global** — Any shared component CSS changes affect ALL consumers. Be cautious with `pto-pto-card` style changes if the component is used elsewhere.
 3. **Generic screenshot utility** — Use `pnpm screenshot <route> [user] [component]` to capture any page. Output goes to `/tmp/<slug>.png` and `/tmp/<slug>-shadow.html`.
+4. **PTO type color tokens already exist in `tokens.css`** — `--color-pto-vacation`, `--color-pto-sick`, `--color-pto-bereavement`, `--color-pto-jury-duty` are defined for both light and dark themes. The `pto-pto-card` originally mapped all types to `color: var(--color-text)` (no differentiation). Changing to the proper tokens is a one-line-per-class fix.
+5. **Monthly grouping uses `parseDate()` for key generation** — Group entries by `${year}-${month}` key computed via `parseDate()`. Month names come from a static array, not `Date` objects (following the project's string-based date handling rule).
+6. **Toggle state persistence via `localStorage`** — The `pto-pto-card` toggle state is saved to `localStorage` under a static key (`pto-pto-card-expanded`) and restored once per component lifecycle via a `_expandedRestored` flag to avoid overwriting programmatic `isExpanded` sets.
+7. **Dead code removal was safe** — The `pto-summary-card` querySelector and `PtoSummaryCard` import were remnants of an earlier design. The component wasn't in the template so the querySelector always returned null. Removing them had no behavioral impact.
+8. **Mobile-first card layout** — Switched from `grid` with `repeat(auto-fill, minmax(18em, 1fr))` to `flex-direction: column` by default, with a `@media (min-width: 768px)` breakpoint for the side-by-side grid layout. This gives the Scheduled Time Off table full width on mobile.
 
 ## Questions and Concerns
 
 1. Should the "Used This Year" summary be a second `<month-summary>` instance (reusing the component) or a custom section?
-   USE A SECOND `<month-summary>` FOR "USED". The previous `<available>-<used>` format on a single instance was confusing.
+   ~~USE A SECOND `<month-summary>` FOR "USED".~~ REVISED: Use a single `<balance-table>` grid component with types as columns (PTO, Sick, Other) and rows for Issued/Used/Avail. Consolidate Bereavement + Jury Duty into "Other" to keep to 4 columns for mobile.
 2. Should month grouping in the entry table use collapsible sections or static separators?
    STATIC SEPARATORS or alternating row colors. Collapsing has no utility here — show it all.
 3. Is the Employee Info card still valuable on this page, or should the information be merged into a header section to save vertical space?

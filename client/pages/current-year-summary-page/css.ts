@@ -12,25 +12,12 @@ export const styles = `<style>
     margin: var(--space-md) 0 var(--space-sm) 0;
   }
 
-  .balance-heading {
-    font-size: var(--font-size-xs);
-    color: var(--color-text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    text-align: center;
-    margin-bottom: var(--space-xs);
-  }
-
   .sticky-balance {
     position: sticky;
     top: 56px;
     z-index: 10;
     background: var(--color-background);
-    padding-bottom: var(--space-sm);
-  }
-
-  .used-summary {
-    margin-bottom: var(--space-md);
+    margin-bottom: var(--space-sm);
   }
 
   .pto-summary {
