@@ -3,6 +3,7 @@ import {
   formatTimestampForDisplay,
 } from "../../../shared/dateUtils.js";
 import { BaseComponent } from "../base-component.js";
+import { animateDismiss } from "../../css-extensions/index.js";
 import { styles } from "./css.js";
 
 interface PTORequest {
@@ -112,6 +113,23 @@ export class PtoRequestQueue extends BaseComponent {
         </div>
       </div>
     `;
+  }
+
+  /**
+   * Animate a card scaling down and fading out (dismiss effect).
+   * Called by the parent page after approve/reject. Returns a promise
+   * that resolves when the animation completes (or immediately under
+   * reduced-motion).
+   */
+  async dismissCard(requestId: number): Promise<void> {
+    const card = this.shadowRoot.querySelector(
+      `.request-card[data-request-id="${requestId}"]`,
+    ) as HTMLElement | null;
+
+    if (card) {
+      const handle = animateDismiss(card);
+      await handle.promise;
+    }
   }
 
   protected handleDelegatedClick(e: Event): void {

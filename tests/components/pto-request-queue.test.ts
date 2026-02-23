@@ -187,4 +187,50 @@ describe("PtoRequestQueue Component", () => {
       expect(firedEvent!.detail.requestId).toBe(20);
     });
   });
+
+  describe("Dismiss Animation", () => {
+    it("dismissCard should resolve and hide card", async () => {
+      component.requests = [
+        makePendingRequest({ id: 1 }),
+        makePendingRequest({ id: 2 }),
+      ];
+
+      const card = component.shadowRoot?.querySelector(
+        '.request-card[data-request-id="1"]',
+      ) as HTMLElement;
+      expect(card).toBeTruthy();
+
+      // dismissCard uses animateDismiss which resolves immediately in
+      // happy-dom (no real transitions), setting display:none
+      await component.dismissCard(1);
+
+      expect(card.style.display).toBe("none");
+    });
+
+    it("dismissCard should be a no-op for non-existent requestId", async () => {
+      component.requests = [makePendingRequest({ id: 1 })];
+      // Should not throw
+      await component.dismissCard(999);
+    });
+
+    it("card is removed after dismiss + re-render", async () => {
+      component.requests = [
+        makePendingRequest({ id: 1 }),
+        makePendingRequest({ id: 2 }),
+      ];
+
+      await component.dismissCard(1);
+
+      // Simulate data refresh removing the dismissed card
+      component.requests = [makePendingRequest({ id: 2 })];
+
+      const cards = component.shadowRoot?.querySelectorAll(".request-card");
+      expect(cards?.length).toBe(1);
+      expect(
+        component.shadowRoot?.querySelector(
+          '.request-card[data-request-id="1"]',
+        ),
+      ).toBeNull();
+    });
+  });
 });

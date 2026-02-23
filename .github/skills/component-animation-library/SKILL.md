@@ -224,4 +224,29 @@ export class PtoEntryForm extends BaseComponent {
 - Compatible with both light and dark themes (no color definitions in the library)
 - Bundled automatically by esbuild from `client/app.ts`
 
-Last updated: February 22, 2026
+### Known Pitfalls
+
+#### Exit animations: hide element before cleaning up inline styles
+
+When an element is animated to an "exit" state (e.g., scaled down, faded out) and then removed from the DOM on the next render cycle, `cleanupStyles()` must **not** restore the element to its natural visible state before removal. Clearing inline `transform`/`opacity` causes the element to snap back to full size for one or more frames — visually jarring, especially when it is the last item in a list.
+
+**Fix**: Set `element.style.display = "none"` immediately before calling `cleanupStyles()` in any exit/dismiss animation's `onComplete` handler. This ensures the element stays invisible between style cleanup and DOM removal.
+
+```typescript
+// ✅ Correct — element stays hidden until re-render removes it
+function onComplete() {
+  element.style.display = "none";
+  cleanupStyles(element);
+  resolvePromise();
+}
+
+// ❌ Wrong — element snaps back to full size for 1+ frames
+function onComplete() {
+  cleanupStyles(element); // resets transform & opacity → visible flash
+  resolvePromise();
+}
+```
+
+This applies to `animateDismiss()` and any future exit animation helper. Show/enter animations (e.g., `animateSlide(show=true)`) are not affected because their end state matches the element's natural style.
+
+Last updated: February 23, 2026

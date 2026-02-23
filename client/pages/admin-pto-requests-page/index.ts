@@ -163,6 +163,13 @@ export class AdminPtoRequestsPage
     }) as EventListener);
   }
 
+  private async dismissQueueCard(requestId: number): Promise<void> {
+    const queue = this.shadowRoot?.querySelector("pto-request-queue") as any;
+    if (queue?.dismissCard) {
+      await queue.dismissCard(requestId);
+    }
+  }
+
   private async handleApprove(requestId: number): Promise<void> {
     try {
       const adminUser = this._authService?.getUser();
@@ -170,6 +177,7 @@ export class AdminPtoRequestsPage
         notifications.error("Unable to approve: admin user not found.");
         return;
       }
+      await this.dismissQueueCard(requestId);
       await this.api.approvePTOEntry(requestId, adminUser.id);
       notifications.success("PTO request approved.");
       await this.refreshQueue();
@@ -182,6 +190,7 @@ export class AdminPtoRequestsPage
 
   private async handleReject(requestId: number): Promise<void> {
     try {
+      await this.dismissQueueCard(requestId);
       await this.api.rejectPTOEntry(requestId);
       notifications.success("PTO request rejected.");
       await this.refreshQueue();

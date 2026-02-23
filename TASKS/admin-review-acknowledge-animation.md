@@ -57,6 +57,33 @@ Currently, after clicking "Acknowledge Review" and confirming, the card immediat
 - **Rendering filter**: In `render()`, filter `this._employeeData` with `.filter(emp => !emp.acknowledgedByAdmin)` before mapping to cards.
 - **Exports**: Export `animateDismiss` through the `client/css-extensions/index.ts` facade so the admin-monthly-review component imports it alongside `animateSlide` and `animateCarousel`.
 
+## Phase 4: PTO Request Queue Dismiss Animation
+
+Apply the same `animateDismiss()` exit animation to the PTO Request Queue component so that approved/rejected cards scale down and fade out before being removed.
+
+### Context
+
+- **Page**: `client/pages/admin-pto-requests-page/index.ts` — listens for `request-approve` and `request-reject` events, calls `handleApprove()` / `handleReject()`, then `refreshQueue()` to re-render.
+- **Component**: `client/components/pto-request-queue/index.ts` — renders `.request-card[data-request-id="..."]` elements with Approve/Reject buttons. Dispatches `request-approve` / `request-reject` custom events with `{ requestId }` detail.
+- **Current behavior**: After approve/reject, `refreshQueue()` re-fetches data and sets `queue.requests`, causing an immediate re-render that removes the card with no animation.
+
+### Checklist
+
+- [x] Import `animateDismiss` in `pto-request-queue/index.ts` from `../../css-extensions/index.js`
+- [x] Add a public `async dismissCard(requestId: number): Promise<void>` method to `PtoRequestQueue` (same pattern as `AdminMonthlyReview.dismissCard`) that queries `.request-card[data-request-id="${requestId}"]` in the shadow DOM and calls `animateDismiss(card)`, awaiting the handle's promise
+- [x] In `admin-pto-requests-page/index.ts`, call `queue.dismissCard(requestId)` **before** calling `refreshQueue()` in both `handleApprove()` and `handleReject()`, so the animation plays before the data refresh removes the card
+- [x] Verify the empty-state ("No pending requests") renders correctly after the last card animates out
+- [x] Add Vitest unit test: after approve, card animates out and is removed on re-render
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+
+### Implementation Notes
+
+- Reuse the existing `animateDismiss()` helper from `client/css-extensions/animations/index.ts` — no new animation code needed.
+- The `dismissCard()` method on `PtoRequestQueue` mirrors the one on `AdminMonthlyReview`: locate card by `data-request-id`, call `animateDismiss`, await promise.
+- The page-level handler (`handleApprove` / `handleReject`) should `await queue.dismissCard(requestId)` before calling the API + `refreshQueue()`, so the animation completes before the card is removed by re-render.
+- `animateDismiss` already handles `prefers-reduced-motion` (resolves immediately) and sets `display: none` before cleanup to prevent snap-back.
+
 ## Questions and Concerns
 
 1. **Bug: Card briefly appears full-size after scale-down animation** — The `animateDismiss()` helper in `client/css-extensions/animations/index.ts` uses a two-phase animation. Phase 1 correctly scales the card to `scale(0.25)` with `opacity: 0`. However, Phase 2 then transitions the card _back_ to `scale(1)` and `opacity: 1` (lines 351-352) before resolving the promise, causing the card to "flash" at full size for ~150ms (the `--duration-fast` token). Only after Phase 2 completes does `cleanupStyles()` run and the promise resolve, triggering the re-render that removes the card from the DOM. **Fix**: Remove Phase 2 entirely — `onComplete()` should fire directly after Phase 1 ends, so the card is removed while still scaled down and invisible.
