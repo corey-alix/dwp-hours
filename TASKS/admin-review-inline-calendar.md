@@ -114,6 +114,48 @@ This feature enhances the admin panel's usability by giving administrators immed
 - `client/pages/admin-monthly-review-page/index.ts` — `calendar-month-data-request` event handler
 - `tests/components/admin-monthly-review.test.ts` — 8 new tests for month navigation (29 total)
 
+### ~~3. Add swipe navigation to inline calendar for mobile admin users~~ ✅ RESOLVED
+
+**Feature**: Allow mobile administrators to swipe left/right on the inline `<pto-calendar>` to navigate between months, with a carousel-style slide animation matching the existing `pto-entry-form` swipe behavior.
+
+**Current behavior**: Month navigation on the inline calendar is only possible via the `←` / `→` arrow buttons. On touch devices, there is no swipe gesture support — mobile admins must tap the small arrow buttons.
+
+**Desired behavior**: Register touch event listeners on the `.inline-calendar-container` element within each employee card. A horizontal swipe (left = next month, right = previous month) should trigger `navigateCalendarMonth()` with a carousel animation, identical to the `pto-entry-form` pattern.
+
+**Reference implementation**: `pto-entry-form/index.ts` provides the proven pattern:
+
+- `setupSwipeListeners()` — registers `touchstart` / `touchend` on `#calendar-container` using `this.addListener()` for memory-safe cleanup
+- Tracks `_swipeStartX` / `_swipeStartY` private fields
+- Enforces a 50px minimum distance threshold and horizontal-dominant check (`Math.abs(deltaX) > Math.abs(deltaY)`)
+- Calls `navigateMonthWithAnimation()` which uses `animateCarousel()` from `css-extensions/animations`
+- `animateCarousel()` handles 3-phase slide transition (exit → content swap → enter), `prefers-reduced-motion` fallback, and inline style cleanup
+
+**Implementation approach**:
+
+- Import `adoptAnimations` and `animateCarousel` from `css-extensions/index.js` into `admin-monthly-review/index.ts`
+- Call `adoptAnimations(this.shadowRoot)` in `connectedCallback` to adopt animation keyframes stylesheet
+- Add `_swipeStartX` / `_swipeStartY` private fields and an `_isAnimating` flag to prevent overlapping animations
+- In `connectedCallback` or after render, register `touchstart` / `touchend` listeners on each `.inline-calendar-container` using `this.addListener()` for automatic cleanup
+- On swipe detection, determine the target employee ID from the container's parent card, then call a new `navigateMonthWithAnimation(employeeId, direction)` method
+- `navigateMonthWithAnimation()` wraps the existing `navigateCalendarMonth()` call inside `animateCarousel(container, direction, () => { this.navigateCalendarMonth(employeeId, direction) })`, animating the `.inline-calendar-container` element
+- Apply the same animation to the existing arrow button navigation for consistency — both should use the carousel transition
+- Ensure `will-change: transform, opacity` is set only during animation (handled by `animateCarousel` cleanup)
+
+**Considerations**:
+
+- Touch listeners must be re-registered when cards re-render (new elements replace old ones). Use event delegation on the shadow root or re-attach after `requestUpdate()` completes
+- Each card has its own `.inline-calendar-container` — swipe on one card must not affect others. Identify the target container from the touch event target
+- The `animateCarousel` helper handles `prefers-reduced-motion` automatically (instant swap, no animation)
+- The `BaseComponent.addListener()` pattern ensures cleanup on `disconnectedCallback`
+- Arrow button clicks should also trigger the carousel animation for visual consistency with swipe
+
+**Fix applied**: Imported `adoptAnimations`, `animateCarousel`, and `AnimationHandle` from `css-extensions`. Added swipe gesture detection (`touchstart`/`touchend` listeners via `setupSwipeForCard()`) with 50px threshold and horizontal-dominant check. Both swipe and arrow button clicks now use `navigateMonthWithAnimation()` which wraps `navigateCalendarMonth()` inside `animateCarousel()` for consistent carousel-style transitions. `prefers-reduced-motion` is handled automatically by the animation helper. Tests mock `window.matchMedia` to use the synchronous reduced-motion path since happy-dom doesn't fire `transitionend` events.
+
+**Files changed**:
+
+- `client/components/admin-monthly-review/index.ts` — added swipe fields, `setupSwipeForCard()`, `navigateMonthWithAnimation()`, carousel animation for arrow clicks
+- `tests/components/admin-monthly-review.test.ts` — 5 new swipe tests, `matchMedia` mock for animation tests (34 total)
+
 ## Questions and Concerns
 
 1.

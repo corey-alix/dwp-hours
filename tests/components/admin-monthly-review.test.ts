@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { AdminMonthlyReview } from "../../client/components/admin-monthly-review/index.js";
 import type { AdminMonthlyReviewItem } from "../../shared/api-models.js";
 import type {
@@ -500,6 +500,19 @@ describe("AdminMonthlyReview Component", () => {
   });
 
   describe("Inline Calendar Month Navigation", () => {
+    let originalMatchMedia: typeof window.matchMedia;
+
+    beforeEach(() => {
+      // Stub matchMedia so animateCarousel uses the reduced-motion (synchronous)
+      // path — happy-dom does not fire transitionend events.
+      originalMatchMedia = window.matchMedia;
+      window.matchMedia = vi.fn().mockReturnValue({ matches: true }) as any;
+    });
+
+    afterEach(() => {
+      window.matchMedia = originalMatchMedia;
+    });
+
     it("should render navigation arrows when calendar is expanded", () => {
       const testData = generateMonthlyData("2026-02");
       component.setPtoEntries(
@@ -619,7 +632,7 @@ describe("AdminMonthlyReview Component", () => {
       expect(calendar?.getAttribute("year")).toBe("2026");
     });
 
-    it("should reset to review month when calendar is hidden and re-opened", () => {
+    it("should reset to review month when calendar is hidden and re-opened", async () => {
       const testData = generateMonthlyData("2026-02");
       component.setPtoEntries(
         seedPTOEntries.map((e: SeedPtoEntry) => ({
@@ -643,6 +656,8 @@ describe("AdminMonthlyReview Component", () => {
         ".cal-nav-next",
       ) as HTMLElement;
       nextBtn.click();
+      // Flush microtask so _isAnimating resets before next click
+      await Promise.resolve();
       // Re-query after re-render
       nextBtn = component.shadowRoot?.querySelector(
         ".cal-nav-next",
@@ -790,6 +805,246 @@ describe("AdminMonthlyReview Component", () => {
       nextBtn.click();
 
       expect(requestCount).toBe(0);
+    });
+  });
+
+  describe("Swipe Navigation", () => {
+    let originalMatchMedia: typeof window.matchMedia;
+
+    beforeEach(() => {
+      // Stub matchMedia so animateCarousel uses the reduced-motion (synchronous)
+      // path — happy-dom does not fire transitionend events.
+      originalMatchMedia = window.matchMedia;
+      window.matchMedia = vi.fn().mockReturnValue({ matches: true }) as any;
+    });
+
+    afterEach(() => {
+      window.matchMedia = originalMatchMedia;
+    });
+
+    /** Helper: simulate a touch swipe on an element. */
+    function simulateSwipe(
+      target: HTMLElement,
+      startX: number,
+      startY: number,
+      endX: number,
+      endY: number,
+    ): void {
+      target.dispatchEvent(
+        new TouchEvent("touchstart", {
+          touches: [{ clientX: startX, clientY: startY } as Touch],
+        }),
+      );
+      target.dispatchEvent(
+        new TouchEvent("touchend", {
+          changedTouches: [{ clientX: endX, clientY: endY } as Touch],
+        }),
+      );
+    }
+
+    it("should navigate to next month on swipe left", () => {
+      const testData = generateMonthlyData("2026-02");
+      component.setPtoEntries(
+        seedPTOEntries.map((e: SeedPtoEntry) => ({
+          employee_id: e.employee_id,
+          type: e.type,
+          hours: e.hours,
+          date: e.date,
+          approved_by: e.approved_by ?? null,
+        })),
+      );
+      component.setEmployeeData(testData);
+
+      // Expand calendar
+      const btn = component.shadowRoot?.querySelector(
+        ".view-calendar-btn",
+      ) as HTMLElement;
+      btn.click();
+
+      const container = component.shadowRoot?.querySelector(
+        ".inline-calendar-container",
+      ) as HTMLElement;
+      expect(container).toBeTruthy();
+
+      // Swipe left (startX > endX by >50px) → next month
+      simulateSwipe(container, 200, 100, 100, 100);
+
+      const navLabel = component.shadowRoot?.querySelector(".nav-label");
+      expect(navLabel?.textContent?.trim()).toBe("March 2026");
+    });
+
+    it("should navigate to previous month on swipe right", () => {
+      const testData = generateMonthlyData("2026-02");
+      component.setPtoEntries(
+        seedPTOEntries.map((e: SeedPtoEntry) => ({
+          employee_id: e.employee_id,
+          type: e.type,
+          hours: e.hours,
+          date: e.date,
+          approved_by: e.approved_by ?? null,
+        })),
+      );
+      component.setEmployeeData(testData);
+
+      // Expand calendar
+      const btn = component.shadowRoot?.querySelector(
+        ".view-calendar-btn",
+      ) as HTMLElement;
+      btn.click();
+
+      const container = component.shadowRoot?.querySelector(
+        ".inline-calendar-container",
+      ) as HTMLElement;
+
+      // Swipe right (endX > startX by >50px) → previous month
+      simulateSwipe(container, 100, 100, 200, 100);
+
+      const navLabel = component.shadowRoot?.querySelector(".nav-label");
+      expect(navLabel?.textContent?.trim()).toBe("January 2026");
+    });
+
+    it("should ignore short swipes below threshold", () => {
+      const testData = generateMonthlyData("2026-02");
+      component.setPtoEntries(
+        seedPTOEntries.map((e: SeedPtoEntry) => ({
+          employee_id: e.employee_id,
+          type: e.type,
+          hours: e.hours,
+          date: e.date,
+          approved_by: e.approved_by ?? null,
+        })),
+      );
+      component.setEmployeeData(testData);
+
+      // Expand calendar
+      const btn = component.shadowRoot?.querySelector(
+        ".view-calendar-btn",
+      ) as HTMLElement;
+      btn.click();
+
+      const container = component.shadowRoot?.querySelector(
+        ".inline-calendar-container",
+      ) as HTMLElement;
+
+      // Swipe left only 30px (below 50px threshold) → should NOT navigate
+      simulateSwipe(container, 130, 100, 100, 100);
+
+      const navLabel = component.shadowRoot?.querySelector(".nav-label");
+      expect(navLabel?.textContent?.trim()).toBe("February 2026");
+    });
+
+    it("should ignore vertical-dominant swipes", () => {
+      const testData = generateMonthlyData("2026-02");
+      component.setPtoEntries(
+        seedPTOEntries.map((e: SeedPtoEntry) => ({
+          employee_id: e.employee_id,
+          type: e.type,
+          hours: e.hours,
+          date: e.date,
+          approved_by: e.approved_by ?? null,
+        })),
+      );
+      component.setEmployeeData(testData);
+
+      // Expand calendar
+      const btn = component.shadowRoot?.querySelector(
+        ".view-calendar-btn",
+      ) as HTMLElement;
+      btn.click();
+
+      const container = component.shadowRoot?.querySelector(
+        ".inline-calendar-container",
+      ) as HTMLElement;
+
+      // Vertical swipe (deltaY > deltaX) → should NOT navigate
+      simulateSwipe(container, 100, 100, 160, 300);
+
+      const navLabel = component.shadowRoot?.querySelector(".nav-label");
+      expect(navLabel?.textContent?.trim()).toBe("February 2026");
+    });
+
+    it("should dispatch data request on swipe to non-review month", () => {
+      const testData = generateMonthlyData("2026-02");
+      component.setPtoEntries(
+        seedPTOEntries.map((e: SeedPtoEntry) => ({
+          employee_id: e.employee_id,
+          type: e.type,
+          hours: e.hours,
+          date: e.date,
+          approved_by: e.approved_by ?? null,
+        })),
+      );
+      component.setEmployeeData(testData);
+
+      // Expand calendar
+      const btn = component.shadowRoot?.querySelector(
+        ".view-calendar-btn",
+      ) as HTMLElement;
+      btn.click();
+
+      let receivedDetail: any = null;
+      component.addEventListener("calendar-month-data-request", ((
+        evt: CustomEvent,
+      ) => {
+        receivedDetail = evt.detail;
+      }) as EventListener);
+
+      const container = component.shadowRoot?.querySelector(
+        ".inline-calendar-container",
+      ) as HTMLElement;
+
+      // Swipe left → next month (March)
+      simulateSwipe(container, 200, 100, 100, 100);
+
+      expect(receivedDetail).toBeTruthy();
+      expect(receivedDetail.month).toBe("2026-03");
+    });
+
+    it("should support consecutive swipes after re-render", async () => {
+      const testData = generateMonthlyData("2026-02");
+      component.setPtoEntries(
+        seedPTOEntries.map((e: SeedPtoEntry) => ({
+          employee_id: e.employee_id,
+          type: e.type,
+          hours: e.hours,
+          date: e.date,
+          approved_by: e.approved_by ?? null,
+        })),
+      );
+      component.setEmployeeData(testData);
+
+      // Expand calendar
+      const btn = component.shadowRoot?.querySelector(
+        ".view-calendar-btn",
+      ) as HTMLElement;
+      btn.click();
+
+      let container = component.shadowRoot?.querySelector(
+        ".inline-calendar-container",
+      ) as HTMLElement;
+
+      // First swipe left → March
+      simulateSwipe(container, 200, 100, 100, 100);
+      // Flush microtask so _isAnimating resets
+      await Promise.resolve();
+
+      // Simulate parent injecting fetched data (triggers another requestUpdate)
+      component.setMonthPtoEntries("2026-03", []);
+
+      let navLabel = component.shadowRoot?.querySelector(".nav-label");
+      expect(navLabel?.textContent?.trim()).toBe("March 2026");
+
+      // Re-query container after re-render
+      container = component.shadowRoot?.querySelector(
+        ".inline-calendar-container",
+      ) as HTMLElement;
+      expect(container).toBeTruthy();
+
+      // Second swipe left → April
+      simulateSwipe(container, 200, 100, 100, 100);
+
+      navLabel = component.shadowRoot?.querySelector(".nav-label");
+      expect(navLabel?.textContent?.trim()).toBe("April 2026");
     });
   });
 });

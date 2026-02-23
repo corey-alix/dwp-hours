@@ -19,8 +19,14 @@ import type { MonthSummary } from "../month-summary/index.js";
 // Side-effect import: ensure <pto-calendar> custom element is registered
 import "../pto-calendar/index.js";
 import { monthNames, type PtoCalendar } from "../pto-calendar/index.js";
-import { adoptToolbar } from "../../css-extensions/index.js";
-import { adoptNavigation, NAV_SYMBOLS } from "../../css-extensions/index.js";
+import {
+  adoptToolbar,
+  adoptNavigation,
+  NAV_SYMBOLS,
+  adoptAnimations,
+  animateCarousel,
+} from "../../css-extensions/index.js";
+import type { AnimationHandle } from "../../css-extensions/index.js";
 
 // Admin Monthly Review Component Architecture:
 // This component implements the event-driven data flow pattern:
@@ -46,6 +52,14 @@ export class AdminMonthlyReview extends BaseComponent {
   private _expandedCalendars: Set<number> = new Set();
   /** Per-card navigated month (employee ID → YYYY-MM). Reset on collapse. */
   private _calendarMonths: Map<number, string> = new Map();
+  // ── Swipe navigation state ──
+  private _swipeStartX: number | null = null;
+  private _swipeStartY: number | null = null;
+  private _isAnimating = false;
+  private _currentAnimation: AnimationHandle | null = null;
+  /** Track which calendar containers already have swipe listeners attached */
+  private _swipeListenerCards: Set<number> = new Set();
+
   /** Cache of PTO entries fetched for non-review months, keyed by YYYY-MM */
   private _monthPtoCache: Map<
     string,
@@ -66,6 +80,7 @@ export class AdminMonthlyReview extends BaseComponent {
     super.connectedCallback();
     adoptToolbar(this.shadowRoot);
     adoptNavigation(this.shadowRoot);
+    adoptAnimations(this.shadowRoot);
     this.requestEmployeeData();
   }
 
@@ -80,8 +95,8 @@ export class AdminMonthlyReview extends BaseComponent {
       // Collapse all calendars and clear navigated months when month changes
       this._expandedCalendars.clear();
       this._calendarMonths.clear();
+      this._swipeListenerCards.clear();
       this.requestEmployeeData();
-      this.requestUpdate();
     }
   }
 
@@ -267,6 +282,9 @@ export class AdminMonthlyReview extends BaseComponent {
   /** After render, set complex `balances` property on each <month-summary>
    *  and inject PTO entries into expanded inline calendars. */
   protected override update(): void {
+    // super.update() → renderTemplate() → cleanupEventListeners() removes ALL
+    // DOM listeners. Clear the tracking set so setupSwipeForCard() re-attaches.
+    this._swipeListenerCards.clear();
     super.update();
 
     // Balance badge injection
@@ -321,6 +339,11 @@ export class AdminMonthlyReview extends BaseComponent {
           }));
         cal.setPtoEntries(empEntries);
       });
+
+    // Attach swipe listeners to newly rendered inline calendar containers
+    for (const empId of this._expandedCalendars) {
+      this.setupSwipeForCard(empId);
+    }
   }
 
   private async handleAcknowledgeEmployee(employeeId: number): Promise<void> {
@@ -365,6 +388,7 @@ export class AdminMonthlyReview extends BaseComponent {
       // Collapse all calendars and clear navigated months when month changes
       this._expandedCalendars.clear();
       this._calendarMonths.clear();
+      this._swipeListenerCards.clear();
       this.requestEmployeeData();
       return;
     }
@@ -391,7 +415,7 @@ export class AdminMonthlyReview extends BaseComponent {
       return;
     }
 
-    // Handle calendar month navigation arrows
+    // Handle calendar month navigation arrows (with carousel animation)
     if (
       target.classList.contains("cal-nav-prev") ||
       target.classList.contains("cal-nav-next")
@@ -400,8 +424,10 @@ export class AdminMonthlyReview extends BaseComponent {
         target.getAttribute("data-employee-id") || "0",
       );
       if (employeeId) {
-        const direction = target.classList.contains("cal-nav-prev") ? -1 : 1;
-        this.navigateCalendarMonth(employeeId, direction);
+        const direction: -1 | 1 = target.classList.contains("cal-nav-prev")
+          ? -1
+          : 1;
+        this.navigateMonthWithAnimation(employeeId, direction);
       }
       return;
     }
@@ -412,12 +438,102 @@ export class AdminMonthlyReview extends BaseComponent {
   private toggleCalendar(employeeId: number): void {
     if (this._expandedCalendars.has(employeeId)) {
       this._expandedCalendars.delete(employeeId);
+      this._swipeListenerCards.delete(employeeId);
     } else {
       // Reset displayed month to the review month on every open
       this._calendarMonths.set(employeeId, this._selectedMonth);
       this._expandedCalendars.add(employeeId);
     }
     this.requestUpdate();
+  }
+
+  // ── Swipe navigation ──
+
+  /**
+   * Register touch listeners on an `.inline-calendar-container` for swipe
+   * month navigation. Uses addListener() for memory-safe automatic cleanup.
+   */
+  private setupSwipeForCard(employeeId: number): void {
+    if (this._swipeListenerCards.has(employeeId)) return;
+    const card = this.shadowRoot.querySelector(
+      `.employee-card[data-employee-id="${employeeId}"]`,
+    );
+    const container = card?.querySelector(
+      ".inline-calendar-container",
+    ) as HTMLElement | null;
+    if (!container) return;
+
+    this._swipeListenerCards.add(employeeId);
+
+    // Touch event listeners for swipe gesture detection
+    // Purpose: Enable intuitive month navigation on touch devices
+    // Performance: Minimal event listeners, hardware-accelerated animations
+    // Accessibility: Works with screen readers, respects reduced motion preferences
+    this.addListener(container, "touchstart", ((e: TouchEvent) => {
+      this._swipeStartX = e.touches[0].clientX;
+      this._swipeStartY = e.touches[0].clientY;
+    }) as EventListener);
+
+    this.addListener(container, "touchend", ((e: TouchEvent) => {
+      if (this._swipeStartX === null || this._swipeStartY === null) return;
+
+      const endX = e.changedTouches[0].clientX;
+      const endY = e.changedTouches[0].clientY;
+
+      const deltaX = endX - this._swipeStartX;
+      const deltaY = endY - this._swipeStartY;
+
+      // Minimum swipe distance threshold (50px) to prevent accidental navigation
+      const minSwipeDistance = 50;
+
+      // Ensure horizontal swipe is dominant over vertical scrolling
+      if (
+        Math.abs(deltaX) > Math.abs(deltaY) &&
+        Math.abs(deltaX) > minSwipeDistance
+      ) {
+        // Direction: swipe left = next month (+1), swipe right = prev month (-1)
+        const direction: -1 | 1 = deltaX > 0 ? -1 : 1;
+        this.navigateMonthWithAnimation(employeeId, direction);
+      }
+
+      // Reset touch coordinates
+      this._swipeStartX = null;
+      this._swipeStartY = null;
+    }) as EventListener);
+  }
+
+  /**
+   * Carousel-style month navigation animation.
+   * Delegates to the shared animation library's animateCarousel helper,
+   * which handles phase sequencing, reduced-motion, and inline style cleanup.
+   */
+  private navigateMonthWithAnimation(
+    employeeId: number,
+    direction: -1 | 1,
+  ): void {
+    // Prevent overlapping animations
+    if (this._isAnimating) return;
+
+    const card = this.shadowRoot.querySelector(
+      `.employee-card[data-employee-id="${employeeId}"]`,
+    );
+    const container = card?.querySelector(
+      ".inline-calendar-container",
+    ) as HTMLElement | null;
+    if (!container) {
+      // Fallback: navigate without animation
+      this.navigateCalendarMonth(employeeId, direction);
+      return;
+    }
+
+    this._isAnimating = true;
+    this._currentAnimation = animateCarousel(container, direction, () => {
+      this.navigateCalendarMonth(employeeId, direction);
+    });
+    this._currentAnimation.promise.then(() => {
+      this._currentAnimation = null;
+      this._isAnimating = false;
+    });
   }
 
   /** Navigate the inline calendar for an employee to a different month.
@@ -443,6 +559,10 @@ export class AdminMonthlyReview extends BaseComponent {
         }),
       );
     }
+
+    // Mark swipe listeners stale — re-render destroys the container element,
+    // so listeners must be re-attached to the new DOM in update().
+    this._swipeListenerCards.delete(employeeId);
 
     this.requestUpdate();
   }
