@@ -114,6 +114,12 @@ export const styles = `
     color: var(--color-success-dark);
   }
 
+  .empty-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--color-text-secondary);
+  }
+
   .view-calendar-btn {
     padding: 10px 16px;
     background: var(--color-secondary, #6c757d);

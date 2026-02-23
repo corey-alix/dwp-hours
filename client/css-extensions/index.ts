@@ -25,6 +25,7 @@ export {
   adoptAnimations,
   animateSlide,
   animateCarousel,
+  animateDismiss,
   setupSwipeNavigation,
 } from "./animations/index.js";
 export type {

@@ -52,6 +52,11 @@ export const animationCSS = `
     100% { transform: scale(1); opacity: 1; }
   }
 
+  @keyframes scale-down {
+    from { transform: scale(1); opacity: 1; }
+    to   { transform: scale(0.25); opacity: 0; }
+  }
+
   /* ── Utility classes ── */
 
   .anim-fade-in {
@@ -86,6 +91,10 @@ export const animationCSS = `
     animation: pop var(--duration-fast) var(--easing-standard) backwards;
   }
 
+  .anim-scale-down {
+    animation: scale-down var(--duration-normal) var(--easing-accelerate) forwards;
+  }
+
   /* ── Accessibility: disable all animations for reduced-motion preference ── */
 
   @media (prefers-reduced-motion: reduce) {
@@ -97,7 +106,8 @@ export const animationCSS = `
     .anim-slide-out-right,
     .anim-slide-down-in,
     .anim-slide-up-out,
-    .anim-pop {
+    .anim-pop,
+    .anim-scale-down {
       animation: none;
     }
   }

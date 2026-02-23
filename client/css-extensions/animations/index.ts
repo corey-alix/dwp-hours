@@ -274,6 +274,87 @@ export function animateCarousel(
   };
 }
 
+// ── animateDismiss — scale-down dismiss animation ──
+
+/**
+ * Dismiss animation that scales an element down and fades it out.
+ *
+ * The element transitions from `scale(1)` to `scale(0.25)` while fading
+ * to transparent, using `--duration-normal` and `--easing-accelerate`.
+ * The caller is responsible for removing the element from the DOM after
+ * the animation completes (await the returned handle's promise).
+ *
+ * @returns An {@link AnimationHandle} with a `promise` and a `cancel` method.
+ */
+export function animateDismiss(element: HTMLElement): AnimationHandle {
+  // Reduced motion: resolve immediately
+  if (prefersReducedMotion()) {
+    return { promise: Promise.resolve(), cancel: () => {} };
+  }
+
+  let cancelled = false;
+  let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+  let resolvePromise: () => void;
+
+  const promise = new Promise<void>((resolve) => {
+    resolvePromise = resolve;
+  });
+
+  const duration = getToken("--duration-normal", "250ms", element);
+  const durationMs = parseFloat(duration);
+  const easing = getToken(
+    "--easing-accelerate",
+    "cubic-bezier(0.4, 0, 1, 1)",
+    element,
+  );
+  const transition = `transform ${duration} ${easing}, opacity ${duration} ${easing}`;
+
+  function onComplete() {
+    if (cancelled) return;
+    cancelled = true;
+    if (fallbackTimer) {
+      clearTimeout(fallbackTimer);
+      fallbackTimer = null;
+    }
+    // Hide element before cleaning inline styles to prevent a visible
+    // snap-back to full size while the caller re-renders to remove it.
+    element.style.display = "none";
+    cleanupStyles(element);
+    resolvePromise();
+  }
+
+  // Scale down to 25% and fade out
+  element.style.willChange = "transform, opacity";
+  element.style.transition = transition;
+  element.style.transform = "scale(0.25)";
+  element.style.opacity = "0";
+
+  const onTransitionEnd = (e: TransitionEvent) => {
+    if (e.propertyName !== "transform" || cancelled) return;
+    element.removeEventListener("transitionend", onTransitionEnd);
+    onComplete();
+  };
+
+  element.addEventListener("transitionend", onTransitionEnd);
+  // Fallback in case transitionend never fires
+  fallbackTimer = setTimeout(() => {
+    element.removeEventListener("transitionend", onTransitionEnd);
+    if (!cancelled) {
+      onComplete();
+    }
+  }, durationMs + 50);
+
+  return {
+    promise,
+    cancel: () => {
+      if (!cancelled) {
+        element.removeEventListener("transitionend", onTransitionEnd);
+        onComplete();
+      }
+    },
+  };
+}
+
 // ── setupSwipeNavigation — reusable swipe-to-navigate helper ──
 
 /** Minimum horizontal distance (px) to recognise a swipe. */

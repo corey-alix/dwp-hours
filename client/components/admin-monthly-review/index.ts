@@ -25,6 +25,7 @@ import {
   NAV_SYMBOLS,
   adoptAnimations,
   animateCarousel,
+  animateDismiss,
   animateSlide,
   setupSwipeNavigation,
 } from "../../css-extensions/index.js";
@@ -360,8 +361,8 @@ export class AdminMonthlyReview extends BaseComponent {
 
     try {
       // Event-driven architecture: dispatch acknowledgment event to parent
-      // Parent component handles API call to /api/admin-acknowledgements
-      // This maintains separation between UI actions and business logic
+      // Parent component handles confirmation dialog and API call
+      // Animation is triggered by the parent after the user confirms
       this.dispatchEvent(
         new CustomEvent("admin-acknowledge", {
           detail: {
@@ -375,6 +376,23 @@ export class AdminMonthlyReview extends BaseComponent {
       );
     } catch (error) {
       console.error("Failed to acknowledge employee:", error);
+    }
+  }
+
+  /**
+   * Animate a card scaling down and fading out (dismiss effect).
+   * Called by the parent page after the administrator confirms the
+   * acknowledgment dialog. Returns a promise that resolves when the
+   * animation completes (or immediately under reduced-motion).
+   */
+  async dismissCard(employeeId: number): Promise<void> {
+    const card = this.shadowRoot.querySelector(
+      `.employee-card[data-employee-id="${employeeId}"]`,
+    ) as HTMLElement | null;
+
+    if (card) {
+      const handle = animateDismiss(card);
+      await handle.promise;
     }
   }
 
@@ -592,8 +610,12 @@ export class AdminMonthlyReview extends BaseComponent {
       `
           : `
         <div class="employee-grid">
-          ${this._employeeData.map((employee) => this.renderEmployeeCard(employee)).join("")}
+          ${this._employeeData
+            .filter((emp) => !emp.acknowledgedByAdmin)
+            .map((employee) => this.renderEmployeeCard(employee))
+            .join("")}
         </div>
+        ${this._employeeData.every((emp) => emp.acknowledgedByAdmin) ? `<div class="empty-state"><p>All employees have been acknowledged for this month.</p></div>` : ""}
       `
       }
     `;

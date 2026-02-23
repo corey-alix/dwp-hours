@@ -2,6 +2,7 @@
 
 ## NOT STARTED
 
+- admin-review-acknowledge-animation.md
 - Email Magic Link.md
 - markdown-rendering.md
 

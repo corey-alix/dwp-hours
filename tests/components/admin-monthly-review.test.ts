@@ -142,9 +142,12 @@ describe("AdminMonthlyReview Component", () => {
 
       component.employeeData = testData;
 
+      const pendingCount = testData.filter(
+        (emp) => !emp.acknowledgedByAdmin,
+      ).length;
       const html = component.shadowRoot?.innerHTML;
       const count = (html?.match(/class="employee-card"/g) || []).length;
-      expect(count).toBe(testData.length);
+      expect(count).toBe(pendingCount);
     });
 
     it("should display employee names correctly", () => {
@@ -152,26 +155,33 @@ describe("AdminMonthlyReview Component", () => {
 
       component.setEmployeeData(testData);
 
+      // Only pending employees are rendered; find the first pending one
+      const firstPending = testData.find((emp) => !emp.acknowledgedByAdmin);
       const firstCard = component.shadowRoot?.querySelector(".employee-card");
       const employeeName = firstCard?.querySelector(".employee-name");
 
-      expect(employeeName?.textContent).toBe(testData[0].employeeName);
+      expect(employeeName?.textContent).toBe(firstPending?.employeeName);
     });
 
-    it("should show acknowledgment status", () => {
+    it("should show acknowledgment status for pending cards", () => {
       const testData = generateMonthlyData("2025-01");
 
       component.setEmployeeData(testData);
 
-      const acknowledgedCard = component.shadowRoot?.querySelector(
-        ".employee-card.acknowledged",
-      );
-      const unacknowledgedCard = component.shadowRoot?.querySelector(
-        ".employee-card:not(.acknowledged)",
-      );
+      // Only pending cards are rendered now
+      const pendingCards =
+        component.shadowRoot?.querySelectorAll(".employee-card");
+      const pendingCount = testData.filter(
+        (emp) => !emp.acknowledgedByAdmin,
+      ).length;
 
-      // Should have both acknowledged and unacknowledged cards
-      expect(acknowledgedCard || unacknowledgedCard).toBeTruthy();
+      // All rendered cards should be pending
+      expect(pendingCards?.length || 0).toBe(pendingCount);
+      if (pendingCards && pendingCards.length > 0) {
+        const statusIndicator =
+          pendingCards[0].querySelector(".status-indicator");
+        expect(statusIndicator?.classList.contains("pending")).toBe(true);
+      }
     });
   });
 
@@ -212,28 +222,22 @@ describe("AdminMonthlyReview Component", () => {
         acknowledgeEvent = e as CustomEvent;
       });
 
-      // Find an unacknowledged employee card and click the acknowledge button
-      const unacknowledgedCard = component.shadowRoot?.querySelector(
-        ".employee-card:not(.acknowledged)",
-      );
-      const acknowledgeButton = unacknowledgedCard?.querySelector(
+      // Find a pending employee card and click the acknowledge button
+      const pendingCard = component.shadowRoot?.querySelector(".employee-card");
+      const acknowledgeButton = pendingCard?.querySelector(
         ".acknowledge-btn",
       ) as HTMLButtonElement;
 
       if (acknowledgeButton) {
         acknowledgeButton.click();
 
-        return new Promise((resolve) => {
-          setTimeout(() => {
-            expect(acknowledgeEvent).toBeTruthy();
-            expect(acknowledgeEvent?.detail).toHaveProperty("employeeId");
-            expect(acknowledgeEvent?.detail).toHaveProperty("employeeName");
-            expect(acknowledgeEvent?.detail).toHaveProperty("month");
-            resolve(void 0);
-          }, 0);
-        });
+        // Event dispatches synchronously (animation is triggered separately by parent)
+        expect(acknowledgeEvent).toBeTruthy();
+        expect(acknowledgeEvent!.detail).toHaveProperty("employeeId");
+        expect(acknowledgeEvent!.detail).toHaveProperty("employeeName");
+        expect(acknowledgeEvent!.detail).toHaveProperty("month");
       } else {
-        // If no unacknowledged cards, test passes (all data might be acknowledged)
+        // If no pending cards, test passes (all data might be acknowledged)
         expect(true).toBe(true);
       }
     });
@@ -260,32 +264,28 @@ describe("AdminMonthlyReview Component", () => {
 
       component.setEmployeeData(emptyData);
 
+      const pendingCount = emptyData.filter(
+        (emp) => !emp.acknowledgedByAdmin,
+      ).length;
       const employeeCards =
         component.shadowRoot?.querySelectorAll(".employee-card");
-      expect(employeeCards?.length).toBe(3); // Should still show all employees with 0 hours
+      expect(employeeCards?.length).toBe(pendingCount);
     });
 
-    it("should display acknowledgment information correctly", () => {
+    it("should not render acknowledged employee cards", () => {
       const testData = generateMonthlyData("2025-01");
 
       component.setEmployeeData(testData);
 
-      // Find acknowledged employee
+      // Acknowledged employees should not have cards in the DOM
       const acknowledgedEmployee = testData.find(
         (emp) => emp.acknowledgedByAdmin,
       );
       if (acknowledgedEmployee) {
-        const acknowledgedCard = Array.from(
-          component.shadowRoot?.querySelectorAll(".employee-card") || [],
-        ).find(
-          (card) =>
-            card.querySelector(".employee-name")?.textContent ===
-            acknowledgedEmployee.employeeName,
+        const card = component.shadowRoot?.querySelector(
+          `.employee-card[data-employee-id="${acknowledgedEmployee.employeeId}"]`,
         );
-
-        const statusIndicator =
-          acknowledgedCard?.querySelector(".status-indicator");
-        expect(statusIndicator?.classList.contains("acknowledged")).toBe(true);
+        expect(card).toBeFalsy();
       }
     });
   });
@@ -331,28 +331,34 @@ describe("AdminMonthlyReview Component", () => {
   });
 
   describe("Inline Calendar Toggle", () => {
-    it("should render a View Calendar button in every employee card", () => {
+    it("should render a View Calendar button in every pending card", () => {
       const testData = generateMonthlyData("2025-01");
       component.setEmployeeData(testData);
 
+      const pendingCount = testData.filter(
+        (emp) => !emp.acknowledgedByAdmin,
+      ).length;
       const buttons =
         component.shadowRoot?.querySelectorAll(".view-calendar-btn");
-      expect(buttons?.length).toBe(testData.length);
+      expect(buttons?.length).toBe(pendingCount);
     });
 
-    it("should render a toolbar in every employee card", () => {
+    it("should render a toolbar in every pending card", () => {
       const testData = generateMonthlyData("2025-01");
       component.setEmployeeData(testData);
 
+      const pendingCount = testData.filter(
+        (emp) => !emp.acknowledgedByAdmin,
+      ).length;
       const toolbars = component.shadowRoot?.querySelectorAll(".toolbar");
-      expect(toolbars?.length).toBe(testData.length);
+      expect(toolbars?.length).toBe(pendingCount);
     });
 
-    it("should show View Calendar button for acknowledged cards", () => {
+    it("should not render acknowledged cards (View Calendar button not present)", () => {
       const testData = generateMonthlyData("2025-01");
       component.setEmployeeData(testData);
 
-      // Find an acknowledged card
+      // Acknowledged cards are filtered out entirely
       const acknowledgedEmployee = testData.find(
         (emp) => emp.acknowledgedByAdmin,
       );
@@ -360,11 +366,7 @@ describe("AdminMonthlyReview Component", () => {
         const card = component.shadowRoot?.querySelector(
           `.employee-card[data-employee-id="${acknowledgedEmployee.employeeId}"]`,
         );
-        const viewBtn = card?.querySelector(".view-calendar-btn");
-        expect(viewBtn).toBeTruthy();
-        // Acknowledged cards should NOT have acknowledge button
-        const ackBtn = card?.querySelector(".acknowledge-btn");
-        expect(ackBtn).toBeFalsy();
+        expect(card).toBeFalsy();
       }
     });
 
@@ -1051,6 +1053,129 @@ describe("AdminMonthlyReview Component", () => {
 
       navLabel = component.shadowRoot?.querySelector(".nav-label");
       expect(navLabel?.textContent?.trim()).toBe("April 2026");
+    });
+  });
+
+  describe("Pending Filter and Dismiss Animation", () => {
+    it("should only render pending (non-acknowledged) cards", () => {
+      const testData = generateMonthlyData("2025-01");
+      // Ensure at least one is acknowledged
+      const hasAcknowledged = testData.some((emp) => emp.acknowledgedByAdmin);
+      const pendingCount = testData.filter(
+        (emp) => !emp.acknowledgedByAdmin,
+      ).length;
+
+      component.setEmployeeData(testData);
+
+      const cards =
+        component.shadowRoot?.querySelectorAll(".employee-card") || [];
+      // Only pending cards should be rendered
+      expect(cards.length).toBe(pendingCount);
+
+      // Verify no acknowledged status indicators are rendered
+      const acknowledgedIndicators = component.shadowRoot?.querySelectorAll(
+        ".status-indicator.acknowledged",
+      );
+      expect(acknowledgedIndicators?.length || 0).toBe(0);
+    });
+
+    it("should show empty state when all employees are acknowledged", () => {
+      const testData: AdminMonthlyReviewItem[] = [
+        {
+          employeeId: 1,
+          employeeName: "Test Employee",
+          month: "2025-01",
+          totalHours: 172,
+          ptoHours: 8,
+          sickHours: 0,
+          bereavementHours: 0,
+          juryDutyHours: 0,
+          acknowledgedByAdmin: true,
+          adminAcknowledgedAt: "2025-01-31T12:00:00Z",
+          adminAcknowledgedBy: "Admin User",
+        },
+      ];
+
+      component.setEmployeeData(testData);
+
+      const cards = component.shadowRoot?.querySelectorAll(".employee-card");
+      expect(cards?.length || 0).toBe(0);
+
+      const emptyState = component.shadowRoot?.querySelector(".empty-state");
+      expect(emptyState).toBeTruthy();
+      expect(emptyState?.textContent).toContain(
+        "All employees have been acknowledged",
+      );
+    });
+
+    it("should dispatch admin-acknowledge event after acknowledge button click", () => {
+      const testData: AdminMonthlyReviewItem[] = [
+        {
+          employeeId: 99,
+          employeeName: "Pending Employee",
+          month: "2025-01",
+          totalHours: 172,
+          ptoHours: 8,
+          sickHours: 0,
+          bereavementHours: 0,
+          juryDutyHours: 0,
+          acknowledgedByAdmin: false,
+          adminAcknowledgedAt: undefined,
+          adminAcknowledgedBy: undefined,
+        },
+      ];
+
+      component.setEmployeeData(testData);
+
+      let acknowledgeEvent: CustomEvent | null = null;
+      component.addEventListener("admin-acknowledge", (e: Event) => {
+        acknowledgeEvent = e as CustomEvent;
+      });
+
+      const ackBtn = component.shadowRoot?.querySelector(
+        ".acknowledge-btn",
+      ) as HTMLButtonElement;
+      expect(ackBtn).toBeTruthy();
+      ackBtn.click();
+
+      // Event dispatches synchronously (animation is triggered by parent after dialog confirm)
+      expect(acknowledgeEvent).toBeTruthy();
+      expect(acknowledgeEvent!.detail.employeeId).toBe(99);
+      expect(acknowledgeEvent!.detail.employeeName).toBe("Pending Employee");
+    });
+
+    it("should animate and resolve dismissCard() for a pending card", async () => {
+      const testData: AdminMonthlyReviewItem[] = [
+        {
+          employeeId: 42,
+          employeeName: "Animated Employee",
+          month: "2025-01",
+          totalHours: 172,
+          ptoHours: 0,
+          sickHours: 0,
+          bereavementHours: 0,
+          juryDutyHours: 0,
+          acknowledgedByAdmin: false,
+          adminAcknowledgedAt: undefined,
+          adminAcknowledgedBy: undefined,
+        },
+      ];
+
+      component.setEmployeeData(testData);
+
+      // Card should exist before dismiss
+      let card = component.shadowRoot?.querySelector(
+        '.employee-card[data-employee-id="42"]',
+      );
+      expect(card).toBeTruthy();
+
+      // dismissCard returns a promise that resolves after the animation
+      // (happy-dom has no CSS transitions, so the setTimeout fallback fires)
+      await component.dismissCard(42);
+
+      // Card is still in DOM (removal happens on data refresh), but animation completed
+      // The promise resolving confirms the animation handle worked
+      expect(true).toBe(true);
     });
   });
 });

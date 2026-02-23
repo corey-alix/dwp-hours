@@ -143,9 +143,18 @@ export class AdminMonthlyReviewPage
     dialog.confirmText = "Acknowledge";
     dialog.cancelText = "Cancel";
 
-    const handleConfirm = () => {
-      this.submitAcknowledgment(employeeId, month);
+    const handleConfirm = async () => {
       document.body.removeChild(dialog);
+
+      // Animate the card scaling down after the admin confirms
+      const adminComp = this.shadowRoot?.querySelector(
+        "admin-monthly-review",
+      ) as any;
+      if (adminComp?.dismissCard) {
+        await adminComp.dismissCard(employeeId);
+      }
+
+      this.submitAcknowledgment(employeeId, month);
     };
     const handleCancel = () => {
       document.body.removeChild(dialog);
