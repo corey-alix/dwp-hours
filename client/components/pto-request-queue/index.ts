@@ -61,22 +61,31 @@ export class PtoRequestQueue extends BaseComponent {
   }
 
   private renderRequestCard(request: PTORequest): string {
-    const startDate = formatDateForDisplay(request.startDate);
-    const endDate = formatDateForDisplay(request.endDate);
-    const createdDate = formatTimestampForDisplay(request.createdAt);
+    const startDate = formatDateForDisplay(request.startDate, {
+      dateStyle: "short",
+    });
+    const endDate = formatDateForDisplay(request.endDate, {
+      dateStyle: "short",
+    });
+    const createdDate = formatTimestampForDisplay(request.createdAt, {
+      dateStyle: "short",
+    });
 
     return `
       <div class="request-card" data-request-id="${request.id}">
         <slot name="balance-${request.id}"></slot>
+
         <div class="request-header">
-          <div class="employee-info">
-            <h3 class="employee-name">${request.employeeName}</h3>
-            <span class="request-type ${request.type.replace(" ", "-")}">${request.type}</span>
-          </div>
+          <span class="request-type ${request.type.replace(" ", "-")}">${request.type}</span>
           <span class="status-badge pending">Pending</span>
         </div>
 
         <div class="request-details">
+          <div class="detail-item">
+            <span class="detail-label">Name</span>
+            <span class="detail-value employee-name">${request.employeeName}</span>
+          </div>
+  
           <div class="detail-item">
             <span class="detail-label">Date Range</span>
             <div class="request-dates">

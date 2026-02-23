@@ -182,7 +182,9 @@ export class MonthSummary extends BaseComponent {
         : "";
 
     // Display: "available-scheduled" when balances set, otherwise just scheduled hours
-    const displayValue = hasBalance ? `${balance}-${hours}` : `${hours}`;
+    const displayValue = hasBalance
+      ? `${balance}-${hours}`
+      : `${hours.toFixed(0)}`;
 
     return `
       <div class="${itemClasses}" data-type="${config.deltaKey}"${ariaAttrs}>

@@ -218,11 +218,11 @@
   --color-info-light: var(--color-blue-900);
 
   /* Dark theme PTO colors - slightly adjusted for better contrast */
-  --color-pto-vacation: var(--color-blue-400);
-  --color-pto-sick: var(--color-red-400);
-  --color-pto-bereavement: var(--color-purple-400);
-  --color-pto-jury-duty: var(--color-green-400);
-  --color-pto-holiday: var(--color-orange-400);
+  --color-pto-vacation: var(--color-blue-700);
+  --color-pto-sick: var(--color-orange-700);
+  --color-pto-bereavement: var(--color-purple-700);
+  --color-pto-jury-duty: var(--color-green-700);
+  --color-pto-holiday: var(--color-orange-700);
 
   /* Dark theme additional colors */
   --color-disabled: var(--color-gray-500);
