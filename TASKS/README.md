@@ -4,6 +4,7 @@
 
 - admin-monthly-review-design-improvements.md
 - admin-review-acknowledge-animation.md
+- current-year-summary-design-improvements.md
 - Email Magic Link.md
 - employee-month-acknowledgement-prompt.md
 - markdown-rendering.md

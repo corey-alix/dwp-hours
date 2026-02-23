@@ -85,6 +85,17 @@ Calendar day cells use `aspect-ratio: 1` and `min-width: 3ch` which can produce 
 - Animations must respect `prefers-reduced-motion`
 - Use `scripts/review-screenshot.mjs` (modified for this page) to capture screenshots for visual verification
 
+## Implementation Learnings
+
+1. **`position: fixed` not `sticky` for bottom toolbar** — `sticky` doesn't work for bottom-of-viewport anchoring inside a shadow root because the containing block is the `:host` element, not the viewport. `position: fixed` is the correct approach. Requires matching `padding-bottom` on `:host` (72px) to prevent content from being hidden behind the toolbar.
+2. **Shared toolbar CSS coexists with page-level overrides** — The `adoptToolbar()` constructable stylesheet provides base flex layout (`.toolbar { display: flex; justify-content: space-around }`). Page-level `<style>` rules in `css.ts` override positioning (`position: fixed; bottom: 0`) without conflicting, because the constructable sheet has lower specificity than `<style>` in the shadow root.
+3. **Lock state visual feedback uses class on `pto-entry-form` host** — Adding `.locked` to the `<pto-entry-form>` element and styling it from the parent's shadow CSS (`pto-entry-form.locked { opacity: 0.5; pointer-events: none }`) works because parent CSS can style the outer element of a child web component. Cannot reach into child shadow DOM internals.
+4. **`hide-header` is NOT set in multi-calendar mode** — Only `hide-legend="true"` is passed to `<pto-calendar>` instances. The calendar header (month name) is already visible. This was incorrectly assumed during the initial design review and the stage was removed.
+5. **Day cell min-size change is global** — Changing `.day { min-width: max(3ch, 32px); min-height: 32px }` in `pto-calendar/css.ts` affects ALL consumers (admin monthly review cards, submit-time-off, etc.). This is intentional — touch targets should be consistent everywhere.
+6. **Balance heading added as sibling div, not inside `<month-summary>`** — The "Available Balance" label was added as a `<div class="balance-heading">` above `<month-summary>` in the page template, rather than modifying the `month-summary` component. This keeps `month-summary` generic and reusable across contexts (admin review, per-month card summaries, etc.).
+7. **Playwright screenshot script must run from project root** — The script imports `playwright` which is installed as a devDependency. Running from `/tmp/` fails with `ERR_MODULE_NOT_FOUND`. Copy into project root or use `scripts/` directory.
+8. **Employee vs Admin auth for page capture** — `/submit-time-off` requires employee login (`john.doe@example.com`). Admin pages use `admin@example.com`. The magic link endpoint is `POST /api/auth/request-link` with `{ identifier }` body.
+
 ## Questions and Concerns
 
 1. Should the toolbar be sticky at the bottom of the viewport, or sticky below the balance summary bar at the top?
