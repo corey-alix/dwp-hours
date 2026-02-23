@@ -498,4 +498,298 @@ describe("AdminMonthlyReview Component", () => {
       expect(calendars?.length).toBe(0);
     });
   });
+
+  describe("Inline Calendar Month Navigation", () => {
+    it("should render navigation arrows when calendar is expanded", () => {
+      const testData = generateMonthlyData("2026-02");
+      component.setPtoEntries(
+        seedPTOEntries.map((e: SeedPtoEntry) => ({
+          employee_id: e.employee_id,
+          type: e.type,
+          hours: e.hours,
+          date: e.date,
+          approved_by: e.approved_by ?? null,
+        })),
+      );
+      component.setEmployeeData(testData);
+
+      // Expand calendar for first employee
+      const firstBtn = component.shadowRoot?.querySelector(
+        ".view-calendar-btn",
+      ) as HTMLElement;
+      firstBtn.click();
+
+      // Should have nav header with prev/next buttons
+      const navHeader = component.shadowRoot?.querySelector(".nav-header");
+      expect(navHeader).toBeTruthy();
+
+      const prevBtn = component.shadowRoot?.querySelector(".cal-nav-prev");
+      const nextBtn = component.shadowRoot?.querySelector(".cal-nav-next");
+      expect(prevBtn).toBeTruthy();
+      expect(nextBtn).toBeTruthy();
+    });
+
+    it("should display the month name above the calendar", () => {
+      const testData = generateMonthlyData("2026-02");
+      component.setPtoEntries(
+        seedPTOEntries.map((e: SeedPtoEntry) => ({
+          employee_id: e.employee_id,
+          type: e.type,
+          hours: e.hours,
+          date: e.date,
+          approved_by: e.approved_by ?? null,
+        })),
+      );
+      component.setEmployeeData(testData);
+
+      // Expand calendar
+      const firstBtn = component.shadowRoot?.querySelector(
+        ".view-calendar-btn",
+      ) as HTMLElement;
+      firstBtn.click();
+
+      const navLabel = component.shadowRoot?.querySelector(".nav-label");
+      expect(navLabel?.textContent?.trim()).toBe("February 2026");
+    });
+
+    it("should navigate to next month when next arrow is clicked", () => {
+      const testData = generateMonthlyData("2026-02");
+      component.setPtoEntries(
+        seedPTOEntries.map((e: SeedPtoEntry) => ({
+          employee_id: e.employee_id,
+          type: e.type,
+          hours: e.hours,
+          date: e.date,
+          approved_by: e.approved_by ?? null,
+        })),
+      );
+      component.setEmployeeData(testData);
+
+      // Expand calendar
+      const firstBtn = component.shadowRoot?.querySelector(
+        ".view-calendar-btn",
+      ) as HTMLElement;
+      firstBtn.click();
+
+      // Click next month
+      const nextBtn = component.shadowRoot?.querySelector(
+        ".cal-nav-next",
+      ) as HTMLElement;
+      nextBtn.click();
+
+      const navLabel = component.shadowRoot?.querySelector(".nav-label");
+      expect(navLabel?.textContent?.trim()).toBe("March 2026");
+
+      // Calendar should have updated month attribute
+      const calendar = component.shadowRoot?.querySelector("pto-calendar");
+      expect(calendar?.getAttribute("month")).toBe("3");
+      expect(calendar?.getAttribute("year")).toBe("2026");
+    });
+
+    it("should navigate to previous month when prev arrow is clicked", () => {
+      const testData = generateMonthlyData("2026-02");
+      component.setPtoEntries(
+        seedPTOEntries.map((e: SeedPtoEntry) => ({
+          employee_id: e.employee_id,
+          type: e.type,
+          hours: e.hours,
+          date: e.date,
+          approved_by: e.approved_by ?? null,
+        })),
+      );
+      component.setEmployeeData(testData);
+
+      // Expand calendar
+      const firstBtn = component.shadowRoot?.querySelector(
+        ".view-calendar-btn",
+      ) as HTMLElement;
+      firstBtn.click();
+
+      // Click prev month
+      const prevBtn = component.shadowRoot?.querySelector(
+        ".cal-nav-prev",
+      ) as HTMLElement;
+      prevBtn.click();
+
+      const navLabel = component.shadowRoot?.querySelector(".nav-label");
+      expect(navLabel?.textContent?.trim()).toBe("January 2026");
+
+      const calendar = component.shadowRoot?.querySelector("pto-calendar");
+      expect(calendar?.getAttribute("month")).toBe("1");
+      expect(calendar?.getAttribute("year")).toBe("2026");
+    });
+
+    it("should reset to review month when calendar is hidden and re-opened", () => {
+      const testData = generateMonthlyData("2026-02");
+      component.setPtoEntries(
+        seedPTOEntries.map((e: SeedPtoEntry) => ({
+          employee_id: e.employee_id,
+          type: e.type,
+          hours: e.hours,
+          date: e.date,
+          approved_by: e.approved_by ?? null,
+        })),
+      );
+      component.setEmployeeData(testData);
+
+      // Expand calendar
+      const firstBtn = component.shadowRoot?.querySelector(
+        ".view-calendar-btn",
+      ) as HTMLElement;
+      firstBtn.click();
+
+      // Navigate to a different month
+      let nextBtn = component.shadowRoot?.querySelector(
+        ".cal-nav-next",
+      ) as HTMLElement;
+      nextBtn.click();
+      // Re-query after re-render
+      nextBtn = component.shadowRoot?.querySelector(
+        ".cal-nav-next",
+      ) as HTMLElement;
+      nextBtn.click(); // Now at April 2026
+
+      let navLabel = component.shadowRoot?.querySelector(".nav-label");
+      expect(navLabel?.textContent?.trim()).toBe("April 2026");
+
+      // Collapse
+      const hideBtn = component.shadowRoot?.querySelector(
+        ".view-calendar-btn",
+      ) as HTMLElement;
+      hideBtn.click();
+
+      // Re-open — should reset to review month (February 2026)
+      const viewBtn = component.shadowRoot?.querySelector(
+        ".view-calendar-btn",
+      ) as HTMLElement;
+      viewBtn.click();
+
+      navLabel = component.shadowRoot?.querySelector(".nav-label");
+      expect(navLabel?.textContent?.trim()).toBe("February 2026");
+
+      const calendar = component.shadowRoot?.querySelector("pto-calendar");
+      expect(calendar?.getAttribute("month")).toBe("2");
+      expect(calendar?.getAttribute("year")).toBe("2026");
+    });
+
+    it("should dispatch calendar-month-data-request event for non-review months", () => {
+      const testData = generateMonthlyData("2026-02");
+      component.setPtoEntries(
+        seedPTOEntries.map((e: SeedPtoEntry) => ({
+          employee_id: e.employee_id,
+          type: e.type,
+          hours: e.hours,
+          date: e.date,
+          approved_by: e.approved_by ?? null,
+        })),
+      );
+      component.setEmployeeData(testData);
+
+      // Expand calendar
+      const firstBtn = component.shadowRoot?.querySelector(
+        ".view-calendar-btn",
+      ) as HTMLElement;
+      firstBtn.click();
+
+      // Listen for the event
+      let receivedDetail: any = null;
+      component.addEventListener("calendar-month-data-request", ((
+        e: CustomEvent,
+      ) => {
+        receivedDetail = e.detail;
+      }) as EventListener);
+
+      // Navigate to next month (should trigger data request)
+      const nextBtn = component.shadowRoot?.querySelector(
+        ".cal-nav-next",
+      ) as HTMLElement;
+      nextBtn.click();
+
+      expect(receivedDetail).toBeTruthy();
+      expect(receivedDetail.month).toBe("2026-03");
+    });
+
+    it("should not dispatch data request when navigating back to review month", () => {
+      const testData = generateMonthlyData("2026-02");
+      component.setPtoEntries(
+        seedPTOEntries.map((e: SeedPtoEntry) => ({
+          employee_id: e.employee_id,
+          type: e.type,
+          hours: e.hours,
+          date: e.date,
+          approved_by: e.approved_by ?? null,
+        })),
+      );
+      component.setEmployeeData(testData);
+
+      // Expand calendar
+      const firstBtn = component.shadowRoot?.querySelector(
+        ".view-calendar-btn",
+      ) as HTMLElement;
+      firstBtn.click();
+
+      // Navigate forward then back
+      const nextBtn = component.shadowRoot?.querySelector(
+        ".cal-nav-next",
+      ) as HTMLElement;
+      nextBtn.click();
+
+      let requestCount = 0;
+      component.addEventListener("calendar-month-data-request", () => {
+        requestCount++;
+      });
+
+      // Navigate back to review month — should NOT dispatch
+      const prevBtn = component.shadowRoot?.querySelector(
+        ".cal-nav-prev",
+      ) as HTMLElement;
+      prevBtn.click();
+
+      expect(requestCount).toBe(0);
+    });
+
+    it("should use cached data when navigating to a previously fetched month", () => {
+      const testData = generateMonthlyData("2026-02");
+      component.setPtoEntries(
+        seedPTOEntries.map((e: SeedPtoEntry) => ({
+          employee_id: e.employee_id,
+          type: e.type,
+          hours: e.hours,
+          date: e.date,
+          approved_by: e.approved_by ?? null,
+        })),
+      );
+      component.setEmployeeData(testData);
+
+      // Expand calendar
+      const firstBtn = component.shadowRoot?.querySelector(
+        ".view-calendar-btn",
+      ) as HTMLElement;
+      firstBtn.click();
+
+      // Inject cached data for March
+      component.setMonthPtoEntries("2026-03", [
+        {
+          employee_id: 1,
+          type: "PTO",
+          hours: 8,
+          date: "2026-03-10",
+          approved_by: 3,
+        },
+      ]);
+
+      let requestCount = 0;
+      component.addEventListener("calendar-month-data-request", () => {
+        requestCount++;
+      });
+
+      // Navigate to March — should NOT dispatch (data already cached)
+      const nextBtn = component.shadowRoot?.querySelector(
+        ".cal-nav-next",
+      ) as HTMLElement;
+      nextBtn.click();
+
+      expect(requestCount).toBe(0);
+    });
+  });
 });

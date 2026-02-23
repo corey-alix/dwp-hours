@@ -1850,10 +1850,15 @@ initDatabase()
             whereCondition.type = type;
           }
 
-          if (startDate || endDate) {
-            whereCondition.date = {};
-            if (startDate) whereCondition.date.$gte = startDate as string;
-            if (endDate) whereCondition.date.$lte = endDate as string;
+          if (startDate && endDate) {
+            whereCondition.date = Between(
+              startDate as string,
+              endDate as string,
+            );
+          } else if (startDate) {
+            whereCondition.date = Between(startDate as string, "9999-12-31");
+          } else if (endDate) {
+            whereCondition.date = Between("0000-01-01", endDate as string);
           }
 
           const ptoEntries = await ptoEntryRepo.find({
@@ -1893,10 +1898,15 @@ initDatabase()
             whereCondition.type = type;
           }
 
-          if (startDate || endDate) {
-            whereCondition.date = {};
-            if (startDate) whereCondition.date.$gte = startDate as string;
-            if (endDate) whereCondition.date.$lte = endDate as string;
+          if (startDate && endDate) {
+            whereCondition.date = Between(
+              startDate as string,
+              endDate as string,
+            );
+          } else if (startDate) {
+            whereCondition.date = Between(startDate as string, "9999-12-31");
+          } else if (endDate) {
+            whereCondition.date = Between("0000-01-01", endDate as string);
           }
 
           const ptoEntries = await ptoEntryRepo.find({

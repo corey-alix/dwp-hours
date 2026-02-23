@@ -81,6 +81,39 @@ This feature enhances the admin panel's usability by giving administrators immed
 - `client/pages/admin-monthly-review-page/index.ts` — both normalization points now include `approved_by`
 - `tests/components/admin-monthly-review.test.ts` — all `setPtoEntries` calls include `approved_by`
 
+### ~~2. Add month navigation to inline calendar~~ ✅ RESOLVED
+
+**Feature**: Allow administrators to navigate to prior and next months within the inline `<pto-calendar>`, enabling review of an employee's schedule across multiple months without closing the calendar or changing the top-level month selector.
+
+**Current behavior**: The inline calendar is locked to the month selected in the review page's month picker. To view a different month, the admin must change the global month selector, which collapses all expanded calendars and reloads all employee data.
+
+**Desired behavior**: Each inline calendar should include previous/next month navigation buttons, allowing per-card month browsing. The month name should appear above the calendar. The `<pto-calendar>` component already has a `hide-header` attribute — setting it to `false` (or omitting it) would restore the built-in month/year header with navigation. The inline calendar's month should be independent of the page-level `selectedMonth`.
+
+**Data fetching**: A separate API call must be made to retrieve PTO entries when navigating to a month outside the currently loaded data. Do not rely on the existing `_ptoEntries` array for other months — fetch on demand.
+
+**Navigation icons**: The navigation arrows (e.g., `←` / `→` as used in `pto-entry-form`) must **not** be hard-coded into the component. Define them as shared resources — either as new utilities in `client/css-extensions/` (e.g., a `navigation/` module exporting arrow symbols or CSS classes) or as constants in `client/shared/atomic-css.ts`. Components should import from the shared source for consistency.
+
+**Considerations**:
+
+- The calendar must always open to the month under review (the page-level `selectedMonth`). When the admin hides and re-opens the calendar, it must reset to the review month — any previously navigated month state is discarded on collapse
+- Per-card calendar month state needs to be tracked (e.g., a `Map<number, string>` mapping employee ID to currently viewed month). Previously fetched data for other months may be cached, but the displayed month must always reset to the review month when the calendar is re-opened
+- Re-injecting filtered PTO data must account for the per-card navigated month, not just the page-level `selectedMonth`
+- The `<pto-calendar>` component's `hide-header` attribute controls header visibility — consider removing it for inline calendars to expose built-in navigation
+
+**Fix applied**: Created shared navigation module (`css-extensions/navigation/`) with `NAV_SYMBOLS` constants and CSS classes. Added per-card month tracking via `_calendarMonths` map, event-driven data fetching via `calendar-month-data-request` event, response caching in `_monthPtoCache`, and month reset on calendar re-open. Parent page handles the event by calling `GET /api/admin/pto?startDate=...&endDate=...` and injecting results via `setMonthPtoEntries()`.
+
+**Files created**:
+
+- `client/css-extensions/navigation/navigation.ts` — shared `NAV_SYMBOLS` and `navigationCSS`
+- `client/css-extensions/navigation/index.ts` — constructable stylesheet singleton and `adoptNavigation()` helper
+
+**Files changed**:
+
+- `client/css-extensions/index.ts` — added navigation exports
+- `client/components/admin-monthly-review/index.ts` — month nav UI, per-card state, data fetching events, cache
+- `client/pages/admin-monthly-review-page/index.ts` — `calendar-month-data-request` event handler
+- `tests/components/admin-monthly-review.test.ts` — 8 new tests for month navigation (29 total)
+
 ## Questions and Concerns
 
 1.

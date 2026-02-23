@@ -30,3 +30,10 @@ export type { AnimationHandle } from "./animations/index.js";
 
 // ── Toolbar ──
 export { getToolbarSheet, adoptToolbar } from "./toolbar/index.js";
+
+// ── Navigation ──
+export {
+  getNavigationSheet,
+  adoptNavigation,
+  NAV_SYMBOLS,
+} from "./navigation/index.js";

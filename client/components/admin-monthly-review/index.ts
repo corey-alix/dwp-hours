@@ -11,14 +11,16 @@ import {
 import {
   getCurrentMonth,
   formatDateForDisplay,
+  addMonths,
 } from "../../../shared/dateUtils.js";
 // Side-effect import: ensure <month-summary> custom element is registered
 import "../month-summary/index.js";
 import type { MonthSummary } from "../month-summary/index.js";
 // Side-effect import: ensure <pto-calendar> custom element is registered
 import "../pto-calendar/index.js";
-import type { PtoCalendar } from "../pto-calendar/index.js";
+import { monthNames, type PtoCalendar } from "../pto-calendar/index.js";
 import { adoptToolbar } from "../../css-extensions/index.js";
+import { adoptNavigation, NAV_SYMBOLS } from "../../css-extensions/index.js";
 
 // Admin Monthly Review Component Architecture:
 // This component implements the event-driven data flow pattern:
@@ -42,6 +44,19 @@ export class AdminMonthlyReview extends BaseComponent {
   }> = [];
   /** Track which employee IDs have their inline calendar expanded */
   private _expandedCalendars: Set<number> = new Set();
+  /** Per-card navigated month (employee ID → YYYY-MM). Reset on collapse. */
+  private _calendarMonths: Map<number, string> = new Map();
+  /** Cache of PTO entries fetched for non-review months, keyed by YYYY-MM */
+  private _monthPtoCache: Map<
+    string,
+    Array<{
+      employee_id: number;
+      type: PTOType;
+      hours: number;
+      date: string;
+      approved_by?: number | null;
+    }>
+  > = new Map();
 
   static get observedAttributes() {
     return ["selected-month"];
@@ -50,6 +65,7 @@ export class AdminMonthlyReview extends BaseComponent {
   connectedCallback() {
     super.connectedCallback();
     adoptToolbar(this.shadowRoot);
+    adoptNavigation(this.shadowRoot);
     this.requestEmployeeData();
   }
 
@@ -61,8 +77,9 @@ export class AdminMonthlyReview extends BaseComponent {
     if (oldValue === newValue) return;
     if (name === "selected-month" && newValue) {
       this._selectedMonth = newValue;
-      // Collapse all calendars when month changes
+      // Collapse all calendars and clear navigated months when month changes
       this._expandedCalendars.clear();
+      this._calendarMonths.clear();
       this.requestEmployeeData();
       this.requestUpdate();
     }
@@ -133,6 +150,21 @@ export class AdminMonthlyReview extends BaseComponent {
     }>,
   ): void {
     this._ptoEntries = data;
+    this.requestUpdate();
+  }
+
+  /** Inject PTO entries for a specific month (used for non-review month fetches). */
+  setMonthPtoEntries(
+    month: string,
+    data: Array<{
+      employee_id: number;
+      type: PTOType;
+      hours: number;
+      date: string;
+      approved_by?: number | null;
+    }>,
+  ): void {
+    this._monthPtoCache.set(month, data);
     this.requestUpdate();
   }
 
@@ -269,7 +301,14 @@ export class AdminMonthlyReview extends BaseComponent {
       .forEach((cal) => {
         const empId = parseInt(cal.dataset.employeeId || "0");
         if (!empId) return;
-        const empEntries = this._ptoEntries
+        // Determine which month this calendar is showing
+        const calMonth = this._calendarMonths.get(empId) || this._selectedMonth;
+        // Get entries for the displayed month — use cache for non-review months
+        const sourceEntries =
+          calMonth === this._selectedMonth
+            ? this._ptoEntries
+            : this._monthPtoCache.get(calMonth) || [];
+        const empEntries = sourceEntries
           .filter((e) => e.employee_id === empId)
           .map((e, idx) => ({
             id: idx + 1,
@@ -323,8 +362,9 @@ export class AdminMonthlyReview extends BaseComponent {
     ) as HTMLInputElement;
     if (monthInput) {
       this._selectedMonth = monthInput.value;
-      // Collapse all calendars when month changes
+      // Collapse all calendars and clear navigated months when month changes
       this._expandedCalendars.clear();
+      this._calendarMonths.clear();
       this.requestEmployeeData();
       return;
     }
@@ -350,15 +390,60 @@ export class AdminMonthlyReview extends BaseComponent {
       }
       return;
     }
+
+    // Handle calendar month navigation arrows
+    if (
+      target.classList.contains("cal-nav-prev") ||
+      target.classList.contains("cal-nav-next")
+    ) {
+      const employeeId = parseInt(
+        target.getAttribute("data-employee-id") || "0",
+      );
+      if (employeeId) {
+        const direction = target.classList.contains("cal-nav-prev") ? -1 : 1;
+        this.navigateCalendarMonth(employeeId, direction);
+      }
+      return;
+    }
   }
 
-  /** Toggle the inline calendar for a given employee card. */
+  /** Toggle the inline calendar for a given employee card.
+   *  Always resets to the review month when re-opening. */
   private toggleCalendar(employeeId: number): void {
     if (this._expandedCalendars.has(employeeId)) {
       this._expandedCalendars.delete(employeeId);
     } else {
+      // Reset displayed month to the review month on every open
+      this._calendarMonths.set(employeeId, this._selectedMonth);
       this._expandedCalendars.add(employeeId);
     }
+    this.requestUpdate();
+  }
+
+  /** Navigate the inline calendar for an employee to a different month.
+   *  Dispatches an event so the parent can fetch data if needed. */
+  private navigateCalendarMonth(employeeId: number, direction: -1 | 1): void {
+    const currentMonth =
+      this._calendarMonths.get(employeeId) || this._selectedMonth;
+    // addMonths expects a full date string; use first day of month
+    const newMonthDate = addMonths(`${currentMonth}-01`, direction);
+    const newMonth = newMonthDate.slice(0, 7); // YYYY-MM
+    this._calendarMonths.set(employeeId, newMonth);
+
+    // If we don't have cached data for this month, request it
+    if (
+      newMonth !== this._selectedMonth &&
+      !this._monthPtoCache.has(newMonth)
+    ) {
+      this.dispatchEvent(
+        new CustomEvent("calendar-month-data-request", {
+          bubbles: true,
+          composed: true,
+          detail: { month: newMonth, employeeId },
+        }),
+      );
+    }
+
     this.requestUpdate();
   }
 
@@ -390,10 +475,13 @@ export class AdminMonthlyReview extends BaseComponent {
   private renderEmployeeCard(employee: AdminMonthlyReviewItem): string {
     const isAcknowledged = employee.acknowledgedByAdmin;
     const isCalendarExpanded = this._expandedCalendars.has(employee.employeeId);
-    // Parse month/year from selectedMonth (YYYY-MM)
-    const [yearStr, monthStr] = this._selectedMonth.split("-");
+    // Use per-card navigated month if set, otherwise fall back to review month
+    const displayMonth =
+      this._calendarMonths.get(employee.employeeId) || this._selectedMonth;
+    const [yearStr, monthStr] = displayMonth.split("-");
     const calMonth = parseInt(monthStr, 10);
     const calYear = parseInt(yearStr, 10);
+    const monthLabel = `${monthNames[calMonth - 1]} ${calYear}`;
 
     return `
       <div class="employee-card" data-employee-id="${employee.employeeId}">
@@ -440,6 +528,11 @@ export class AdminMonthlyReview extends BaseComponent {
         ${
           isCalendarExpanded
             ? `<div class="inline-calendar-container">
+              <div class="nav-header">
+                <button class="nav-arrow cal-nav-prev" data-employee-id="${employee.employeeId}" aria-label="Previous month">${NAV_SYMBOLS.PREV}</button>
+                <span class="nav-label">${monthLabel}</span>
+                <button class="nav-arrow cal-nav-next" data-employee-id="${employee.employeeId}" aria-label="Next month">${NAV_SYMBOLS.NEXT}</button>
+              </div>
               <pto-calendar
                 month="${calMonth}"
                 year="${calYear}"

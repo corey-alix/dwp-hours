@@ -90,6 +90,47 @@ export class AdminMonthlyReviewPage
         })().catch((err) => console.error(err));
       },
     );
+
+    // Handle calendar month navigation data requests from inline calendars
+    this.shadowRoot.addEventListener(
+      "calendar-month-data-request",
+      (evt: Event) => {
+        const e = evt as CustomEvent;
+        e.stopPropagation();
+        (async () => {
+          const month: string = e.detail?.month;
+          if (!month) return;
+          try {
+            // Fetch PTO entries scoped to the requested month
+            const startDate = `${month}-01`;
+            // Compute end of month: parse year/month, get last day
+            const [y, m] = month.split("-").map(Number);
+            const lastDay = new Date(y, m, 0).getDate();
+            const endDate = `${month}-${String(lastDay).padStart(2, "0")}`;
+
+            const ptoEntries = await this.api.get(
+              `/admin/pto?startDate=${startDate}&endDate=${endDate}`,
+            );
+
+            const adminComp = this.shadowRoot?.querySelector(
+              "admin-monthly-review",
+            ) as any;
+            if (!adminComp) return;
+
+            const normalized = (ptoEntries || []).map((p: any) => ({
+              employee_id: p.employeeId,
+              type: p.type,
+              hours: p.hours,
+              date: p.date,
+              approved_by: p.approved_by ?? null,
+            }));
+            adminComp.setMonthPtoEntries(month, normalized);
+          } catch (error: any) {
+            console.error(`Failed to load PTO data for month ${month}:`, error);
+          }
+        })().catch((err) => console.error(err));
+      },
+    );
   }
 
   private handleAdminAcknowledgeReview(
