@@ -1,13 +1,13 @@
 // @vitest-environment happy-dom
 
 import { describe, it, expect, beforeEach } from "vitest";
-import { animationCSS } from "../client/animations/animations.js";
+import { animationCSS } from "../client/css-extensions/animations/animations.js";
 import {
   getAnimationSheet,
   adoptAnimations,
   animateSlide,
   animateCarousel,
-} from "../client/animations/index.js";
+} from "../client/css-extensions/index.js";
 
 // ── animationCSS snapshot ──
 

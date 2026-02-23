@@ -454,6 +454,60 @@ export class MyComponent extends BaseComponent {
 }
 ```
 
+## CSS Extensions
+
+The project provides shared CSS extension libraries in `client/css-extensions/`. Each extension delivers a constructable stylesheet singleton and an `adopt*()` helper that safely adds it to a shadow root's `adoptedStyleSheets`. Import from the facade for convenience:
+
+```typescript
+import { adoptAnimations, adoptToolbar } from "../../css-extensions/index.js";
+```
+
+Or import from individual sub-modules for tree-shaking:
+
+```typescript
+import { adoptAnimations } from "../../css-extensions/animations/index.js";
+import { adoptToolbar } from "../../css-extensions/toolbar/index.js";
+```
+
+### Available Extensions
+
+| Extension      | Adopt Helper            | CSS Classes / Features                                                                                                                    |
+| -------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **Animations** | `adoptAnimations(root)` | `.anim-fade-in`, `.anim-slide-in-right`, `.anim-slide-out-left`, `.anim-pop`, etc. Plus JS helpers: `animateSlide()`, `animateCarousel()` |
+| **Toolbar**    | `adoptToolbar(root)`    | `.toolbar` — flex layout with `justify-content: space-around` for evenly distributed action buttons                                       |
+
+### Usage in Components
+
+Adopt extensions in `connectedCallback()` so the constructable stylesheet is added to the shadow root once:
+
+```typescript
+import { adoptAnimations, adoptToolbar } from "../../css-extensions/index.js";
+
+export class MyComponent extends BaseComponent {
+  connectedCallback() {
+    super.connectedCallback();
+    adoptAnimations(this.shadowRoot);
+    adoptToolbar(this.shadowRoot);
+  }
+
+  protected render(): string {
+    return `
+      <div class="toolbar">
+        <button>Action A</button>
+        <button>Action B</button>
+      </div>
+    `;
+  }
+}
+```
+
+### Adding New Extensions
+
+1. Create a new folder under `client/css-extensions/<name>/`
+2. Add `<name>.ts` with the CSS source string (use `var()` tokens, no hardcoded values)
+3. Add `index.ts` with a constructable stylesheet singleton and `adopt<Name>()` helper
+4. Re-export from `client/css-extensions/index.ts`
+
 ## CSS Organization and Responsive Design
 
 ### CSS Structure Pattern

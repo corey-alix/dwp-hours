@@ -21,7 +21,7 @@ import {
   adoptAnimations,
   animateCarousel,
   type AnimationHandle,
-} from "../../animations/index.js";
+} from "../../css-extensions/index.js";
 
 interface PtoRequest {
   startDate: string;

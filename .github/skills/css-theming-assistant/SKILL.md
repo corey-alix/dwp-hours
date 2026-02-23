@@ -143,6 +143,41 @@ The system uses Stylelint with custom rules:
 - Ignores `client/tokens.css` (where base colors are defined)
 - Extends standard Stylelint config for additional consistency
 
+## CSS Extensions System
+
+The project provides reusable CSS extension libraries in `client/css-extensions/`. These extensions use constructable stylesheets (shared singletons) adopted into shadow roots, keeping styles modular and consistent with the design token system.
+
+### Architecture
+
+```
+client/css-extensions/
+├── index.ts              # Facade — re-exports all extensions
+├── animations/           # Keyframes, utility classes, JS animation helpers
+│   ├── animations.ts     # CSS source (keyframes + utility classes)
+│   ├── index.ts          # Constructable stylesheet + adoptAnimations()
+│   └── types.ts          # AnimationHandle interface
+└── toolbar/              # Toolbar layout utility
+    ├── toolbar.ts        # CSS source (.toolbar class)
+    └── index.ts          # Constructable stylesheet + adoptToolbar()
+```
+
+### Token Integration
+
+All CSS extensions reference tokens from `tokens.css` via `var()` — no hardcoded values. This ensures extensions respect both light and dark themes automatically:
+
+- Animation durations: `var(--duration-normal)`, `var(--duration-fast)`
+- Animation easings: `var(--easing-standard)`, `var(--easing-decelerate)`
+- Toolbar spacing: `var(--space-sm)`, `var(--space-md)`
+
+### Adding New Extensions
+
+When creating a new CSS extension:
+
+1. Create `client/css-extensions/<name>/<name>.ts` with a CSS source string using `var()` tokens
+2. Create `client/css-extensions/<name>/index.ts` with a constructable stylesheet singleton and `adopt<Name>()` helper
+3. Re-export from `client/css-extensions/index.ts`
+4. Include `@media (prefers-reduced-motion: reduce)` overrides for any animations or transitions
+
 ## Component Implementation
 
 Components should:

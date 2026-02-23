@@ -8,6 +8,7 @@ import {
   type PTOType,
 } from "../../../shared/businessRules.js";
 import type { MonthSummary } from "../../components/month-summary/index.js";
+import { adoptToolbar } from "../../css-extensions/index.js";
 import { styles } from "./css.js";
 
 /**
@@ -26,6 +27,11 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
   }> = [];
   private _showForm = false;
   private _editEmployee: any = null;
+
+  connectedCallback() {
+    super.connectedCallback();
+    adoptToolbar(this.shadowRoot);
+  }
 
   async onRouteEnter(
     _params: Record<string, string>,
@@ -68,9 +74,6 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
     return `
       ${styles}
       <p class="capitalize">Review and Modify Employee PTO Rates and Carry Over hours</p>
-      <div class="actions">
-        <button class="add-btn" data-action="add-employee">${buttonLabel}</button>
-      </div>
       ${this._showForm ? "<employee-form></employee-form>" : ""}
       <employee-list>
         ${this._employees
@@ -87,6 +90,9 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
           )
           .join("")}
       </employee-list>
+      <div class="toolbar">
+        <button class="add-btn" data-action="add-employee">${buttonLabel}</button>
+      </div>
     `;
   }
 

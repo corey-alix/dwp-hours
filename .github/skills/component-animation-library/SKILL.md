@@ -171,8 +171,11 @@ export interface AnimationHandle {
 #### Usage in Web Components
 
 ```typescript
-import { adoptAnimations, animateCarousel } from "../../animations/index.js";
-import type { AnimationHandle } from "../../animations/index.js";
+import {
+  adoptAnimations,
+  animateCarousel,
+} from "../../css-extensions/index.js";
+import type { AnimationHandle } from "../../css-extensions/index.js";
 
 export class PtoEntryForm extends BaseComponent {
   private currentAnimation: AnimationHandle | null = null;

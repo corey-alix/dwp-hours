@@ -4,7 +4,7 @@ import {
   adoptAnimations,
   animateSlide,
   type AnimationHandle,
-} from "../../animations/index.js";
+} from "../../css-extensions/index.js";
 
 type Page =
   | "current-year-summary"
