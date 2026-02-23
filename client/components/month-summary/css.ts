@@ -50,6 +50,13 @@ export const styles = `
     margin-left: var(--space-xs);
 }
 
+.summary-sub-label {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
 /* Interactive mode: clickable labels for PTO type selection */
 
 .summary-item.interactive {

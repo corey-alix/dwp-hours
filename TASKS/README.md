@@ -2,10 +2,12 @@
 
 ## NOT STARTED
 
+- admin-monthly-review-design-improvements.md
 - admin-review-acknowledge-animation.md
 - Email Magic Link.md
 - employee-month-acknowledgement-prompt.md
 - markdown-rendering.md
+- submit-time-off-design-improvements.md
 
 ## SOME WORK REMAINS
 

@@ -80,6 +80,7 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
     return `
       ${styles}
       <div id="lock-banner" class="lock-banner hidden"></div>
+      <div class="balance-heading">Available Balance</div>
       <month-summary id="form-balance-summary" interactive active-type="PTO"></month-summary>
       <pto-entry-form id="pto-entry-form"></pto-entry-form>
       <div class="toolbar">
@@ -374,6 +375,7 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
           banner.textContent = "";
           banner.classList.add("hidden");
         }
+        if (form) form.classList.remove("locked");
         if (cal) cal.setAttribute("readonly", "false");
         break;
 
@@ -392,6 +394,7 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
           banner.classList.add("banner-employee");
           banner.classList.remove("banner-admin");
         }
+        if (form) form.classList.add("locked");
         if (cal) cal.setAttribute("readonly", "true");
         break;
 
@@ -408,6 +411,7 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
           banner.classList.add("banner-admin");
           banner.classList.remove("banner-employee");
         }
+        if (form) form.classList.add("locked");
         if (cal) cal.setAttribute("readonly", "true");
         break;
       }

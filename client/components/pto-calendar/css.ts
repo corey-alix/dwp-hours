@@ -63,7 +63,8 @@ export const styles = `
     display: flex;
     flex-direction: column;
     justify-content: center;
-    min-width: 3ch;
+    min-width: max(3ch, 32px);
+    min-height: 32px;
 }
 
 .day.empty {

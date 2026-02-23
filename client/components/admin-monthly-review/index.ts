@@ -608,15 +608,25 @@ export class AdminMonthlyReview extends BaseComponent {
           <p>Loading employee data...</p>
         </div>
       `
-          : `
+          : (() => {
+              const pending = this._employeeData.filter(
+                (emp) => !emp.acknowledgedByAdmin,
+              );
+              const total = this._employeeData.length;
+              const acknowledged = total - pending.length;
+              const progressText =
+                total > 0
+                  ? `<div class="progress-bar">${acknowledged} of ${total} reviewed</div>`
+                  : "";
+              const allDone = pending.length === 0;
+              return `
+        ${progressText}
         <div class="employee-grid">
-          ${this._employeeData
-            .filter((emp) => !emp.acknowledgedByAdmin)
-            .map((employee) => this.renderEmployeeCard(employee))
-            .join("")}
+          ${pending.map((employee) => this.renderEmployeeCard(employee)).join("")}
         </div>
-        ${this._employeeData.every((emp) => emp.acknowledgedByAdmin) ? `<div class="empty-state"><p>All employees have been acknowledged for this month.</p></div>` : ""}
-      `
+        ${allDone ? `<div class="empty-state"><p>All employees have been acknowledged for this month.</p></div>` : ""}
+      `;
+            })()
       }
     `;
   }
@@ -631,14 +641,21 @@ export class AdminMonthlyReview extends BaseComponent {
     const calMonth = parseInt(monthStr, 10);
     const calYear = parseInt(yearStr, 10);
     const monthLabel = `${monthNames[calMonth - 1]} ${calYear}`;
+    const totalActivity =
+      employee.ptoHours +
+      employee.sickHours +
+      employee.bereavementHours +
+      employee.juryDutyHours;
+    const hasActivity = totalActivity > 0;
+    const activityClass = hasActivity ? "has-activity" : "no-activity";
 
     return `
-      <div class="employee-card" data-employee-id="${employee.employeeId}">
+      <div class="employee-card ${activityClass}" data-employee-id="${employee.employeeId}">
         <div class="employee-header">
           <h3 class="employee-name">${employee.employeeName}</h3>
-          <div class="acknowledgment-status">
-            <div class="status-indicator ${isAcknowledged ? "acknowledged" : "pending"}"></div>
-            <span>${isAcknowledged ? "Acknowledged" : "Pending"}</span>
+          <div class="activity-indicator">
+            <div class="activity-dot ${hasActivity ? "active" : "inactive"}"></div>
+            <span>${hasActivity ? `${totalActivity}h scheduled` : "No activity"}</span>
           </div>
         </div>
 
@@ -662,9 +679,6 @@ export class AdminMonthlyReview extends BaseComponent {
         }
 
         <div class="toolbar">
-          <button class="view-calendar-btn" data-employee-id="${employee.employeeId}">
-            ${isCalendarExpanded ? "Hide Calendar" : "View Calendar"}
-          </button>
           ${
             !isAcknowledged
               ? `<button class="acknowledge-btn" data-employee-id="${employee.employeeId}">
@@ -672,6 +686,9 @@ export class AdminMonthlyReview extends BaseComponent {
             </button>`
               : ""
           }
+          <button class="view-calendar-btn" data-employee-id="${employee.employeeId}">
+            ${isCalendarExpanded ? "Hide Calendar" : "View Calendar"}
+          </button>
         </div>
 
         ${

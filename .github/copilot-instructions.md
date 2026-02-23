@@ -52,6 +52,16 @@ If using tmux (terminal multiplexer), be aware that it can prevent the AI assist
 
 This approach prevents the disruptive pattern where server startup and test execution interfere with each other.
 
+### Design Review Tooling
+
+Use `scripts/review-screenshot.mjs` to capture screenshots and shadow DOM HTML from the running application via Playwright. The script logs in as `admin@example.com` via the magic-link API, navigates to `/admin/monthly-review`, saves a full-page screenshot to `/tmp/monthly-review.png`, and dumps the rendered shadow DOM HTML to `/tmp/monthly-review-shadow.html`. Run it from the project root:
+
+```bash
+node scripts/review-screenshot.mjs
+```
+
+The script reads the `PORT` environment variable (defaults to `3003`). The server must be running on that port before executing the script.
+
 ## Task Management System
 
 The project uses a structured task system in the `TASKS/` folder. Always reference and follow these guidelines:

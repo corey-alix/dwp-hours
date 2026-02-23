@@ -62,27 +62,6 @@ export const styles = `
     margin: 0;
   }
 
-  .acknowledgment-status {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-  }
-
-  .status-indicator {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-  }
-
-  .status-indicator.acknowledged {
-    background: var(--color-success);
-  }
-
-  .status-indicator.pending {
-    background: var(--color-warning);
-  }
-
   .acknowledge-btn {
     padding: 10px 16px;
     background: var(--color-primary);
@@ -122,9 +101,9 @@ export const styles = `
 
   .view-calendar-btn {
     padding: 10px 16px;
-    background: var(--color-secondary, #6c757d);
-    color: white;
-    border: none;
+    background: transparent;
+    color: var(--color-secondary, #6c757d);
+    border: 1px solid var(--color-secondary, #6c757d);
     border-radius: 6px;
     font-size: 14px;
     font-weight: 500;
@@ -133,7 +112,52 @@ export const styles = `
   }
 
   .view-calendar-btn:hover {
-    background: var(--color-secondary-hover, #5a6268);
+    background: var(--color-secondary, #6c757d);
+    color: white;
+  }
+
+  .toolbar {
+    display: flex;
+    gap: var(--space-sm, 8px);
+    margin-top: var(--space-md, 16px);
+    flex-wrap: wrap;
+  }
+
+  .employee-card.has-activity {
+    border-left: 3px solid var(--color-primary);
+  }
+
+  .employee-card.no-activity {
+    opacity: 0.7;
+  }
+
+  .activity-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+  }
+
+  .activity-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  .activity-dot.active {
+    background: var(--color-primary);
+  }
+
+  .activity-dot.inactive {
+    background: var(--color-text-secondary);
+    opacity: 0.4;
+  }
+
+  .progress-bar {
+    font-size: var(--font-size-sm, 14px);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--space-md, 16px);
+    text-align: center;
   }
 
   .inline-calendar-container {

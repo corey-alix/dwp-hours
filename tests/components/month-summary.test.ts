@@ -135,4 +135,101 @@ describe("MonthSummary Component", () => {
     );
     expect(ptoPending).toBeFalsy();
   });
+
+  describe("balance display formatting", () => {
+    it("should display remaining balance (available − scheduled) when balances are set", () => {
+      component.ptoHours = 8;
+      component.balances = { PTO: 40 };
+
+      const ptoValue = component.shadowRoot?.querySelector(
+        '[data-summary-type="pto"]',
+      );
+      // 40 - 8 = 32 remaining
+      expect(ptoValue?.textContent?.trim()).toBe("32");
+      expect(ptoValue?.classList.contains("balance-positive")).toBe(true);
+    });
+
+    it("should show 'avail' sub-label when balances are set", () => {
+      component.balances = { PTO: 40 };
+
+      const ptoItem = component.shadowRoot?.querySelector('[data-type="PTO"]');
+      const subLabel = ptoItem?.querySelector(".summary-sub-label");
+      expect(subLabel).toBeTruthy();
+      expect(subLabel?.textContent?.toLowerCase()).toContain("avail");
+    });
+
+    it("should not show 'avail' sub-label when no balances are set", () => {
+      component.ptoHours = 8;
+
+      const ptoItem = component.shadowRoot?.querySelector('[data-type="PTO"]');
+      const subLabel = ptoItem?.querySelector(".summary-sub-label");
+      expect(subLabel).toBeFalsy();
+    });
+
+    it("should display 0 correctly for zero balance and zero hours", () => {
+      component.balances = { PTO: 0 };
+
+      const ptoValue = component.shadowRoot?.querySelector(
+        '[data-summary-type="pto"]',
+      );
+      expect(ptoValue?.textContent?.trim()).toBe("0");
+      expect(ptoValue?.classList.contains("balance-positive")).toBe(true);
+    });
+
+    it("should display negative remaining when balance is less than hours", () => {
+      component.ptoHours = 24;
+      component.balances = { PTO: 16 };
+
+      const ptoValue = component.shadowRoot?.querySelector(
+        '[data-summary-type="pto"]',
+      );
+      // 16 - 24 = -8 remaining
+      expect(ptoValue?.textContent?.trim()).toBe("-8");
+      expect(ptoValue?.classList.contains("balance-negative")).toBe(true);
+    });
+
+    it("should display negative remaining when balance itself is negative", () => {
+      component.ptoHours = 24;
+      component.balances = { PTO: -8 };
+
+      const ptoValue = component.shadowRoot?.querySelector(
+        '[data-summary-type="pto"]',
+      );
+      // -8 - 24 = -32 remaining
+      expect(ptoValue?.textContent?.trim()).toBe("-32");
+      expect(ptoValue?.classList.contains("balance-negative")).toBe(true);
+    });
+
+    it("should display 0 remaining when balance exactly equals hours", () => {
+      component.ptoHours = 24;
+      component.balances = { PTO: 24 };
+
+      const ptoValue = component.shadowRoot?.querySelector(
+        '[data-summary-type="pto"]',
+      );
+      expect(ptoValue?.textContent?.trim()).toBe("0");
+      expect(ptoValue?.classList.contains("balance-positive")).toBe(true);
+    });
+
+    it("should handle multiple PTO types with balances independently", () => {
+      component.ptoHours = 8;
+      component.sickHours = 16;
+      component.balances = { PTO: 40, Sick: 24 };
+
+      const ptoValue = component.shadowRoot?.querySelector(
+        '[data-summary-type="pto"]',
+      );
+      const sickValue = component.shadowRoot?.querySelector(
+        '[data-summary-type="sick"]',
+      );
+
+      // PTO: 40 - 8 = 32
+      expect(ptoValue?.textContent?.trim()).toBe("32");
+      expect(ptoValue?.classList.contains("balance-positive")).toBe(true);
+
+      // Sick: 24 - 16 = 8
+      expect(sickValue?.textContent?.trim()).toBe("8");
+      expect(sickValue?.classList.contains("balance-positive")).toBe(true);
+    });
+  });
 });

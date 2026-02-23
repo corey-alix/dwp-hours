@@ -146,7 +146,7 @@ describe("AdminMonthlyReview Component", () => {
         (emp) => !emp.acknowledgedByAdmin,
       ).length;
       const html = component.shadowRoot?.innerHTML;
-      const count = (html?.match(/class="employee-card"/g) || []).length;
+      const count = (html?.match(/class="employee-card[^"]*"/g) || []).length;
       expect(count).toBe(pendingCount);
     });
 
@@ -163,7 +163,7 @@ describe("AdminMonthlyReview Component", () => {
       expect(employeeName?.textContent).toBe(firstPending?.employeeName);
     });
 
-    it("should show acknowledgment status for pending cards", () => {
+    it("should show activity indicator for pending cards", () => {
       const testData = generateMonthlyData("2025-01");
 
       component.setEmployeeData(testData);
@@ -178,9 +178,12 @@ describe("AdminMonthlyReview Component", () => {
       // All rendered cards should be pending
       expect(pendingCards?.length || 0).toBe(pendingCount);
       if (pendingCards && pendingCards.length > 0) {
-        const statusIndicator =
-          pendingCards[0].querySelector(".status-indicator");
-        expect(statusIndicator?.classList.contains("pending")).toBe(true);
+        const activityIndicator = pendingCards[0].querySelector(
+          ".activity-indicator",
+        );
+        expect(activityIndicator).toBeTruthy();
+        const activityDot = pendingCards[0].querySelector(".activity-dot");
+        expect(activityDot).toBeTruthy();
       }
     });
   });
@@ -1072,11 +1075,10 @@ describe("AdminMonthlyReview Component", () => {
       // Only pending cards should be rendered
       expect(cards.length).toBe(pendingCount);
 
-      // Verify no acknowledged status indicators are rendered
-      const acknowledgedIndicators = component.shadowRoot?.querySelectorAll(
-        ".status-indicator.acknowledged",
-      );
-      expect(acknowledgedIndicators?.length || 0).toBe(0);
+      // Verify activity indicators are present on all rendered cards
+      const activityDots =
+        component.shadowRoot?.querySelectorAll(".activity-dot");
+      expect(activityDots?.length).toBe(pendingCount);
     });
 
     it("should show empty state when all employees are acknowledged", () => {

@@ -181,15 +181,20 @@ export class MonthSummary extends BaseComponent {
         ? `<span class="summary-pending">${delta > 0 ? "+" : ""}${delta}</span>`
         : "";
 
-    // Display: "available-scheduled" when balances set, otherwise just scheduled hours
+    // Display: remaining balance when balances set, otherwise just scheduled hours
     const displayValue = hasBalance
-      ? `${balance.toFixed(0)}-${hours}`
+      ? `${(balance - hours).toFixed(0)}`
       : `${hours.toFixed(0)}`;
+
+    const balanceSubLabel = hasBalance
+      ? `<span class="summary-sub-label">avail</span>`
+      : "";
 
     return `
       <div class="${itemClasses}" data-type="${config.deltaKey}"${ariaAttrs}>
         <span class="summary-label">${config.label}</span>
         <span class="summary-value ${valueClass} ${balanceClass}" data-summary-type="${config.attr.replace("-hours", "")}">${displayValue}${deltaHtml}</span>
+        ${balanceSubLabel}
       </div>
     `;
   }
