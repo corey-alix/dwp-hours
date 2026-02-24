@@ -113,6 +113,7 @@ export interface AuthValidateResponse {
 export interface PTOStatusResponse {
   employeeId: number;
   hireDate: string;
+  dailyRate: number;
   annualAllocation: number;
   availablePTO: number;
   usedPTO: number;

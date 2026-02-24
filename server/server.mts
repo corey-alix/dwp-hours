@@ -52,6 +52,7 @@ import {
   computeTerminationPayout,
   computeAccrualWithHireDate,
   checkSickDayThreshold,
+  isAllowedEmailDomain,
 } from "../shared/businessRules.js";
 import { BACKUP_CONFIG } from "../shared/backupConfig.js";
 import {
@@ -678,34 +679,58 @@ initDatabase()
 
           if (!employee) {
             logger.info(`Login attempt for unknown user: ${identifier}`);
-            if (shouldReturnMagicLink) {
-              const baseUrl = getBaseUrl(req);
-              const magicLink = `${baseUrl}/?token=missing-user`;
-              logger.debug(`Magic link for ${identifier}: ${magicLink}`);
+
+            // Auto-provision if domain is allowed
+            if (isAllowedEmailDomain(identifier)) {
+              const newEmployee = employeeRepo.create({
+                name: identifier,
+                identifier,
+                hire_date: today() as unknown as Date,
+                pto_rate: PTO_EARNING_SCHEDULE[0].dailyRate,
+                carryover_hours: 0,
+                role: "Employee",
+              });
+              const saved = await employeeRepo.save(newEmployee);
+              logger.info(
+                `Auto-provisioned new employee: ${identifier} (ID: ${saved.id})`,
+              );
+              // Fall through to normal magic-link flow with the new employee
+              // Re-assign so downstream code uses the newly created record
+              Object.assign(req, { _provisionedEmployee: saved });
+            } else {
+              if (shouldReturnMagicLink) {
+                const baseUrl = getBaseUrl(req);
+                const magicLink = `${baseUrl}/?token=missing-user`;
+                logger.debug(`Magic link for ${identifier}: ${magicLink}`);
+                return res.json({
+                  message: "Magic link generated",
+                  magicLink,
+                });
+              }
+              // For security, don't reveal if user exists
               return res.json({
-                message: "Magic link generated",
-                magicLink,
+                message: SUCCESS_MESSAGES["auth.link_sent"],
               });
             }
-            // For security, don't reveal if user exists
-            return res.json({
-              message: SUCCESS_MESSAGES["auth.link_sent"],
-            });
           }
 
+          // Use auto-provisioned employee if one was just created
+          const resolvedEmployee: Employee =
+            employee ?? ((req as any)._provisionedEmployee as Employee);
+
           logger.info(
-            `Login request for user: ${identifier} (Employee ID: ${employee.id})`,
+            `Login request for user: ${identifier} (Employee ID: ${resolvedEmployee.id})`,
           );
 
           // Generate secret hash if not exists
-          let secretHash = employee.hash;
+          let secretHash = resolvedEmployee.hash;
           if (!secretHash) {
             secretHash = crypto
               .createHash("sha256")
               .update(identifier + process.env.HASH_SALT || "default_salt")
               .digest("hex");
-            employee.hash = secretHash;
-            await employeeRepo.save(employee);
+            resolvedEmployee.hash = secretHash;
+            await employeeRepo.save(resolvedEmployee);
           }
 
           // Generate JWT token with email and expiration

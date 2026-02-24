@@ -15,6 +15,7 @@ import {
 export interface PTOStatus {
   employeeId: number;
   hireDate: string;
+  dailyRate: number; // effective policy-based daily accrual rate
   annualAllocation: number; // derived from employee.pto_rate * work days (default: tier-0 daily rate from PTO_EARNING_SCHEDULE)
   availablePTO: number;
   usedPTO: number;
@@ -98,6 +99,12 @@ export function calculatePTOStatus(
   );
   const usedJuryDuty = calculateUsedPTO(ptoEntries, "Jury Duty", currentYear);
 
+  // Calculate effective daily rate from policy (not the stored pto_rate)
+  const effectiveDailyRate = getEffectivePtoRate(
+    employee.hire_date,
+    currentDate,
+  ).dailyRate;
+
   const effectiveAnnualAllocation = calculateProratedAllocation(
     employee,
     currentYear,
@@ -141,6 +148,7 @@ export function calculatePTOStatus(
   return {
     employeeId: employee.id,
     hireDate: employee.hire_date,
+    dailyRate: effectiveDailyRate,
     annualAllocation: effectiveAnnualAllocation,
     availablePTO: Math.max(0, availablePTO), // Don't allow negative PTO
     usedPTO,

@@ -45,6 +45,24 @@ export interface MonthLockInfo {
   acknowledgedAt: string;
 }
 
+// ── Auto-Provision Allow-List ──
+
+/** Email domains allowed for automatic user provisioning on first login. */
+export const ALLOWED_EMAIL_DOMAINS: readonly string[] = ["example.com"];
+
+/**
+ * Checks whether an email address belongs to an allowed domain.
+ * Comparison is case-insensitive.
+ *
+ * @param email - The full email address to check
+ * @returns `true` if the domain is in `ALLOWED_EMAIL_DOMAINS`
+ */
+export function isAllowedEmailDomain(email: string): boolean {
+  if (typeof email !== "string" || !email.includes("@")) return false;
+  const domain = email.split("@").pop()!.toLowerCase();
+  return ALLOWED_EMAIL_DOMAINS.some((d) => d.toLowerCase() === domain);
+}
+
 // ── PTO Earning Schedule (from POLICY.md) ──
 
 export interface PtoRateTier {

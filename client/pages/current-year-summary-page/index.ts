@@ -8,7 +8,6 @@ import {
   getCurrentYear,
   formatDateForDisplay,
   parseDate,
-  getWorkdaysBetween,
   formatDate,
   today,
 } from "../../../shared/dateUtils.js";
@@ -156,16 +155,15 @@ export class CurrentYearSummaryPage
     annualAllocation: number;
   } {
     const year = getCurrentYear();
-    const totalWorkDays = getWorkdaysBetween(
-      formatDate(year, 1, 1),
-      formatDate(year, 12, 31),
-    ).length;
-    const ptoRatePerDay =
-      totalWorkDays > 0 ? status.annualAllocation / totalWorkDays : 0;
-    const fiscalYearStart = formatDate(year, 1, 1);
+    // Use the policy-based daily rate from the server
+    const ptoRatePerDay = status.dailyRate;
+    // Accrue from the later of Jan 1 or hire date
+    const jan1 = formatDate(year, 1, 1);
+    const hireDate = status.hireDate;
+    const accrualStart = hireDate > jan1 ? hireDate : jan1;
     const accrualToDate = computeAccrualToDate(
       ptoRatePerDay,
-      fiscalYearStart,
+      accrualStart,
       today(),
     );
     return {

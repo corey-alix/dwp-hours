@@ -3,7 +3,7 @@ import "dotenv/config";
 import { sendEmail } from "../server/utils/mailer.js";
 
 const to = "john.doe@example.com";
-const cc = "calix@dataworksplus.com";
+const cc = "coreyalix@gmail.com";
 
 const subject = "DWP Hours test email";
 const text = "This is a test email sent from the DWP Hours Tracker mailer.";

@@ -26,7 +26,6 @@ export class LoginPage extends BaseComponent implements PageComponent {
   protected render(): string {
     return `
       ${styles}
-      <h2>Login</h2>
       <form id="login-form">
         <label for="identifier">Email:</label>
         <input type="email" id="identifier" required />
