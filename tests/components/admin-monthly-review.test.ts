@@ -1084,11 +1084,10 @@ describe("AdminMonthlyReview Component", () => {
       const indicator = component.shadowRoot?.querySelector(".lock-indicator");
       expect(indicator).toBeTruthy();
       expect(indicator?.classList.contains("unlocked")).toBe(true);
-      expect(indicator?.textContent?.trim()).toBe("🔓");
       expect(indicator?.hasAttribute("data-notify-employee")).toBe(true);
     });
 
-    it("should show locked indicator for employees with calendarLocked=true", () => {
+    it("should show locked pill for employees with calendarLocked=true", () => {
       const testData: AdminMonthlyReviewItem[] = [
         {
           employeeId: 1,
@@ -1109,7 +1108,7 @@ describe("AdminMonthlyReview Component", () => {
       const indicator = component.shadowRoot?.querySelector(".lock-indicator");
       expect(indicator).toBeTruthy();
       expect(indicator?.classList.contains("locked")).toBe(true);
-      expect(indicator?.textContent?.trim()).toBe("🔒");
+      expect(indicator?.textContent?.trim()).toBe("\u2713 Locked");
       expect(indicator?.hasAttribute("data-notify-employee")).toBe(false);
     });
 
@@ -1147,7 +1146,7 @@ describe("AdminMonthlyReview Component", () => {
       expect(reminderEvent!.detail.employeeName).toBe("Reminder Target");
     });
 
-    it("should not dispatch event when locked indicator is clicked", () => {
+    it("should not dispatch event when employee is locked (no indicator rendered)", () => {
       const testData: AdminMonthlyReviewItem[] = [
         {
           employeeId: 1,
@@ -1170,12 +1169,11 @@ describe("AdminMonthlyReview Component", () => {
         reminderEvent = e as CustomEvent;
       });
 
+      // Locked employees show a locked pill — no unlocked indicator to click
       const indicator = component.shadowRoot?.querySelector(
-        ".lock-indicator.locked",
-      ) as HTMLElement;
-      expect(indicator).toBeTruthy();
-      indicator.click();
-
+        ".lock-indicator.unlocked",
+      );
+      expect(indicator).toBeNull();
       expect(reminderEvent).toBeNull();
     });
   });

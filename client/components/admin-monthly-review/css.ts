@@ -141,27 +141,34 @@ export const styles = `
     opacity: 0.4;
   }
 
+  /* Lock status pill badges — cross-platform safe, no emoji. */
   .lock-indicator {
-    font-size: 16px;
-    padding: 2px 4px;
-    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
     user-select: none;
     flex-shrink: 0;
-  }
-
-  .lock-indicator.locked {
-    color: var(--color-success, #22c55e);
-    cursor: default;
-  }
-
-  .lock-indicator.unlocked {
-    color: var(--color-warning, #f59e0b);
-    cursor: pointer;
+    white-space: nowrap;
     transition: transform 0.2s ease;
   }
 
+  .lock-indicator.locked {
+    background: rgb(34 197 94 / 12%);
+    color: var(--color-success-dark, #166534);
+  }
+
+  .lock-indicator.unlocked {
+    background: rgb(245 158 11 / 15%);
+    color: var(--color-warning-dark, #92400e);
+    cursor: pointer;
+  }
+
   .lock-indicator.unlocked:hover {
-    transform: scale(1.2);
+    transform: scale(1.05);
   }
 
   .progress-bar {
@@ -186,7 +193,7 @@ export const styles = `
       transition: none;
     }
 
-    .lock-indicator.unlocked {
+    .lock-indicator {
       transition: none;
     }
   }

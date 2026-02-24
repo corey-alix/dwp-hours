@@ -673,23 +673,16 @@ export class AdminMonthlyReview extends BaseComponent {
     const hasActivity = totalActivity > 0;
     const activityClass = hasActivity ? "has-activity" : "no-activity";
 
-    // Lock status indicator
-    const lockIcon = employee.calendarLocked ? "🔒" : "🔓";
-    const lockClass = employee.calendarLocked
-      ? "lock-indicator locked"
-      : "lock-indicator unlocked";
-    const lockTitle = employee.calendarLocked
-      ? "Calendar locked"
-      : "Calendar unlocked — click to send reminder";
-    const lockAttrs = employee.calendarLocked
-      ? ""
-      : ` data-notify-employee="${employee.employeeId}"`;
+    // Lock status indicator: green pill when locked, warning pill when unlocked
+    const lockIndicatorHtml = employee.calendarLocked
+      ? `<span class="lock-indicator locked" title="Calendar locked">✓ Locked</span>`
+      : `<span class="lock-indicator unlocked" title="Calendar unlocked — click to send reminder" data-notify-employee="${employee.employeeId}">● Unlocked</span>`;
 
     return `
       <div class="employee-card ${activityClass}" data-employee-id="${employee.employeeId}">
         <div class="employee-header">
           <h3 class="employee-name">${employee.employeeName}</h3>
-          <span class="${lockClass}" title="${lockTitle}"${lockAttrs}>${lockIcon}</span>
+          ${lockIndicatorHtml}
           <div class="activity-indicator">
             <div class="activity-dot ${hasActivity ? "active" : "inactive"}"></div>
             <span>${hasActivity ? `${totalActivity}h scheduled` : "No activity"}</span>

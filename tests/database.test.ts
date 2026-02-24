@@ -31,6 +31,7 @@ describe("Database Schema and Persistence", () => {
       "admin_acknowledgements",
       "employees",
       "monthly_hours",
+      "notifications",
       "pto_entries",
       "sessions",
     ]);
@@ -69,6 +70,9 @@ describe("Database Schema and Persistence", () => {
       "idx_admin_acknowledgements_month",
       "idx_monthly_hours_employee_id",
       "idx_monthly_hours_month",
+      "idx_notifications_employee_id",
+      "idx_notifications_expires_at",
+      "idx_notifications_read_at",
       "idx_pto_entries_approved_by",
       "idx_pto_entries_date",
       "idx_pto_entries_employee_id",
