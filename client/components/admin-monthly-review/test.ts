@@ -78,6 +78,7 @@ function generateMonthlyData(month: string): AdminMonthlyReviewItem[] {
         ? seedEmployees.find((e, idx) => idx + 1 === acknowledgment.admin_id)
             ?.name
         : undefined,
+      calendarLocked: false,
     });
   }
 

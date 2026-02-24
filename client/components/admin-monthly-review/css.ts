@@ -8,24 +8,12 @@ export const styles = `
     margin-bottom: 20px;
   }
 
-  .month-selector {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+  .review-heading {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--color-text);
     margin-bottom: 20px;
-  }
-
-  .month-selector label {
-    font-weight: 500;
-    color: var(--color-text);
-  }
-
-  .month-selector input[type="month"] {
-    padding: 8px 12px;
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
-    background: var(--color-background);
-    color: var(--color-text);
+    text-align: center;
   }
 
   .loading {
@@ -153,6 +141,29 @@ export const styles = `
     opacity: 0.4;
   }
 
+  .lock-indicator {
+    font-size: 16px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    user-select: none;
+    flex-shrink: 0;
+  }
+
+  .lock-indicator.locked {
+    color: var(--color-success, #22c55e);
+    cursor: default;
+  }
+
+  .lock-indicator.unlocked {
+    color: var(--color-warning, #f59e0b);
+    cursor: pointer;
+    transition: transform 0.2s ease;
+  }
+
+  .lock-indicator.unlocked:hover {
+    transform: scale(1.2);
+  }
+
   .progress-bar {
     font-size: var(--font-size-sm, 14px);
     color: var(--color-text-secondary);
@@ -172,6 +183,10 @@ export const styles = `
   @media (prefers-reduced-motion: reduce) {
     .view-calendar-btn,
     .acknowledge-btn {
+      transition: none;
+    }
+
+    .lock-indicator.unlocked {
       transition: none;
     }
   }

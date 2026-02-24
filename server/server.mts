@@ -17,6 +17,7 @@ import {
   MonthlyHours,
   Acknowledgement,
   AdminAcknowledgement,
+  Notification,
 } from "./entities/index.js";
 import { calculatePTOStatus } from "./ptoCalculations.js";
 import { getTotalWorkDaysInYear } from "./workDays.js";
@@ -36,6 +37,7 @@ import {
   VALIDATION_MESSAGES,
   SUCCESS_MESSAGES,
   BUSINESS_RULES_CONSTANTS,
+  NOTIFICATION_MESSAGES,
   MessageKey,
   validatePTOBalance,
   validateMonthEditable,
@@ -177,6 +179,18 @@ function isFileMigrationRequest(
     obj !== null &&
     typeof obj.employeeEmail === "string" &&
     typeof obj.filePath === "string"
+  );
+}
+
+function isNotificationCreateRequest(
+  obj: any,
+): obj is { employeeId: number; type: string; message: string } {
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    typeof obj.employeeId === "number" &&
+    typeof obj.type === "string" &&
+    typeof obj.message === "string"
   );
 }
 
@@ -397,6 +411,7 @@ async function initDatabase() {
         MonthlyHours,
         Acknowledgement,
         AdminAcknowledgement,
+        Notification,
       ],
       synchronize: false, // Schema is managed manually
       logging: false,
@@ -1479,6 +1494,7 @@ initDatabase()
           const monthlyHoursRepo = dataSource.getRepository(MonthlyHours);
           const ptoEntryRepo = dataSource.getRepository(PtoEntry);
           const adminAckRepo = dataSource.getRepository(AdminAcknowledgement);
+          const ackRepo = dataSource.getRepository(Acknowledgement);
 
           // Get all employees
           const employees = await employeeRepo.find({
@@ -1525,6 +1541,11 @@ initDatabase()
               relations: ["admin"],
             });
 
+            // Check if employee has locked (acknowledged) their calendar
+            const employeeAck = await ackRepo.findOne({
+              where: { employee_id: employee.id, month: monthStr },
+            });
+
             result.push({
               employeeId: employee.id,
               employeeName: employee.name,
@@ -1539,6 +1560,7 @@ initDatabase()
                 ? dateToString(adminAck.acknowledged_at)
                 : undefined,
               adminAcknowledgedBy: adminAck?.admin?.name || undefined,
+              calendarLocked: !!employeeAck,
             });
           }
 
@@ -1573,6 +1595,7 @@ initDatabase()
           const monthlyHoursRepo = dataSource.getRepository(MonthlyHours);
           const ptoEntryRepo = dataSource.getRepository(PtoEntry);
           const adminAckRepo = dataSource.getRepository(AdminAcknowledgement);
+          const ackRepo = dataSource.getRepository(Acknowledgement);
 
           // Get all employees
           const employees = await employeeRepo.find({
@@ -1619,6 +1642,11 @@ initDatabase()
               relations: ["admin"],
             });
 
+            // Check if employee has locked (acknowledged) their calendar
+            const employeeAck = await ackRepo.findOne({
+              where: { employee_id: employee.id, month: monthStr },
+            });
+
             result.push({
               employeeId: employee.id,
               employeeName: employee.name,
@@ -1633,6 +1661,7 @@ initDatabase()
                 ? dateToString(adminAck.acknowledged_at)
                 : undefined,
               adminAcknowledgedBy: adminAck?.admin?.name || undefined,
+              calendarLocked: !!employeeAck,
             });
           }
 
@@ -2583,6 +2612,205 @@ initDatabase()
           ) {
             return res.status(400).json({ error: error.message });
           }
+          res.status(500).json({ error: "Internal server error" });
+        }
+      },
+    );
+
+    // ── Notification routes ──
+
+    // Create a notification for a specific employee (admin-only)
+    app.post(
+      "/api/notifications",
+      authenticateAdmin(() => dataSource, log),
+      async (req: Request, res: Response) => {
+        try {
+          if (!isNotificationCreateRequest(req.body)) {
+            return res.status(400).json({
+              error:
+                "Invalid request body. Required: employeeId (number), type (string), message (string)",
+            });
+          }
+
+          const { employeeId, type, message } = req.body;
+
+          // Validate notification type
+          const validTypes = ["calendar_lock_reminder", "system"];
+          if (!validTypes.includes(type)) {
+            return res.status(400).json({
+              error: `Invalid notification type. Must be one of: ${validTypes.join(", ")}`,
+            });
+          }
+
+          // Verify target employee exists
+          const employeeRepo = dataSource.getRepository(Employee);
+          const targetEmployee = await employeeRepo.findOne({
+            where: { id: employeeId },
+          });
+          if (!targetEmployee) {
+            return res.status(404).json({ error: "Employee not found" });
+          }
+
+          // Duplicate prevention: check for existing unread notification of same type for same employee
+          const notificationRepo = dataSource.getRepository(Notification);
+          const existing = await notificationRepo.findOne({
+            where: {
+              employee_id: employeeId,
+              type,
+              read_at: IsNull(),
+            },
+          });
+          if (existing) {
+            return res.status(409).json({
+              error:
+                "An unread notification of this type already exists for this employee",
+            });
+          }
+
+          // Compute expiry date
+          const expiresAt = new Date();
+          expiresAt.setDate(
+            expiresAt.getDate() +
+              BUSINESS_RULES_CONSTANTS.NOTIFICATION_EXPIRY_DAYS,
+          );
+
+          const adminId = (req as any).employee?.id;
+
+          const notification = notificationRepo.create({
+            employee_id: employeeId,
+            type,
+            message,
+            created_by: adminId ?? null,
+            expires_at: expiresAt,
+          });
+
+          await notificationRepo.save(notification);
+
+          logger.info(
+            `Notification created: type=${type}, employee=${employeeId}, by admin=${adminId}`,
+          );
+
+          res.status(201).json({
+            message: "Notification created successfully",
+            notification: {
+              id: notification.id,
+              employee_id: notification.employee_id,
+              type: notification.type,
+              message: notification.message,
+              created_at: notification.created_at,
+              read_at: notification.read_at,
+              expires_at: notification.expires_at,
+              created_by: notification.created_by,
+            },
+          });
+        } catch (error) {
+          logger.error(`Error creating notification: ${error}`);
+          res.status(500).json({ error: "Internal server error" });
+        }
+      },
+    );
+
+    // Get unread notifications for the authenticated user
+    app.get(
+      "/api/notifications",
+      authenticate(() => dataSource, log),
+      async (req: Request, res: Response) => {
+        try {
+          const employeeId = (req as any).employee?.id;
+          if (!employeeId) {
+            return res.status(401).json({ error: "Unauthorized" });
+          }
+
+          const notificationRepo = dataSource.getRepository(Notification);
+          const now = new Date();
+
+          // Fetch unread notifications that haven't expired
+          const notifications = await notificationRepo.find({
+            where: {
+              employee_id: employeeId,
+              read_at: IsNull(),
+            },
+            order: { created_at: "DESC" },
+          });
+
+          // Filter out expired notifications in application code
+          const validNotifications = notifications.filter((n) => {
+            if (!n.expires_at) return true;
+            const expiresAt =
+              n.expires_at instanceof Date
+                ? n.expires_at
+                : new Date(n.expires_at);
+            return expiresAt > now;
+          });
+
+          res.json({
+            notifications: validNotifications.map((n) => ({
+              id: n.id,
+              employee_id: n.employee_id,
+              type: n.type,
+              message: n.message,
+              created_at: n.created_at,
+              read_at: n.read_at,
+              expires_at: n.expires_at,
+              created_by: n.created_by,
+            })),
+          });
+        } catch (error) {
+          logger.error(`Error fetching notifications: ${error}`);
+          res.status(500).json({ error: "Internal server error" });
+        }
+      },
+    );
+
+    // Mark a notification as read
+    app.patch(
+      "/api/notifications/:id/read",
+      authenticate(() => dataSource, log),
+      async (req: Request, res: Response) => {
+        try {
+          const { id } = req.params;
+          const notificationId = parseInt(id as string);
+
+          if (isNaN(notificationId)) {
+            return res.status(400).json({ error: "Invalid notification ID" });
+          }
+
+          const employeeId = (req as any).employee?.id;
+          if (!employeeId) {
+            return res.status(401).json({ error: "Unauthorized" });
+          }
+
+          const notificationRepo = dataSource.getRepository(Notification);
+          const notification = await notificationRepo.findOne({
+            where: { id: notificationId, employee_id: employeeId },
+          });
+
+          if (!notification) {
+            return res.status(404).json({ error: "Notification not found" });
+          }
+
+          notification.read_at = new Date();
+          await notificationRepo.save(notification);
+
+          logger.info(
+            `Notification ${notificationId} marked as read by employee ${employeeId}`,
+          );
+
+          res.json({
+            message: "Notification marked as read",
+            notification: {
+              id: notification.id,
+              employee_id: notification.employee_id,
+              type: notification.type,
+              message: notification.message,
+              created_at: notification.created_at,
+              read_at: notification.read_at,
+              expires_at: notification.expires_at,
+              created_by: notification.created_by,
+            },
+          });
+        } catch (error) {
+          logger.error(`Error marking notification as read: ${error}`);
           res.status(500).json({ error: "Internal server error" });
         }
       },

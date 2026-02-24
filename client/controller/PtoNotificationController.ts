@@ -24,6 +24,12 @@ export class PtoNotificationController implements TraceListenerHandler {
   }
 
   onTrace(msg: TraceMessage): void {
-    this.element?.show(msg.message, msg.level, msg.title, msg.duration);
+    this.element?.show(
+      msg.message,
+      msg.level,
+      msg.title,
+      msg.duration,
+      msg.onDismiss,
+    );
   }
 }

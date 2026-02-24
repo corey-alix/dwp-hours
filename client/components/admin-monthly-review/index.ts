@@ -6,12 +6,14 @@ import type {
 } from "../../../shared/api-models.js";
 import {
   computeEmployeeBalanceData,
+  getPriorMonth,
+  MONTH_NAMES,
   type PTOType,
 } from "../../../shared/businessRules.js";
 import {
-  getCurrentMonth,
   formatDateForDisplay,
   addMonths,
+  today,
 } from "../../../shared/dateUtils.js";
 // Side-effect import: ensure <month-summary> custom element is registered
 import "../month-summary/index.js";
@@ -44,7 +46,7 @@ import type {
 
 export class AdminMonthlyReview extends BaseComponent {
   private _employeeData: AdminMonthlyReviewItem[] = [];
-  private _selectedMonth: string = getCurrentMonth();
+  private _selectedMonth: string = getPriorMonth(today());
   private _isLoading = false;
   private _acknowledgmentData: any[] = [];
   private _ptoEntries: Array<{
@@ -396,22 +398,31 @@ export class AdminMonthlyReview extends BaseComponent {
     }
   }
 
+  /**
+   * Send a lock-reminder notification to the employee.
+   * Dispatches an event for the parent page to handle the API call.
+   */
+  private handleSendLockReminder(employeeId: number): void {
+    const employee = this._employeeData.find(
+      (emp) => emp.employeeId === employeeId,
+    );
+    if (!employee) return;
+
+    this.dispatchEvent(
+      new CustomEvent("send-lock-reminder", {
+        detail: {
+          employeeId,
+          employeeName: employee.employeeName,
+          month: this._selectedMonth,
+        },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
   protected handleDelegatedClick(e: Event): void {
     const target = e.target as HTMLElement;
-
-    // Handle month selector
-    const monthInput = target.closest(
-      'input[type="month"]',
-    ) as HTMLInputElement;
-    if (monthInput) {
-      this._selectedMonth = monthInput.value;
-      // Collapse all calendars and clear navigated months when month changes
-      this._expandedCalendars.clear();
-      this._calendarMonths.clear();
-      this._swipeListenerCards.clear();
-      this.requestEmployeeData();
-      return;
-    }
 
     // Handle acknowledge buttons
     if (target.classList.contains("acknowledge-btn")) {
@@ -420,6 +431,17 @@ export class AdminMonthlyReview extends BaseComponent {
       );
       if (employeeId) {
         this.handleAcknowledgeEmployee(employeeId);
+      }
+      return;
+    }
+
+    // Handle unlocked lock indicator — send notification reminder
+    if (target.hasAttribute("data-notify-employee")) {
+      const employeeId = parseInt(
+        target.getAttribute("data-notify-employee") || "0",
+      );
+      if (employeeId) {
+        this.handleSendLockReminder(employeeId);
       }
       return;
     }
@@ -593,12 +615,14 @@ export class AdminMonthlyReview extends BaseComponent {
   }
 
   protected render(): string {
+    const [yearStr, moStr] = this._selectedMonth.split("-");
+    const reviewMonthLabel = `${MONTH_NAMES[parseInt(moStr, 10) - 1]} ${yearStr}`;
+
     return `
       ${styles}
 
-      <div class="month-selector">
-        <label for="month-select">Select Month:</label>
-        <input type="month" id="month-select" value="${this._selectedMonth}" />
+      <div class="review-heading">
+        Reviewing: ${reviewMonthLabel}
       </div>
 
       ${
@@ -649,10 +673,23 @@ export class AdminMonthlyReview extends BaseComponent {
     const hasActivity = totalActivity > 0;
     const activityClass = hasActivity ? "has-activity" : "no-activity";
 
+    // Lock status indicator
+    const lockIcon = employee.calendarLocked ? "🔒" : "🔓";
+    const lockClass = employee.calendarLocked
+      ? "lock-indicator locked"
+      : "lock-indicator unlocked";
+    const lockTitle = employee.calendarLocked
+      ? "Calendar locked"
+      : "Calendar unlocked — click to send reminder";
+    const lockAttrs = employee.calendarLocked
+      ? ""
+      : ` data-notify-employee="${employee.employeeId}"`;
+
     return `
       <div class="employee-card ${activityClass}" data-employee-id="${employee.employeeId}">
         <div class="employee-header">
           <h3 class="employee-name">${employee.employeeName}</h3>
+          <span class="${lockClass}" title="${lockTitle}"${lockAttrs}>${lockIcon}</span>
           <div class="activity-indicator">
             <div class="activity-dot ${hasActivity ? "active" : "inactive"}"></div>
             <span>${hasActivity ? `${totalActivity}h scheduled` : "No activity"}</span>

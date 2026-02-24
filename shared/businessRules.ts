@@ -62,6 +62,10 @@ export const BUSINESS_RULES_CONSTANTS = {
   },
   /** Inactivity threshold (ms) before the app treats a visit as a new session. */
   SESSION_INACTIVITY_THRESHOLD_MS: 8 * 60 * 60 * 1000, // 8 hours
+  /** Auto-dismiss timeout (ms) for toast notifications before they are considered "not seen". */
+  NOTIFICATION_AUTO_DISMISS_MS: 5 * 1000, // 5 seconds
+  /** Number of days after which unread notifications expire and are no longer shown. */
+  NOTIFICATION_EXPIRY_DAYS: 30,
 } as const;
 
 export const VALIDATION_MESSAGES = {
@@ -94,6 +98,12 @@ export const VALIDATION_MESSAGES = {
 export const SUCCESS_MESSAGES = {
   "pto.created": "PTO request processed successfully",
   "auth.link_sent": "If the email exists, a magic link has been sent.",
+  "notification.calendar_lock_sent":
+    "Notification sent — employee will be reminded to lock their calendar.",
+} as const;
+
+export const NOTIFICATION_MESSAGES = {
+  calendar_lock_reminder: "Please review and lock your calendar for {month}.",
 } as const;
 
 export const UI_ERROR_MESSAGES = {

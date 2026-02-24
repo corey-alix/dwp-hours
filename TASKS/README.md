@@ -8,6 +8,7 @@
 - current-year-summary-design-improvements.md
 - Email Magic Link.md
 - employee-month-acknowledgement-prompt.md
+- in-app-notifications.md
 - markdown-rendering.md
 - prior-year-summary-design-improvements.md
 - submit-time-off-design-improvements.md

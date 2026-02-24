@@ -83,6 +83,28 @@ export class APIClient {
     return response.json();
   }
 
+  async patch(endpoint: string, data?: any): Promise<any> {
+    const response = await fetch(`${this.baseURL}${endpoint}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: data !== undefined ? JSON.stringify(data) : undefined,
+      credentials: "include",
+    });
+    if (!response.ok) {
+      const errorData = await response
+        .json()
+        .catch(() => ({ error: "Unknown error" }));
+      const error = new Error(
+        errorData.error || `HTTP ${response.status}: ${response.statusText}`,
+      );
+      (error as any).responseData = errorData;
+      throw error;
+    }
+    return response.json();
+  }
+
   // Typed API methods
   async requestAuthLink(
     identifier: string,
@@ -221,5 +243,24 @@ export class APIClient {
 
   async health(): Promise<ApiTypes.HealthResponse> {
     return this.get("/health");
+  }
+
+  // Notification methods
+  async getNotifications(): Promise<ApiTypes.NotificationsResponse> {
+    return this.get("/notifications");
+  }
+
+  async markNotificationRead(
+    id: number,
+  ): Promise<ApiTypes.NotificationReadResponse> {
+    return this.patch(`/notifications/${id}/read`);
+  }
+
+  async createNotification(
+    employeeId: number,
+    type: ApiTypes.NotificationType,
+    message: string,
+  ): Promise<ApiTypes.NotificationCreateResponse> {
+    return this.post("/notifications", { employeeId, type, message });
   }
 }

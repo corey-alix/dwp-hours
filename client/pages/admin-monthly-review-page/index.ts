@@ -5,6 +5,10 @@ import { APIClient } from "../../APIClient.js";
 import { notifications } from "../../app.js";
 import { createElement } from "../../components/test-utils.js";
 import { styles } from "./css.js";
+import {
+  SUCCESS_MESSAGES,
+  NOTIFICATION_MESSAGES,
+} from "../../../shared/businessRules.js";
 
 /**
  * Admin Monthly Review page.
@@ -46,6 +50,13 @@ export class AdminMonthlyReviewPage
         e.detail.employeeName,
         e.detail.month,
       );
+    }) as EventListener);
+
+    this.shadowRoot.addEventListener("send-lock-reminder", ((
+      e: CustomEvent,
+    ) => {
+      e.stopPropagation();
+      this.handleSendLockReminder(e.detail.employeeId, e.detail.month);
     }) as EventListener);
 
     // Handle data requests from the `admin-monthly-review` child component
@@ -163,6 +174,35 @@ export class AdminMonthlyReviewPage
     dialog.addEventListener("confirm", handleConfirm);
     dialog.addEventListener("cancel", handleCancel);
     document.body.appendChild(dialog);
+  }
+
+  /**
+   * Send a lock-reminder notification to an employee.
+   * Single click — no confirmation dialog.
+   */
+  private async handleSendLockReminder(
+    employeeId: number,
+    month: string,
+  ): Promise<void> {
+    try {
+      const message = NOTIFICATION_MESSAGES["calendar_lock_reminder"].replace(
+        "{month}",
+        month,
+      );
+      await this.api.createNotification(
+        employeeId,
+        "calendar_lock_reminder",
+        message,
+      );
+      notifications.success(
+        SUCCESS_MESSAGES["notification.calendar_lock_sent"],
+      );
+    } catch (error: any) {
+      console.error("Failed to send lock reminder:", error);
+      notifications.error(
+        "Failed to send reminder: " + (error.message || "Unknown error"),
+      );
+    }
   }
 
   private async submitAcknowledgment(

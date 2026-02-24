@@ -80,6 +80,7 @@ function generateMonthlyData(month: string): AdminMonthlyReviewItem[] {
               idx + 1 === acknowledgment.admin_id,
           )?.name
         : undefined,
+      calendarLocked: false,
     });
   }
 
@@ -97,6 +98,8 @@ describe("AdminMonthlyReview Component", () => {
 
     // Create the component
     component = new AdminMonthlyReview();
+    // Set a fixed review month so tests don't depend on the current date
+    component.setAttribute("selected-month", "2026-02");
     container.appendChild(component);
   });
 
@@ -1059,6 +1062,124 @@ describe("AdminMonthlyReview Component", () => {
     });
   });
 
+  describe("Calendar Lock Status Indicators", () => {
+    it("should show unlocked indicator for employees with calendarLocked=false", () => {
+      const testData: AdminMonthlyReviewItem[] = [
+        {
+          employeeId: 1,
+          employeeName: "Unlocked Employee",
+          month: "2026-01",
+          totalHours: 172,
+          ptoHours: 8,
+          sickHours: 0,
+          bereavementHours: 0,
+          juryDutyHours: 0,
+          acknowledgedByAdmin: false,
+          calendarLocked: false,
+        },
+      ];
+
+      component.setEmployeeData(testData);
+
+      const indicator = component.shadowRoot?.querySelector(".lock-indicator");
+      expect(indicator).toBeTruthy();
+      expect(indicator?.classList.contains("unlocked")).toBe(true);
+      expect(indicator?.textContent?.trim()).toBe("🔓");
+      expect(indicator?.hasAttribute("data-notify-employee")).toBe(true);
+    });
+
+    it("should show locked indicator for employees with calendarLocked=true", () => {
+      const testData: AdminMonthlyReviewItem[] = [
+        {
+          employeeId: 1,
+          employeeName: "Locked Employee",
+          month: "2026-01",
+          totalHours: 172,
+          ptoHours: 8,
+          sickHours: 0,
+          bereavementHours: 0,
+          juryDutyHours: 0,
+          acknowledgedByAdmin: false,
+          calendarLocked: true,
+        },
+      ];
+
+      component.setEmployeeData(testData);
+
+      const indicator = component.shadowRoot?.querySelector(".lock-indicator");
+      expect(indicator).toBeTruthy();
+      expect(indicator?.classList.contains("locked")).toBe(true);
+      expect(indicator?.textContent?.trim()).toBe("🔒");
+      expect(indicator?.hasAttribute("data-notify-employee")).toBe(false);
+    });
+
+    it("should dispatch send-lock-reminder event when unlocked indicator is clicked", () => {
+      const testData: AdminMonthlyReviewItem[] = [
+        {
+          employeeId: 55,
+          employeeName: "Reminder Target",
+          month: "2026-01",
+          totalHours: 172,
+          ptoHours: 0,
+          sickHours: 0,
+          bereavementHours: 0,
+          juryDutyHours: 0,
+          acknowledgedByAdmin: false,
+          calendarLocked: false,
+        },
+      ];
+
+      component.setEmployeeData(testData);
+
+      let reminderEvent: CustomEvent | null = null;
+      component.addEventListener("send-lock-reminder", (e: Event) => {
+        reminderEvent = e as CustomEvent;
+      });
+
+      const indicator = component.shadowRoot?.querySelector(
+        ".lock-indicator.unlocked",
+      ) as HTMLElement;
+      expect(indicator).toBeTruthy();
+      indicator.click();
+
+      expect(reminderEvent).toBeTruthy();
+      expect(reminderEvent!.detail.employeeId).toBe(55);
+      expect(reminderEvent!.detail.employeeName).toBe("Reminder Target");
+    });
+
+    it("should not dispatch event when locked indicator is clicked", () => {
+      const testData: AdminMonthlyReviewItem[] = [
+        {
+          employeeId: 1,
+          employeeName: "Locked Employee",
+          month: "2026-01",
+          totalHours: 172,
+          ptoHours: 0,
+          sickHours: 0,
+          bereavementHours: 0,
+          juryDutyHours: 0,
+          acknowledgedByAdmin: false,
+          calendarLocked: true,
+        },
+      ];
+
+      component.setEmployeeData(testData);
+
+      let reminderEvent: CustomEvent | null = null;
+      component.addEventListener("send-lock-reminder", (e: Event) => {
+        reminderEvent = e as CustomEvent;
+      });
+
+      const indicator = component.shadowRoot?.querySelector(
+        ".lock-indicator.locked",
+      ) as HTMLElement;
+      expect(indicator).toBeTruthy();
+      indicator.click();
+
+      expect(reminderEvent).toBeNull();
+    });
+  });
+
   describe("Pending Filter and Dismiss Animation", () => {
     it("should only render pending (non-acknowledged) cards", () => {
       const testData = generateMonthlyData("2025-01");
@@ -1095,6 +1216,7 @@ describe("AdminMonthlyReview Component", () => {
           acknowledgedByAdmin: true,
           adminAcknowledgedAt: "2025-01-31T12:00:00Z",
           adminAcknowledgedBy: "Admin User",
+          calendarLocked: false,
         },
       ];
 
@@ -1124,6 +1246,7 @@ describe("AdminMonthlyReview Component", () => {
           acknowledgedByAdmin: false,
           adminAcknowledgedAt: undefined,
           adminAcknowledgedBy: undefined,
+          calendarLocked: false,
         },
       ];
 
@@ -1160,6 +1283,7 @@ describe("AdminMonthlyReview Component", () => {
           acknowledgedByAdmin: false,
           adminAcknowledgedAt: undefined,
           adminAcknowledgedBy: undefined,
+          calendarLocked: false,
         },
       ];
 

@@ -266,6 +266,8 @@ export interface AdminMonthlyReviewItem {
   acknowledgedByAdmin: boolean;
   adminAcknowledgedAt?: string;
   adminAcknowledgedBy?: string;
+  /** Whether the employee has locked (acknowledged) their calendar for this month. */
+  calendarLocked: boolean;
 }
 
 export interface GenericMessageResponse {
@@ -314,4 +316,38 @@ export interface PtoBalanceData {
   employeeId: number;
   employeeName: string;
   categories: PtoBalanceCategoryItem[];
+}
+
+// Notification types
+export type NotificationType = "calendar_lock_reminder" | "system";
+
+export interface NotificationItem {
+  id: number;
+  employee_id: number;
+  type: NotificationType;
+  message: string;
+  created_at: string;
+  read_at: string | null;
+  expires_at: string | null;
+  created_by: number | null;
+}
+
+export interface NotificationCreateRequest {
+  employeeId: number;
+  type: NotificationType;
+  message: string;
+}
+
+export interface NotificationCreateResponse {
+  message: string;
+  notification: NotificationItem;
+}
+
+export interface NotificationsResponse {
+  notifications: NotificationItem[];
+}
+
+export interface NotificationReadResponse {
+  message: string;
+  notification: NotificationItem;
 }

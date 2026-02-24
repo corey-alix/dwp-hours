@@ -9,6 +9,8 @@ interface ToastEntry {
   title?: string;
   visible: boolean;
   fadingOut: boolean;
+  /** Called when the user explicitly clicks dismiss (not on auto-dismiss). */
+  onDismiss?: () => void;
 }
 
 /**
@@ -30,6 +32,7 @@ export class PtoNotification extends BaseComponent {
     level: NotificationLevel = "info",
     title?: string,
     duration = 5000,
+    onDismiss?: () => void,
   ): void {
     const id = this._nextId++;
     const entry: ToastEntry = {
@@ -39,6 +42,7 @@ export class PtoNotification extends BaseComponent {
       title,
       visible: false,
       fadingOut: false,
+      onDismiss,
     };
     this._toasts.push(entry);
     this.requestUpdate();
@@ -73,6 +77,11 @@ export class PtoNotification extends BaseComponent {
     if (closeBtn) {
       e.preventDefault();
       const id = Number(closeBtn.getAttribute("data-dismiss"));
+      // Fire the onDismiss callback for user-initiated dismissals
+      const entry = this._toasts.find((t) => t.id === id);
+      if (entry?.onDismiss) {
+        entry.onDismiss();
+      }
       this.dismiss(id);
     }
   }

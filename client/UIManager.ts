@@ -8,6 +8,7 @@ import {
   isFirstSessionVisit,
   updateActivityTimestamp,
 } from "./shared/activityTracker";
+import { NotificationService } from "./shared/notificationService";
 import { getPriorMonth } from "../shared/businessRules";
 import { today, parseDate } from "../shared/dateUtils";
 
@@ -23,9 +24,11 @@ export class UIManager {
   private authService: AuthService;
   private router: Router;
   private api: APIClient;
+  private notificationService: NotificationService;
 
   constructor() {
     this.api = new APIClient();
+    this.notificationService = new NotificationService(this.api);
     this.authService = new AuthService(this.api);
     const outlet = querySingle<HTMLElement>("#router-outlet");
     this.router = new Router(appRoutes, outlet, this.authService);
@@ -43,6 +46,9 @@ export class UIManager {
 
         // Check for unacknowledged prior month on new session
         const shouldPrompt = await this.checkPriorMonthAcknowledgement();
+
+        // Show queued in-app notifications on new sessions
+        await this.showQueuedNotifications();
 
         // Navigate to the current URL (or default)
         const path = window.location.pathname;
@@ -238,6 +244,36 @@ export class UIManager {
     } catch (error) {
       console.error("Error checking prior month acknowledgement:", error);
       return false;
+    }
+  }
+
+  /**
+   * Fetch and display queued in-app notifications on new sessions.
+   * Only called when `isFirstSessionVisit()` detected a new session
+   * (the timestamp is already updated by `checkPriorMonthAcknowledgement`).
+   *
+   * Auto-dismiss: notifications that timeout without user click remain
+   * unread and will reappear next session. Only explicit dismissal
+   * marks them as read.
+   */
+  private async showQueuedNotifications(): Promise<void> {
+    try {
+      const items = await this.notificationService.fetchUnread();
+      if (items.length === 0) return;
+
+      for (const item of items) {
+        // Show each notification as a toast with auto-dismiss
+        // The notification is NOT marked as read on auto-dismiss
+        notifications.info(item.message, {
+          autoDismissMs: this.notificationService.autoDismissMs,
+          onDismiss: () => {
+            // Only mark as read when user explicitly clicks dismiss
+            this.notificationService.markRead(item.id);
+          },
+        });
+      }
+    } catch (error) {
+      console.error("Error showing queued notifications:", error);
     }
   }
 }

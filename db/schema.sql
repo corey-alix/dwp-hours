@@ -85,3 +85,22 @@ CREATE TABLE IF NOT EXISTS sessions (
 -- Create indexes for sessions
 CREATE INDEX IF NOT EXISTS idx_sessions_employee_id ON sessions(employee_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
+
+-- Create notifications table
+CREATE TABLE IF NOT EXISTS notifications (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  employee_id INTEGER NOT NULL,
+  type TEXT NOT NULL,
+  message TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  read_at DATETIME,
+  expires_at DATETIME,
+  created_by INTEGER,
+  FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+  FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
+);
+
+-- Create indexes for notifications
+CREATE INDEX IF NOT EXISTS idx_notifications_employee_id ON notifications(employee_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_read_at ON notifications(read_at);
+CREATE INDEX IF NOT EXISTS idx_notifications_expires_at ON notifications(expires_at);
