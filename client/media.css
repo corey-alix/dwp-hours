@@ -6,6 +6,7 @@
 
   main {
     margin: 0 auto;
+    justify-content: space-around;
   }
 
   body {

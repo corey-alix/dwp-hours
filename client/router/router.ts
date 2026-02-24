@@ -146,6 +146,17 @@ export class Router {
   private async renderCurrentUrl(): Promise<void> {
     const path = window.location.pathname;
     const search = new URLSearchParams(window.location.search);
+
+    // Root path redirect: authenticated → default page, unauthenticated → login
+    if (path === "/") {
+      const target = this.authService.isAuthenticated()
+        ? "/submit-time-off"
+        : "/login";
+      window.history.replaceState({}, "", target);
+      await this.renderCurrentUrl();
+      return;
+    }
+
     const match = this.matchRoute(path);
 
     if (!match) {

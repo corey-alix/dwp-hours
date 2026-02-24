@@ -12,29 +12,18 @@ Any PTO taken is considered time worked. Therefore, you continue to accrue PTO t
 
 ## PERSONAL TIME OFF EARNING SCHEDULE
 
-| Length of Service (based on hire date) | Eligible PTO | Daily Rate |
-
-|----------------------------------------|-----------------------|------------|
-
-| 0-1 year of service | 168 hours (21 days) | .65 |
-
-| 1-2 years of service | 176 hours (22 days) | .68 |
-
-| 2-3 years of service | 184 hours (23 days) | .71 |
-
-| 3-4 years of service | 192 hours (24 days) | .74 |
-
-| 4-5 years of service | 200 hours (25 days) | .77 |
-
-| 5-6 years of service | 208 hours (26 days) | .80 |
-
-| 6-7 years of service | 216 hours (27 days) | .83 |
-
-| 7-8 years of service | 224 hours (28 days) | .86 |
-
-| 8-9 years of service | 232 hours (29 days) | .89 |
-
-| 9-10 years of service | 240 hours (30 days) | .92 |
+| Length of Service (based on hire date) | Eligible PTO        | Daily Rate |
+| -------------------------------------- | ------------------- | ---------- |
+| 0-1 year of service                    | 168 hours (21 days) | .65        |
+| 1-2 years of service                   | 176 hours (22 days) | .68        |
+| 2-3 years of service                   | 184 hours (23 days) | .71        |
+| 3-4 years of service                   | 192 hours (24 days) | .74        |
+| 4-5 years of service                   | 200 hours (25 days) | .77        |
+| 5-6 years of service                   | 208 hours (26 days) | .80        |
+| 6-7 years of service                   | 216 hours (27 days) | .83        |
+| 7-8 years of service                   | 224 hours (28 days) | .86        |
+| 8-9 years of service                   | 232 hours (29 days) | .89        |
+| 9-10 years of service                  | 240 hours (30 days) | .92        |
 
 An employee may not carry over more than 80 PTO hours per year without prior written approval. PTO can be borrowed in your first year of service with the company, with a written request approved by your manager prior to the time off. PTO should not be borrowed typically after the first year of service.
 

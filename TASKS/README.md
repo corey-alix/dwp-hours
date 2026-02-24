@@ -4,6 +4,7 @@
 
 - Email Magic Link.md
 - markdown-rendering.md
+- LATER: See ./TASKS/login-page-redirect-and-policy.md for details
 
 ## SOME WORK REMAINS
 

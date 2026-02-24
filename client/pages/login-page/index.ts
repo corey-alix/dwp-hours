@@ -35,6 +35,9 @@ export class LoginPage extends BaseComponent implements PageComponent {
       <div id="login-message" class="${this._message ? "message" : "hidden"}">
         ${this.renderMessage()}
       </div>
+      <div class="policy-link">
+        <a href="/POLICY.html" target="_blank" rel="noopener noreferrer">View PTO Policy</a>
+      </div>
     `;
   }
 

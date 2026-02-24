@@ -61,4 +61,19 @@ export const styles = `<style>
   .hidden {
     display: none;
   }
+
+  .policy-link {
+    margin-top: var(--space-lg, 24px);
+    text-align: center;
+  }
+
+  .policy-link a {
+    color: var(--color-primary, #007bff);
+    text-decoration: none;
+    font-size: var(--font-size-sm, 0.875rem);
+  }
+
+  .policy-link a:hover {
+    text-decoration: underline;
+  }
 </style>`;
