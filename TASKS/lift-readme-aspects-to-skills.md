@@ -95,7 +95,6 @@ The DWP Hours Tracker application is nearly complete, with comprehensive documen
 - [x] Create component README: `client/components/pto-request-queue/README.md`
 - [x] Create component README: `client/components/pto-sick-card/README.md`
 - [x] Create component README: `client/components/pto-summary-card/README.md`
-- [x] Create component README: `client/components/report-generator/README.md`
 
 ### Phase 9: Architecture Overview Skill
 
