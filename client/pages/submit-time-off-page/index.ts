@@ -4,8 +4,13 @@ import type { PtoEntryForm } from "../../components/pto-entry-form/index.js";
 import type { MonthSummary } from "../../components/month-summary/index.js";
 import type * as ApiTypes from "../../../shared/api-models.js";
 import { computeSelectionDeltas } from "../../components/utils/compute-selection-deltas.js";
-import { isWeekend, addDays } from "../../../shared/dateUtils.js";
+import {
+  isWeekend,
+  addDays,
+  getCurrentYear,
+} from "../../../shared/dateUtils.js";
 import type { CalendarEntry } from "../../components/pto-calendar/index.js";
+import type { PtoCalendar } from "../../components/pto-calendar/index.js";
 import { APIClient } from "../../APIClient.js";
 import { notifications } from "../../app.js";
 import { adoptToolbar } from "../../css-extensions/index.js";
@@ -347,6 +352,8 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
 
   /**
    * Apply visual state based on current _lockState.
+   * In multi-calendar mode, applies per-card locking based on acknowledgements
+   * so only months the employee actually locked are dimmed/disabled.
    */
   private applyLockStateUI(): void {
     const lockBtn = this.shadowRoot.querySelector<HTMLButtonElement>(
@@ -360,8 +367,68 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
     );
     const banner = this.shadowRoot.querySelector<HTMLElement>("#lock-banner");
     const form = this.getPtoForm();
-    const cal = form?.shadowRoot?.querySelector("pto-calendar");
 
+    // ── Multi-calendar mode: per-card locking ──
+    if (form?.isMultiCalendar) {
+      // Build a set of locked month keys ("YYYY-MM") from acknowledgements
+      const lockedMonths = new Set(this._acknowledgements.map((a) => a.month));
+
+      const year = getCurrentYear();
+      const monthCards = Array.from(
+        form.shadowRoot?.querySelectorAll(".month-card") ?? [],
+      ) as HTMLElement[];
+
+      for (const card of monthCards) {
+        const m = card.dataset.month;
+        if (!m) continue;
+        const monthKey = `${year}-${m.padStart(2, "0")}`;
+        const isLocked = lockedMonths.has(monthKey);
+
+        card.classList.toggle("locked", isLocked);
+        const cal = card.querySelector("pto-calendar") as PtoCalendar | null;
+        if (cal) cal.setAttribute("readonly", isLocked ? "true" : "false");
+      }
+
+      // Don't apply global form-level lock in multi-calendar mode
+      form.classList.remove("locked");
+
+      // Toolbar reflects the current/displayed month state
+      // Use the current _lockState which is based on getDisplayedMonth()
+      this.applyToolbarState(lockBtn, submitBtn, cancelBtn, banner);
+      return;
+    }
+
+    // ── Single-calendar mode: global lock ──
+    const cal = form?.shadowRoot?.querySelector<PtoCalendar>("pto-calendar");
+    this.applyToolbarState(lockBtn, submitBtn, cancelBtn, banner);
+
+    switch (this._lockState) {
+      case "unlocked":
+        if (form) form.classList.remove("locked");
+        if (cal) cal.setAttribute("readonly", "false");
+        break;
+
+      case "employee-locked":
+        if (form) form.classList.add("locked");
+        if (cal) cal.setAttribute("readonly", "true");
+        break;
+
+      case "admin-locked":
+        if (form) form.classList.add("locked");
+        if (cal) cal.setAttribute("readonly", "true");
+        break;
+    }
+  }
+
+  /**
+   * Apply toolbar button and banner state based on current _lockState.
+   */
+  private applyToolbarState(
+    lockBtn: HTMLButtonElement | null,
+    submitBtn: HTMLButtonElement | null,
+    cancelBtn: HTMLButtonElement | null,
+    banner: HTMLElement | null,
+  ): void {
     switch (this._lockState) {
       case "unlocked":
         if (lockBtn) {
@@ -375,8 +442,6 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
           banner.textContent = "";
           banner.classList.add("hidden");
         }
-        if (form) form.classList.remove("locked");
-        if (cal) cal.setAttribute("readonly", "false");
         break;
 
       case "employee-locked":
@@ -394,8 +459,6 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
           banner.classList.add("banner-employee");
           banner.classList.remove("banner-admin");
         }
-        if (form) form.classList.add("locked");
-        if (cal) cal.setAttribute("readonly", "true");
         break;
 
       case "admin-locked": {
@@ -411,8 +474,6 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
           banner.classList.add("banner-admin");
           banner.classList.remove("banner-employee");
         }
-        if (form) form.classList.add("locked");
-        if (cal) cal.setAttribute("readonly", "true");
         break;
       }
     }

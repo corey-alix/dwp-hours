@@ -118,6 +118,11 @@ export const styles = `
                     }
                 }
 
+                :host(.multi-calendar) .month-card.locked {
+                    opacity: 0.5;
+                    pointer-events: none;
+                }
+
                 :host(.multi-calendar) .month-card.highlight {
                     animation: highlightPulse 1.2s ease-out;
                 }

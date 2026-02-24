@@ -21,7 +21,6 @@ export const styles = `<style>
 
   pto-entry-form.locked {
     opacity: 0.5;
-    pointer-events: none;
   }
 
   /* ── Stage 1: Sticky toolbar at bottom of viewport ── */
@@ -116,7 +115,7 @@ export const styles = `<style>
   .banner-employee {
     background: rgb(255 193 7 / 15%);
     border: 1px solid var(--color-warning, #ffc107);
-    color: var(--color-on-surface, #333);
+    color: var(--color-text, #333);
   }
 
   .banner-admin {

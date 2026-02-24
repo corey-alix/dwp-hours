@@ -113,6 +113,7 @@
   --border-radius-md: 4px;
   --border-radius-lg: 8px;
   --border-radius-xl: 12px;
+  --border-radius-rounded: 20%;
   --border-style-solid: solid;
 }
 

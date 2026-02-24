@@ -13,6 +13,12 @@ export const toolbarCSS = `
     gap: var(--space-sm, 8px);
   }
 
+  @media (min-width: 768px) {
+    .toolbar {
+      justify-content: flex-end;
+    }
+  }
+
   /* ── Accessibility: respect reduced-motion for any toolbar transitions ── */
 
   @media (prefers-reduced-motion: reduce) {

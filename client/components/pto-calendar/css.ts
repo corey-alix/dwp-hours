@@ -55,16 +55,15 @@ export const styles = `
     position: relative;
     aspect-ratio: 1;
     border: var(--border-width) var(--border-style-solid) var(--color-border);
-    border-radius: var(--border-radius-sm);
-    background: var(--color-surface);
+    background: color-mix(in srgb, var(--color-surface) 85%, transparent);
     padding: var(--space-xs);
     font-size: clamp(var(--font-size-xs), 2vw, var(--font-size-sm));
     text-align: center;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    min-width: max(3ch, 32px);
-    min-height: 32px;
+    min-width: max(3ch, --space-md);
+    min-height: var(--space-md);
 }
 
 .day.empty {
