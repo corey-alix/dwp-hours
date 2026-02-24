@@ -97,6 +97,9 @@ export class EmployeeList extends BaseComponent {
     return `
             <div class="employee-card" data-employee-id="${employee.id}">
                 <slot name="balance-${employee.id}"></slot>
+                <div class="card-header">
+                    <span class="employee-role ${employee.role === "Admin" ? "role-admin" : "role-employee"}">${employee.role}</span>
+                </div>
                 <div class="employee-details">                
                     <div class="detail-item">
                         <span class="detail-label">Name</span>
@@ -117,7 +120,6 @@ export class EmployeeList extends BaseComponent {
                 </div>
 
                 <div class="employee-actions">
-                    <button class="action-btn acknowledge" data-action="acknowledge" data-employee-id="${employee.id}">Acknowledge</button>
                     <button class="action-btn edit" data-action="edit" data-employee-id="${employee.id}">Edit</button>
                     <button class="action-btn delete" data-action="delete" data-employee-id="${employee.id}">Delete</button>
                 </div>

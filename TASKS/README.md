@@ -107,3 +107,4 @@
 - tailwind-styling-pto-employee-info-card.md
 - theming-tips-consistency.md
 - ui-page-consolidation.md
+- admin-employees-design-improvements.md

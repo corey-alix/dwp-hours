@@ -73,13 +73,14 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
     const buttonLabel = this._showForm ? "Cancel" : "Add Employee";
     return `
       ${styles}
-      <p class="capitalize">Review and Modify Employee PTO Rates and Carry Over hours</p>
+      <h2 class="page-heading">Employee Management</h2>
       ${this._showForm ? "<employee-form></employee-form>" : ""}
       <employee-list>
         ${this._employees
           .map(
             (emp) =>
               `
+            <div class="balance-heading" slot="balance-${emp.id}">Available Balance</div>
             <month-summary slot="balance-${emp.id}" data-employee-id="${emp.id}"></month-summary>
             ${
               this._editEmployee && this._editEmployee.id === emp.id

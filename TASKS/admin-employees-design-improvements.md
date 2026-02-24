@@ -1,0 +1,137 @@
+# Admin Employees Design Improvements
+
+## Description
+
+Address design and usability issues identified during a design review of the Admin Employees page (`/admin/employees`). The page displays employee cards with PTO rates, carryover hours, and per-employee balance summaries, plus search/filter and CRUD operations. Issues target inconsistent heading patterns, missing balance context labels, CSS performance anti-patterns, missing accessibility features, layout inconsistencies compared to recently improved pages, unused CSS selectors, and role badge omission.
+
+## Priority
+
+🟢 Low Priority — Visual polish and consistency. The page functions correctly (employee CRUD, inline editing, balance summaries, search/filter all work) but has UX and code quality issues compared to the recently improved `/admin/pto-requests`, `/current-year-summary`, and `/prior-year-summary` pages. No business logic changes required.
+
+## Design Review Findings
+
+Screenshot and shadow DOM captured via `pnpm screenshot /admin/employees admin@example.com`. Key observations:
+
+1. **Duplicate/inconsistent page heading** — The page template renders `<p class="capitalize">Review and Modify Employee PTO Rates and Carry Over hours</p>` using a `<p>` element. The `/admin/pto-requests` and `/current-year-summary` pages use a `<h2 class="page-heading">` pattern with design tokens. This page should follow the same pattern.
+2. **Semantic heading violation** — A `<p>` element is used for what is functionally a page heading. Should be `<h2>` for proper heading hierarchy.
+3. **Balance summaries lack context label** — Each employee card has a slotted `<month-summary>` showing PTO/Sick/Bereavement/Jury Duty balance values with "avail" sub-labels, but there's no heading like "Available Balance" to explain what the numbers represent. The submit-time-off and admin-pto-requests pages established a `<div class="balance-heading">` pattern — this page should follow suit.
+4. **`transition: all` performance anti-pattern** — The `.action-btn` CSS in `employee-list/css.ts` uses `transition: all 0.3s ease` which animates all properties (including layout-triggering ones). Should transition only specific properties (`background-color`, `color`, `border-color`). The `.employee-card` also uses `transition: box-shadow 0.3s ease` which is already specific — good.
+5. **No `prefers-reduced-motion` support** — The card hover and button transitions don't include a `@media (prefers-reduced-motion: reduce)` fallback. The project's CSS Animation Policy requires honoring reduced motion preferences.
+6. **Unused CSS selectors** — `.employee-header`, `.employee-name`, `.employee-role`, `.action-buttons`, `.btn`, `.btn-primary` are defined in `employee-list/css.ts` but not used in the rendered template. The card template uses `.employee-details` directly without a `.employee-header` wrapper. This dead CSS should be removed.
+7. **Employee role not displayed on card** — The CSS defines `.employee-role` styles (pill badge) but the card template doesn't render the employee's role anywhere. Admin vs Employee distinction is invisible. The role should be shown as a badge in the card header.
+8. **Card layout not mobile-first** — The `.employee-grid` uses `grid-template-columns: repeat(auto-fill, minmax(18em, 1fr))`. Other pages have been migrated to mobile-first CSS with `grid-template-columns: 1fr` by default and `@media (min-width: 768px)` breakpoints (Implementation Learning #8). Cards should default to single-column on mobile.
+9. **"Acknowledge" button is unnecessary** — The "Acknowledge" button duplicates the monthly review feature at `/admin/monthly-review`. It should be removed to reduce action bar clutter.
+10. **No delete confirmation differentiation** — The delete action uses a confirmation dialog (good).
+11. **CSS fallback values in page css.ts** — The page's `css.ts` uses hardcoded fallback values like `var(--space-md, 16px)` and `var(--color-primary, #007bff)`. Other pages have removed fallbacks since the design token system is established. These should be cleaned up for consistency.
+12. **month-summary margin uses `1em` instead of design token** — The `month-summary { margin-bottom: 1em; }` rule in the page's `css.ts` should use `var(--space-md)` instead of a hardcoded `1em` value.
+
+## Checklist
+
+### Stage 1: Fix Page Heading and Semantic Hierarchy
+
+The page uses a `<p>` element for its heading. Consolidate to the project's standard `<h2 class="page-heading">` pattern.
+
+- [x] Replace `<p class="capitalize">Review and Modify Employee PTO Rates and Carry Over hours</p>` with `<h2 class="page-heading">Employee Management</h2>` in the page template
+- [x] Add `.page-heading` styles to the page's `css.ts` file (matching pattern: centered, `var(--font-size-xl)`, `var(--font-weight-semibold)`)
+- [x] Remove the now-redundant `.capitalize` class usage
+- [x] Clean up CSS fallback values — remove hardcoded fallbacks like `16px`, `#007bff`, `#333`, `4px`, `8px`, `1rem` from `css.ts`
+- [x] Replace `margin-bottom: 1em` on `month-summary` with `margin-bottom: var(--space-md)`
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+
+### Stage 2: Add Balance Context Labels
+
+The balance summaries need heading labels to explain what the numbers mean (Implementation Learning #1).
+
+- [x] Add a `<div class="balance-heading">Available Balance</div>` label above each slotted `<month-summary>` element in the page template (sibling div wrapping approach, matching admin-pto-requests pattern)
+- [x] Style the balance heading using existing design tokens (matching the pattern from submit-time-off and admin-pto-requests pages)
+- [x] Ensure the label is visible on mobile viewports
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+
+### Stage 3: Add Employee Role Badge to Cards
+
+The role (Admin/Employee) is stored but not displayed. Show it as a pill badge on each card.
+
+- [x] Add a role badge element to the card template in `renderEmployeeCard()` — use the existing `.employee-role` CSS class (already defined, just unused)
+- [x] Position the role badge in a card header row alongside the employee name
+- [x] Use distinct colors for Admin vs Employee roles (e.g., Admin uses `--color-primary`, Employee uses `--color-text-secondary` or a neutral badge)
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+
+### Stage 4: Fix CSS Transitions and Add Reduced Motion Support
+
+The CSS has performance anti-patterns and missing accessibility features.
+
+- [x] Replace `transition: all 0.3s ease` on `.action-btn` with `transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease` (animate only properties that change on hover)
+- [x] Add `@media (prefers-reduced-motion: reduce)` block to disable/reduce transitions on `.action-btn`, `.employee-card`, `.btn`, and any other animated elements
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+- [x] `pnpm run lint:css` passes
+
+### Stage 5: Remove Unused CSS Selectors
+
+Dead CSS adds maintenance burden and confusion. Clean up selectors not used in templates.
+
+- [x] Remove `.employee-header` (not used in card template — card uses `.employee-details` directly)
+- [x] Remove `.employee-name` (card uses `.detail-value.employee-identifier` for the name, not `.employee-name`)
+- [x] Remove `.action-buttons` (not used in any template)
+- [x] Remove `.btn` and `.btn-primary` if not used in any template (the toolbar uses `.action-btn` classes instead)
+- [x] Verify each removal by grep-searching for the class name in `employee-list/index.ts` and any test files
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+
+### Stage 6: Switch to Mobile-First Card Layout
+
+The card layout should follow the project's mobile-first CSS pattern (Implementation Learning #8).
+
+- [x] Replace `.employee-grid` `grid-template-columns: repeat(auto-fill, minmax(18em, 1fr))` with `grid-template-columns: 1fr` (single column on mobile)
+- [x] Add `@media (min-width: 768px)` breakpoint with multi-column grid layout (e.g., `repeat(auto-fill, minmax(18em, 1fr))`)
+- [x] Verify card rendering at 375px viewport width
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+
+### Stage 7: Remove "Acknowledge" Button
+
+The "Acknowledge" button on employee cards is unclear and not needed — monthly acknowledgment is handled on `/admin/monthly-review`.
+
+- [x] Remove the "Acknowledge" button from `renderEmployeeCard()` in `employee-list/index.ts`
+- [x] Remove the `.action-btn.acknowledge` and `.action-btn.acknowledge:hover` CSS rules from `employee-list/css.ts`
+- [x] Remove the `employee-acknowledge` event handler in `admin-employees-page/index.ts` if one exists, or verify no handler is wired up
+- [x] Update Vitest tests if they reference the Acknowledge button
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+
+## Implementation Notes
+
+- Page component: [client/pages/admin-employees-page/index.ts](../client/pages/admin-employees-page/index.ts) (324 lines)
+- Page CSS: [client/pages/admin-employees-page/css.ts](../client/pages/admin-employees-page/css.ts) (35 lines — minimal, uses hardcoded fallbacks)
+- List component: [client/components/employee-list/index.ts](../client/components/employee-list/index.ts) (200 lines)
+- List CSS: [client/components/employee-list/css.ts](../client/components/employee-list/css.ts) (216 lines — has unused selectors)
+- Form component: [client/components/employee-form/index.ts](../client/components/employee-form/index.ts)
+- Existing Vitest tests: [tests/components/employee-list.test.ts](../tests/components/employee-list.test.ts)
+- Balance hydration: already implemented in page component — uses `BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS` for limits
+- Follow existing design token patterns from `tokens.css` for any new color/spacing values
+- All CSS changes must use `rgb()` with alpha percentages, not `rgba()`
+- Use `pnpm screenshot /admin/employees admin@example.com` to capture screenshots for visual verification
+- The balance heading pattern was established in the submit-time-off page — reuse the same approach (sibling `<div class="balance-heading">` above `<month-summary>`)
+
+## Implementation Learnings (from prior pages)
+
+1. **Balance heading added as sibling div, not inside `<month-summary>`** — The "Available Balance" label should be added as a `<div class="balance-heading">` above `<month-summary>` in the page template, rather than modifying the `month-summary` component. This keeps `month-summary` generic and reusable.
+2. **Day cell min-size change is global** — Any shared component CSS changes affect ALL consumers. Be cautious with `employee-list` style changes if the component is used elsewhere.
+3. **Generic screenshot utility** — Use `pnpm screenshot <route> [user] [component]` to capture any page. Output goes to `/tmp/<slug>.png` and `/tmp/<slug>-shadow.html`.
+4. **PTO type color tokens already exist in `tokens.css`** — `--color-pto-vacation`, `--color-pto-sick`, `--color-pto-bereavement`, `--color-pto-jury-duty` are defined for both light and dark themes.
+5. **Dead code removal was safe** — Unused CSS selectors (`.employee-header`, `.employee-name`, `.employee-role`) are defined but never referenced in the template. Removing them has no behavioral impact — confirm with grep first.
+6. **Toggle state persistence via `localStorage`** — Reuse pattern from `pto-pto-card` if adding collapsible sections.
+7. **Mobile-first card layout** — Use `grid-template-columns: 1fr` by default, with `@media (min-width: 768px)` breakpoint for multi-column. Do NOT use `max-width` media queries.
+8. **CSS fallback cleanup** — The `css.ts` file uses `var(--token, fallback)` pattern throughout, but the design token system is fully established. Remove fallbacks to keep CSS clean and consistent with other pages.
+
+## Questions and Concerns
+
+1. What does the "Acknowledge" button do on an employee card?
+   REMOVE IT. It duplicates the monthly review feature and clutters the card action bar.
+2. Should the "Add Employee" button remain in the page template or move into the `<employee-list>` component?
+   KEEP IN PAGE TEMPLATE. Simpler implementation, avoids component API changes.
+3. Should employee cards show computed annual PTO hours (ptoRate × workdays) in addition to the daily rate?
+   NO. The daily rate is all the admin needs to see.

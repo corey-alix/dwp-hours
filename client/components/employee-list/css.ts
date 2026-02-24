@@ -50,36 +50,19 @@ export const styles = `<style>
     color: var(--color-text-secondary);
   }
 
-  .action-buttons {
-    display: flex;
-    gap: var(--space-sm);
-  }
-
-  .btn {
-    padding: var(--space-xs) var(--space-md);
-    border: none;
-    border-radius: var(--border-radius);
-    cursor: pointer;
-    font-size: var(--font-size-sm);
-    transition: background-color 0.3s ease;
-  }
-
-  .btn-primary {
-    background: var(--color-primary);
-    color: var(--color-on-primary);
-  }
-
-  .btn-primary:hover {
-    background: var(--color-primary-hover);
-  }
-
   .employee-grid {
     flex: 1;
     overflow-y: auto;
     padding: var(--space-md);
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(18em, 1fr));
+    grid-template-columns: 1fr;
     gap: var(--space-md);
+  }
+
+  @media (min-width: 768px) {
+    .employee-grid {
+      grid-template-columns: repeat(auto-fill, minmax(18em, 1fr));
+    }
   }
 
   .employee-card {
@@ -95,33 +78,34 @@ export const styles = `<style>
     box-shadow: var(--shadow-lg);
   }
 
-  .employee-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: var(--space-sm);
-  }
-
-  .employee-name {
-    font-size: var(--font-size-lg);
-    font-weight: var(--font-weight-semibold);
-    color: var(--color-text);
-    margin: 0;
-  }
-
   .employee-identifier {
     color: var(--color-text-secondary);
     font-size: var(--font-size-sm);
     margin: 0;
   }
 
+  .card-header {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: var(--space-sm);
+  }
+
   .employee-role {
-    background: var(--color-primary);
-    color: var(--color-on-primary);
     padding: var(--space-xs) var(--space-sm);
     border-radius: var(--border-radius-xl);
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-medium);
+  }
+
+  .employee-role.role-admin {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+  }
+
+  .employee-role.role-employee {
+    background: var(--color-surface);
+    color: var(--color-text-secondary);
+    border: var(--border-width) solid var(--color-border);
   }
 
   .employee-details {
@@ -164,22 +148,12 @@ export const styles = `<style>
     border-radius: var(--border-radius);
     cursor: pointer;
     font-size: var(--font-size-xs);
-    transition: all 0.3s ease;
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
   }
 
   .action-btn:hover {
     background: var(--color-surface-hover);
     border-color: var(--color-border-hover);
-  }
-
-  .action-btn.acknowledge {
-    border-color: var(--color-success);
-    color: var(--color-success);
-  }
-
-  .action-btn.acknowledge:hover {
-    background: var(--color-success);
-    color: var(--color-on-success);
   }
 
   .action-btn.delete {
@@ -190,6 +164,13 @@ export const styles = `<style>
   .action-btn.delete:hover {
     background: var(--color-error);
     color: var(--color-on-error);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .action-btn,
+    .employee-card {
+      transition: none;
+    }
   }
 
   .empty-state {

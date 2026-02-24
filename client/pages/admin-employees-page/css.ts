@@ -1,27 +1,39 @@
 export const styles = `<style>
   :host {
     display: block;
-    padding: var(--space-md, 16px);
+    padding: var(--space-md);
   }
 
-  h2 {
-    color: var(--color-text, #333);
-    margin-bottom: var(--space-md, 16px);
+  .page-heading {
+    text-align: center;
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text);
+    margin: var(--space-md) 0 var(--space-sm) 0;
+  }
+
+  .balance-heading {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-align: center;
+    margin-bottom: var(--space-xs);
   }
 
   month-summary {
-    margin-bottom: 1em;
+    margin-bottom: var(--space-md);
     justify-content: space-between;
   }
 
   .add-btn {
-    background: var(--color-primary, #007bff);
+    background: var(--color-primary);
     color: white;
     border: none;
-    padding: var(--space-sm, 8px) var(--space-md, 16px);
-    border-radius: var(--border-radius, 4px);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--border-radius);
     cursor: pointer;
-    font-size: var(--font-size-md, 1rem);
+    font-size: var(--font-size-md);
   }
 
   .add-btn:hover {
