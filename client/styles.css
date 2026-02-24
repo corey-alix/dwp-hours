@@ -11,7 +11,9 @@
 }
 
 pto-notification {
-  z-index: 2;
+  position: fixed;
+  top: 0;
+  right: 0;
 }
 
 /* Theme transition class for smooth theme switching */
@@ -28,6 +30,9 @@ body {
   line-height: var(--line-height-base);
   color: var(--color-text);
   background-color: var(--color-surface);
+}
+
+#app-wrapper {
   transform: scale(var(--scale-factor, 1));
   transform-origin: top;
 }
