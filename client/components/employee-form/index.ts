@@ -21,10 +21,14 @@ export class EmployeeForm extends BaseComponent {
 
   connectedCallback(): void {
     super.connectedCallback();
-    // Focus the first form field when component is connected
-    // Use setTimeout for compatibility with test environments
+    // Focus the first form field on desktop only — on mobile/touch devices
+    // auto-focus opens the on-screen keyboard which is disruptive.
+    // Use setTimeout for compatibility with test environments.
     setTimeout(() => {
-      this.focusFirstField();
+      const isDesktop = window.matchMedia("(pointer: fine)").matches;
+      if (isDesktop) {
+        this.focusFirstField();
+      }
     }, 0);
   }
 

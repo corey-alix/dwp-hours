@@ -58,6 +58,14 @@ Hard-won patterns from real implementations in this project:
 - **Always provide a `prefersReducedMotion()` check** that skips animation entirely (instant state change) rather than just shortening duration.
 - Query `window.matchMedia("(prefers-reduced-motion: reduce)")` at animation time, not at component init, so runtime preference changes are respected.
 
+### innerHTML re-render destroys scroll context on mobile
+
+- **Never call `requestUpdate()` on a parent component to enter/exit edit mode** when an animated child component handles its own card→editor transition. The parent's `renderTemplate()` replaces its entire shadow DOM via `innerHTML`, which destroys the child element (and its scroll position). On mobile single-column layouts the page height briefly collapses to near-zero, causing the browser to clamp `window.scrollY` to 0. By the time the child is recreated and populated, the user is staring at the top of the page.
+- **Set properties directly on the existing child element** instead of re-rendering the parent. For example, set `list.editingEmployeeId = id` on the live `<employee-list>` rather than calling `this.requestUpdate()` on `<admin-employees-page>`. The child's `attributeChangedCallback` then runs `transitionCardToEditor()` with the DOM intact and scroll preserved.
+- **The actual scroll container matters** — `.employee-grid` has `overflow-y: auto` and `flex: 1`, but its parent chain doesn't establish a fixed-height constraint, so `scrollHeight === clientHeight` (it's never scrollable). The real scroll container is `window`. Always use `window.scrollBy()` and `getBoundingClientRect()` for position correction, never `grid.scrollTop`.
+- **Use `getBoundingClientRect().top` before and after re-render** to calculate drift. After the synchronous `requestUpdate()` (innerHTML replacement), read the editor's `getBoundingClientRect().top` — this forces a layout before the browser paints, making the `window.scrollBy(0, drift)` correction invisible to the user. Measured drift is <1px.
+- **Cancel and form-cancel handlers need the same treatment** — when exiting inline edit mode, clear `editingEmployeeId` on the existing child component rather than re-rendering the parent. Distinguish between "was inline editing" vs "was showing add form" to decide whether a parent re-render is needed.
+
 ## Examples
 
 Common user queries that should trigger this skill:

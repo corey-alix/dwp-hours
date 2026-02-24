@@ -33,8 +33,15 @@ export class EmployeeList extends BaseComponent {
   ) {
     if (oldValue === newValue) return;
     if (name === "editing-employee-id") {
+      const prevId = this._editingEmployeeId;
       this._editingEmployeeId = newValue ? parseInt(newValue) : null;
-      this.requestUpdate();
+
+      // Animate card → editor transition when entering edit mode
+      if (this._editingEmployeeId !== null && prevId === null) {
+        this.transitionCardToEditor(this._editingEmployeeId);
+      } else {
+        this.requestUpdate();
+      }
     }
   }
 
@@ -136,7 +143,7 @@ export class EmployeeList extends BaseComponent {
 
   private renderInlineEditor(employee: Employee): string {
     return `
-            <div class="inline-editor anim-slide-down-in" data-employee-id="${employee.id}">
+            <div class="inline-editor anim-fade-in" data-employee-id="${employee.id}">
                 <slot name="editor-${employee.id}">
                   <employee-form employee='${JSON.stringify(employee)}' is-edit="true"></employee-form>
                 </slot>
@@ -148,6 +155,114 @@ export class EmployeeList extends BaseComponent {
   private _deleteTimer: ReturnType<typeof setTimeout> | null = null;
   private _deleteTarget: HTMLElement | null = null;
   private static readonly DELETE_HOLD_MS = 1500;
+  /** Duration for card fade-out before editor appears (matches --duration-normal). */
+  private static readonly TRANSITION_MS = 250;
+
+  /**
+   * Animate the card fading out, then re-render with the editor fading in.
+   * Preserves `.employee-grid` scroll position across the innerHTML rebuild.
+   * Follows CSS Animation Assistant rules: inline styles for sequenced phases,
+   * transitionend filtered by propertyName, setTimeout fallback, reduced-motion
+   * check, and deduped completion logic.
+   */
+  private transitionCardToEditor(employeeId: number): void {
+    const card = this.shadowRoot.querySelector(
+      `.employee-card[data-employee-id="${employeeId}"]`,
+    ) as HTMLElement | null;
+
+    // No card found (e.g. filtered out) — skip animation
+    if (!card) {
+      this.renderEditorInPlace(null);
+      return;
+    }
+
+    // Capture the card's screen position (works with any scroll container).
+    const cardScreenTop = card.getBoundingClientRect().top;
+
+    // Respect reduced-motion preference — instant swap, preserve position
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    if (prefersReducedMotion) {
+      this.renderEditorInPlace(cardScreenTop);
+      return;
+    }
+
+    // Phase 1: fade out the card
+    let completed = false;
+    const onComplete = () => {
+      if (completed) return;
+      completed = true;
+      clearTimeout(fallbackTimer);
+      card.removeEventListener("transitionend", onTransitionEnd);
+
+      // Phase 2: re-render with editor (which has anim-fade-in)
+      this.renderEditorInPlace(cardScreenTop);
+    };
+
+    const onTransitionEnd = (e: TransitionEvent) => {
+      if (e.propertyName === "opacity") onComplete();
+    };
+
+    card.addEventListener("transitionend", onTransitionEnd);
+    const fallbackTimer = setTimeout(
+      onComplete,
+      EmployeeList.TRANSITION_MS + 50,
+    );
+
+    // Trigger the fade-out via inline styles
+    card.style.transition = `opacity ${EmployeeList.TRANSITION_MS}ms cubic-bezier(0.4, 0, 1, 1)`;
+    card.style.opacity = "0";
+  }
+
+  /**
+   * Re-render and adjust window scroll so the new `.inline-editor` appears
+   * at the same screen position the card occupied.
+   *
+   * The `.employee-grid` is NOT a scroll container (it grows freely with
+   * content — scrollHeight === clientHeight). The actual scroll container
+   * is the document/window. We use `window.scrollBy()` with the difference
+   * between the editor's screen position and the card's original screen
+   * position to eliminate any visible jump.
+   *
+   * @param cardScreenTop - card's `getBoundingClientRect().top` before
+   *   re-render, or null to skip scroll adjustment.
+   */
+  private renderEditorInPlace(cardScreenTop: number | null): void {
+    // requestUpdate → renderTemplate is synchronous (innerHTML replacement).
+    this.requestUpdate();
+
+    // The fallback <employee-form> inside the <slot> is created via innerHTML.
+    // employee-form only observes the `is-edit` attribute; the `employee`
+    // attribute is NOT observed, so we must set the JS property after render.
+    // This is synchronous (before the browser paints).
+    if (this._editingEmployeeId !== null) {
+      const form = this.shadowRoot.querySelector(
+        ".inline-editor employee-form",
+      ) as any;
+      const employee = this._employees.find(
+        (e) => e.id === this._editingEmployeeId,
+      );
+      if (form && employee) {
+        form.employee = employee;
+      }
+    }
+
+    if (cardScreenTop === null) return;
+
+    const editor = this.shadowRoot.querySelector(
+      ".inline-editor",
+    ) as HTMLElement | null;
+
+    if (editor) {
+      // getBoundingClientRect() forces layout; we're still before the paint.
+      const editorScreenTop = editor.getBoundingClientRect().top;
+      const drift = editorScreenTop - cardScreenTop;
+      if (Math.abs(drift) > 1) {
+        window.scrollBy(0, drift);
+      }
+    }
+  }
 
   protected setupEventDelegation() {
     super.setupEventDelegation();

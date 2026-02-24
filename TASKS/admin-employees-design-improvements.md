@@ -149,6 +149,39 @@ The delete button currently shows a `<confirmation-dialog>`. Replace it with a l
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
 
+### Stage 12: Skip Auto-Focus on Mobile to Prevent Keyboard Pop-Up
+
+When the inline editor opens on mobile, `connectedCallback` immediately focuses the "Full Name" input, which triggers the on-screen keyboard. On mobile viewports the user should tap the field they want — auto-focus should only apply on desktop.
+
+- [x] Guard `focusFirstField()` in `employee-form/index.ts` with a viewport-width check (e.g., `window.innerWidth >= 768`) or `window.matchMedia('(pointer: fine)')` so it only fires on non-touch/desktop devices
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+
+### Stage 13: Animate Card-to-Editor Transition on Mobile
+
+When clicking "Edit" on mobile, the full `innerHTML` re-render resets the `.employee-grid` scroll position to 0, causing the card to vanish and the page to jump to the top while the editor appears off-screen below. The card should fade out in-place, then the editor should fade in at the same scroll position.
+
+Root cause: `BaseComponent.renderTemplate()` replaces all shadow DOM content via `innerHTML`, which destroys the scroll container and resets scroll to 0. On desktop multi-column this is less noticeable but on mobile single-column it's jarring.
+
+- [x] In `employee-list/index.ts`, override `attributeChangedCallback` for `editing-employee-id`: when transitioning from card → editor (null → value), run an animated transition instead of calling `requestUpdate()` immediately
+- [x] Phase 1 — Fade out the target card: apply inline `opacity: 0` transition (accelerate easing, `--duration-normal`) on the `.employee-card[data-employee-id]` element
+- [x] Phase 2 — On transition completion: capture `.employee-grid` `scrollTop`, call `requestUpdate()`, restore `scrollTop` synchronously (no `requestAnimationFrame`), do NOT call `scrollIntoView`
+- [x] Follow CSS Animation Assistant lessons: filter `transitionend` by `e.propertyName === 'opacity'`, add `setTimeout` fallback (300ms), deduplicate completion logic, clean up inline styles
+- [x] Respect `prefers-reduced-motion`: skip animation, just re-render with scroll preservation
+- [x] Change inline editor class from `anim-slide-down-in` to `anim-fade-in` — fade matches the crossfade intent better than slide-down on mobile
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+
+**Current solution (v3)**: `transitionCardToEditor()` captures the card's screen position (`card.getBoundingClientRect().top`) before the fade-out animation. After the fade completes, `renderEditorInPlace()` does a synchronous `requestUpdate()` (innerHTML replacement), then reads the editor's screen position (`editor.getBoundingClientRect().top`) and calls `window.scrollBy(0, drift)` to eliminate the position difference. This works because `getBoundingClientRect()` forces a synchronous layout before the browser paints, so the scroll adjustment is invisible. Verified via Playwright E2E test (`e2e/employee-edit-scroll.spec.ts`): position drift is <1px.
+
+**Previous issues resolved**:
+
+- v1: Used `requestAnimationFrame` + `scrollIntoView` → caused two-step scroll (flash at top, then smooth scroll to editor)
+- v2: Restored old `grid.scrollTop` synchronously without `scrollIntoView` → grid.scrollTop was always 0 because the grid is NOT a scroll container (scrollHeight === clientHeight). The `overflow-y: auto` on `.employee-grid` never activates because the flex/height chain doesn't constrain the grid height — it grows freely with content. Manipulating grid.scrollTop was a no-op.
+- v2.5: Used `grid.scrollTop = editor.offsetTop - cardVisualOffset` with grid-relative offsets → same root cause as v2 (grid doesn't scroll), so this was also a no-op. The editor drifted 450px from the card position.
+
+**Root cause discovery**: The `.employee-grid` has `overflow-y: auto` and `flex: 1`, but its parent chain (`:host { height: 100% }` → `<employee-list>` → `<admin-employees-page>` → `<main id="router-outlet">`) doesn't establish a fixed-height constraint. The `100%` height cascades up to an unconstrained parent, so the grid grows freely. The actual scroll container is the **document body/window**, not the grid. E2E test confirmed: `scrollHeight === clientHeight` on the grid (always 0 scroll).
+
 ## Implementation Notes
 
 - Page component: [client/pages/admin-employees-page/index.ts](../client/pages/admin-employees-page/index.ts) (324 lines)
@@ -178,6 +211,8 @@ The delete button currently shows a `<confirmation-dialog>`. Replace it with a l
 10. **Employee form already has keyboard handlers** — `handleDelegatedKeydown` in `employee-form/index.ts` already handles Enter and Escape, but the Enter handler has a bug: it returns early when `e.target instanceof HTMLInputElement`, thinking native form submission will handle it. Since the buttons are `type="button"` (not `type="submit"`), native submission never fires. Fix: remove the early return and always trigger the submit button click on Enter.
 11. **Long-press pattern uses pointer events** — `pointerdown`/`pointerup`/`pointerleave` provide unified mouse+touch handling. Use a `setTimeout` for the 1.5s hold duration, clear it on up/leave. The CSS fill effect uses `::after` pseudo-element with `transform: scaleX(0→1)` for GPU acceleration per the animation policy.
 12. **WCAG touch target minimum** — 44×44px minimum for interactive elements. The current `space-xs` + `space-sm` padding on action buttons is below this threshold.
+13. **Skip auto-focus on mobile** — `window.matchMedia("(pointer: fine)")` distinguishes mouse/trackpad (desktop) from touch (mobile). Auto-focusing an input on mobile opens the on-screen keyboard immediately, which is disruptive. Only auto-focus on `pointer: fine` devices.
+14. **innerHTML re-render resets scroll — use screen coordinates, not container scroll** — `BaseComponent.renderTemplate()` replaces all shadow DOM via `innerHTML`. The `.employee-grid` has `overflow-y: auto` but is NOT actually a scroll container — `scrollHeight === clientHeight` because the flex/height chain doesn't constrain it. The real scroll container is the window/body. Don't manipulate `grid.scrollTop` (it's always 0). Instead: (1) capture `card.getBoundingClientRect().top` before re-render, (2) call `requestUpdate()` (synchronous), (3) read `editor.getBoundingClientRect().top` (forces layout before paint), (4) call `window.scrollBy(0, drift)`. This positions the editor at the card's exact screen location with <1px drift.
 
 ## Questions and Concerns
 

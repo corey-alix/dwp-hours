@@ -171,13 +171,25 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
     }) as EventListener);
 
     this.shadowRoot.addEventListener("form-cancel", (() => {
+      const wasInlineEdit = !!this._editEmployee && !this._showForm;
       this._showForm = false;
       this._editEmployee = null;
-      this.requestUpdate();
-      requestAnimationFrame(() => {
-        this.populateList();
-        this.hydrateBalanceSummaries();
-      });
+
+      if (wasInlineEdit) {
+        // Clear editing state on existing employee-list — no admin re-render.
+        // Same reasoning as handleEditEmployee: full re-render destroys the
+        // employee-list and resets mobile scroll position.
+        const list = this.shadowRoot.querySelector("employee-list") as any;
+        if (list) {
+          list.editingEmployeeId = null;
+        }
+      } else {
+        this.requestUpdate();
+        requestAnimationFrame(() => {
+          this.populateList();
+          this.hydrateBalanceSummaries();
+        });
+      }
     }) as EventListener);
   }
 
@@ -187,22 +199,18 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
       notifications.error(`Employee ${employeeId} not found.`);
       return;
     }
-    // Use inline editor inside employee-list rather than top-level form
+    // Track edit state for cancel/submit handlers
     this._editEmployee = employee;
     this._showForm = false;
-    this.requestUpdate();
 
-    // After render, populate the inline editor's property so it receives the object (not via attribute)
-    requestAnimationFrame(() => {
-      const inlineForm = this.shadowRoot.querySelector(
-        `employee-form[slot="editor-${employee.id}"]`,
-      ) as any;
-      if (inlineForm) {
-        inlineForm.employee = employee;
-      }
-      this.populateList();
-      this.hydrateBalanceSummaries();
-    });
+    // Set editing mode directly on the existing employee-list — no admin page
+    // re-render. A full requestUpdate() would destroy and recreate the
+    // employee-list via innerHTML, which on mobile (single-column) causes the
+    // browser to clamp scroll to 0 while the new list is still empty.
+    const list = this.shadowRoot.querySelector("employee-list") as any;
+    if (list) {
+      list.editingEmployeeId = employeeId;
+    }
   }
 
   private async handleDeleteEmployee(employeeId: number): Promise<void> {
