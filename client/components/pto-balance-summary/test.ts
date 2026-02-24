@@ -36,13 +36,14 @@ function computeBalanceFromSeed(
   // Annual limits from business rules
   const ptoLimit = Math.round(emp.pto_rate * 260) + emp.carryover_hours;
   const sickLimit = BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.SICK;
-  const otherLimit = BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.OTHER;
+  const bereavementLimit = BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.BEREAVEMENT;
+  const juryDutyLimit = BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.JURY_DUTY;
 
   const categories: PtoBalanceCategoryItem[] = [
     { category: "PTO", remaining: ptoLimit - used.PTO },
     { category: "Sick", remaining: sickLimit - used.Sick },
-    { category: "Bereavement", remaining: otherLimit - used.Bereavement },
-    { category: "Jury Duty", remaining: otherLimit - used["Jury Duty"] },
+    { category: "Bereavement", remaining: bereavementLimit - used.Bereavement },
+    { category: "Jury Duty", remaining: juryDutyLimit - used["Jury Duty"] },
   ];
 
   return {

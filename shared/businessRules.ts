@@ -3,6 +3,7 @@ import {
   getWorkdaysBetween,
   parseDate,
   formatDate,
+  compareDates,
 } from "./dateUtils.js";
 import type { PtoBalanceData } from "./api-models.d.ts";
 
@@ -44,16 +45,64 @@ export interface MonthLockInfo {
   acknowledgedAt: string;
 }
 
+// ── PTO Earning Schedule (from POLICY.md) ──
+
+export interface PtoRateTier {
+  /** Minimum completed years of service (inclusive). */
+  minYears: number;
+  /** Maximum completed years of service (exclusive). Use Infinity for the final tier. */
+  maxYears: number;
+  /** Total eligible PTO hours per service year. */
+  annualHours: number;
+  /** Hours accrued per work day. */
+  dailyRate: number;
+}
+
+/**
+ * Official PTO earning schedule.
+ * Rate increases on July 1 — see `getEffectivePtoRate` for timing rules.
+ */
+export const PTO_EARNING_SCHEDULE: readonly PtoRateTier[] = [
+  { minYears: 0, maxYears: 1, annualHours: 168, dailyRate: 0.65 },
+  { minYears: 1, maxYears: 2, annualHours: 176, dailyRate: 0.68 },
+  { minYears: 2, maxYears: 3, annualHours: 184, dailyRate: 0.71 },
+  { minYears: 3, maxYears: 4, annualHours: 192, dailyRate: 0.74 },
+  { minYears: 4, maxYears: 5, annualHours: 200, dailyRate: 0.77 },
+  { minYears: 5, maxYears: 6, annualHours: 208, dailyRate: 0.8 },
+  { minYears: 6, maxYears: 7, annualHours: 216, dailyRate: 0.83 },
+  { minYears: 7, maxYears: 8, annualHours: 224, dailyRate: 0.86 },
+  { minYears: 8, maxYears: 9, annualHours: 232, dailyRate: 0.89 },
+  { minYears: 9, maxYears: Infinity, annualHours: 240, dailyRate: 0.92 },
+] as const;
+
+/** Maximum daily accrual rate (9+ years of service). */
+export const MAX_DAILY_RATE = 0.92;
+
+/** Maximum annual PTO entitlement in hours. */
+export const MAX_ANNUAL_PTO = 240;
+
+/** Maximum hours that may carry over from the prior year without admin approval. */
+export const CARRYOVER_LIMIT = 80;
+
+/** Number of sick days (at 8 hrs/day = 24 hrs) before PTO must be used. */
+export const SICK_HOURS_BEFORE_PTO = 24;
+
+/** Number of consecutive bereavement days before PTO must be used. */
+export const BEREAVEMENT_CONSECUTIVE_DAYS_BEFORE_PTO = 2;
+
 // Business rules constants
 export const BUSINESS_RULES_CONSTANTS = {
   HOUR_INCREMENT: 4,
   WEEKEND_DAYS: [0, 6] as number[], // Sunday = 0, Saturday = 6
-  /** Default annual PTO allocation for new hires (hours). */
-  BASELINE_PTO_HOURS_PER_YEAR: 96,
   ANNUAL_LIMITS: {
-    PTO: 80,
-    SICK: 24,
-    OTHER: 40, // Bereavement and Jury Duty
+    PTO: CARRYOVER_LIMIT,
+    SICK: SICK_HOURS_BEFORE_PTO,
+    /** @deprecated Use BEREAVEMENT or JURY_DUTY instead */
+    OTHER: 16,
+    /** 2 consecutive days × 8 hrs per policy bereavement rule */
+    BEREAVEMENT: 16,
+    /** 3 days × 8 hrs per policy jury-duty rule (same as sick) */
+    JURY_DUTY: 24,
   },
   FUTURE_LIMIT: {
     YEARS_AHEAD: 1,
@@ -79,8 +128,13 @@ export const VALIDATION_MESSAGES = {
   "employee.not_found": "Employee not found",
   "entry.not_found": "PTO entry not found",
   "hours.exceed_annual_sick": "Sick time cannot exceed 24 hours annually",
+  "hours.exceed_annual_bereavement":
+    "Bereavement cannot exceed 16 hours (2 days) annually",
+  "hours.exceed_annual_jury_duty":
+    "Jury Duty cannot exceed 24 hours (3 days) annually",
+  /** @deprecated Use hours.exceed_annual_bereavement or hours.exceed_annual_jury_duty */
   "hours.exceed_annual_other":
-    "Bereavement/Jury Duty cannot exceed 40 hours annually",
+    "Bereavement/Jury Duty cannot exceed allowed hours annually",
   "hours.exceed_pto_balance": "PTO request exceeds available PTO balance",
   "date.future_limit": "Entries cannot be made into the next year",
   "month.acknowledged":
@@ -93,6 +147,14 @@ export const VALIDATION_MESSAGES = {
     "This month has not ended yet. Admin can lock starting {earliestDate}",
   "month.admin_locked_cannot_unlock":
     "This month has been locked by the administrator and cannot be unlocked",
+  "hours.exceed_carryover":
+    "Carryover cannot exceed 80 hours from the prior year",
+  "pto.rate_not_found":
+    "Unable to determine PTO rate for the given hire date and date",
+  "sick.pto_required_after_threshold":
+    "Sick time has exceeded 24 hours (3 days) this year — PTO must be used for additional absences",
+  "bereavement.pto_required_after_threshold":
+    "Bereavement has exceeded 2 consecutive days — PTO must be used for additional absences",
 } as const;
 
 export const SUCCESS_MESSAGES = {
@@ -191,10 +253,18 @@ export function validateAnnualLimits(
       return { field: "hours", messageKey: "hours.exceed_annual_sick" };
     }
     if (
-      (type === "Bereavement" || type === "Jury Duty") &&
-      totalAnnualHours + hours > BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.OTHER
+      type === "Bereavement" &&
+      totalAnnualHours + hours >
+        BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.BEREAVEMENT
     ) {
-      return { field: "hours", messageKey: "hours.exceed_annual_other" };
+      return { field: "hours", messageKey: "hours.exceed_annual_bereavement" };
+    }
+    if (
+      type === "Jury Duty" &&
+      totalAnnualHours + hours >
+        BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.JURY_DUTY
+    ) {
+      return { field: "hours", messageKey: "hours.exceed_annual_jury_duty" };
     }
   }
   return null;
@@ -377,8 +447,8 @@ export function computeEmployeeBalanceData(
   const limits: Record<PTOType, number> = {
     PTO: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.PTO,
     Sick: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.SICK,
-    Bereavement: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.OTHER,
-    "Jury Duty": BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.OTHER,
+    Bereavement: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.BEREAVEMENT,
+    "Jury Duty": BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.JURY_DUTY,
   };
 
   const used = categories.reduce(
@@ -403,4 +473,256 @@ export function computeEmployeeBalanceData(
     employeeName,
     categories: categoryItems,
   };
+}
+
+// ── PTO Rate Lookup Functions ──────────────────────────────────────────
+
+/**
+ * Computes completed years of service between a hire date and a reference date.
+ * Uses string-based date comparison (YYYY-MM-DD) — no Date objects.
+ *
+ * @param hireDate - YYYY-MM-DD hire date
+ * @param asOfDate - YYYY-MM-DD reference date (typically today)
+ * @returns Whole number of completed years (floored)
+ */
+export function getYearsOfService(hireDate: string, asOfDate: string): number {
+  const hire = parseDate(hireDate);
+  const asOf = parseDate(asOfDate);
+
+  let years = asOf.year - hire.year;
+
+  // If the anniversary hasn't occurred yet this year, subtract one
+  if (
+    asOf.month < hire.month ||
+    (asOf.month === hire.month && asOf.day < hire.day)
+  ) {
+    years--;
+  }
+
+  return Math.max(0, years);
+}
+
+/**
+ * Looks up the PTO rate tier for a given number of completed years of service.
+ *
+ * @param yearsOfService - Completed whole years of service
+ * @returns The matching tier's annual hours and daily rate
+ */
+export function getPtoRateTier(yearsOfService: number): PtoRateTier {
+  const tier = PTO_EARNING_SCHEDULE.find(
+    (t) => yearsOfService >= t.minYears && yearsOfService < t.maxYears,
+  );
+  if (!tier) {
+    // Fallback to the max tier (should never happen due to Infinity)
+    return PTO_EARNING_SCHEDULE[PTO_EARNING_SCHEDULE.length - 1];
+  }
+  return tier;
+}
+
+/**
+ * Returns the effective PTO rate for an employee on a given date,
+ * accounting for the July 1 rate-increase timing rule from POLICY.md.
+ *
+ * **July 1 Rule**:
+ * - Hired Jan 1 – Jun 30: rate increases on July 1 following one full year of service.
+ * - Hired Jul 1 – Dec 31: rate increases on July 1 of the following calendar year.
+ *
+ * In both cases the rate increase coincides with the first July 1 on or after
+ * the employee's first anniversary, then every subsequent July 1.
+ *
+ * @param hireDate - YYYY-MM-DD hire date
+ * @param asOfDate - YYYY-MM-DD reference date (typically today)
+ * @returns The effective tier (annualHours + dailyRate)
+ */
+export function getEffectivePtoRate(
+  hireDate: string,
+  asOfDate: string,
+): PtoRateTier {
+  const hire = parseDate(hireDate);
+  const asOf = parseDate(asOfDate);
+
+  // Determine number of July-1 rate bumps that have occurred.
+  // First bump happens on the first July 1 on-or-after the first anniversary.
+  const firstAnniversary = formatDate(hire.year + 1, hire.month, hire.day);
+
+  // The first July 1 that is >= the first anniversary
+  let firstBumpYear: number;
+  if (hire.month <= 6) {
+    // Hired Jan–Jun: first anniversary is in the same month next year.
+    // First July 1 on-or-after anniversary is July 1 of anniversary year.
+    firstBumpYear = hire.year + 1;
+  } else {
+    // Hired Jul–Dec: first anniversary is in month >= 7 next year.
+    // First July 1 on-or-after that anniversary is July 1 of year+2.
+    firstBumpYear = hire.year + 2;
+  }
+
+  const firstBumpDate = formatDate(firstBumpYear, 7, 1);
+
+  // If asOfDate is before the first bump, employee is in tier 0
+  if (compareDates(asOfDate, firstBumpDate) < 0) {
+    return getPtoRateTier(0);
+  }
+
+  // Count how many July 1 bumps have occurred (including the first one)
+  const bumpCount = asOf.year - firstBumpYear + (asOf.month >= 7 ? 1 : 0);
+  // bumpCount === effective years-of-service for tier lookup (minimum 1)
+  const effectiveYears = Math.max(1, bumpCount);
+
+  return getPtoRateTier(effectiveYears);
+}
+
+// ── Phase 2: Accrual Calculation Functions ─────────────────────────────
+
+/**
+ * Computes PTO accrued from a fiscal-year start to a reference date,
+ * automatically deriving the daily rate from the employee's hire date
+ * and handling the mid-year rate change on July 1.
+ *
+ * @param hireDate - YYYY-MM-DD hire date
+ * @param fiscalYearStart - YYYY-MM-DD start of the accrual period
+ * @param currentDate - YYYY-MM-DD reference date (typically today)
+ * @returns total hours accrued, accounting for rate changes on July 1
+ */
+export function computeAccrualWithHireDate(
+  hireDate: string,
+  fiscalYearStart: string,
+  currentDate: string,
+): number {
+  const start = parseDate(fiscalYearStart);
+  const end = parseDate(currentDate);
+
+  // Determine if a July 1 rate change falls within the period
+  const july1 = formatDate(start.year, 7, 1);
+  const rateBeforeJuly1 = getEffectivePtoRate(
+    hireDate,
+    formatDate(start.year, 6, 30),
+  );
+  const rateAfterJuly1 = getEffectivePtoRate(hireDate, july1);
+
+  const rateChanged = rateBeforeJuly1.dailyRate !== rateAfterJuly1.dailyRate;
+  const july1InRange =
+    compareDates(july1, fiscalYearStart) > 0 &&
+    compareDates(july1, currentDate) <= 0;
+
+  if (rateChanged && july1InRange) {
+    // Split into two segments: start→Jun30 and Jul1→currentDate
+    const june30 = formatDate(start.year, 6, 30);
+    const segment1Days = getWorkdaysBetween(fiscalYearStart, june30);
+    const segment2Days = getWorkdaysBetween(july1, currentDate);
+    return (
+      rateBeforeJuly1.dailyRate * segment1Days.length +
+      rateAfterJuly1.dailyRate * segment2Days.length
+    );
+  }
+
+  // No mid-period rate change — use the rate effective at currentDate
+  const rate = getEffectivePtoRate(hireDate, currentDate);
+  const workdays = getWorkdaysBetween(fiscalYearStart, currentDate);
+  return rate.dailyRate * workdays.length;
+}
+
+/**
+ * Computes the annual PTO allocation for an employee in a given year.
+ * - First year (hire year): pro-rated as dailyRate × workdays(hireDate, Dec 31).
+ * - Subsequent years: full annual entitlement from the earning schedule.
+ *
+ * @param hireDate - YYYY-MM-DD hire date
+ * @param year - Calendar year to compute for
+ * @returns Total PTO hours allocated for the year
+ */
+export function computeAnnualAllocation(
+  hireDate: string,
+  year: number,
+): number {
+  const hire = parseDate(hireDate);
+
+  if (hire.year > year) {
+    return 0; // Not yet hired
+  }
+
+  const yearEnd = formatDate(year, 12, 31);
+
+  if (hire.year === year) {
+    // First year: pro-rate from hire date to Dec 31
+    const rate = getEffectivePtoRate(hireDate, yearEnd);
+    const workdays = getWorkdaysBetween(hireDate, yearEnd);
+    return rate.dailyRate * workdays.length;
+  }
+
+  // Subsequent years: use rate effective at end of year for annual hours.
+  // Account for mid-year rate change by splitting at July 1.
+  const jan1 = formatDate(year, 1, 1);
+  return computeAccrualWithHireDate(hireDate, jan1, yearEnd);
+}
+
+/**
+ * Caps prior-year balance at the carryover limit.
+ *
+ * @param priorYearBalance - Remaining PTO hours from the prior year
+ * @returns Capped carryover amount (max CARRYOVER_LIMIT)
+ */
+export function computeCarryover(priorYearBalance: number): number {
+  return Math.min(Math.max(0, priorYearBalance), CARRYOVER_LIMIT);
+}
+
+// ── Phase 3: Soft Warning Threshold Checks ─────────────────────────────
+
+/**
+ * Checks whether a sick-time request would push total sick hours past
+ * the 24-hour (3-day) threshold. Returns a warning message string
+ * if so, or null if within threshold.
+ *
+ * @param totalSickHoursUsed - Sick hours already used this year
+ * @param requestedHours - Hours being requested
+ * @returns Warning message string, or null
+ */
+export function checkSickDayThreshold(
+  totalSickHoursUsed: number,
+  requestedHours: number,
+): string | null {
+  if (totalSickHoursUsed + requestedHours > SICK_HOURS_BEFORE_PTO) {
+    return VALIDATION_MESSAGES["sick.pto_required_after_threshold"];
+  }
+  return null;
+}
+
+/**
+ * Checks whether bereavement days have exceeded the 2-consecutive-day
+ * threshold. Returns a warning message string if so, or null.
+ *
+ * @param consecutiveDays - Number of consecutive bereavement days
+ * @returns Warning message string, or null
+ */
+export function checkBereavementThreshold(
+  consecutiveDays: number,
+): string | null {
+  if (consecutiveDays > BEREAVEMENT_CONSECUTIVE_DAYS_BEFORE_PTO) {
+    return VALIDATION_MESSAGES["bereavement.pto_required_after_threshold"];
+  }
+  return null;
+}
+
+// ── Phase 4: Termination Payout Calculation ────────────────────────────
+
+/**
+ * Computes the PTO payout for a terminated employee.
+ * Prior-year carryover is capped at 80 hours per policy.
+ *
+ * @param carryoverHours - Remaining hours carried over from the prior year
+ * @param currentYearAccrued - Hours accrued so far in the current year
+ * @param currentYearUsed - Hours used so far in the current year
+ * @returns Payout amount in hours (minimum 0)
+ */
+export function computeTerminationPayout(
+  carryoverHours: number,
+  currentYearAccrued: number,
+  currentYearUsed: number,
+): number {
+  const cappedCarryover = Math.min(
+    Math.max(0, carryoverHours),
+    CARRYOVER_LIMIT,
+  );
+  const payout = cappedCarryover + currentYearAccrued - currentYearUsed;
+  return Math.max(0, payout);
 }

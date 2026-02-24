@@ -10,9 +10,17 @@ import {
   validateDateString,
   validateAnnualLimits,
   validatePTOBalance,
+  BEREAVEMENT_CONSECUTIVE_DAYS_BEFORE_PTO,
+  VALIDATION_MESSAGES,
 } from "../../shared/businessRules.js";
 import { calculatePTOStatus } from "../ptoCalculations.js";
-import { dateToString, parseDate, formatDate } from "../../shared/dateUtils.js";
+import {
+  dateToString,
+  parseDate,
+  formatDate,
+  addDays,
+  getDayOfWeek,
+} from "../../shared/dateUtils.js";
 
 export interface CreatePtoEntryData {
   employeeId: number;
@@ -160,6 +168,21 @@ export class PtoEntryDAL {
     // Note: Annual limits validation would require calculating total hours for the year
     // This is complex and might be better handled at a higher level or with additional context
 
+    // Bereavement consecutive-day warning
+    if (normalizedType === "Bereavement" && !typeError && !weekdayError) {
+      const consecutiveDays = await this.countConsecutiveBereavementDays(
+        data.employeeId,
+        data.date,
+        excludeId,
+      );
+      if (consecutiveDays > BEREAVEMENT_CONSECUTIVE_DAYS_BEFORE_PTO) {
+        errors.push({
+          field: "type",
+          messageKey: "bereavement.pto_required_after_threshold",
+        });
+      }
+    }
+
     return errors;
   }
 
@@ -285,5 +308,82 @@ export class PtoEntryDAL {
     }
 
     return query.orderBy("pto.date", "ASC").getMany();
+  }
+
+  /**
+   * Counts how many consecutive workdays of Bereavement surround a given date.
+   * Returns the total streak length (including the new date being added).
+   */
+  private async countConsecutiveBereavementDays(
+    employeeId: number,
+    date: string,
+    excludeId?: number,
+  ): Promise<number> {
+    // Fetch all bereavement entries for this employee within ±14 calendar days
+    const windowStart = addDays(date, -14);
+    const windowEnd = addDays(date, 14);
+
+    const entries = await this.ptoEntryRepo
+      .createQueryBuilder("entry")
+      .where("entry.employee_id = :employeeId", { employeeId })
+      .andWhere("entry.type = :type", { type: "Bereavement" })
+      .andWhere("entry.date >= :start", { start: windowStart })
+      .andWhere("entry.date <= :end", { end: windowEnd })
+      .getMany();
+
+    const dateSet = new Set(
+      entries.filter((e) => e.id !== excludeId).map((e) => e.date),
+    );
+    // Include the proposed date
+    dateSet.add(date);
+
+    // Walk backward from date to find earliest consecutive workday
+    let streak = 1;
+    let cursor = date;
+    while (true) {
+      cursor = this.previousWorkday(cursor);
+      if (dateSet.has(cursor)) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+
+    // Walk forward from date
+    cursor = date;
+    while (true) {
+      cursor = this.nextWorkday(cursor);
+      if (dateSet.has(cursor)) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+
+    return streak;
+  }
+
+  /** Returns the next workday (skipping weekends). */
+  private nextWorkday(dateStr: string): string {
+    let cursor = addDays(dateStr, 1);
+    while (this.isWeekend(cursor)) {
+      cursor = addDays(cursor, 1);
+    }
+    return cursor;
+  }
+
+  /** Returns the previous workday (skipping weekends). */
+  private previousWorkday(dateStr: string): string {
+    let cursor = addDays(dateStr, -1);
+    while (this.isWeekend(cursor)) {
+      cursor = addDays(cursor, -1);
+    }
+    return cursor;
+  }
+
+  /** Returns true if the date falls on Saturday or Sunday. */
+  private isWeekend(dateStr: string): boolean {
+    const dow = getDayOfWeek(dateStr);
+    return dow === 0 || dow === 6;
   }
 }

@@ -79,8 +79,12 @@ describe("PTO Calculations — prior-year filtering", () => {
 
     const status = calculatePTOStatus(employee, entries, currentDate);
 
-    // annualAllocation = pto_rate * workDays = 0.3692 * 261 ≈ 96.36, carryover = 40, used = 24 → available ≈ 112.36
-    expect(status.availablePTO).toBeCloseTo(112.36, 0);
+    // Policy-based allocation for hire 2020-01-01 in 2026:
+    // Tier 5 (0.79) for Jan–Jun, Tier 6 (0.81) for Jul–Dec, much higher than old 96.36
+    // availablePTO = annualAllocation + carryover(40) - used(24)
+    expect(status.availablePTO).toBe(status.annualAllocation + 40 - 24);
+    // Allocation should be significantly higher than the old stored rate
+    expect(status.annualAllocation).toBeGreaterThan(180);
   });
 
   it("ptoTime bucket should match top-level usedPTO", () => {

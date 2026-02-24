@@ -20,7 +20,6 @@ import {
   Notification,
 } from "./entities/index.js";
 import { calculatePTOStatus } from "./ptoCalculations.js";
-import { getTotalWorkDaysInYear } from "./workDays.js";
 import {
   dateToString,
   getDateComponents,
@@ -38,6 +37,8 @@ import {
   SUCCESS_MESSAGES,
   BUSINESS_RULES_CONSTANTS,
   NOTIFICATION_MESSAGES,
+  PTO_EARNING_SCHEDULE,
+  CARRYOVER_LIMIT,
   MessageKey,
   validatePTOBalance,
   validateMonthEditable,
@@ -45,6 +46,12 @@ import {
   validateAdminCanLockMonth,
   formatMonthNotEndedMessage,
   getEarliestAdminLockDate,
+  getEffectivePtoRate,
+  computeAnnualAllocation,
+  computeCarryover,
+  computeTerminationPayout,
+  computeAccrualWithHireDate,
+  checkSickDayThreshold,
 } from "../shared/businessRules.js";
 import { BACKUP_CONFIG } from "../shared/backupConfig.js";
 import {
@@ -1787,8 +1794,7 @@ initDatabase()
               ? typeof ptoRate === "string"
                 ? parseFloat(ptoRate)
                 : ptoRate
-              : BUSINESS_RULES_CONSTANTS.BASELINE_PTO_HOURS_PER_YEAR /
-                getTotalWorkDaysInYear(new Date().getFullYear());
+              : PTO_EARNING_SCHEDULE[0].dailyRate;
           employee.carryover_hours =
             carryoverHours !== undefined
               ? typeof carryoverHours === "string"
@@ -1940,6 +1946,89 @@ initDatabase()
     );
 
     // Admin endpoints for employee data
+    // Termination payout calculation endpoint (admin-only)
+    app.get(
+      "/api/employees/:id/termination-payout",
+      authenticateAdmin(() => dataSource, log),
+      async (req, res) => {
+        try {
+          const { id } = req.params;
+          const employeeIdNum = parseInt(id as string);
+
+          if (isNaN(employeeIdNum)) {
+            return res.status(400).json({ error: "Invalid employee ID" });
+          }
+
+          const employeeRepo = dataSource.getRepository(Employee);
+          const ptoEntryRepo = dataSource.getRepository(PtoEntry);
+
+          const employee = await employeeRepo.findOne({
+            where: { id: employeeIdNum },
+          });
+          if (!employee) {
+            return res.status(404).json({ error: "Employee not found" });
+          }
+
+          const hireDate =
+            employee.hire_date instanceof Date
+              ? dateToString(employee.hire_date)
+              : (employee.hire_date as string);
+
+          const currentDate = today();
+          const currentYear = parseInt(currentDate.split("-")[0]);
+
+          // Carryover from previous year
+          const carryoverHours = computeCarryover(employee.carryover_hours);
+
+          // Current year accrued
+          const jan1 = `${currentYear}-01-01`;
+          const currentYearAccrued = computeAccrualWithHireDate(
+            hireDate,
+            jan1,
+            currentDate,
+          );
+
+          // Current year used PTO
+          const startDate = `${currentYear}-01-01`;
+          const endDate = `${currentYear}-12-31`;
+          const ptoEntries = await ptoEntryRepo.find({
+            where: {
+              employee_id: employeeIdNum,
+              type: "PTO",
+              date: Between(startDate, endDate),
+            },
+          });
+          const currentYearUsed = ptoEntries.reduce(
+            (sum, e) => sum + e.hours,
+            0,
+          );
+
+          const payoutHours = computeTerminationPayout(
+            carryoverHours,
+            currentYearAccrued,
+            currentYearUsed,
+          );
+
+          res.json({
+            employeeId: employeeIdNum,
+            employeeName: employee.name,
+            hireDate,
+            calculationDate: currentDate,
+            breakdown: {
+              carryoverHours,
+              cappedCarryover: computeCarryover(carryoverHours),
+              currentYearAccrued: Math.round(currentYearAccrued * 100) / 100,
+              currentYearUsed,
+            },
+            payoutHours: Math.round(payoutHours * 100) / 100,
+          });
+        } catch (error) {
+          logger.error(`Error computing termination payout: ${error}`);
+          res.status(500).json({ error: "Internal server error" });
+        }
+      },
+    );
+
     app.get(
       "/api/employees/:id/monthly-hours",
       authenticateAdmin(() => dataSource, log),
@@ -2299,6 +2388,37 @@ initDatabase()
           }
 
           const lastResult = results[results.length - 1];
+
+          // Collect soft warnings for sick-day threshold
+          const warnings: string[] = [];
+          if (
+            results.some(
+              (entry) => entry.type === "Sick" || entry.type === "PTO",
+            )
+          ) {
+            try {
+              // Get total sick hours for the year for the affected employee
+              const yearOfEntry = lastResult.date.substring(0, 4);
+              const sickEntries = await ptoEntryRepo.find({
+                where: {
+                  employee_id: lastResult.employee_id,
+                  type: "Sick",
+                  date: Between(`${yearOfEntry}-01-01`, `${yearOfEntry}-12-31`),
+                },
+              });
+              const totalSickHours = sickEntries.reduce(
+                (sum, e) => sum + e.hours,
+                0,
+              );
+              const sickWarning = checkSickDayThreshold(totalSickHours, 0);
+              if (sickWarning) {
+                warnings.push(sickWarning);
+              }
+            } catch {
+              // Non-critical — skip warning on error
+            }
+          }
+
           const response: PTOCreateResponse = {
             message: SUCCESS_MESSAGES["pto.created"],
             ptoEntry: serializePTOEntry(lastResult),
@@ -2308,7 +2428,9 @@ initDatabase()
             `PTO entry created: Employee ${lastResult.employee_id}, Date ${lastResult.date}, Type ${lastResult.type}, Hours ${lastResult.hours}`,
           );
 
-          res.status(201).json(response);
+          res
+            .status(201)
+            .json(warnings.length > 0 ? { ...response, warnings } : response);
         } catch (error) {
           logger.error(`Error creating PTO entries: ${error}`);
           res.status(500).json({ error: "Internal server error" });

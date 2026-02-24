@@ -171,26 +171,29 @@ describe("PtoEntryDAL", () => {
 
     it("should reject PTO request exceeding available balance", async () => {
       // Create an employee with limited remaining PTO balance
+      // Tier-0 rate (0.65) × ~261 workdays ≈ 170 hours annual allocation
       const employeeRepo = dataSource.getRepository(Employee);
       await employeeRepo.save({
         id: 2,
         name: "Limited PTO Employee",
         identifier: "LIMITED001",
-        pto_rate: 0.71, // Standard accrual rate (~186h/year)
+        pto_rate: 0.65, // Tier-0 daily rate from PTO_EARNING_SCHEDULE
         carryover_hours: 0,
         hire_date: new Date("2024-01-01"),
         role: "Employee",
       });
 
-      // Use up most PTO, leaving ~2 hours available
-      await dal.createPtoEntry({
-        employeeId: 2,
-        date: "2024-02-01",
-        hours: 184, // Use up most PTO
+      // Insert PTO entry directly to bypass balance validation,
+      // using up most of the ~170-hour allocation
+      const ptoEntryRepo = dataSource.getRepository(PtoEntry);
+      await ptoEntryRepo.save({
+        employee_id: 2,
+        date: "2024-02-03", // Monday
+        hours: 165, // Use up most PTO, leaving ~5 hours
         type: "PTO",
       });
 
-      // Now try to request 8 hours when only ~2 are available
+      // Now try to request 8 hours when only ~5 are available
       const data = {
         employeeId: 2,
         date: "2024-02-05",
@@ -280,17 +283,18 @@ describe("PtoEntryDAL", () => {
         id: 5,
         name: "No PTO Employee",
         identifier: "NOPTO001",
-        pto_rate: 0.71, // Standard accrual rate (~186h/year)
+        pto_rate: 0.65, // Tier-0 daily rate from PTO_EARNING_SCHEDULE
         carryover_hours: 0,
         hire_date: new Date("2024-01-01"),
         role: "Employee",
       });
 
-      // Use up most PTO (leaving ~2 hours)
-      await dal.createPtoEntry({
-        employeeId: 5,
-        date: "2024-02-01",
-        hours: 184,
+      // Insert PTO entry directly to bypass balance validation
+      const ptoEntryRepo = dataSource.getRepository(PtoEntry);
+      await ptoEntryRepo.save({
+        employee_id: 5,
+        date: "2024-02-03", // Monday
+        hours: 165,
         type: "PTO",
       });
 
@@ -342,29 +346,32 @@ describe("PtoEntryDAL", () => {
 
     it("should prevent PTO creation when balance is insufficient", async () => {
       // Create an employee with limited remaining PTO balance
+      // Tier-0 rate (0.65) × ~261 workdays ≈ 170 hours annual allocation
       const employeeRepo = dataSource.getRepository(Employee);
       await employeeRepo.save({
         id: 6,
         name: "Blocked PTO Employee",
         identifier: "BLOCKED001",
-        pto_rate: 0.71, // Standard accrual rate (~186h/year)
+        pto_rate: 0.65, // Tier-0 daily rate from PTO_EARNING_SCHEDULE
         carryover_hours: 0,
         hire_date: new Date("2024-01-01"),
         role: "Employee",
       });
 
-      // Use up most PTO (leaving ~2 hours)
-      await dal.createPtoEntry({
-        employeeId: 6,
-        date: "2024-02-01",
-        hours: 184,
+      // Insert PTO entry directly to bypass balance validation,
+      // using up most of the ~170-hour allocation
+      const ptoEntryRepo = dataSource.getRepository(PtoEntry);
+      await ptoEntryRepo.save({
+        employee_id: 6,
+        date: "2024-02-03", // Monday
+        hours: 165,
         type: "PTO",
       });
 
       const data = {
         employeeId: 6,
         date: "2024-02-05",
-        hours: 8, // Requesting more than available (~2 left)
+        hours: 8, // Requesting more than available (~5 left)
         type: "PTO",
       };
 

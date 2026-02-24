@@ -9,6 +9,7 @@
 
 | TASK                                        | EFFORT | DESCRIPTION                                                                                                     |
 | ------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------- |
+| pto-policy-business-rules.md                | 2      | Phases 1-6 done. Phase 7 remains: E2E tests, manual testing, documentation updates                              |
 | admin-monthly-review-design-improvements.md | 3      | Stages 7-9 remaining: remove Select Month input, employee calendar lock status, in-app notification integration |
 | admin-review-acknowledge-animation.md       | 2      | 4 manual testing items unchecked across Phases 1 and 3                                                          |
 | admin-employees-balance-hydration.md        | 2      | Add PTO balance badges to employee cards, update E2E tests                                                      |

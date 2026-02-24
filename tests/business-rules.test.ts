@@ -80,6 +80,8 @@ describe("Business Rules", () => {
         "entry.not_found",
         "hours.exceed_annual_sick",
         "hours.exceed_annual_other",
+        "hours.exceed_annual_bereavement",
+        "hours.exceed_annual_jury_duty",
         "hours.exceed_pto_balance",
         "date.future_limit",
         "month.acknowledged",

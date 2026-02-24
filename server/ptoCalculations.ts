@@ -3,16 +3,19 @@
  * Handles annual PTO allocation with monthly accrual display
  */
 
-import { getWorkDays, getTotalWorkDaysInYear } from "./workDays.js";
+import { getWorkDays } from "./workDays.js";
 import { parseDate, formatDate, today } from "../shared/dateUtils.js";
-import { BUSINESS_RULES_CONSTANTS } from "../shared/businessRules.js";
-
-const { BASELINE_PTO_HOURS_PER_YEAR } = BUSINESS_RULES_CONSTANTS;
+import {
+  getEffectivePtoRate,
+  computeAnnualAllocation,
+  CARRYOVER_LIMIT,
+  BUSINESS_RULES_CONSTANTS,
+} from "../shared/businessRules.js";
 
 export interface PTOStatus {
   employeeId: number;
   hireDate: string;
-  annualAllocation: number; // derived from employee.pto_rate * work days (default rate = BASELINE_PTO_HOURS_PER_YEAR / totalWorkDays)
+  annualAllocation: number; // derived from employee.pto_rate * work days (default: tier-0 daily rate from PTO_EARNING_SCHEDULE)
   availablePTO: number;
   usedPTO: number;
   carryoverFromPreviousYear: number;
@@ -60,26 +63,14 @@ export interface Employee {
 }
 
 /**
- * Calculate prorated annual allocation for new hires
+ * Calculate prorated annual allocation for new hires.
+ * Uses policy-based rates from PTO_EARNING_SCHEDULE via computeAnnualAllocation.
  * @param employee - Employee data
  * @param year - The year to calculate for
  * @returns Prorated allocation amount
  */
 function calculateProratedAllocation(employee: Employee, year: number): number {
-  const hireDate = parseDate(employee.hire_date);
-  const fullAllocation = employee.pto_rate * getTotalWorkDaysInYear(year);
-  if (hireDate.year < year) {
-    return fullAllocation;
-  } else if (hireDate.year === year) {
-    if (hireDate.month <= 2) {
-      // Jan or Feb (1-based months)
-      return fullAllocation; // Hired in Jan or Feb, full allocation
-    }
-    const monthsRemaining = 12 - hireDate.month + 1; // Months from hire month to Dec
-    return fullAllocation * (monthsRemaining / 12);
-  } else {
-    return 0; // Hired after the year
-  }
+  return computeAnnualAllocation(employee.hire_date, year);
 }
 
 /**
@@ -120,12 +111,17 @@ export function calculatePTOStatus(
   const availablePTO = startingPTOBalance - usedPTO;
 
   // Calculate monthly accruals for display (current year) - informational only
-  const totalWorkDays = getTotalWorkDaysInYear(currentYear);
-  const allocationRate = employee.pto_rate;
-
+  // Use policy-based rate that accounts for mid-year July 1 rate changes
   const monthlyAccruals = [];
   for (let month = 1; month <= 12; month++) {
-    const hours = allocationRate * getWorkDays(currentYear, month);
+    // Use rate effective at the end of each month for that month's accrual
+    const monthEnd = formatDate(
+      currentYear,
+      month,
+      month === 2 ? 28 : [4, 6, 9, 11].includes(month) ? 30 : 31,
+    );
+    const rate = getEffectivePtoRate(employee.hire_date, monthEnd);
+    const hours = rate.dailyRate * getWorkDays(currentYear, month);
     monthlyAccruals.push({ month, hours });
   }
 
@@ -162,14 +158,20 @@ export function calculatePTOStatus(
       remaining: Math.max(0, startingPTOBalance - usedPTO),
     },
     bereavementTime: {
-      allowed: 40,
+      allowed: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.BEREAVEMENT,
       used: usedBereavement,
-      remaining: Math.max(0, 40 - usedBereavement),
+      remaining: Math.max(
+        0,
+        BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.BEREAVEMENT - usedBereavement,
+      ),
     },
     juryDutyTime: {
-      allowed: 40,
+      allowed: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.JURY_DUTY,
       used: usedJuryDuty,
-      remaining: Math.max(0, 40 - usedJuryDuty),
+      remaining: Math.max(
+        0,
+        BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.JURY_DUTY - usedJuryDuty,
+      ),
     },
   };
 }
@@ -191,22 +193,16 @@ export function calculateYearEndCarryover(
   // Calculate used PTO for the year
   const usedPTO = calculateUsedPTO(ptoEntries, "PTO", year);
 
-  // Starting balance: annual allocation + carryover from previous year
-  const hireDate = parseDate(employee.hire_date);
-  const annualAllocation =
-    hireDate.year <= year
-      ? employee.pto_rate * getTotalWorkDaysInYear(year)
-      : 0;
+  // Starting balance: policy-based annual allocation + carryover from previous year
+  const annualAllocation = computeAnnualAllocation(employee.hire_date, year);
   const startingBalance = annualAllocation + employee.carryover_hours;
 
   // Available at year end = starting balance - used PTO
   const availableAtYearEnd = Math.max(0, startingBalance - usedPTO);
 
-  // Carryover is the available amount, capped at limit if specified
-  const carryover = availableAtYearEnd;
-  return carryoverLimit !== undefined
-    ? Math.min(carryover, carryoverLimit)
-    : carryover;
+  // Apply carryover cap (default to policy limit)
+  const limit = carryoverLimit ?? CARRYOVER_LIMIT;
+  return Math.min(availableAtYearEnd, limit);
 }
 
 /**

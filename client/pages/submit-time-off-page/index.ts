@@ -246,8 +246,15 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
     }
 
     try {
-      await this.api.createPTOEntry({ requests });
+      const result = await this.api.createPTOEntry({ requests });
       notifications.success("PTO request submitted successfully!");
+
+      // Display any soft warnings (e.g., sick day threshold exceeded)
+      if (result.warnings && result.warnings.length > 0) {
+        for (const warning of result.warnings) {
+          notifications.warning(warning);
+        }
+      }
 
       // Reload
       const form = this.getPtoForm();

@@ -140,6 +140,7 @@ export class APIClient {
     message: string;
     ptoEntry: ApiTypes.PTOEntry;
     ptoEntries: ApiTypes.PTOEntry[];
+    warnings?: string[];
   }> {
     return this.post("/pto", request);
   }

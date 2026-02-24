@@ -124,8 +124,8 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
     const limits: Record<string, number> = {
       PTO: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.PTO,
       Sick: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.SICK,
-      Bereavement: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.OTHER,
-      "Jury Duty": BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.OTHER,
+      Bereavement: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.BEREAVEMENT,
+      "Jury Duty": BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.JURY_DUTY,
     };
 
     summaries.forEach((el) => {

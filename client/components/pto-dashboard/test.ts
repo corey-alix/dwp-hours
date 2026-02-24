@@ -78,14 +78,14 @@ const ptoStatus = {
     remaining: availablePTO,
   },
   bereavementTime: {
-    allowed: 40,
+    allowed: 16,
     used: bereavementUsed,
-    remaining: 40 - bereavementUsed,
+    remaining: 16 - bereavementUsed,
   },
   juryDutyTime: {
-    allowed: 40,
+    allowed: 24,
     used: juryUsed,
-    remaining: 40 - juryUsed,
+    remaining: 24 - juryUsed,
   },
 };
 
