@@ -13,7 +13,9 @@ export class APIClient {
         .json()
         .catch(() => ({ error: "Unknown error" }));
       const error = new Error(
-        errorData.error || `HTTP ${response.status}: ${response.statusText}`,
+        errorData.message ||
+          errorData.error ||
+          `HTTP ${response.status}: ${response.statusText}`,
       );
       (error as any).responseData = errorData;
       throw error;
@@ -35,7 +37,9 @@ export class APIClient {
         .json()
         .catch(() => ({ error: "Unknown error" }));
       const error = new Error(
-        errorData.error || `HTTP ${response.status}: ${response.statusText}`,
+        errorData.message ||
+          errorData.error ||
+          `HTTP ${response.status}: ${response.statusText}`,
       );
       (error as any).responseData = errorData;
       throw error;
@@ -57,7 +61,9 @@ export class APIClient {
         .json()
         .catch(() => ({ error: "Unknown error" }));
       const error = new Error(
-        errorData.error || `HTTP ${response.status}: ${response.statusText}`,
+        errorData.message ||
+          errorData.error ||
+          `HTTP ${response.status}: ${response.statusText}`,
       );
       (error as any).responseData = errorData;
       throw error;
@@ -75,7 +81,9 @@ export class APIClient {
         .json()
         .catch(() => ({ error: "Unknown error" }));
       const error = new Error(
-        errorData.error || `HTTP ${response.status}: ${response.statusText}`,
+        errorData.message ||
+          errorData.error ||
+          `HTTP ${response.status}: ${response.statusText}`,
       );
       (error as any).responseData = errorData;
       throw error;
@@ -97,7 +105,9 @@ export class APIClient {
         .json()
         .catch(() => ({ error: "Unknown error" }));
       const error = new Error(
-        errorData.error || `HTTP ${response.status}: ${response.statusText}`,
+        errorData.message ||
+          errorData.error ||
+          `HTTP ${response.status}: ${response.statusText}`,
       );
       (error as any).responseData = errorData;
       throw error;

@@ -128,6 +128,35 @@ Integrate the in-app notification system (see [TASKS/in-app-notifications.md](./
 - [ ] `pnpm run build` passes
 - [ ] `pnpm run lint` passes
 
+### Stage 10: Inline Confirmation + Optimistic Dismiss with Rollback
+
+The current "Acknowledge Review" flow pops a `<confirmation-dialog>` modal whose message is generic and adds friction without value. Additionally, once the admin confirms, the card is dismissed via animation **before** the API call — if the service fails (e.g., the employee hasn't locked the month yet), the card disappears permanently with only a toast error, leaving no way to retry without a full page reload.
+
+**Two changes:**
+
+1. **Replace the modal dialog with an inline confirmation button** — follow the same pattern used in `<pto-request-queue>` (`_pendingConfirmations` map + `confirming` CSS class). On first click, the "Acknowledge Review" button text changes to "Confirm Acknowledge?" with a warning style and auto-reverts after 3 seconds. On second click, the action proceeds.
+
+2. **Optimistic dismiss with rollback on failure** — after the second click (confirmed), immediately animate the card out (optimistic). If `submitAcknowledgment()` fails, reverse the animation (scale the card back in) and show the error toast so the admin can retry.
+
+#### Checklist
+
+- [x] **Move confirmation logic into `admin-monthly-review` component**: Add a `_pendingConfirmations` map (mirroring `PtoRequestQueue`) to `admin-monthly-review/index.ts`. On first click of `.acknowledge-btn`, enter confirming state (change text to "Confirm Acknowledge?", add `.confirming` class, start 3-second auto-revert timer). On second click, dispatch `admin-acknowledge` event.
+- [x] **Add `.confirming` CSS** to `admin-monthly-review/css.ts` for the acknowledge button (warning background, outline) — reuse design tokens from `pto-request-queue/css.ts`.
+- [x] **Remove `<confirmation-dialog>` usage** from `admin-monthly-review-page/index.ts` — the `handleAdminAcknowledgeReview` method should no longer create/append a dialog. Remove the `ConfirmationDialog` import if unused elsewhere.
+- [x] **Implement optimistic dismiss with rollback**: In `admin-monthly-review-page/index.ts`, after receiving the `admin-acknowledge` event, call `dismissCard(employeeId)` to animate out, then call `submitAcknowledgment()`. If the API call fails, call a new `undismissCard(employeeId)` method to reverse the animation (scale back to full size + opacity 1) and show the error toast.
+- [x] **Add `undismissCard(employeeId)` method** to `admin-monthly-review/index.ts` that finds the card element, removes dismiss styles, and animates it back to its original state using a reverse transition.
+- [x] **Update Vitest tests**: Test inline confirmation flow (first click → confirming state, auto-revert after timeout, second click → event dispatched). Test that `undismissCard` restores the card element's visibility.
+- [ ] **Manual testing**: Verify the confirm → dismiss → API success flow. Simulate API failure (e.g., offline or mock 500) and verify the card re-appears.
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+
+#### Implementation Notes
+
+- The inline confirmation pattern in `PtoRequestQueue` (lines 175–200 of `pto-request-queue/index.ts`) is the reference implementation: `_pendingConfirmations` Map, `resetConfirmation()`, `clearConfirmation()`, and the `confirming` CSS class with `--color-warning` background.
+- `undismissCard` should reset the `transform`, `opacity`, `height`, and `overflow` styles that `animateDismiss()` applies. A simple approach: after `dismissCard` resolves, the card still exists in the DOM (re-render hasn't happened yet); set `card.style.transform = ''`, `card.style.opacity = ''`, etc., then call `card.offsetHeight` to force reflow, then transition back.
+- The `admin-monthly-review-page` currently fires dismiss **then** calls `submitAcknowledgment` fire-and-forget. The new flow should `await` the API call and branch on success/failure.
+- Remove the `ConfirmationDialog` import and `createElement<ConfirmationDialog>` usage from the page component.
+
 ## Implementation Notes
 
 - Balance display fix is in `<month-summary>` component ([client/components/month-summary/index.ts](../client/components/month-summary/index.ts)) — the `balances` property injection from `admin-monthly-review` may be producing the raw `available-scheduled` string format

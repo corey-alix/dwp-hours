@@ -1,9 +1,7 @@
 import { BaseComponent } from "../../components/base-component.js";
 import type { PageComponent } from "../../router/types.js";
-import type { ConfirmationDialog } from "../../components/confirmation-dialog/index.js";
 import { APIClient } from "../../APIClient.js";
 import { notifications } from "../../app.js";
-import { createElement } from "../../components/test-utils.js";
 import { styles } from "./css.js";
 import {
   SUCCESS_MESSAGES,
@@ -144,36 +142,34 @@ export class AdminMonthlyReviewPage
     );
   }
 
-  private handleAdminAcknowledgeReview(
+  /**
+   * Handle acknowledge event from the admin-monthly-review component.
+   * The inline confirmation has already happened inside the component.
+   * Optimistic dismiss: animate the card out immediately, then call the API.
+   * If the API fails, reverse the animation so the admin can retry.
+   */
+  private async handleAdminAcknowledgeReview(
     employeeId: number,
-    employeeName: string,
+    _employeeName: string,
     month: string,
-  ): void {
-    const dialog = createElement<ConfirmationDialog>("confirmation-dialog");
-    dialog.message = `Are you sure you want to acknowledge the monthly review for ${employeeName} (${month})? This action confirms that you have reviewed their hours and PTO data for this month.`;
-    dialog.confirmText = "Acknowledge";
-    dialog.cancelText = "Cancel";
+  ): Promise<void> {
+    const adminComp = this.shadowRoot?.querySelector(
+      "admin-monthly-review",
+    ) as any;
 
-    const handleConfirm = async () => {
-      document.body.removeChild(dialog);
+    // Optimistic dismiss — animate card out immediately
+    if (adminComp?.dismissCard) {
+      await adminComp.dismissCard(employeeId);
+    }
 
-      // Animate the card scaling down after the admin confirms
-      const adminComp = this.shadowRoot?.querySelector(
-        "admin-monthly-review",
-      ) as any;
-      if (adminComp?.dismissCard) {
-        await adminComp.dismissCard(employeeId);
+    try {
+      await this.submitAcknowledgment(employeeId, month);
+    } catch {
+      // API failed — roll back the dismiss animation
+      if (adminComp?.undismissCard) {
+        await adminComp.undismissCard(employeeId);
       }
-
-      this.submitAcknowledgment(employeeId, month);
-    };
-    const handleCancel = () => {
-      document.body.removeChild(dialog);
-    };
-
-    dialog.addEventListener("confirm", handleConfirm);
-    dialog.addEventListener("cancel", handleCancel);
-    document.body.appendChild(dialog);
+    }
   }
 
   /**
@@ -243,6 +239,8 @@ export class AdminMonthlyReviewPage
         "Failed to submit acknowledgment: " +
           (error.message || "Unknown error"),
       );
+      // Re-throw so the caller can detect failure and rollback the dismiss
+      throw error;
     }
   }
 }

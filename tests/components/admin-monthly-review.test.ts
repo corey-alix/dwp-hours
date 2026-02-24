@@ -218,7 +218,7 @@ describe("AdminMonthlyReview Component", () => {
   });
 
   describe("Acknowledgment Events", () => {
-    it("should dispatch admin-acknowledge event when acknowledge button is clicked", () => {
+    it("should dispatch admin-acknowledge event when acknowledge button is clicked twice (inline confirm)", () => {
       const testData = generateMonthlyData("2025-01");
       component.setEmployeeData(testData);
 
@@ -235,9 +235,13 @@ describe("AdminMonthlyReview Component", () => {
       ) as HTMLButtonElement;
 
       if (acknowledgeButton) {
+        // First click: enters confirming state
         acknowledgeButton.click();
+        expect(acknowledgeEvent).toBeNull();
+        expect(acknowledgeButton.classList.contains("confirming")).toBe(true);
 
-        // Event dispatches synchronously (animation is triggered separately by parent)
+        // Second click: confirmed — dispatches event
+        acknowledgeButton.click();
         expect(acknowledgeEvent).toBeTruthy();
         expect(acknowledgeEvent!.detail).toHaveProperty("employeeId");
         expect(acknowledgeEvent!.detail).toHaveProperty("employeeName");
@@ -1230,7 +1234,7 @@ describe("AdminMonthlyReview Component", () => {
       );
     });
 
-    it("should dispatch admin-acknowledge event after acknowledge button click", () => {
+    it("should enter confirming state on first acknowledge button click", () => {
       const testData: AdminMonthlyReviewItem[] = [
         {
           employeeId: 99,
@@ -1259,12 +1263,95 @@ describe("AdminMonthlyReview Component", () => {
         ".acknowledge-btn",
       ) as HTMLButtonElement;
       expect(ackBtn).toBeTruthy();
-      ackBtn.click();
 
-      // Event dispatches synchronously (animation is triggered by parent after dialog confirm)
+      // First click: enters confirming state, does NOT dispatch event
+      ackBtn.click();
+      expect(acknowledgeEvent).toBeNull();
+      expect(ackBtn.classList.contains("confirming")).toBe(true);
+      expect(ackBtn.textContent).toBe("Confirm Acknowledge?");
+    });
+
+    it("should dispatch admin-acknowledge event on second acknowledge button click", () => {
+      const testData: AdminMonthlyReviewItem[] = [
+        {
+          employeeId: 99,
+          employeeName: "Pending Employee",
+          month: "2025-01",
+          totalHours: 172,
+          ptoHours: 8,
+          sickHours: 0,
+          bereavementHours: 0,
+          juryDutyHours: 0,
+          acknowledgedByAdmin: false,
+          adminAcknowledgedAt: undefined,
+          adminAcknowledgedBy: undefined,
+          calendarLocked: false,
+        },
+      ];
+
+      component.setEmployeeData(testData);
+
+      let acknowledgeEvent: CustomEvent | null = null;
+      component.addEventListener("admin-acknowledge", (e: Event) => {
+        acknowledgeEvent = e as CustomEvent;
+      });
+
+      const ackBtn = component.shadowRoot?.querySelector(
+        ".acknowledge-btn",
+      ) as HTMLButtonElement;
+      expect(ackBtn).toBeTruthy();
+
+      // First click: enter confirming state
+      ackBtn.click();
+      expect(acknowledgeEvent).toBeNull();
+
+      // Second click: confirmed — dispatches event
+      ackBtn.click();
       expect(acknowledgeEvent).toBeTruthy();
       expect(acknowledgeEvent!.detail.employeeId).toBe(99);
       expect(acknowledgeEvent!.detail.employeeName).toBe("Pending Employee");
+      expect(ackBtn.classList.contains("confirming")).toBe(false);
+    });
+
+    it("should auto-revert confirming state after timeout", () => {
+      vi.useFakeTimers();
+
+      const testData: AdminMonthlyReviewItem[] = [
+        {
+          employeeId: 99,
+          employeeName: "Pending Employee",
+          month: "2025-01",
+          totalHours: 172,
+          ptoHours: 8,
+          sickHours: 0,
+          bereavementHours: 0,
+          juryDutyHours: 0,
+          acknowledgedByAdmin: false,
+          adminAcknowledgedAt: undefined,
+          adminAcknowledgedBy: undefined,
+          calendarLocked: false,
+        },
+      ];
+
+      component.setEmployeeData(testData);
+
+      const ackBtn = component.shadowRoot?.querySelector(
+        ".acknowledge-btn",
+      ) as HTMLButtonElement;
+      expect(ackBtn).toBeTruthy();
+
+      // First click: enter confirming state
+      ackBtn.click();
+      expect(ackBtn.classList.contains("confirming")).toBe(true);
+      expect(ackBtn.textContent).toBe("Confirm Acknowledge?");
+
+      // Advance timers past the 3-second auto-revert
+      vi.advanceTimersByTime(3100);
+
+      expect(ackBtn.classList.contains("confirming")).toBe(false);
+      expect(ackBtn.textContent).toBe("Acknowledge Review");
+
+      vi.useRealTimers();
     });
 
     it("should animate and resolve dismissCard() for a pending card", async () => {
@@ -1300,6 +1387,45 @@ describe("AdminMonthlyReview Component", () => {
       // Card is still in DOM (removal happens on data refresh), but animation completed
       // The promise resolving confirms the animation handle worked
       expect(true).toBe(true);
+    });
+
+    it("should restore card visibility after undismissCard()", async () => {
+      const testData: AdminMonthlyReviewItem[] = [
+        {
+          employeeId: 42,
+          employeeName: "Animated Employee",
+          month: "2025-01",
+          totalHours: 172,
+          ptoHours: 0,
+          sickHours: 0,
+          bereavementHours: 0,
+          juryDutyHours: 0,
+          acknowledgedByAdmin: false,
+          adminAcknowledgedAt: undefined,
+          adminAcknowledgedBy: undefined,
+          calendarLocked: false,
+        },
+      ];
+
+      component.setEmployeeData(testData);
+
+      // Dismiss the card first
+      await component.dismissCard(42);
+
+      const card = component.shadowRoot?.querySelector(
+        '.employee-card[data-employee-id="42"]',
+      ) as HTMLElement;
+      expect(card).toBeTruthy();
+      // After dismiss, card should be hidden (display: none)
+      expect(card.style.display).toBe("none");
+
+      // Undismiss — restore visibility
+      await component.undismissCard(42);
+
+      // Card should be visible again with no inline styles
+      expect(card.style.display).toBe("");
+      expect(card.style.transform).toBe("");
+      expect(card.style.opacity).toBe("");
     });
   });
 });

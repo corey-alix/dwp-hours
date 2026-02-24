@@ -71,6 +71,13 @@ export const styles = `
     cursor: not-allowed;
   }
 
+  .acknowledge-btn.confirming {
+    background: var(--color-warning);
+    color: var(--color-on-warning, #000);
+    outline: 2px solid var(--color-warning);
+    outline-offset: 1px;
+  }
+
   .acknowledged-info {
     text-align: center;
   }

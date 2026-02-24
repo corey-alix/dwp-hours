@@ -56,6 +56,8 @@ export class AdminMonthlyReview extends BaseComponent {
     date: string;
     approved_by?: number | null;
   }> = [];
+  /** Track buttons awaiting confirmation. Maps button element to reset timer. */
+  private _pendingConfirmations = new Map<HTMLButtonElement, number>();
   /** Track which employee IDs have their inline calendar expanded */
   private _expandedCalendars: Set<number> = new Set();
   /** Per-card navigated month (employee ID → YYYY-MM). Reset on collapse. */
@@ -351,8 +353,7 @@ export class AdminMonthlyReview extends BaseComponent {
     }
   }
 
-  private async handleAcknowledgeEmployee(employeeId: number): Promise<void> {
-    // Find employee data to get name for confirmation
+  private dispatchAcknowledgeEvent(employeeId: number): void {
     const employee = this._employeeData.find(
       (emp) => emp.employeeId === employeeId,
     );
@@ -361,31 +362,44 @@ export class AdminMonthlyReview extends BaseComponent {
       return;
     }
 
-    try {
-      // Event-driven architecture: dispatch acknowledgment event to parent
-      // Parent component handles confirmation dialog and API call
-      // Animation is triggered by the parent after the user confirms
-      this.dispatchEvent(
-        new CustomEvent("admin-acknowledge", {
-          detail: {
-            employeeId,
-            employeeName: employee.employeeName,
-            month: this._selectedMonth,
-          },
-          bubbles: true,
-          composed: true,
-        }),
-      );
-    } catch (error) {
-      console.error("Failed to acknowledge employee:", error);
+    // Event-driven architecture: dispatch acknowledgment event to parent
+    // Parent handles optimistic dismiss + API call + rollback on failure
+    this.dispatchEvent(
+      new CustomEvent("admin-acknowledge", {
+        detail: {
+          employeeId,
+          employeeName: employee.employeeName,
+          month: this._selectedMonth,
+        },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  private resetConfirmation(
+    btn: HTMLButtonElement,
+    originalText: string,
+  ): void {
+    btn.classList.remove("confirming");
+    btn.textContent = originalText;
+    this._pendingConfirmations.delete(btn);
+  }
+
+  private clearConfirmation(btn: HTMLButtonElement): void {
+    const timer = this._pendingConfirmations.get(btn);
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      this._pendingConfirmations.delete(btn);
     }
+    btn.classList.remove("confirming");
   }
 
   /**
    * Animate a card scaling down and fading out (dismiss effect).
-   * Called by the parent page after the administrator confirms the
-   * acknowledgment dialog. Returns a promise that resolves when the
-   * animation completes (or immediately under reduced-motion).
+   * Called by the parent page after the inline confirmation completes.
+   * Returns a promise that resolves when the animation completes
+   * (or immediately under reduced-motion).
    */
   async dismissCard(employeeId: number): Promise<void> {
     const card = this.shadowRoot.querySelector(
@@ -396,6 +410,56 @@ export class AdminMonthlyReview extends BaseComponent {
       const handle = animateDismiss(card);
       await handle.promise;
     }
+  }
+
+  /**
+   * Reverse a dismiss animation — restore the card to its original state.
+   * Used when the API call fails after an optimistic dismiss so the admin
+   * can retry without a full page reload.
+   */
+  async undismissCard(employeeId: number): Promise<void> {
+    const card = this.shadowRoot.querySelector(
+      `.employee-card[data-employee-id="${employeeId}"]`,
+    ) as HTMLElement | null;
+
+    if (!card) return;
+
+    // The card was hidden by animateDismiss (display: none, inline styles cleared).
+    // Restore visibility and animate back in.
+    card.style.display = "";
+    card.style.transform = "scale(0.25)";
+    card.style.opacity = "0";
+
+    // Force reflow so the browser registers the starting state
+    void card.offsetHeight;
+
+    const duration = "250ms";
+    const easing = "cubic-bezier(0, 0, 0.2, 1)";
+    card.style.transition = `transform ${duration} ${easing}, opacity ${duration} ${easing}`;
+    card.style.transform = "scale(1)";
+    card.style.opacity = "1";
+
+    await new Promise<void>((resolve) => {
+      const onEnd = (e: TransitionEvent) => {
+        if (e.propertyName !== "transform") return;
+        card.removeEventListener("transitionend", onEnd);
+        cleanup();
+        resolve();
+      };
+      const fallback = setTimeout(() => {
+        card.removeEventListener("transitionend", onEnd);
+        cleanup();
+        resolve();
+      }, 300);
+      const cleanup = () => {
+        clearTimeout(fallback);
+        card.style.willChange = "";
+        card.style.transition = "";
+        card.style.transform = "";
+        card.style.opacity = "";
+      };
+      card.addEventListener("transitionend", onEnd);
+    });
   }
 
   /**
@@ -424,14 +488,29 @@ export class AdminMonthlyReview extends BaseComponent {
   protected handleDelegatedClick(e: Event): void {
     const target = e.target as HTMLElement;
 
-    // Handle acknowledge buttons
+    // Handle acknowledge buttons — inline two-click confirmation
     if (target.classList.contains("acknowledge-btn")) {
-      const employeeId = parseInt(
-        target.getAttribute("data-employee-id") || "0",
-      );
-      if (employeeId) {
-        this.handleAcknowledgeEmployee(employeeId);
+      const btn = target as HTMLButtonElement;
+      const employeeId = parseInt(btn.getAttribute("data-employee-id") || "0");
+      if (!employeeId) return;
+
+      if (!btn.classList.contains("confirming")) {
+        // First click: enter confirmation state
+        const originalText = btn.textContent?.trim() ?? "";
+        btn.classList.add("confirming");
+        btn.textContent = "Confirm Acknowledge?";
+
+        // Auto-revert after 3 seconds
+        const timer = window.setTimeout(() => {
+          this.resetConfirmation(btn, originalText);
+        }, 3000);
+        this._pendingConfirmations.set(btn, timer);
+        return;
       }
+
+      // Second click: confirmed — dispatch event
+      this.clearConfirmation(btn);
+      this.dispatchAcknowledgeEvent(employeeId);
       return;
     }
 
