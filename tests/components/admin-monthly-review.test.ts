@@ -81,6 +81,8 @@ function generateMonthlyData(month: string): AdminMonthlyReviewItem[] {
           )?.name
         : undefined,
       calendarLocked: false,
+      notificationSent: false,
+      notificationReadAt: null,
     });
   }
 
@@ -1080,6 +1082,8 @@ describe("AdminMonthlyReview Component", () => {
           juryDutyHours: 0,
           acknowledgedByAdmin: false,
           calendarLocked: false,
+          notificationSent: false,
+          notificationReadAt: null,
         },
       ];
 
@@ -1104,6 +1108,8 @@ describe("AdminMonthlyReview Component", () => {
           juryDutyHours: 0,
           acknowledgedByAdmin: false,
           calendarLocked: true,
+          notificationSent: false,
+          notificationReadAt: null,
         },
       ];
 
@@ -1129,6 +1135,8 @@ describe("AdminMonthlyReview Component", () => {
           juryDutyHours: 0,
           acknowledgedByAdmin: false,
           calendarLocked: false,
+          notificationSent: false,
+          notificationReadAt: null,
         },
       ];
 
@@ -1163,6 +1171,8 @@ describe("AdminMonthlyReview Component", () => {
           juryDutyHours: 0,
           acknowledgedByAdmin: false,
           calendarLocked: true,
+          notificationSent: false,
+          notificationReadAt: null,
         },
       ];
 
@@ -1179,6 +1189,169 @@ describe("AdminMonthlyReview Component", () => {
       );
       expect(indicator).toBeNull();
       expect(reminderEvent).toBeNull();
+    });
+
+    it("should show notified pill when notification sent but unread", () => {
+      const testData: AdminMonthlyReviewItem[] = [
+        {
+          employeeId: 1,
+          employeeName: "Notified Employee",
+          month: "2026-01",
+          totalHours: 172,
+          ptoHours: 0,
+          sickHours: 0,
+          bereavementHours: 0,
+          juryDutyHours: 0,
+          acknowledgedByAdmin: false,
+          calendarLocked: false,
+          notificationSent: true,
+          notificationReadAt: null,
+        },
+      ];
+
+      component.setEmployeeData(testData);
+
+      const indicator = component.shadowRoot?.querySelector(".lock-indicator");
+      expect(indicator).toBeTruthy();
+      expect(indicator?.classList.contains("notified")).toBe(true);
+      expect(indicator?.textContent?.trim()).toBe("⏳ Notified");
+      expect(indicator?.hasAttribute("data-notify-employee")).toBe(false);
+    });
+
+    it("should not dispatch event when notified pill is clicked", () => {
+      const testData: AdminMonthlyReviewItem[] = [
+        {
+          employeeId: 1,
+          employeeName: "Notified Employee",
+          month: "2026-01",
+          totalHours: 172,
+          ptoHours: 0,
+          sickHours: 0,
+          bereavementHours: 0,
+          juryDutyHours: 0,
+          acknowledgedByAdmin: false,
+          calendarLocked: false,
+          notificationSent: true,
+          notificationReadAt: null,
+        },
+      ];
+
+      component.setEmployeeData(testData);
+
+      let reminderEvent: CustomEvent | null = null;
+      component.addEventListener("send-lock-reminder", (e: Event) => {
+        reminderEvent = e as CustomEvent;
+      });
+
+      const indicator = component.shadowRoot?.querySelector(
+        ".lock-indicator.notified",
+      ) as HTMLElement;
+      expect(indicator).toBeTruthy();
+      indicator.click();
+
+      // No data-notify-employee attribute, so no event dispatched
+      expect(reminderEvent).toBeNull();
+    });
+
+    it("should show notified-read pill when notification was read but calendar not locked", () => {
+      const testData: AdminMonthlyReviewItem[] = [
+        {
+          employeeId: 1,
+          employeeName: "Seen Employee",
+          month: "2026-01",
+          totalHours: 172,
+          ptoHours: 0,
+          sickHours: 0,
+          bereavementHours: 0,
+          juryDutyHours: 0,
+          acknowledgedByAdmin: false,
+          calendarLocked: false,
+          notificationSent: true,
+          notificationReadAt: "2026-02-10T08:00:00Z",
+        },
+      ];
+
+      component.setEmployeeData(testData);
+
+      const indicator = component.shadowRoot?.querySelector(".lock-indicator");
+      expect(indicator).toBeTruthy();
+      expect(indicator?.classList.contains("notified-read")).toBe(true);
+      expect(indicator?.textContent?.trim()).toBe("👁 Seen");
+      expect(indicator?.hasAttribute("data-notify-employee")).toBe(true);
+    });
+
+    it("should dispatch send-lock-reminder event when notified-read pill is clicked", () => {
+      const testData: AdminMonthlyReviewItem[] = [
+        {
+          employeeId: 77,
+          employeeName: "Re-notify Target",
+          month: "2026-01",
+          totalHours: 172,
+          ptoHours: 0,
+          sickHours: 0,
+          bereavementHours: 0,
+          juryDutyHours: 0,
+          acknowledgedByAdmin: false,
+          calendarLocked: false,
+          notificationSent: true,
+          notificationReadAt: "2026-02-10T08:00:00Z",
+        },
+      ];
+
+      component.setEmployeeData(testData);
+
+      let reminderEvent: CustomEvent | null = null;
+      component.addEventListener("send-lock-reminder", (e: Event) => {
+        reminderEvent = e as CustomEvent;
+      });
+
+      const indicator = component.shadowRoot?.querySelector(
+        ".lock-indicator.notified-read",
+      ) as HTMLElement;
+      expect(indicator).toBeTruthy();
+      indicator.click();
+
+      expect(reminderEvent).toBeTruthy();
+      expect(reminderEvent!.detail.employeeId).toBe(77);
+      expect(reminderEvent!.detail.employeeName).toBe("Re-notify Target");
+    });
+
+    it("should optimistically update lock indicator to notified state", () => {
+      const testData: AdminMonthlyReviewItem[] = [
+        {
+          employeeId: 10,
+          employeeName: "Update Target",
+          month: "2026-01",
+          totalHours: 172,
+          ptoHours: 0,
+          sickHours: 0,
+          bereavementHours: 0,
+          juryDutyHours: 0,
+          acknowledgedByAdmin: false,
+          calendarLocked: false,
+          notificationSent: false,
+          notificationReadAt: null,
+        },
+      ];
+
+      component.setEmployeeData(testData);
+
+      // Before update, should be unlocked
+      let indicator = component.shadowRoot?.querySelector(
+        ".lock-indicator",
+      ) as HTMLElement;
+      expect(indicator?.classList.contains("unlocked")).toBe(true);
+
+      // Optimistic update
+      component.updateLockIndicator(10, "notified");
+
+      // After update, should be notified
+      indicator = component.shadowRoot?.querySelector(
+        ".lock-indicator",
+      ) as HTMLElement;
+      expect(indicator?.classList.contains("notified")).toBe(true);
+      expect(indicator?.textContent?.trim()).toBe("⏳ Notified");
+      expect(indicator?.hasAttribute("data-notify-employee")).toBe(false);
     });
   });
 
@@ -1219,6 +1392,8 @@ describe("AdminMonthlyReview Component", () => {
           adminAcknowledgedAt: "2025-01-31T12:00:00Z",
           adminAcknowledgedBy: "Admin User",
           calendarLocked: false,
+          notificationSent: false,
+          notificationReadAt: null,
         },
       ];
 
@@ -1249,6 +1424,8 @@ describe("AdminMonthlyReview Component", () => {
           adminAcknowledgedAt: undefined,
           adminAcknowledgedBy: undefined,
           calendarLocked: false,
+          notificationSent: false,
+          notificationReadAt: null,
         },
       ];
 
@@ -1286,6 +1463,8 @@ describe("AdminMonthlyReview Component", () => {
           adminAcknowledgedAt: undefined,
           adminAcknowledgedBy: undefined,
           calendarLocked: false,
+          notificationSent: false,
+          notificationReadAt: null,
         },
       ];
 
@@ -1330,6 +1509,8 @@ describe("AdminMonthlyReview Component", () => {
           adminAcknowledgedAt: undefined,
           adminAcknowledgedBy: undefined,
           calendarLocked: false,
+          notificationSent: false,
+          notificationReadAt: null,
         },
       ];
 
@@ -1369,6 +1550,8 @@ describe("AdminMonthlyReview Component", () => {
           adminAcknowledgedAt: undefined,
           adminAcknowledgedBy: undefined,
           calendarLocked: false,
+          notificationSent: false,
+          notificationReadAt: null,
         },
       ];
 
@@ -1404,6 +1587,8 @@ describe("AdminMonthlyReview Component", () => {
           adminAcknowledgedAt: undefined,
           adminAcknowledgedBy: undefined,
           calendarLocked: false,
+          notificationSent: false,
+          notificationReadAt: null,
         },
       ];
 

@@ -116,6 +116,54 @@ Each employee card should indicate whether the employee has already locked (ackn
 - [ ] `pnpm run build` passes
 - [ ] `pnpm run lint` passes
 
+### Stage 8b: Lock Indicator Notification-State Feedback
+
+The lock indicator currently has only two states: `locked` (employee acknowledged) and `unlocked` (not acknowledged, clickable). After the admin clicks to send a reminder, the indicator reverts to the same `unlocked` appearance — the admin has no feedback on whether the poke was sent or whether the employee has seen it. Two additional visual states are needed:
+
+**Four lock-indicator states:**
+
+| State    | CSS class        | Appearance                             | Meaning                                                                                          |
+| -------- | ---------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Locked   | `.locked`        | ✓ Locked (green pill)                  | Employee has locked their calendar — no action needed                                            |
+| Unlocked | `.unlocked`      | ● Unlocked (amber pill, clickable)     | No notification sent yet — admin can click to send reminder                                      |
+| Notified | `.notified`      | ⏳ Notified (blue pill, non-clickable) | Admin has sent a reminder; employee has **not** read it yet                                      |
+| Seen     | `.notified-read` | 👁 Seen (grey pill, re-clickable)      | Employee dismissed the notification but still hasn't locked — admin may click again to re-notify |
+
+#### Data requirements
+
+The admin-monthly-review API response (`GET /api/admin/monthly-review`) must include per-employee notification status for the review month. Two new fields on the employee card data:
+
+- `notificationSent: boolean` — true if an unread or read `calendar_lock_reminder` notification exists for this employee/month
+- `notificationReadAt: string | null` — ISO timestamp if the employee has dismissed the notification, null if unread or no notification exists
+
+These can be derived by joining the `notifications` table filtered by `type = 'calendar_lock_reminder'` and the review month.
+
+#### Checklist
+
+- [x] **Extend the monthly-review API** to include `notificationSent` and `notificationReadAt` fields per employee by joining `notifications` table
+- [x] **Update the card data interface** (`EmployeeReviewCard` or equivalent) with the two new fields
+- [x] **Update `renderEmployeeCard()`** to select lock-indicator state using four-way logic:
+  1. `calendarLocked` → `.locked` (existing)
+  2. `!calendarLocked && !notificationSent` → `.unlocked` (existing, clickable)
+  3. `!calendarLocked && notificationSent && !notificationReadAt` → `.notified` (new, non-clickable)
+  4. `!calendarLocked && notificationSent && notificationReadAt` → `.notified-read` (new, clickable to re-notify)
+- [x] **Add `.notified` CSS** to `admin-monthly-review/css.ts` — blue informational pill (`rgb(59 130 246 / 12%)`, color `var(--color-info-dark, #1e40af)`), `cursor: default`, no click handler
+- [x] **Add `.notified-read` CSS** to `admin-monthly-review/css.ts` — muted/grey pill (`rgb(107 114 128 / 12%)`, color `var(--color-text-secondary)`), `cursor: pointer` (admin can click to re-notify)
+- [x] **Update click handler** — skip click for `.notified` state; for `.notified-read`, allow re-sending (creates a new notification, duplicate-prevention should be updated to allow re-notify after read)
+- [x] **Update duplicate-prevention logic** in the notification API or client — currently prevents creating a notification if an unread one already exists; should allow creating a new notification when the previous one has been read (`read_at IS NOT NULL`)
+- [x] **After successful notification send**, update the indicator in-place to `.notified` state without a full re-render (optimistic UI update)
+- [x] **Add `prefers-reduced-motion`** handling for any new transitions on the indicator
+- [x] **Update Vitest tests** — test all four indicator states render correctly; test click behavior for each state (locked: no-op, unlocked: sends notification, notified: no-op, notified-read: re-sends notification)
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+
+#### Implementation Notes
+
+- The `notifications` table already has `read_at` (set when the employee actively dismisses) and `created_by` (admin ID) — these are sufficient to derive all four states without schema changes.
+- The duplicate-prevention check in `POST /api/notifications` (Stage 5 of `in-app-notifications.md`) currently prevents duplicates when an unread notification exists. For the `.notified-read` → re-notify flow, the check should be: "only prevent if an **unread** notification of the same type exists for the same employee/month." An already-read notification should not block a new one.
+- The optimistic UI update after sending a notification should swap the element's class from `unlocked` or `notified-read` to `notified` and update the text/title attributes — avoid a full `render()` call which would disrupt other card state (e.g., inline calendars, confirming buttons).
+- Title attributes should provide context: `"Reminder sent — awaiting employee response"` for `.notified`, `"Employee saw reminder but hasn't locked — click to re-send"` for `.notified-read`.
+
 ### Stage 9: Integrate In-App Notification System
 
 Integrate the in-app notification system (see [TASKS/in-app-notifications.md](./in-app-notifications.md)) to support the admin monthly review workflow. The unlocked-calendar indicator from Stage 8 should use this system to send notifications to employees.
@@ -183,3 +231,5 @@ The current "Acknowledge Review" flow pops a `<confirmation-dialog>` modal whose
    SINGLE CLICK — show a toast confirming the notification was created. The message text is defined in `shared/businessRules.ts` (`SUCCESS_MESSAGES["notification.calendar_lock_sent"]`).
 6. Should notifications be visible across all pages (e.g., a global notification bell) or only shown on session start?
    SESSION START ONLY — display queued notifications when the user enters the app (8+ hour gap). No bell indicator. Future iteration may add mobile web app push notifications.
+7. Should the lock indicator reflect whether the admin has already sent a notification and whether the employee has seen it?
+   YES — four states: `locked`, `unlocked`, `notified` (sent but unread), `notified-read` (employee dismissed but hasn't locked). See Stage 8b.

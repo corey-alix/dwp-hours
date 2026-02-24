@@ -178,6 +178,22 @@ export const styles = `
     transform: scale(1.05);
   }
 
+  .lock-indicator.notified {
+    background: rgb(59 130 246 / 12%);
+    color: var(--color-info-dark, #1e40af);
+    cursor: default;
+  }
+
+  .lock-indicator.notified-read {
+    background: rgb(107 114 128 / 12%);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+  }
+
+  .lock-indicator.notified-read:hover {
+    transform: scale(1.05);
+  }
+
   .progress-bar {
     font-size: var(--font-size-sm, 14px);
     color: var(--color-text-secondary);

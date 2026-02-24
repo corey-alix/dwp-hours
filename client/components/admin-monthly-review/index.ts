@@ -485,6 +485,34 @@ export class AdminMonthlyReview extends BaseComponent {
     );
   }
 
+  /**
+   * Optimistically update the lock indicator to "notified" state after a
+   * successful notification send. Updates both the DOM element in-place and
+   * the backing data so a re-render preserves the state.
+   */
+  updateLockIndicator(employeeId: number, state: "notified"): void {
+    // Update backing data so future re-renders preserve the state
+    const emp = this._employeeData.find((e) => e.employeeId === employeeId);
+    if (emp) {
+      emp.notificationSent = true;
+      emp.notificationReadAt = null;
+    }
+
+    // Swap the DOM element in-place to avoid a full re-render
+    const card = this.shadowRoot?.querySelector(
+      `.employee-card[data-employee-id="${employeeId}"]`,
+    );
+    if (!card) return;
+
+    const indicator = card.querySelector(".lock-indicator") as HTMLElement;
+    if (!indicator) return;
+
+    indicator.className = `lock-indicator ${state}`;
+    indicator.removeAttribute("data-notify-employee");
+    indicator.title = "Reminder sent — awaiting employee response";
+    indicator.textContent = "⏳ Notified";
+  }
+
   protected handleDelegatedClick(e: Event): void {
     const target = e.target as HTMLElement;
 
@@ -752,10 +780,17 @@ export class AdminMonthlyReview extends BaseComponent {
     const hasActivity = totalActivity > 0;
     const activityClass = hasActivity ? "has-activity" : "no-activity";
 
-    // Lock status indicator: green pill when locked, warning pill when unlocked
-    const lockIndicatorHtml = employee.calendarLocked
-      ? `<span class="lock-indicator locked" title="Calendar locked">✓ Locked</span>`
-      : `<span class="lock-indicator unlocked" title="Calendar unlocked — click to send reminder" data-notify-employee="${employee.employeeId}">● Unlocked</span>`;
+    // Lock status indicator: four states based on lock + notification status
+    let lockIndicatorHtml: string;
+    if (employee.calendarLocked) {
+      lockIndicatorHtml = `<span class="lock-indicator locked" title="Calendar locked">✓ Locked</span>`;
+    } else if (!employee.notificationSent) {
+      lockIndicatorHtml = `<span class="lock-indicator unlocked" title="Calendar unlocked — click to send reminder" data-notify-employee="${employee.employeeId}">● Unlocked</span>`;
+    } else if (!employee.notificationReadAt) {
+      lockIndicatorHtml = `<span class="lock-indicator notified" title="Reminder sent — awaiting employee response">⏳ Notified</span>`;
+    } else {
+      lockIndicatorHtml = `<span class="lock-indicator notified-read" title="Employee saw reminder but hasn't locked — click to re-send" data-notify-employee="${employee.employeeId}">👁 Seen</span>`;
+    }
 
     return `
       <div class="employee-card ${activityClass}" data-employee-id="${employee.employeeId}">

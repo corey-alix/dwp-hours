@@ -79,6 +79,8 @@ function generateMonthlyData(month: string): AdminMonthlyReviewItem[] {
             ?.name
         : undefined,
       calendarLocked: false,
+      notificationSent: false,
+      notificationReadAt: null,
     });
   }
 

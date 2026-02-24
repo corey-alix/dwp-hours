@@ -269,6 +269,10 @@ export interface AdminMonthlyReviewItem {
   adminAcknowledgedBy?: string;
   /** Whether the employee has locked (acknowledged) their calendar for this month. */
   calendarLocked: boolean;
+  /** Whether a calendar_lock_reminder notification has been sent for this employee/month. */
+  notificationSent: boolean;
+  /** ISO timestamp when the employee dismissed/read the notification, or null if unread/none. */
+  notificationReadAt: string | null;
 }
 
 export interface GenericMessageResponse {

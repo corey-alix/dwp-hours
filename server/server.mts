@@ -1527,6 +1527,7 @@ initDatabase()
           const ptoEntryRepo = dataSource.getRepository(PtoEntry);
           const adminAckRepo = dataSource.getRepository(AdminAcknowledgement);
           const ackRepo = dataSource.getRepository(Acknowledgement);
+          const notificationRepo = dataSource.getRepository(Notification);
 
           // Get all employees
           const employees = await employeeRepo.find({
@@ -1578,6 +1579,17 @@ initDatabase()
               where: { employee_id: employee.id, month: monthStr },
             });
 
+            // Check for calendar_lock_reminder notification for this employee/month
+            // Find the most recent notification matching this month (month is embedded in message)
+            const lockNotification = await notificationRepo.findOne({
+              where: {
+                employee_id: employee.id,
+                type: "calendar_lock_reminder",
+                message: Like(`%${monthStr}%`),
+              },
+              order: { created_at: "DESC" },
+            });
+
             result.push({
               employeeId: employee.id,
               employeeName: employee.name,
@@ -1593,6 +1605,10 @@ initDatabase()
                 : undefined,
               adminAcknowledgedBy: adminAck?.admin?.name || undefined,
               calendarLocked: !!employeeAck,
+              notificationSent: !!lockNotification,
+              notificationReadAt: lockNotification?.read_at
+                ? dateToString(lockNotification.read_at)
+                : null,
             });
           }
 
@@ -1628,6 +1644,7 @@ initDatabase()
           const ptoEntryRepo = dataSource.getRepository(PtoEntry);
           const adminAckRepo = dataSource.getRepository(AdminAcknowledgement);
           const ackRepo = dataSource.getRepository(Acknowledgement);
+          const notificationRepo = dataSource.getRepository(Notification);
 
           // Get all employees
           const employees = await employeeRepo.find({
@@ -1679,6 +1696,16 @@ initDatabase()
               where: { employee_id: employee.id, month: monthStr },
             });
 
+            // Check for calendar_lock_reminder notification for this employee/month
+            const lockNotification = await notificationRepo.findOne({
+              where: {
+                employee_id: employee.id,
+                type: "calendar_lock_reminder",
+                message: Like(`%${monthStr}%`),
+              },
+              order: { created_at: "DESC" },
+            });
+
             result.push({
               employeeId: employee.id,
               employeeName: employee.name,
@@ -1694,6 +1721,10 @@ initDatabase()
                 : undefined,
               adminAcknowledgedBy: adminAck?.admin?.name || undefined,
               calendarLocked: !!employeeAck,
+              notificationSent: !!lockNotification,
+              notificationReadAt: lockNotification?.read_at
+                ? dateToString(lockNotification.read_at)
+                : null,
             });
           }
 

@@ -193,6 +193,14 @@ export class AdminMonthlyReviewPage
       notifications.success(
         SUCCESS_MESSAGES["notification.calendar_lock_sent"],
       );
+
+      // Optimistic UI update: swap the lock indicator to "notified" state
+      const adminComp = this.shadowRoot?.querySelector(
+        "admin-monthly-review",
+      ) as any;
+      if (adminComp?.updateLockIndicator) {
+        adminComp.updateLockIndicator(employeeId, "notified");
+      }
     } catch (error: any) {
       console.error("Failed to send lock reminder:", error);
       notifications.error(
