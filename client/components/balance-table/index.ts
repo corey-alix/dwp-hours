@@ -47,9 +47,10 @@ export class BalanceTable extends BaseComponent {
   }
 
   private renderCell(value: number, classes: string, isAvail = false): string {
-    const negative = isAvail && value < 0 ? " negative" : "";
+    const rounded = Math.round(value);
+    const negative = isAvail && rounded < 0 ? " negative" : "";
     const availClass = isAvail ? " row-avail" : "";
-    return `<div class="cell${availClass}${negative} ${classes}">${value}</div>`;
+    return `<div class="cell${availClass}${negative} ${classes}">${rounded}</div>`;
   }
 
   protected render(): string {

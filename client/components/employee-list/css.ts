@@ -141,13 +141,15 @@ export const styles = `<style>
   }
 
   .action-btn {
-    padding: var(--space-xs) var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    min-height: 44px;
+    min-width: 44px;
     border: var(--border-width) solid var(--color-border);
     background: var(--color-surface);
     color: var(--color-text-secondary);
     border-radius: var(--border-radius);
     cursor: pointer;
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-sm);
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
   }
 
@@ -166,11 +168,55 @@ export const styles = `<style>
     color: var(--color-on-error);
   }
 
+  .action-btn.delete {
+    position: relative;
+    overflow: hidden;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: none;
+  }
+
+  .action-btn.delete::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--color-error);
+    transform: scaleX(0);
+    transform-origin: left;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .action-btn.delete.pressing::after {
+    animation: delete-fill 1.5s linear forwards;
+  }
+
+  .action-btn.delete.pressing {
+    color: var(--color-on-error);
+  }
+
+  @keyframes delete-fill {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .action-btn,
     .employee-card {
       transition: none;
     }
+
+    .action-btn.delete.pressing::after {
+      animation: none;
+      transform: scaleX(1);
+      opacity: 0;
+      animation: delete-fill-reduced 1.5s linear forwards;
+    }
+  }
+
+  @keyframes delete-fill-reduced {
+    from { opacity: 0; }
+    to   { opacity: 1; transform: scaleX(1); }
   }
 
   .empty-state {

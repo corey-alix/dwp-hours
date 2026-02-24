@@ -9,12 +9,18 @@ export interface Employee {
 }
 
 import { BaseComponent } from "../base-component.js";
+import { adoptAnimations } from "../../css-extensions/animations/index.js";
 import { styles } from "./css.js";
 
 export class EmployeeList extends BaseComponent {
   private _employees: Employee[] = [];
   private _searchTerm = "";
   private _editingEmployeeId: number | null = null;
+
+  connectedCallback() {
+    super.connectedCallback();
+    adoptAnimations(this.shadowRoot);
+  }
 
   static get observedAttributes() {
     return ["editing-employee-id"];
@@ -121,7 +127,7 @@ export class EmployeeList extends BaseComponent {
 
                 <div class="employee-actions">
                     <button class="action-btn edit" data-action="edit" data-employee-id="${employee.id}">Edit</button>
-                    <button class="action-btn delete" data-action="delete" data-employee-id="${employee.id}">Delete</button>
+                    <button class="action-btn delete" data-action="delete" data-employee-id="${employee.id}" title="Hold to delete">Delete</button>
                 </div>
 
             </div>
@@ -130,7 +136,7 @@ export class EmployeeList extends BaseComponent {
 
   private renderInlineEditor(employee: Employee): string {
     return `
-            <div class="inline-editor" data-employee-id="${employee.id}">
+            <div class="inline-editor anim-slide-down-in" data-employee-id="${employee.id}">
                 <slot name="editor-${employee.id}">
                   <employee-form employee='${JSON.stringify(employee)}' is-edit="true"></employee-form>
                 </slot>
@@ -139,6 +145,9 @@ export class EmployeeList extends BaseComponent {
   }
 
   private _inputListenerSetup = false;
+  private _deleteTimer: ReturnType<typeof setTimeout> | null = null;
+  private _deleteTarget: HTMLElement | null = null;
+  private static readonly DELETE_HOLD_MS = 1500;
 
   protected setupEventDelegation() {
     super.setupEventDelegation();
@@ -175,6 +184,69 @@ export class EmployeeList extends BaseComponent {
         }),
       );
     });
+
+    // Long-press detection for delete buttons
+    this.shadowRoot.addEventListener("pointerdown", (e) => {
+      const target = e.target as HTMLElement;
+      if (
+        target.classList.contains("action-btn") &&
+        target.classList.contains("delete")
+      ) {
+        e.preventDefault();
+        this.startDeletePress(target, e as PointerEvent);
+      }
+    });
+
+    this.shadowRoot.addEventListener("pointerup", () => {
+      this.cancelDeletePress();
+    });
+
+    this.shadowRoot.addEventListener("pointerleave", (e) => {
+      const target = e.target as HTMLElement;
+      if (target === this._deleteTarget) {
+        this.cancelDeletePress();
+      }
+    });
+
+    // Also cancel on pointer cancel (e.g., system gesture interruption)
+    this.shadowRoot.addEventListener("pointercancel", () => {
+      this.cancelDeletePress();
+    });
+  }
+
+  private startDeletePress(target: HTMLElement, e: PointerEvent): void {
+    this.cancelDeletePress();
+    this._deleteTarget = target;
+    target.classList.add("pressing");
+    target.setPointerCapture(e.pointerId);
+
+    const employeeId = target.getAttribute("data-employee-id");
+    if (!employeeId) return;
+
+    this._deleteTimer = setTimeout(() => {
+      target.classList.remove("pressing");
+      this._deleteTarget = null;
+      this._deleteTimer = null;
+
+      this.dispatchEvent(
+        new CustomEvent("employee-delete", {
+          detail: { employeeId: parseInt(employeeId) },
+          bubbles: true,
+          composed: true,
+        }),
+      );
+    }, EmployeeList.DELETE_HOLD_MS);
+  }
+
+  private cancelDeletePress(): void {
+    if (this._deleteTimer) {
+      clearTimeout(this._deleteTimer);
+      this._deleteTimer = null;
+    }
+    if (this._deleteTarget) {
+      this._deleteTarget.classList.remove("pressing");
+      this._deleteTarget = null;
+    }
   }
 
   protected handleDelegatedClick(e: Event): void {
@@ -182,6 +254,9 @@ export class EmployeeList extends BaseComponent {
     if (target.classList.contains("action-btn")) {
       const action = target.getAttribute("data-action");
       const employeeId = target.getAttribute("data-employee-id");
+
+      // Delete is handled by long-press, not single click
+      if (action === "delete") return;
 
       if (action && employeeId) {
         this.dispatchEvent(

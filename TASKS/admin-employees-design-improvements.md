@@ -102,6 +102,53 @@ The "Acknowledge" button on employee cards is unclear and not needed — monthly
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
 
+### Stage 8: Increase Edit/Delete Button Size
+
+The Edit and Delete action buttons on employee cards are too small for comfortable interaction, especially on touch devices. They should meet the WCAG minimum touch target size of 44×44px.
+
+- [x] Increase `.action-btn` padding from `var(--space-xs) var(--space-sm)` to `var(--space-sm) var(--space-md)` in `employee-list/css.ts`
+- [x] Increase `.action-btn` font-size from `var(--font-size-xs)` to `var(--font-size-sm)`
+- [x] Add `min-height: 44px` and `min-width: 44px` to `.action-btn` for WCAG touch target compliance
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+
+### Stage 9: Animate Inline Editor Reveal
+
+When clicking "Edit", the inline editor appears instantly. It should use a slide-down animation following the CSS Animation Assistant rules: hardware-accelerated properties only (`transform`, `opacity`), decelerate easing on open, `prefers-reduced-motion` support.
+
+- [x] Import `adoptAnimations` from `css-extensions/animations` in `employee-list/index.ts`
+- [x] Call `adoptAnimations(this.shadowRoot)` in the employee-list's `connectedCallback` (or equivalent setup)
+- [x] Add the `anim-slide-down-in` utility class to the `.inline-editor` element in `renderInlineEditor()`
+- [x] The existing animation CSS already includes `@media (prefers-reduced-motion: reduce)` support — verify no extra work needed
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+
+### Stage 10: Fix Enter/Escape Keyboard Shortcuts in Employee Form
+
+Pressing Enter while focused on any input in the "Edit Employee" form should trigger the "Update Employee" button. Pressing Escape should trigger "Cancel". The current `handleDelegatedKeydown` in `employee-form/index.ts` has an early return for `HTMLInputElement` that prevents Enter from submitting.
+
+- [x] Fix `handleDelegatedKeydown` in `employee-form/index.ts`: when Enter is pressed on an `HTMLInputElement`, prevent default and click the submit button instead of returning early
+- [x] Verify Escape handling already works correctly (code review shows it does)
+- [ ] Update Vitest tests to cover Enter-to-submit and Escape-to-cancel keyboard shortcuts
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+
+### Stage 11: Replace Delete Confirmation Dialog with Long-Press
+
+The delete button currently shows a `<confirmation-dialog>`. Replace it with a long-press (press-and-hold ~1.5s) gesture that provides visual feedback during the hold, and auto-executes deletion on completion. No confirmation dialog.
+
+- [x] Remove the `confirmation-dialog` creation from `handleDeleteEmployee` in `admin-employees-page/index.ts`
+- [x] Implement long-press detection in `employee-list/index.ts` using `pointerdown`/`pointerup`/`pointerleave` events on `.action-btn.delete`
+- [x] Add a CSS `@keyframes delete-fill` animation on the delete button that fills the background from left to right over 1.5s, triggered on pointerdown
+- [x] Cancel the animation and timer if the pointer is released or leaves the button before 1.5s
+- [x] On successful long-press completion, dispatch the `employee-delete` custom event (same as current click behavior)
+- [x] Remove the single-click delete dispatch from `handleDelegatedClick` for the delete action
+- [x] Add `prefers-reduced-motion` support: when reduced motion is preferred, use a numeric countdown or opacity change instead of the fill animation
+- [x] Animate only `transform`, `opacity`, or `background` (use a pseudo-element `::after` with `transform: scaleX()` for the fill effect — GPU-accelerated)
+- [ ] Update Vitest tests for the long-press behavior
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+
 ## Implementation Notes
 
 - Page component: [client/pages/admin-employees-page/index.ts](../client/pages/admin-employees-page/index.ts) (324 lines)
@@ -126,6 +173,11 @@ The "Acknowledge" button on employee cards is unclear and not needed — monthly
 6. **Toggle state persistence via `localStorage`** — Reuse pattern from `pto-pto-card` if adding collapsible sections.
 7. **Mobile-first card layout** — Use `grid-template-columns: 1fr` by default, with `@media (min-width: 768px)` breakpoint for multi-column. Do NOT use `max-width` media queries.
 8. **CSS fallback cleanup** — The `css.ts` file uses `var(--token, fallback)` pattern throughout, but the design token system is fully established. Remove fallbacks to keep CSS clean and consistent with other pages.
+
+9. **Existing animation library supports inline-editor reveal** — `adoptAnimations` + `anim-slide-down-in` class is all that's needed. The shared animation CSS already handles `prefers-reduced-motion`. No new keyframes needed.
+10. **Employee form already has keyboard handlers** — `handleDelegatedKeydown` in `employee-form/index.ts` already handles Enter and Escape, but the Enter handler has a bug: it returns early when `e.target instanceof HTMLInputElement`, thinking native form submission will handle it. Since the buttons are `type="button"` (not `type="submit"`), native submission never fires. Fix: remove the early return and always trigger the submit button click on Enter.
+11. **Long-press pattern uses pointer events** — `pointerdown`/`pointerup`/`pointerleave` provide unified mouse+touch handling. Use a `setTimeout` for the 1.5s hold duration, clear it on up/leave. The CSS fill effect uses `::after` pseudo-element with `transform: scaleX(0→1)` for GPU acceleration per the animation policy.
+12. **WCAG touch target minimum** — 44×44px minimum for interactive elements. The current `space-xs` + `space-sm` padding on action buttons is below this threshold.
 
 ## Questions and Concerns
 

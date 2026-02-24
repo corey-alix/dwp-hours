@@ -324,13 +324,8 @@ export class EmployeeForm extends BaseComponent {
   }
 
   protected handleDelegatedKeydown(e: KeyboardEvent): void {
-    if (e.key === "Enter" && e.target instanceof HTMLInputElement) {
-      // Allow Enter on inputs to work normally (form submission)
-      return;
-    }
-
     if (e.key === "Enter" && !this._isSubmitting) {
-      // Enter on form elements (not inputs) triggers submit
+      // Enter on any form element triggers submit
       e.preventDefault();
       const submitBtn = this.shadowRoot?.querySelector(
         "#submit-btn",

@@ -205,33 +205,19 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
     });
   }
 
-  private handleDeleteEmployee(employeeId: number): void {
+  private async handleDeleteEmployee(employeeId: number): Promise<void> {
     const employee = this._employees.find((e: any) => e.id === employeeId);
     const name = employee?.name ?? `#${employeeId}`;
 
-    const dialog = document.createElement("confirmation-dialog") as any;
-    dialog.message = `Are you sure you want to delete employee "${name}"? This action cannot be undone.`;
-    dialog.confirmText = "Delete";
-    dialog.cancelText = "Cancel";
-
-    dialog.addEventListener("confirm", async () => {
-      dialog.remove();
-      try {
-        await this.api.deleteEmployee(employeeId);
-        notifications.success(`Employee "${name}" deleted successfully.`);
-        await this.refreshEmployees();
-      } catch (error) {
-        notifications.error(
-          `Failed to delete employee: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
-    });
-
-    dialog.addEventListener("cancel", () => {
-      dialog.remove();
-    });
-
-    document.body.appendChild(dialog);
+    try {
+      await this.api.deleteEmployee(employeeId);
+      notifications.success(`Employee "${name}" deleted successfully.`);
+      await this.refreshEmployees();
+    } catch (error) {
+      notifications.error(
+        `Failed to delete employee: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   private async handleEmployeeSubmit(detail: {
