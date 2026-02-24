@@ -9,8 +9,20 @@ export const styles = `<style>
     justify-content: space-between;
   }
 
-  h2 {
+  .page-heading {
+    text-align: center;
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
     color: var(--color-text);
-    margin-bottom: var(--space-md);
+    margin: var(--space-md) 0 var(--space-sm) 0;
+  }
+
+  .balance-heading {
+    font-size: var(--font-size-xs, 12px);
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-align: center;
+    margin-bottom: var(--space-xs, 4px);
   }
 </style>`;

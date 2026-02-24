@@ -233,4 +233,137 @@ describe("PtoRequestQueue Component", () => {
       ).toBeNull();
     });
   });
+
+  describe("Single-day vs Multi-day Date Display", () => {
+    it("should show single date without arrow for same-day requests", () => {
+      component.requests = [
+        makePendingRequest({ startDate: "2025-03-10", endDate: "2025-03-10" }),
+      ];
+
+      const dateRange = component.shadowRoot?.querySelector(".date-range");
+      const text = dateRange?.textContent ?? "";
+      expect(text).not.toContain("→");
+    });
+
+    it("should show date range with arrow for multi-day requests", () => {
+      component.requests = [
+        makePendingRequest({ startDate: "2025-03-10", endDate: "2025-03-12" }),
+      ];
+
+      const dateRange = component.shadowRoot?.querySelector(".date-range");
+      const text = dateRange?.textContent ?? "";
+      expect(text).toContain("→");
+    });
+  });
+
+  describe("Employee Grouping", () => {
+    it("should group requests by employee", () => {
+      component.requests = [
+        makePendingRequest({ id: 1, employeeId: 10, employeeName: "Alice" }),
+        makePendingRequest({ id: 2, employeeId: 20, employeeName: "Bob" }),
+        makePendingRequest({ id: 3, employeeId: 10, employeeName: "Alice" }),
+      ];
+
+      const groups = component.shadowRoot?.querySelectorAll(".employee-group");
+      expect(groups?.length).toBe(2);
+    });
+
+    it("should show employee group heading with count", () => {
+      component.requests = [
+        makePendingRequest({ id: 1, employeeId: 10, employeeName: "Alice" }),
+        makePendingRequest({ id: 2, employeeId: 10, employeeName: "Alice" }),
+      ];
+
+      const heading = component.shadowRoot?.querySelector(
+        ".employee-group-name",
+      );
+      expect(heading?.textContent).toContain("Alice");
+      expect(heading?.textContent).toContain("2 pending requests");
+    });
+
+    it("should use singular 'request' for single pending request", () => {
+      component.requests = [
+        makePendingRequest({ id: 1, employeeId: 10, employeeName: "Alice" }),
+      ];
+
+      const heading = component.shadowRoot?.querySelector(
+        ".employee-group-name",
+      );
+      expect(heading?.textContent).toContain("1 pending request");
+      expect(heading?.textContent).not.toContain("requests");
+    });
+
+    it("should render balance slot per employee group", () => {
+      component.requests = [
+        makePendingRequest({ id: 1, employeeId: 10, employeeName: "Alice" }),
+        makePendingRequest({ id: 2, employeeId: 20, employeeName: "Bob" }),
+      ];
+
+      const slots = component.shadowRoot?.querySelectorAll("slot");
+      const slotNames = Array.from(slots ?? []).map((s) =>
+        s.getAttribute("name"),
+      );
+      expect(slotNames).toContain("balance-10");
+      expect(slotNames).toContain("balance-20");
+    });
+  });
+
+  describe("Confirmation Flow for Negative Balance", () => {
+    it("should fire event immediately when employee has no negative balance", () => {
+      component.requests = [makePendingRequest({ id: 42, employeeId: 10 })];
+
+      let firedEvent: CustomEvent | null = null;
+      component.addEventListener("request-approve", (e: Event) => {
+        firedEvent = e as CustomEvent;
+      });
+
+      const approveBtn = component.shadowRoot?.querySelector(
+        ".action-btn.approve",
+      ) as HTMLButtonElement;
+      approveBtn?.click();
+
+      expect(firedEvent).toBeTruthy();
+      expect(firedEvent!.detail.requestId).toBe(42);
+    });
+
+    it("should enter confirmation state on first click for negative-balance employee", () => {
+      component.requests = [makePendingRequest({ id: 42, employeeId: 10 })];
+      component.negativeBalanceEmployees = new Set([10]);
+
+      let firedEvent: CustomEvent | null = null;
+      component.addEventListener("request-approve", (e: Event) => {
+        firedEvent = e as CustomEvent;
+      });
+
+      const approveBtn = component.shadowRoot?.querySelector(
+        ".action-btn.approve",
+      ) as HTMLButtonElement;
+      approveBtn?.click();
+
+      // Should NOT fire the event yet
+      expect(firedEvent).toBeNull();
+      // Should show confirmation state
+      expect(approveBtn.classList.contains("confirming")).toBe(true);
+      expect(approveBtn.textContent).toContain("Confirm");
+    });
+
+    it("should fire event on second click (confirmation)", () => {
+      component.requests = [makePendingRequest({ id: 42, employeeId: 10 })];
+      component.negativeBalanceEmployees = new Set([10]);
+
+      let firedEvent: CustomEvent | null = null;
+      component.addEventListener("request-approve", (e: Event) => {
+        firedEvent = e as CustomEvent;
+      });
+
+      const approveBtn = component.shadowRoot?.querySelector(
+        ".action-btn.approve",
+      ) as HTMLButtonElement;
+      approveBtn?.click(); // First click — enters confirming
+      approveBtn?.click(); // Second click — confirms
+
+      expect(firedEvent).toBeTruthy();
+      expect(firedEvent!.detail.requestId).toBe(42);
+    });
+  });
 });

@@ -54,9 +54,55 @@ export const styles = `<style>
 
   .queue-content {
     gap: var(--space-header);
+    display: grid;
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+
+  @media (min-width: 768px) {
+
+    .queue-content {
+      grid-template-columns: repeat(auto-fit, minmax(24em, 1fr));
+    }
+  }
+
+  .employee-group {
+    grid-column: 1 / -1;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-lg);
+    padding: var(--space-md);
+    background: var(--color-surface);
+  }
+
+  .employee-group-header {
     display: flex;
     flex-wrap: wrap;
-    overflow-y: auto;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-md);
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .employee-group-name {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text);
+    margin: 0;
+    flex: 1 1 auto;
+  }
+
+  .employee-group-cards {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+  }
+
+  @media (min-width: 768px) {
+
+    .employee-group-cards {
+      grid-template-columns: repeat(auto-fit, minmax(20em, 1fr));
+    }
   }
 
   .request-card {
@@ -67,7 +113,6 @@ export const styles = `<style>
     box-shadow: var(--shadow-md);
     border: 1px solid var(--color-border);
     transition: box-shadow 0.3s ease;
-    flex: 1 1 24em;
   }
 
   .request-card:hover {
@@ -165,7 +210,7 @@ export const styles = `<style>
     cursor: pointer;
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
-    transition: all 0.3s ease;
+    transition: opacity 0.3s ease, background-color 0.3s ease;
   }
 
   .action-btn.approve {
@@ -186,6 +231,21 @@ export const styles = `<style>
   .action-btn.reject:hover {
     background: var(--color-error);
     opacity: 0.8;
+  }
+
+  .action-btn.confirming {
+    outline: 2px solid var(--color-warning);
+    outline-offset: 1px;
+  }
+
+  .action-btn.approve.confirming {
+    background: var(--color-warning);
+    color: var(--color-on-warning, #000);
+  }
+
+  .action-btn.reject.confirming {
+    background: var(--color-warning);
+    color: var(--color-on-warning, #000);
   }
 
   .empty-state {
@@ -217,5 +277,16 @@ export const styles = `<style>
   .status-badge.pending {
     background: var(--color-warning-light);
     color: var(--color-warning);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+
+    .request-card {
+      transition: none;
+    }
+
+    .action-btn {
+      transition: none;
+    }
   }
 </style>`;

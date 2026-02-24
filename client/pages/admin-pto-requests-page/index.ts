@@ -84,14 +84,22 @@ export class AdminPtoRequestsPage
     const pendingRequests = this._requests.filter(
       (r) => r.status === "pending",
     );
+    // Deduplicate by employeeId for per-employee-group balance slots
+    const uniqueEmployees = new Map<number, PTORequest>();
+    for (const req of pendingRequests) {
+      if (!uniqueEmployees.has(req.employeeId)) {
+        uniqueEmployees.set(req.employeeId, req);
+      }
+    }
+
     return `
       ${styles}
-      <p class="capitalize">Review and Acknowledge Daily PTO Requests</p>
+      <h2 class="page-heading">PTO Request Queue</h2>
       <pto-request-queue>
-        ${pendingRequests
+        ${Array.from(uniqueEmployees.values())
           .map(
             (req) =>
-              `<month-summary slot="balance-${req.id}" data-employee-id="${req.employeeId}"></month-summary>`,
+              `<div slot="balance-${req.employeeId}" class="balance-slot"><div class="balance-heading">Available Balance</div><month-summary data-employee-id="${req.employeeId}"></month-summary></div>`,
           )
           .join("")}
       </pto-request-queue>
@@ -110,6 +118,7 @@ export class AdminPtoRequestsPage
    * Computes used hours per PTO category from fetched PTO entries, then sets
    * hours attributes (used) and `balances` property (annual limits) so
    * month-summary displays "available−used".
+   * Also computes which employees have negative balances and notifies the queue.
    */
   private hydrateBalanceSummaries(): void {
     if (this._ptoEntries.length === 0 && this._requests.length === 0) return;
@@ -119,23 +128,46 @@ export class AdminPtoRequestsPage
     ) as NodeListOf<MonthSummary>;
 
     const limits: Record<string, number> = {
-      PTO: 80,
+      PTO: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.PTO,
       Sick: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.SICK,
       Bereavement: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.OTHER,
       "Jury Duty": BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.OTHER,
     };
+
+    const negativeBalanceIds = new Set<number>();
 
     summaries.forEach((el) => {
       const empIdAttr = el.getAttribute("data-employee-id");
       if (!empIdAttr) return;
       const empId = parseInt(empIdAttr, 10);
 
-      el.ptoHours = this.getUsedHours(empId, "PTO");
-      el.sickHours = this.getUsedHours(empId, "Sick");
-      el.bereavementHours = this.getUsedHours(empId, "Bereavement");
-      el.juryDutyHours = this.getUsedHours(empId, "Jury Duty");
+      const ptoUsed = this.getUsedHours(empId, "PTO");
+      const sickUsed = this.getUsedHours(empId, "Sick");
+      const bereavUsed = this.getUsedHours(empId, "Bereavement");
+      const juryUsed = this.getUsedHours(empId, "Jury Duty");
+
+      el.ptoHours = ptoUsed;
+      el.sickHours = sickUsed;
+      el.bereavementHours = bereavUsed;
+      el.juryDutyHours = juryUsed;
       el.balances = limits;
+
+      // Check for any negative remaining balance
+      if (
+        limits["PTO"] - ptoUsed < 0 ||
+        limits["Sick"] - sickUsed < 0 ||
+        limits["Bereavement"] - bereavUsed < 0 ||
+        limits["Jury Duty"] - juryUsed < 0
+      ) {
+        negativeBalanceIds.add(empId);
+      }
     });
+
+    // Notify queue about employees with negative balances
+    const queue = this.shadowRoot.querySelector("pto-request-queue") as any;
+    if (queue) {
+      queue.negativeBalanceEmployees = negativeBalanceIds;
+    }
   }
 
   /** Get used hours for an employee in a specific PTO category. */

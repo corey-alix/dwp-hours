@@ -29,87 +29,87 @@ Screenshot and shadow DOM captured via `pnpm screenshot /admin/pto-requests admi
 
 The page has competing headings and incorrect semantics. Consolidate to the project's standard `<h2 class="page-heading">` pattern.
 
-- [ ] Replace `<p class="capitalize">Review and Acknowledge Daily PTO Requests</p>` with `<h2 class="page-heading">PTO Request Queue</h2>` in the page template
-- [ ] Add `.page-heading` styles to the page's `css.ts` file (matching current-year-summary pattern: centered, `var(--font-size-xl)`, `var(--font-weight-semibold)`)
-- [ ] Change `<h1 class="queue-title">` in `pto-request-queue` to `<h2 class="queue-title">` for proper heading hierarchy
-- [ ] Remove the now-redundant `.capitalize` class usage
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] Replace `<p class="capitalize">Review and Acknowledge Daily PTO Requests</p>` with `<h2 class="page-heading">PTO Request Queue</h2>` in the page template
+- [x] Add `.page-heading` styles to the page's `css.ts` file (matching current-year-summary pattern: centered, `var(--font-size-xl)`, `var(--font-weight-semibold)`)
+- [x] Change `<h1 class="queue-title">` in `pto-request-queue` to `<h2 class="queue-title">` for proper heading hierarchy
+- [x] Remove the now-redundant `.capitalize` class usage
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ### Stage 2: Add Balance Context Labels
 
 The balance summaries need heading labels to explain what the numbers mean (Implementation Learning #1).
 
-- [ ] Add a `<div class="balance-heading">Available Balance</div>` label above/before each slotted `<month-summary>` element in the request card, or add a sibling label in the page template
-- [ ] Style the balance heading using existing design tokens (matching the pattern from submit-time-off and current-year-summary pages)
-- [ ] Ensure the label is visible on mobile viewports
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] Add a `<div class="balance-heading">Available Balance</div>` label above/before each slotted `<month-summary>` element in the request card, or add a sibling label in the page template
+- [x] Style the balance heading using existing design tokens (matching the pattern from submit-time-off and current-year-summary pages)
+- [x] Ensure the label is visible on mobile viewports
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ### Stage 3: Fix Hardcoded PTO Limit
 
 The PTO limit should come from business rules or the employee's actual rate, not a magic number.
 
-- [ ] Replace `PTO: 80` in `hydrateBalanceSummaries()` with the employee's actual PTO allocation (from `BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.PTO` or computed from `ptoRate`)
-- [ ] Verify the balance values match what's shown on the `/current-year-summary` page for the same employees
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] Replace `PTO: 80` in `hydrateBalanceSummaries()` with the employee's actual PTO allocation (from `BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.PTO` or computed from `ptoRate`)
+- [x] Verify the balance values match what's shown on the `/current-year-summary` page for the same employees
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ### Stage 4: Fix Redundant Date Range Display
 
 Single-day requests should not show a date range with an arrow.
 
-- [ ] In `pto-request-queue`'s `renderRequestCard()`, conditionally render the date display: show `"8/3/26"` for single-day requests and `"8/3/26 → 8/5/26"` for multi-day ranges
-- [ ] Update or add Vitest tests to verify both single-day and multi-day date rendering
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] In `pto-request-queue`'s `renderRequestCard()`, conditionally render the date display: show `"8/3/26"` for single-day requests and `"8/3/26 → 8/5/26"` for multi-day ranges
+- [x] Update or add Vitest tests to verify both single-day and multi-day date rendering
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ### Stage 5: Fix CSS Transitions and Add Reduced Motion Support
 
 The CSS has performance anti-patterns and missing accessibility features.
 
-- [ ] Replace `transition: all 0.3s ease` on `.action-btn` with `transition: opacity 0.3s ease, background-color 0.3s ease` (animate only properties that change)
-- [ ] Replace `transition: box-shadow 0.3s ease` on `.request-card` with a specific `transition` property (already specific — just verify)
-- [ ] Add `@media (prefers-reduced-motion: reduce)` block to disable/reduce transitions on `.action-btn`, `.request-card`, and any other animated elements
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
-- [ ] `pnpm run lint:css` passes
+- [x] Replace `transition: all 0.3s ease` on `.action-btn` with `transition: opacity 0.3s ease, background-color 0.3s ease` (animate only properties that change)
+- [x] Replace `transition: box-shadow 0.3s ease` on `.request-card` with a specific `transition` property (already specific — just verify)
+- [x] Add `@media (prefers-reduced-motion: reduce)` block to disable/reduce transitions on `.action-btn`, `.request-card`, and any other animated elements
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+- [x] `pnpm run lint:css` passes
 
 ### Stage 6: Switch to Mobile-First Card Layout
 
 The card layout should follow the project's mobile-first CSS pattern (Implementation Learning #8).
 
-- [ ] Replace `.queue-content` `flex-wrap: wrap` + `flex: 1 1 24em` with CSS Grid: default `grid-template-columns: 1fr` (single column on mobile)
-- [ ] Add `@media (min-width: 768px)` breakpoint with multi-column grid layout (e.g., `repeat(auto-fit, minmax(24em, 1fr))`)
-- [ ] Verify card rendering at 375px viewport width
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] Replace `.queue-content` `flex-wrap: wrap` + `flex: 1 1 24em` with CSS Grid: default `grid-template-columns: 1fr` (single column on mobile)
+- [x] Add `@media (min-width: 768px)` breakpoint with multi-column grid layout (e.g., `repeat(auto-fit, minmax(24em, 1fr))`)
+- [x] Verify card rendering at 375px viewport width
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ### Stage 7: Group Requests by Employee
 
 Grouping requests by employee reduces visual clutter and makes balance summaries more contextual.
 
-- [ ] Group pending requests by `employeeId` so all requests for the same employee appear together
-- [ ] Move the `<month-summary>` balance display from per-card to per-employee-group (show once per group, not repeated per card)
-- [ ] Add employee group headings (e.g., "Jane Smith — 2 pending requests")
-- [ ] Maintain chronological order within each employee group
-- [ ] Update slot strategy: use per-employee slots (`balance-{employeeId}`) instead of per-request slots (`balance-{requestId}`)
-- [ ] Update Vitest tests for grouped rendering
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] Group pending requests by `employeeId` so all requests for the same employee appear together
+- [x] Move the `<month-summary>` balance display from per-card to per-employee-group (show once per group, not repeated per card)
+- [x] Add employee group headings (e.g., "Jane Smith — 2 pending requests")
+- [x] Maintain chronological order within each employee group
+- [x] Update slot strategy: use per-employee slots (`balance-{employeeId}`) instead of per-request slots (`balance-{requestId}`)
+- [x] Update Vitest tests for grouped rendering
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ### Stage 8: Add Confirmation for Approve/Reject Actions
 
 Prevent accidental approvals or rejections with a brief confirmation step.
 
-- [ ] Only trigger inline confirmation when the card has an unusual condition (e.g., employee has a negative balance for the requested PTO type) — normal requests proceed immediately on first click
-- [ ] Implement inline two-step confirmation: first click changes the button text (e.g., "Confirm Approve?"), second click fires the action
-- [ ] Auto-revert to the original button state after a timeout (e.g., 3 seconds) if the user doesn't confirm
-- [ ] Add visual differentiation for the confirmation state (e.g., warning-colored border or background shade)
-- [ ] Respect `prefers-reduced-motion` for any confirmation animations
-- [ ] Update Vitest tests for the conditional confirmation flow (confirm on negative balance, immediate on normal)
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] Only trigger inline confirmation when the card has an unusual condition (e.g., employee has a negative balance for the requested PTO type) — normal requests proceed immediately on first click
+- [x] Implement inline two-step confirmation: first click changes the button text (e.g., "Confirm Approve?"), second click fires the action
+- [x] Auto-revert to the original button state after a timeout (e.g., 3 seconds) if the user doesn't confirm
+- [x] Add visual differentiation for the confirmation state (e.g., warning-colored border or background shade)
+- [x] Respect `prefers-reduced-motion` for any confirmation animations
+- [x] Update Vitest tests for the conditional confirmation flow (confirm on negative balance, immediate on normal)
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ## Implementation Notes
 

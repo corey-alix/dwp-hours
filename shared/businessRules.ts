@@ -51,6 +51,7 @@ export const BUSINESS_RULES_CONSTANTS = {
   /** Default annual PTO allocation for new hires (hours). */
   BASELINE_PTO_HOURS_PER_YEAR: 96,
   ANNUAL_LIMITS: {
+    PTO: 80,
     SICK: 24,
     OTHER: 40, // Bereavement and Jury Duty
   },
@@ -364,7 +365,7 @@ export function computeEmployeeBalanceData(
 ): PtoBalanceData {
   const categories: PTOType[] = ["PTO", "Sick", "Bereavement", "Jury Duty"];
   const limits: Record<PTOType, number> = {
-    PTO: 80, // Standard PTO annual limit
+    PTO: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.PTO,
     Sick: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.SICK,
     Bereavement: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.OTHER,
     "Jury Duty": BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.OTHER,

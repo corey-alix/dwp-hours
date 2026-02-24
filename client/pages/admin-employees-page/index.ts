@@ -121,7 +121,7 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
     ) as NodeListOf<MonthSummary>;
 
     const limits: Record<string, number> = {
-      PTO: 80,
+      PTO: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.PTO,
       Sick: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.SICK,
       Bereavement: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.OTHER,
       "Jury Duty": BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.OTHER,

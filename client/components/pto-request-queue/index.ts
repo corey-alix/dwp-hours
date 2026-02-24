@@ -20,6 +20,10 @@ interface PTORequest {
 
 export class PtoRequestQueue extends BaseComponent {
   private _requests: PTORequest[] = [];
+  /** Employee IDs that have at least one negative balance category. */
+  private _negativeBalanceEmployeeIds = new Set<number>();
+  /** Track buttons awaiting confirmation. Maps button element to reset timer. */
+  private _pendingConfirmations = new Map<HTMLButtonElement, number>();
 
   get requests(): PTORequest[] {
     return this._requests;
@@ -30,16 +34,35 @@ export class PtoRequestQueue extends BaseComponent {
     this.requestUpdate();
   }
 
+  /** Set the IDs of employees with negative balance (triggers confirm flow). */
+  set negativeBalanceEmployees(ids: Set<number>) {
+    this._negativeBalanceEmployeeIds = ids;
+  }
+
   protected render(): string {
     const pendingRequests = this._requests.filter(
       (r) => r.status === "pending",
     );
 
+    // Group requests by employee, preserving chronological order within groups
+    const employeeGroups = new Map<
+      number,
+      { name: string; requests: PTORequest[] }
+    >();
+    for (const req of pendingRequests) {
+      let group = employeeGroups.get(req.employeeId);
+      if (!group) {
+        group = { name: req.employeeName, requests: [] };
+        employeeGroups.set(req.employeeId, group);
+      }
+      group.requests.push(req);
+    }
+
     return `
       ${styles}
       <div class="queue-container">
         <div class="queue-header">
-          <h1 class="queue-title">PTO Request Queue</h1>
+          <h2 class="queue-title">PTO Request Queue</h2>
           <div class="queue-stats">
             <div class="stat-item">
               <span class="stat-value">${pendingRequests.length}</span>
@@ -52,8 +75,19 @@ export class PtoRequestQueue extends BaseComponent {
           ${
             pendingRequests.length === 0
               ? '<div class="empty-state"><h3>No pending requests</h3><p>All PTO requests have been reviewed.</p></div>'
-              : pendingRequests
-                  .map((request) => this.renderRequestCard(request))
+              : Array.from(employeeGroups.entries())
+                  .map(
+                    ([empId, group]) => `
+                    <div class="employee-group" data-employee-id="${empId}">
+                      <div class="employee-group-header">
+                        <h3 class="employee-group-name">${group.name} — ${group.requests.length} pending request${group.requests.length !== 1 ? "s" : ""}</h3>
+                        <slot name="balance-${empId}"></slot>
+                      </div>
+                      <div class="employee-group-cards">
+                        ${group.requests.map((req) => this.renderRequestCard(req)).join("")}
+                      </div>
+                    </div>`,
+                  )
                   .join("")
           }
         </div>
@@ -68,14 +102,16 @@ export class PtoRequestQueue extends BaseComponent {
     const endDate = formatDateForDisplay(request.endDate, {
       dateStyle: "short",
     });
+    const dateDisplay =
+      request.startDate === request.endDate
+        ? startDate
+        : `${startDate} → ${endDate}`;
     const createdDate = formatTimestampForDisplay(request.createdAt, {
       dateStyle: "short",
     });
 
     return `
       <div class="request-card" data-request-id="${request.id}">
-        <slot name="balance-${request.id}"></slot>
-
         <div class="request-header">
           <span class="request-type ${request.type.replace(" ", "-")}">${request.type}</span>
           <span class="status-badge pending">Pending</span>
@@ -90,7 +126,7 @@ export class PtoRequestQueue extends BaseComponent {
           <div class="detail-item">
             <span class="detail-label">Date Range</span>
             <div class="request-dates">
-              <span class="date-range">${startDate} → ${endDate}</span>
+              <span class="date-range">${dateDisplay}</span>
             </div>
           </div>
           <div class="detail-item">
@@ -134,20 +170,63 @@ export class PtoRequestQueue extends BaseComponent {
 
   protected handleDelegatedClick(e: Event): void {
     const target = e.target as HTMLElement;
-    if (target.classList.contains("action-btn")) {
-      const action = target.dataset.action;
-      const requestId = target.dataset.requestId;
+    if (!target.classList.contains("action-btn")) return;
 
-      if (action && requestId) {
-        this.dispatchEvent(
-          new CustomEvent(`request-${action}`, {
-            detail: { requestId: parseInt(requestId) },
-            bubbles: true,
-            composed: true,
-          }),
-        );
-      }
+    const btn = target as HTMLButtonElement;
+    const action = btn.dataset.action;
+    const requestId = btn.dataset.requestId;
+    if (!action || !requestId) return;
+
+    const reqIdNum = parseInt(requestId, 10);
+    const card = btn.closest(".request-card") as HTMLElement | null;
+    const group = card?.closest(".employee-group") as HTMLElement | null;
+    const empId = group ? parseInt(group.dataset.employeeId ?? "0", 10) : 0;
+
+    // Check if this employee has a negative balance (unusual condition)
+    const needsConfirm = this._negativeBalanceEmployeeIds.has(empId);
+
+    if (needsConfirm && !btn.classList.contains("confirming")) {
+      // First click: enter confirmation state
+      const originalText = btn.textContent?.trim() ?? "";
+      btn.classList.add("confirming");
+      btn.textContent = `Confirm ${originalText}?`;
+
+      // Auto-revert after 3 seconds
+      const timer = window.setTimeout(() => {
+        this.resetConfirmation(btn, originalText);
+      }, 3000);
+      this._pendingConfirmations.set(btn, timer);
+      return;
     }
+
+    // Either no confirm needed, or this is the second click (confirmed)
+    this.clearConfirmation(btn);
+
+    this.dispatchEvent(
+      new CustomEvent(`request-${action}`, {
+        detail: { requestId: reqIdNum },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  private resetConfirmation(
+    btn: HTMLButtonElement,
+    originalText: string,
+  ): void {
+    btn.classList.remove("confirming");
+    btn.textContent = originalText;
+    this._pendingConfirmations.delete(btn);
+  }
+
+  private clearConfirmation(btn: HTMLButtonElement): void {
+    const timer = this._pendingConfirmations.get(btn);
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      this._pendingConfirmations.delete(btn);
+    }
+    btn.classList.remove("confirming");
   }
 }
 
