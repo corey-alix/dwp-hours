@@ -24,76 +24,76 @@ This is an **implicit messaging** system — admins do not compose free-form mes
 
 Add a `notifications` table to store queued messages per employee.
 
-- [ ] Add `notifications` table to `db/schema.sql` with columns: `id`, `employee_id`, `type`, `message`, `created_at`, `read_at`, `created_by` (admin ID, nullable for system-generated)
-- [ ] Add appropriate indexes (`employee_id`, `read_at` for unread queries)
-- [ ] Add foreign keys to `employees` table
+- [x] Add `notifications` table to `db/schema.sql` with columns: `id`, `employee_id`, `type`, `message`, `created_at`, `read_at`, `created_by` (admin ID, nullable for system-generated)
+- [x] Add appropriate indexes (`employee_id`, `read_at` for unread queries)
+- [x] Add foreign keys to `employees` table
 - [ ] Update `scripts/seed.ts` to include sample notifications if needed
-- [ ] Update TypeORM entity definitions if using TypeORM for this table
-- [ ] `pnpm run build` passes
+- [x] Update TypeORM entity definitions if using TypeORM for this table
+- [x] `pnpm run build` passes
 
 ### Stage 2: API Endpoints
 
 Create REST endpoints for notification CRUD operations.
 
-- [ ] `POST /api/notifications` — Create a notification for a specific employee (admin-only)
+- [x] `POST /api/notifications` — Create a notification for a specific employee (admin-only)
   - Body: `{ employeeId: number, type: string, message: string }`
   - Returns: created notification object
-- [ ] `GET /api/notifications` — Get unread notifications for the authenticated user
+- [x] `GET /api/notifications` — Get unread notifications for the authenticated user
   - Query params: `?unreadOnly=true` (default)
   - Returns: array of notification objects
-- [ ] `PATCH /api/notifications/:id/read` — Mark a notification as read
+- [x] `PATCH /api/notifications/:id/read` — Mark a notification as read
   - Sets `read_at` to current timestamp
   - Returns: updated notification object
-- [ ] Add input validation using existing type guard patterns from `server.mts`
-- [ ] Add authentication middleware (employee for GET/PATCH, admin for POST)
+- [x] Add input validation using existing type guard patterns from `server.mts`
+- [x] Add authentication middleware (employee for GET/PATCH, admin for POST)
 - [ ] Write Vitest tests for API endpoints
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ### Stage 3: Client-Side Notification Service
 
 Create a client-side service to fetch and manage notifications.
 
-- [ ] Add notification API methods to `APIClient.ts` (`getNotifications()`, `markNotificationRead(id)`, `createNotification(employeeId, type, message)`)
-- [ ] Create `client/shared/notificationService.ts` to orchestrate notification fetching on session start
-- [ ] Integrate with `isFirstSessionVisit()` from `activityTracker.ts` — fetch unread notifications on new sessions
-- [ ] Expose notifications to the existing `TraceListener` / `PtoNotificationController` pipeline for display
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] Add notification API methods to `APIClient.ts` (`getNotifications()`, `markNotificationRead(id)`, `createNotification(employeeId, type, message)`)
+- [x] Create `client/shared/notificationService.ts` to orchestrate notification fetching on session start
+- [x] Integrate with `isFirstSessionVisit()` from `activityTracker.ts` — fetch unread notifications on new sessions
+- [x] Expose notifications to the existing `TraceListener` / `PtoNotificationController` pipeline for display
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ### Stage 4: Notification Display in UI
 
 Display queued notifications to employees using the existing notification/toast infrastructure.
 
-- [ ] On session start (8+ hour gap), fetch unread notifications and display them via the `TraceListener`
-- [ ] Each notification is shown as a toast/banner with a dismiss button
-- [ ] Clicking the dismiss button calls `PATCH /api/notifications/:id/read` to mark as read
-- [ ] If the toast auto-dismisses (timeout), do **not** mark as read — it will reappear next session
-- [ ] Style notifications consistently with existing toast styles
+- [x] On session start (8+ hour gap), fetch unread notifications and display them via the `TraceListener`
+- [x] Each notification is shown as a toast/banner with a dismiss button
+- [x] Clicking the dismiss button calls `PATCH /api/notifications/:id/read` to mark as read
+- [x] If the toast auto-dismisses (timeout), do **not** mark as read — it will reappear next session
+- [x] Style notifications consistently with existing toast styles
 - [ ] Ensure notifications respect `prefers-reduced-motion` for any enter/exit animations
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ### Stage 5: Admin Notification Trigger (Monthly Review Integration)
 
 Wire the admin monthly review page's unlocked-calendar indicator to create notifications.
 
-- [ ] In `admin-monthly-review/index.ts`, add click handler for the unlocked indicator
-- [ ] On click, call `POST /api/notifications` with the employee ID and a system message (e.g., "Please review and lock your calendar for [Month]")
-- [ ] Show confirmation toast to the admin after successful notification creation
-- [ ] Prevent duplicate notifications (check if an unread notification of the same type already exists for the employee/month)
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] In `admin-monthly-review/index.ts`, add click handler for the unlocked indicator
+- [x] On click, call `POST /api/notifications` with the employee ID and a system message (e.g., "Please review and lock your calendar for [Month]")
+- [x] Show confirmation toast to the admin after successful notification creation
+- [x] Prevent duplicate notifications (check if an unread notification of the same type already exists for the employee/month)
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ### Stage 6: Testing and Quality Gates
 
-- [ ] Write Vitest unit tests for `notificationService.ts`
+- [x] Write Vitest unit tests for `notificationService.ts`
 - [ ] Write Vitest tests for notification display logic
 - [ ] Write E2E test for admin creating a notification and employee seeing it
 - [ ] Manual testing of the full flow: admin triggers notification → employee sees it on next session → dismisses → doesn't reappear
 - [ ] Manual testing of auto-dismiss: notification timeout → reappears next session
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 - [ ] `pnpm run lint:css` passes
 
 ## Implementation Notes
