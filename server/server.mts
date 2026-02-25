@@ -886,6 +886,13 @@ initDatabase()
         try {
           const authenticatedEmployeeId = req.employee!.id;
 
+          // Accept optional ?current_date=YYYY-MM-DD for time-travel testing
+          const currentDateParam = req.query.current_date as string | undefined;
+          const currentDate =
+            currentDateParam && isValidDateString(currentDateParam)
+              ? currentDateParam
+              : undefined;
+
           const employeeRepo = dataSource.getRepository(Employee);
           const ptoEntryRepo = dataSource.getRepository(PtoEntry);
 
@@ -932,7 +939,11 @@ initDatabase()
             ),
           }));
 
-          const status = calculatePTOStatus(employeeData, ptoEntriesData);
+          const status = calculatePTOStatus(
+            employeeData,
+            ptoEntriesData,
+            currentDate,
+          );
 
           res.json(status);
         } catch (error) {
@@ -1402,7 +1413,18 @@ initDatabase()
           }
 
           // Guard: month must have fully ended
-          const monthEndedError = validateAdminCanLockMonth(monthStr, today());
+          // Accept optional ?current_date=YYYY-MM-DD for time-travel testing
+          const currentDateParam = req.query.current_date as
+            | string
+            | undefined;
+          const effectiveToday =
+            currentDateParam && isValidDateString(currentDateParam)
+              ? currentDateParam
+              : today();
+          const monthEndedError = validateAdminCanLockMonth(
+            monthStr,
+            effectiveToday,
+          );
           if (monthEndedError) {
             const earliestDate = getEarliestAdminLockDate(monthStr);
             logger.info(
@@ -2035,7 +2057,14 @@ initDatabase()
               ? dateToString(employee.hire_date)
               : (employee.hire_date as string);
 
-          const currentDate = today();
+          // Accept optional ?current_date=YYYY-MM-DD for time-travel testing
+          const currentDateParam = req.query.current_date as
+            | string
+            | undefined;
+          const currentDate =
+            currentDateParam && isValidDateString(currentDateParam)
+              ? currentDateParam
+              : today();
           const currentYear = parseInt(currentDate.split("-")[0]);
 
           // Carryover from previous year
@@ -2643,7 +2672,13 @@ initDatabase()
           const authenticatedEmployeeId = req.employee!.id;
 
           // Validate year parameter
-          const currentYear = parseInt(today().split("-")[0]);
+          // Accept optional ?current_year for time-travel testing
+          const currentYearParam = req.query.current_year as
+            | string
+            | undefined;
+          const currentYear = currentYearParam
+            ? parseInt(currentYearParam)
+            : parseInt(today().split("-")[0]);
           if (
             isNaN(yearNum) ||
             yearNum < currentYear - 10 ||
@@ -2882,7 +2917,12 @@ initDatabase()
     // ── Admin Excel Import ──
 
     const excelUpload = multer({
-      storage: multer.memoryStorage(),
+      storage: multer.diskStorage({
+        destination: "/tmp",
+        filename: (_req, file, cb) => {
+          cb(null, `excel-import-${Date.now()}-${file.originalname}`);
+        },
+      }),
       limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
       fileFilter: (_req, file, cb) => {
         if (
@@ -2914,21 +2954,27 @@ initDatabase()
           }
 
           const adminId = req.employee!.id;
-          const result = await importExcelWorkbook(
-            dataSource,
-            file.buffer,
-            adminId,
-            (msg: string) => logger.info(`[Excel Import] ${msg}`),
-          );
+          const filePath = file.path;
+          try {
+            const result = await importExcelWorkbook(
+              dataSource,
+              filePath,
+              adminId,
+              (msg: string) => logger.info(`[Excel Import] ${msg}`),
+            );
 
-          logger.info(
-            `Excel import completed: ${result.employeesProcessed} employees, ${result.ptoEntriesUpserted} PTO entries`,
-          );
+            logger.info(
+              `Excel import completed: ${result.employeesProcessed} employees, ${result.ptoEntriesUpserted} PTO entries`,
+            );
 
-          res.json({
-            message: `Import complete: ${result.employeesProcessed} employees processed (${result.employeesCreated} created), ${result.ptoEntriesUpserted} PTO entries upserted, ${result.acknowledgementsSynced} acknowledgements synced.`,
-            ...result,
-          });
+            res.json({
+              message: `Import complete: ${result.employeesProcessed} employees processed (${result.employeesCreated} created), ${result.ptoEntriesUpserted} PTO entries upserted, ${result.acknowledgementsSynced} acknowledgements synced.`,
+              ...result,
+            });
+          } finally {
+            // Clean up temp file
+            fs.unlink(filePath, () => {});
+          }
         } catch (error) {
           logger.error(`Error importing Excel: ${error}`);
           res.status(500).json({ error: "Failed to import Excel file" });

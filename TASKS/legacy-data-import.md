@@ -56,6 +56,10 @@ Implement utility methods and scripts for converting between Excel, JSON, and da
 - Implement dry-run options for import scripts to preview changes
 - Handle large Excel files efficiently to avoid memory issues
 
+## Known Issues
+
+- **OOM on 512MB server**: The original implementation used `multer.memoryStorage()` and loaded all 68 worksheets into memory simultaneously via `ExcelJS.Workbook.xlsx.load(buffer)`. This caused SIGKILL (OOM) on the 512MB DigitalOcean droplet. Fixed by switching to `multer.diskStorage()`, reading the workbook from disk via `workbook.xlsx.readFile()`, and releasing each worksheet with `workbook.removeWorksheet()` after processing.
+
 ## Questions and Concerns
 
 1. Figure out the structure by first converting Excel → JSON → Excel; once we have the JSON, we can determine the structure. The formulas should make it obvious.

@@ -101,6 +101,23 @@ export const styles = `<style>
     font-size: 0.85rem;
   }
 
+  .warnings-details {
+    margin-top: var(--space-xs, 4px);
+  }
+
+  .warnings-list {
+    max-height: 200px;
+    overflow-y: auto;
+    padding-left: var(--space-md, 16px);
+    font-size: 0.8rem;
+    color: var(--color-warning, #f39c12);
+  }
+
+  .warnings-list li {
+    color: var(--color-warning, #f39c12);
+    margin-bottom: 2px;
+  }
+
   details {
     margin-top: var(--space-xs, 4px);
   }

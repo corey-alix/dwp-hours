@@ -179,6 +179,15 @@ ssh -i "$SSH_KEY" "$SERVER_USER@$SERVER_HOST" "
 print_success "Application restarted"
 
 # ──────────────────────────────────────────────
+# 7b. Configure nginx (idempotent)
+# ──────────────────────────────────────────────
+print_status "Ensuring nginx is configured..."
+
+ssh -i "$SSH_KEY" "$SERVER_USER@$SERVER_HOST" "bash '$SERVER_PATH/scripts/configure-nginx.sh'"
+
+print_success "Nginx configuration verified"
+
+# ──────────────────────────────────────────────
 # 8. Verify deployment
 # ──────────────────────────────────────────────
 print_status "Waiting for server to start..."

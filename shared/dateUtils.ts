@@ -275,12 +275,46 @@ export function getDaysBetween(dateStr1: string, dateStr2: string): number {
   return Math.round(diffTime / (1000 * 60 * 60 * 24));
 }
 
+// ── Time-travel override (developer testing only) ────────────────────
+
+let _timeTravelYear: number | null = null;
+
 /**
- * Gets the current date as YYYY-MM-DD string
+ * Set a time-travel year override.
+ * When set, `today()`, `getCurrentYear()`, and `getCurrentMonth()` will
+ * return values as if the current year were the override year (month and day
+ * are kept from the real clock).
+ *
+ * Pass `null` to disable.
+ */
+export function setTimeTravelYear(year: number | null): void {
+  if (year !== null && (year < 2000 || year > 2099)) {
+    throw new Error(
+      `Invalid time-travel year: ${year}. Must be between 2000 and 2099.`,
+    );
+  }
+  _timeTravelYear = year;
+}
+
+/**
+ * Returns the active time-travel year, or `null` if time-travel is inactive.
+ */
+export function getTimeTravelYear(): number | null {
+  return _timeTravelYear;
+}
+
+/**
+ * Gets the current date as YYYY-MM-DD string.
+ * When time-travel is active the year is replaced; month/day come from the
+ * real clock.  If the resulting date is invalid (e.g. Feb 29 in a non-leap
+ * year) the day is clamped to the last valid day of the month.
  */
 export function today(): string {
   const now = new Date();
-  return formatDate(now.getFullYear(), now.getMonth() + 1, now.getDate());
+  const year = _timeTravelYear ?? now.getFullYear();
+  const month = now.getMonth() + 1;
+  const day = Math.min(now.getDate(), getDaysInMonth(year, month));
+  return formatDate(year, month, day);
 }
 
 /**
@@ -366,19 +400,20 @@ export function getWeekdaysBetween(
 }
 
 /**
- * Gets the current year
+ * Gets the current year.
+ * Returns the time-travel year when active.
  */
 export function getCurrentYear(): number {
-  const now = new Date();
-  return now.getFullYear();
+  return _timeTravelYear ?? new Date().getFullYear();
 }
 
 /**
- * Gets the current month in YYYY-MM format
+ * Gets the current month in YYYY-MM format.
+ * Uses the time-travel year when active (month from real clock).
  */
 export function getCurrentMonth(): string {
   const now = new Date();
-  const year = now.getFullYear();
+  const year = _timeTravelYear ?? now.getFullYear();
   const month = now.getMonth() + 1;
   return `${year.toString().padStart(4, "0")}-${month.toString().padStart(2, "0")}`;
 }

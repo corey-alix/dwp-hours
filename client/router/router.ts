@@ -1,5 +1,6 @@
 import type { AuthService } from "../auth/auth-service.js";
 import type { AppRoutes, PageComponent, Route } from "./types.js";
+import { getTimeTravelYear } from "../../shared/dateUtils.js";
 
 interface MatchResult {
   route: Route;
@@ -66,6 +67,16 @@ export class Router {
     if (this.currentComponent?.onRouteLeave) {
       const allowed = await this.currentComponent.onRouteLeave();
       if (allowed === false) return;
+    }
+
+    // Preserve ?current_year across SPA navigations when time-travel is active
+    const timeTravelYear = getTimeTravelYear();
+    if (timeTravelYear !== null) {
+      const url = new URL(path, window.location.origin);
+      if (!url.searchParams.has("current_year")) {
+        url.searchParams.set("current_year", String(timeTravelYear));
+      }
+      path = url.pathname + url.search;
     }
 
     window.history.pushState({}, "", path);

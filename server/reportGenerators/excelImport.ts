@@ -15,10 +15,10 @@ import type { PTOType } from "../../shared/businessRules.js";
 import {
   validateDateString,
   validatePTOType,
-  validateHours,
   VALIDATION_MESSAGES,
   MONTH_NAMES,
   PTO_EARNING_SCHEDULE,
+  getEffectivePtoRate,
 } from "../../shared/businessRules.js";
 import {
   getDaysInMonth,
@@ -93,6 +93,8 @@ export interface EmployeeImportInfo {
   hireDate: string;
   year: number;
   carryoverHours: number;
+  /** PTO daily rate read from the spreadsheet (column F, December row). */
+  spreadsheetPtoRate: number;
 }
 
 export interface SheetImportResult {
@@ -372,7 +374,8 @@ export function adjustPartialDays(
 export function isEmployeeSheet(ws: ExcelJS.Worksheet): boolean {
   for (let c = 18; c <= 24; c++) {
     const cell = ws.getCell(2, c);
-    const val = cell.value?.toString() || "";
+    // Use cell.text to handle rich text, formulas, and other non-string values
+    const val = cell.text || "";
     if (val.toLowerCase().includes("hire date")) return true;
   }
   return false;
@@ -398,10 +401,11 @@ export function parseEmployeeInfo(ws: ExcelJS.Worksheet): EmployeeImportInfo {
 
   // Hire date from R2 — flexible format
   // Supports: "Hire Date: YYYY-MM-DD", "HIRE DATE: M/D/YY", etc.
+  // Use cell.text to handle rich text, formulas, and other non-string values
   const hireDateCell = ws.getCell("R2");
   let hireDate = "";
-  if (hireDateCell.value) {
-    const hireDateStr = hireDateCell.value.toString();
+  const hireDateStr = hireDateCell.text || "";
+  if (hireDateStr) {
     // Extract the date portion after "Hire Date:" (case-insensitive)
     const match = hireDateStr.match(/hire\s*date:\s*(.+)/i);
     if (match) {
@@ -416,7 +420,24 @@ export function parseEmployeeInfo(ws: ExcelJS.Worksheet): EmployeeImportInfo {
   // Carryover from PTO calc start row, column L
   const carryoverHours = parseCarryoverHours(ws);
 
-  return { name, hireDate, year, carryoverHours };
+  // PTO daily rate from column F (col 6) at December row (startRow + 11)
+  let spreadsheetPtoRate = 0;
+  try {
+    const startRow = findPtoCalcStartRow(ws);
+    const decemberRow = startRow + 11;
+    const rateCell = ws.getCell(decemberRow, 6); // Column F
+    const rateVal = rateCell.value;
+    if (typeof rateVal === "number") {
+      spreadsheetPtoRate = rateVal;
+    } else if (rateVal !== null && rateVal !== undefined) {
+      const parsed = parseFloat(rateVal.toString());
+      spreadsheetPtoRate = isNaN(parsed) ? 0 : parsed;
+    }
+  } catch {
+    // findPtoCalcStartRow may throw if section not found; leave rate as 0
+  }
+
+  return { name, hireDate, year, carryoverHours, spreadsheetPtoRate };
 }
 
 /**
@@ -433,6 +454,43 @@ export function generateIdentifier(name: string): string {
     ? `${firstName[0]}${lastName}@example.com`
     : `${firstName}@example.com`;
   return identifier;
+}
+
+/**
+ * Compute the correct PTO rate from the hire date and year, compare
+ * with the spreadsheet value, and return the rate to use plus any
+ * warning message.
+ */
+export function computePtoRate(info: EmployeeImportInfo): {
+  rate: number;
+  warning: string | null;
+} {
+  if (!info.hireDate || !info.year) {
+    // Can't compute — fall back to spreadsheet value or default
+    const rate = info.spreadsheetPtoRate || PTO_EARNING_SCHEDULE[0].dailyRate;
+    return { rate, warning: null };
+  }
+
+  // Compute expected rate as of Dec 31 of the spreadsheet year
+  const asOfDate = `${info.year}-12-31`;
+  const tier = getEffectivePtoRate(info.hireDate, asOfDate);
+  const computedRate = tier.dailyRate;
+
+  if (
+    info.spreadsheetPtoRate > 0 &&
+    Math.abs(info.spreadsheetPtoRate - computedRate) > 0.005
+  ) {
+    return {
+      rate: computedRate,
+      warning:
+        `PTO rate mismatch for "${info.name}": ` +
+        `spreadsheet=${info.spreadsheetPtoRate}, ` +
+        `computed=${computedRate} (hired ${info.hireDate}, year ${info.year}). ` +
+        `Using computed value.`,
+    };
+  }
+
+  return { rate: computedRate, warning: null };
 }
 
 /**
@@ -475,16 +533,22 @@ export async function upsertEmployee(
     if (info.hireDate && !existing.hire_date) {
       existing.hire_date = new Date(info.hireDate);
     }
+    // Always update PTO rate to the computed value
+    const { rate, warning } = computePtoRate(info);
+    existing.pto_rate = rate;
+    if (warning) log?.(warning);
     await empRepo.save(existing);
     return { employeeId: existing.id, created: false };
   }
 
-  // Create new employee
+  // Create new employee with computed PTO rate
+  const { rate, warning } = computePtoRate(info);
+  if (warning) log?.(warning);
   const newEmp = empRepo.create({
     name: trimmedName,
     identifier: generatedId,
     hire_date: info.hireDate ? new Date(info.hireDate) : new Date(),
-    pto_rate: PTO_EARNING_SCHEDULE[0].dailyRate,
+    pto_rate: rate,
     carryover_hours: info.carryoverHours,
     role: "Employee",
   });
@@ -526,8 +590,8 @@ export async function upsertPtoEntries(
       continue;
     }
 
-    const hoursErr = validateHours(entry.hours);
-    if (hoursErr) {
+    // Import accepts any positive hours (legacy data may have non-standard values)
+    if (typeof entry.hours !== "number" || entry.hours <= 0) {
       warnings.push(`Skipped ${entry.date}: invalid hours ${entry.hours}`);
       continue;
     }
@@ -661,6 +725,12 @@ export function parseEmployeeSheet(ws: ExcelJS.Worksheet): SheetImportResult {
     warnings.push(`Could not determine hire date from sheet "${ws.name}"`);
   }
 
+  // Check PTO rate consistency
+  const { warning: rateWarning } = computePtoRate(employee);
+  if (rateWarning) {
+    warnings.push(rateWarning);
+  }
+
   // Parse calendar (all 8h initially)
   let ptoEntries = parseCalendarGrid(ws, employee.year, legend);
 
@@ -675,24 +745,51 @@ export function parseEmployeeSheet(ws: ExcelJS.Worksheet): SheetImportResult {
 }
 
 /**
+ * Materialise a single worksheet from the streaming reader into a regular
+ * ExcelJS Worksheet so existing parse helpers (which use random cell access)
+ * continue to work.  Only ONE sheet is in memory at a time, which keeps the
+ * footprint small even for workbooks with 60+ tabs.
+ */
+async function materialiseWorksheet(
+  wsReader: ExcelJS.stream.xlsx.WorksheetReader,
+): Promise<ExcelJS.Worksheet> {
+  const tempWB = new ExcelJS.Workbook();
+  const ws = tempWB.addWorksheet((wsReader as any).name || "Sheet");
+
+  for await (const row of wsReader) {
+    const newRow = ws.getRow(row.number);
+    row.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+      const newCell = newRow.getCell(colNumber);
+      newCell.value = cell.value;
+      newCell.style = cell.style;
+      if (cell.note) newCell.note = cell.note;
+    });
+    newRow.commit();
+  }
+
+  return ws;
+}
+
+/**
  * Import an entire Excel workbook.
+ * Uses a streaming reader so only one worksheet is in memory at a time,
+ * preventing OOM on memory-constrained servers (512 MB).
  * Iterates employee tabs, parses data, and upserts into the database.
  * Accepts an optional logger; each sheet is wrapped in try/catch so
  * one bad sheet does not abort the entire import.
  */
 export async function importExcelWorkbook(
   dataSource: DataSource,
-  buffer: Buffer,
+  filePath: string,
   adminId?: number,
   log?: (msg: string) => void,
 ): Promise<ImportResult> {
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer);
-
-  const sheetNames = workbook.worksheets.map((ws) => ws.name);
-  log?.(
-    `Workbook contains ${sheetNames.length} sheets: ${sheetNames.join(", ")}`,
-  );
+  const reader = new ExcelJS.stream.xlsx.WorkbookReader(filePath, {
+    worksheets: "emit",
+    sharedStrings: "cache",
+    styles: "cache",
+    hyperlinks: "cache",
+  });
 
   const result: ImportResult = {
     employeesProcessed: 0,
@@ -703,90 +800,144 @@ export async function importExcelWorkbook(
     perEmployee: [],
   };
 
-  for (const ws of workbook.worksheets) {
-    // Skip non-employee sheets (detect by presence of "Hire Date" in header)
-    if (!isEmployeeSheet(ws)) {
-      log?.(`Skipping non-employee sheet: "${ws.name}"`);
-      continue;
+  // TypeORM's sql.js driver with autoSave: true writes the entire database
+  // to disk after every single repo.save() call. For bulk imports with
+  // hundreds of inserts this is catastrophically slow (~0.5s per write).
+  // Temporarily disable autoSave, do all the work in-memory, then save once.
+  const driver = dataSource.driver as any;
+  const originalAutoSave = driver.options?.autoSave;
+  if (driver.options) {
+    driver.options.autoSave = false;
+    log?.("autoSave disabled for bulk import");
+  }
+
+  const importStart = Date.now();
+  const sheetNames: string[] = [];
+
+  try {
+    for await (const wsReader of reader) {
+      const sheetName = (wsReader as any).name || "Sheet";
+      sheetNames.push(sheetName);
+
+      // Materialise this single sheet into a regular Worksheet
+      const ws = await materialiseWorksheet(wsReader);
+
+      // Skip non-employee sheets (detect by presence of "Hire Date" in header)
+      if (!isEmployeeSheet(ws)) {
+        log?.(`Skipping non-employee sheet: "${ws.name}"`);
+        continue;
+      }
+
+      try {
+        result.employeesProcessed++;
+        const sheetStart = Date.now();
+        log?.(`Processing employee sheet: "${ws.name}"`);
+
+        // Parse sheet data
+        const parseStart = Date.now();
+        const sheetResult = parseEmployeeSheet(ws);
+        log?.(`  [profile] parseEmployeeSheet: ${Date.now() - parseStart}ms`);
+
+        // Log blank/null value warnings
+        const emp = sheetResult.employee;
+        if (!emp.name) {
+          const msg = `Sheet "${ws.name}": employee name is blank`;
+          log?.(msg);
+          result.warnings.push(msg);
+        }
+        if (!emp.hireDate) {
+          const msg = `Sheet "${ws.name}": hire date is blank/unparseable`;
+          log?.(msg);
+          result.warnings.push(msg);
+        }
+        if (!emp.year) {
+          const msg = `Sheet "${ws.name}": year is blank/unparseable`;
+          log?.(msg);
+          result.warnings.push(msg);
+        }
+        result.warnings.push(...sheetResult.warnings);
+
+        // Upsert employee
+        const empStart = Date.now();
+        const { employeeId, created } = await upsertEmployee(
+          dataSource,
+          sheetResult.employee,
+          log,
+        );
+        if (created) result.employeesCreated++;
+        log?.(`  [profile] upsertEmployee: ${Date.now() - empStart}ms`);
+
+        // Upsert PTO entries
+        const ptoStart = Date.now();
+        const { upserted, warnings: ptoWarnings } = await upsertPtoEntries(
+          dataSource,
+          employeeId,
+          sheetResult.ptoEntries,
+        );
+        result.ptoEntriesUpserted += upserted;
+        result.warnings.push(...ptoWarnings);
+        log?.(
+          `  [profile] upsertPtoEntries (${sheetResult.ptoEntries.length} entries, ${upserted} upserted): ${Date.now() - ptoStart}ms`,
+        );
+
+        // Upsert acknowledgements
+        const ackStart = Date.now();
+        const acksSynced = await upsertAcknowledgements(
+          dataSource,
+          employeeId,
+          sheetResult.acknowledgements,
+          adminId,
+        );
+        result.acknowledgementsSynced += acksSynced;
+        log?.(
+          `  [profile] upsertAcknowledgements (${sheetResult.acknowledgements.length} acks, ${acksSynced} synced): ${Date.now() - ackStart}ms`,
+        );
+
+        result.perEmployee.push({
+          name: sheetResult.employee.name,
+          employeeId,
+          ptoEntries: upserted,
+          acknowledgements: acksSynced,
+          created,
+        });
+
+        log?.(
+          `  → ${created ? "Created" : "Updated"} employee id=${employeeId}, ` +
+            `${upserted} PTO entries, ${acksSynced} acknowledgements ` +
+            `(${Date.now() - sheetStart}ms total)`,
+        );
+      } catch (sheetError) {
+        const msg = `Failed to process sheet "${ws.name}": ${sheetError}`;
+        log?.(msg);
+        result.warnings.push(msg);
+      }
+    }
+  } finally {
+    // Restore autoSave and persist the database once
+    if (driver.options) {
+      driver.options.autoSave = originalAutoSave;
+      log?.("autoSave restored");
     }
 
-    try {
-      result.employeesProcessed++;
-      log?.(`Processing employee sheet: "${ws.name}"`);
-
-      // Parse sheet data
-      const sheetResult = parseEmployeeSheet(ws);
-
-      // Log blank/null value warnings
-      const emp = sheetResult.employee;
-      if (!emp.name) {
-        const msg = `Sheet "${ws.name}": employee name is blank`;
-        log?.(msg);
-        result.warnings.push(msg);
-      }
-      if (!emp.hireDate) {
-        const msg = `Sheet "${ws.name}": hire date is blank/unparseable`;
-        log?.(msg);
-        result.warnings.push(msg);
-      }
-      if (!emp.year) {
-        const msg = `Sheet "${ws.name}": year is blank/unparseable`;
-        log?.(msg);
-        result.warnings.push(msg);
-      }
-      result.warnings.push(...sheetResult.warnings);
-
-      // Upsert employee
-      const { employeeId, created } = await upsertEmployee(
-        dataSource,
-        sheetResult.employee,
-        log,
-      );
-      if (created) result.employeesCreated++;
-
-      // Upsert PTO entries
-      const { upserted, warnings: ptoWarnings } = await upsertPtoEntries(
-        dataSource,
-        employeeId,
-        sheetResult.ptoEntries,
-      );
-      result.ptoEntriesUpserted += upserted;
-      result.warnings.push(...ptoWarnings);
-
-      // Upsert acknowledgements
-      const acksSynced = await upsertAcknowledgements(
-        dataSource,
-        employeeId,
-        sheetResult.acknowledgements,
-        adminId,
-      );
-      result.acknowledgementsSynced += acksSynced;
-
-      result.perEmployee.push({
-        name: sheetResult.employee.name,
-        employeeId,
-        ptoEntries: upserted,
-        acknowledgements: acksSynced,
-        created,
-      });
-
-      log?.(
-        `  → ${created ? "Created" : "Updated"} employee id=${employeeId}, ` +
-          `${upserted} PTO entries, ${acksSynced} acknowledgements`,
-      );
-    } catch (sheetError) {
-      const msg = `Failed to process sheet "${ws.name}": ${sheetError}`;
-      log?.(msg);
-      result.warnings.push(msg);
+    // Manually save the database to disk once
+    const saveStart = Date.now();
+    if (typeof driver.save === "function") {
+      await driver.save();
+      log?.(`  [profile] final database save: ${Date.now() - saveStart}ms`);
     }
   }
+
+  log?.(
+    `Workbook contained ${sheetNames.length} sheets: ${sheetNames.join(", ")}`,
+  );
 
   log?.(
     `Import complete: ${result.employeesProcessed} processed, ` +
       `${result.employeesCreated} created, ` +
       `${result.ptoEntriesUpserted} PTO entries, ` +
       `${result.acknowledgementsSynced} acknowledgements, ` +
-      `${result.warnings.length} warnings`,
+      `${result.warnings.length} warnings ` +
+      `(${Date.now() - importStart}ms total)`,
   );
 
   return result;

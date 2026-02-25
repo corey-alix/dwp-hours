@@ -151,6 +151,10 @@
     "do:bash//": "SSH into DigitalOcean server",
     "do:logs": "ssh -i $HOME/.ssh/id_ed25519 deploy@206.189.237.101 /var/www/dwp-hours/scripts/tail-logs.sh 100",
     "do:logs//": "show last 100 lines from newest log files on DigitalOcean server",
+    "do:nginx-logs": "ssh -i $HOME/.ssh/id_ed25519 deploy@206.189.237.101 'sudo tail -100 /var/log/nginx/error.log'",
+    "do:nginx-logs//": "show last 100 lines from nginx error log on DigitalOcean server",
+    "do:nginx-config": "ssh -i $HOME/.ssh/id_ed25519 deploy@206.189.237.101 'cat /etc/nginx/sites-enabled/default'",
+    "do:nginx-config//": "show current nginx config on DigitalOcean server",
     "do:restart": "ssh -i $HOME/.ssh/id_ed25519 deploy@206.189.237.101 \"cd /var/www/dwp-hours && pm2 restart dwp-hours-tracker\"",
     "do:restart//": "restart the application on DigitalOcean server"
   },

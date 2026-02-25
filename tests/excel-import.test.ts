@@ -13,6 +13,7 @@ import {
   generateIdentifier,
   parseAcknowledgements,
   parseEmployeeSheet,
+  computePtoRate,
 } from "../server/reportGenerators/excelImport.js";
 import { generateExcelReport } from "../server/reportGenerators/excelReport.js";
 import { smartParseDate } from "../shared/dateUtils.js";
@@ -267,6 +268,25 @@ describe("Excel Import", () => {
       expect(info.year).toBe(2026);
       expect(info.hireDate).toBe("2023-02-13");
       expect(info.carryoverHours).toBe(16);
+      expect(info.spreadsheetPtoRate).toBe(0.71);
+    });
+
+    it("should parse hire date from rich text cell values (legacy 2018 format)", async () => {
+      const buffer = await generateTestBuffer();
+      const wb = await loadWorkbook(buffer);
+      const ws = wb.getWorksheet("Alice Smith")!;
+
+      // Overwrite R2 with a rich text value matching the 2018 XLSX format
+      const hireDateCell = ws.getCell("R2");
+      hireDateCell.value = {
+        richText: [
+          { font: { bold: true }, text: "HIRE DATE: " },
+          { text: "8/19/14" },
+        ],
+      };
+
+      const info = parseEmployeeInfo(ws);
+      expect(info.hireDate).toBe("2014-08-19");
     });
   });
 
@@ -493,12 +513,82 @@ describe("Excel Import", () => {
       expect(isEmployeeSheet(ws)).toBe(true);
     });
 
+    it("should return true when Hire Date cell uses rich text (legacy 2018 format)", async () => {
+      const buffer = await generateTestBuffer();
+      const wb = await loadWorkbook(buffer);
+      const ws = wb.getWorksheet("Alice Smith")!;
+
+      // Overwrite R2 with a rich text value matching the 2018 XLSX format
+      ws.getCell("R2").value = {
+        richText: [
+          { font: { bold: true }, text: "HIRE DATE: " },
+          { text: "8/19/14" },
+        ],
+      };
+
+      expect(isEmployeeSheet(ws)).toBe(true);
+    });
+
     it("should return false for Cover Sheet", async () => {
       const buffer = await generateTestBuffer();
       const wb = await loadWorkbook(buffer);
       const ws = wb.getWorksheet("Cover Sheet")!;
 
       expect(isEmployeeSheet(ws)).toBe(false);
+    });
+  });
+
+  describe("computePtoRate", () => {
+    it("should return correct rate for long-tenured employee", () => {
+      // Hired 2001, year 2018 → 17 years → max tier 0.92
+      const result = computePtoRate({
+        name: "Test",
+        hireDate: "2001-08-05",
+        year: 2018,
+        carryoverHours: 0,
+        spreadsheetPtoRate: 0.65,
+      });
+      expect(result.rate).toBe(0.92);
+      expect(result.warning).toContain("mismatch");
+      expect(result.warning).toContain("spreadsheet=0.65");
+      expect(result.warning).toContain("computed=0.92");
+    });
+
+    it("should return no warning when rates match", () => {
+      // Hired 2023-02-13, year 2026 → 3 July bumps (2024, 2025, 2026) → tier 3 (0.74)
+      const result = computePtoRate({
+        name: "Alice Smith",
+        hireDate: "2023-02-13",
+        year: 2026,
+        carryoverHours: 0,
+        spreadsheetPtoRate: 0.74,
+      });
+      expect(result.rate).toBe(0.74);
+      expect(result.warning).toBeNull();
+    });
+
+    it("should fall back to spreadsheet rate when hire date is missing", () => {
+      const result = computePtoRate({
+        name: "No Date",
+        hireDate: "",
+        year: 2026,
+        carryoverHours: 0,
+        spreadsheetPtoRate: 0.83,
+      });
+      expect(result.rate).toBe(0.83);
+      expect(result.warning).toBeNull();
+    });
+
+    it("should fall back to default rate when both are missing", () => {
+      const result = computePtoRate({
+        name: "Unknown",
+        hireDate: "",
+        year: 0,
+        carryoverHours: 0,
+        spreadsheetPtoRate: 0,
+      });
+      expect(result.rate).toBe(0.65); // PTO_EARNING_SCHEDULE[0].dailyRate
+      expect(result.warning).toBeNull();
     });
   });
 

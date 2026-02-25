@@ -11,6 +11,25 @@ import { TraceListener } from "./controller/TraceListener.js";
 import { PtoNotificationController } from "./controller/PtoNotificationController.js";
 import { DebugConsoleController } from "./controller/DebugConsoleController.js";
 import { UIManager } from "./UIManager.js";
+import { setTimeTravelYear } from "../shared/dateUtils.js";
+
+// ── Time-travel bootstrap ────────────────────────────────────────
+// Read ?current_year=YYYY from the URL and activate the date override
+// before any component renders.
+initTimeTravel();
+
+function initTimeTravel(): void {
+  const params = new URLSearchParams(window.location.search);
+  const yearStr = params.get("current_year");
+  if (yearStr) {
+    const year = parseInt(yearStr, 10);
+    if (!isNaN(year) && year >= 2000 && year <= 2099) {
+      setTimeTravelYear(year);
+      // eslint-disable-next-line no-console
+      console.info(`[time-travel] Active — reference year set to ${year}`);
+    }
+  }
+}
 
 // Notification system — TraceListener replaces the old NotificationManager.
 // The variable name `notifications` is retained for call-site compatibility.

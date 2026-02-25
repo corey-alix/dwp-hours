@@ -6,6 +6,7 @@ import type {
 } from "../../../shared/api-models.js";
 import {
   computeEmployeeBalanceData,
+  computeAnnualAllocation,
   getPriorMonth,
   MONTH_NAMES,
   type PTOType,
@@ -66,6 +67,13 @@ export class AdminMonthlyReview extends BaseComponent {
   private _swipeHandles: Map<number, SwipeNavigationHandle> = new Map();
   /** Track which calendar containers already have swipe listeners attached */
   private _swipeListenerCards: Set<number> = new Set();
+
+  /** Employee details (hire date, carryover) for computing accurate PTO allowances */
+  private _employeeDetails: Array<{
+    id: number;
+    hireDate: string;
+    carryoverHours: number;
+  }> = [];
 
   /** Cache of PTO entries fetched for non-review months, keyed by YYYY-MM */
   private _monthPtoCache: Map<
@@ -158,6 +166,13 @@ export class AdminMonthlyReview extends BaseComponent {
     this._employeeData = data;
     this._isLoading = false;
     this.requestUpdate();
+  }
+
+  /** Inject employee details (hire date, carryover) for accurate PTO allowance computation. */
+  setEmployeeDetails(
+    data: Array<{ id: number; hireDate: string; carryoverHours: number }>,
+  ): void {
+    this._employeeDetails = data;
   }
 
   // Method for parent to inject PTO entries data
@@ -256,14 +271,25 @@ export class AdminMonthlyReview extends BaseComponent {
     // Filter PTO entries to the selected month's year to avoid
     // prior-year data leaking into balance calculations
     const selectedYear = this._selectedMonth.slice(0, 4);
+    const year = parseInt(selectedYear, 10);
     const yearEntries = this._ptoEntries.filter((e) =>
       e.date.startsWith(selectedYear),
     );
+
+    // Compute actual PTO allowance from employee details when available
+    // (annualAllocation + carryover), falling back to the generic limit
+    let ptoAllowance: number | undefined;
+    const details = this._employeeDetails.find((d) => d.id === employeeId);
+    if (details) {
+      const annualAllocation = computeAnnualAllocation(details.hireDate, year);
+      ptoAllowance = annualAllocation + details.carryoverHours;
+    }
 
     return computeEmployeeBalanceData(
       employeeId,
       employee.employeeName,
       yearEntries,
+      ptoAllowance,
     );
   }
 

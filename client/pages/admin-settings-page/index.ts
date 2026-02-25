@@ -52,19 +52,15 @@ export class AdminSettingsPage extends BaseComponent implements PageComponent {
     `;
   }
 
-  protected handleDelegatedClick(e: Event): void {
-    const target = e.target as HTMLElement;
-    if (target.matches(".file-label") || target.closest(".file-label")) {
-      const input =
-        this.shadowRoot.querySelector<HTMLInputElement>("#excel-file");
-      input?.click();
-    }
-  }
+  // No handleDelegatedClick needed — <label for="excel-file"> natively
+  // triggers the file input. Adding input.click() here caused a double prompt.
 
   protected override setupEventDelegation(): void {
     super.setupEventDelegation();
 
-    this.shadowRoot.addEventListener("change", (e) => {
+    // Use addListener so the change handler is tracked and cleaned up
+    // before each re-render, preventing duplicate registrations.
+    this.addListener(this.shadowRoot, "change", (e) => {
       const target = e.target as HTMLInputElement;
       if (target.id === "excel-file" && target.files?.length) {
         const nameSpan =
@@ -72,14 +68,16 @@ export class AdminSettingsPage extends BaseComponent implements PageComponent {
         if (nameSpan) nameSpan.textContent = target.files[0].name;
       }
     });
+  }
 
-    this.shadowRoot.addEventListener("submit", (e) => {
-      const form = (e.target as HTMLElement).closest("#import-form");
-      if (form) {
-        e.preventDefault();
-        this.handleImport();
-      }
-    });
+  // Use the base class delegation pattern instead of a separate submit
+  // listener to avoid duplicate handlers after re-renders.
+  protected override handleDelegatedSubmit(e: Event): void {
+    const form = (e.target as HTMLElement).closest("#import-form");
+    if (form) {
+      e.preventDefault();
+      this.handleImport();
+    }
   }
 
   private async handleImport(): Promise<void> {
@@ -105,7 +103,18 @@ export class AdminSettingsPage extends BaseComponent implements PageComponent {
           <ul>
             ${(result.perEmployee || []).map((e: any) => `<li>${e.name}: ${e.ptoEntries} PTO entries, ${e.acknowledgements} acks${e.created ? " (new)" : ""}</li>`).join("")}
           </ul>
-          ${result.warnings?.length ? `<p class="warning">Warnings: ${result.warnings.join("; ")}</p>` : ""}
+          ${
+            result.warnings?.length
+              ? `
+            <details class="warnings-details">
+              <summary class="warning">${result.warnings.length} warning${result.warnings.length === 1 ? "" : "s"}</summary>
+              <ul class="warnings-list">
+                ${result.warnings.map((w: string) => `<li>${w}</li>`).join("")}
+              </ul>
+            </details>
+          `
+              : ""
+          }
         </details>
       `;
     } catch (err: any) {

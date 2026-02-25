@@ -454,16 +454,22 @@ export function computeAccrualToDate(
 }
 
 /**
- * Computes PTO balance data for an employee based on used hours from PTO entries
+ * Computes PTO balance data for an employee based on used hours from PTO entries.
+ *
+ * @param ptoAllowance - When provided, overrides the default PTO annual limit
+ *   (CARRYOVER_LIMIT = 80) with the employee's actual allowance
+ *   (annualAllocation + carryover). This gives accurate remaining-balance
+ *   values instead of the generic cap.
  */
 export function computeEmployeeBalanceData(
   employeeId: number,
   employeeName: string,
   ptoEntries: Array<{ employee_id: number; type: PTOType; hours: number }>,
+  ptoAllowance?: number,
 ): PtoBalanceData {
   const categories: PTOType[] = ["PTO", "Sick", "Bereavement", "Jury Duty"];
   const limits: Record<PTOType, number> = {
-    PTO: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.PTO,
+    PTO: ptoAllowance ?? BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.PTO,
     Sick: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.SICK,
     Bereavement: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.BEREAVEMENT,
     "Jury Duty": BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.JURY_DUTY,

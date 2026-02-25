@@ -66,9 +66,10 @@ export class AdminMonthlyReviewPage
         (async () => {
           const month: string = e.detail?.month;
           try {
-            const [employeeData, ptoEntries] = await Promise.all([
+            const [employeeData, ptoEntries, employees] = await Promise.all([
               this.api.getAdminMonthlyReview(month),
               this.api.getAdminPTOEntries(),
+              this.api.getEmployees(),
             ]);
 
             const adminComp = this.shadowRoot?.querySelector(
@@ -86,6 +87,18 @@ export class AdminMonthlyReviewPage
               approved_by: p.approved_by ?? null,
             }));
             adminComp.setPtoEntries(normalized);
+
+            // Inject employee details for accurate PTO allowance computation
+            const empList = Array.isArray(employees)
+              ? employees
+              : ((employees as any)?.employees ?? []);
+            adminComp.setEmployeeDetails(
+              empList.map((emp: any) => ({
+                id: emp.id,
+                hireDate: emp.hireDate,
+                carryoverHours: emp.carryoverHours ?? 0,
+              })),
+            );
 
             // Inject employee data — balance summaries are now rendered
             // declaratively inside admin-monthly-review's template
@@ -227,9 +240,10 @@ export class AdminMonthlyReviewPage
         "admin-monthly-review",
       ) as any;
       if (adminComp) {
-        const [employeeData, ptoEntries] = await Promise.all([
+        const [employeeData, ptoEntries, employees] = await Promise.all([
           this.api.getAdminMonthlyReview(month),
           this.api.getAdminPTOEntries(),
+          this.api.getEmployees(),
         ]);
         const normalized = (ptoEntries || []).map((p: any) => ({
           employee_id: p.employeeId,
@@ -239,6 +253,18 @@ export class AdminMonthlyReviewPage
           approved_by: p.approved_by ?? null,
         }));
         adminComp.setPtoEntries(normalized);
+
+        const empList = Array.isArray(employees)
+          ? employees
+          : ((employees as any)?.employees ?? []);
+        adminComp.setEmployeeDetails(
+          empList.map((emp: any) => ({
+            id: emp.id,
+            hireDate: emp.hireDate,
+            carryoverHours: emp.carryoverHours ?? 0,
+          })),
+        );
+
         adminComp.setEmployeeData(employeeData);
       }
     } catch (error: any) {

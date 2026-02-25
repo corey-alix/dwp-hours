@@ -207,3 +207,69 @@ workbook.eachSheet((worksheet) => {
 - Worksheet IDs may not be sequential after deletions
 - Use `workbook.eachSheet()` instead of `forEach` for iteration
 - Polyfills required for ES5 or older Node.js versions
+
+## Streaming Reader (Memory-Constrained Environments)
+
+**CRITICAL**: `workbook.xlsx.readFile()` and `workbook.xlsx.load(buffer)` load the **entire workbook** into memory at once. For workbooks with many sheets (e.g., 68 employee tabs), this can easily exceed 200MB and cause OOM kills on memory-constrained servers (512MB).
+
+### Use `WorkbookReader` for Large Files
+
+```typescript
+const reader = new ExcelJS.stream.xlsx.WorkbookReader(filePath, {
+  worksheets: "emit", // stream worksheets one at a time
+  sharedStrings: "cache", // cache shared strings for cell values
+  styles: "cache", // cache styles so cell.style works
+  hyperlinks: "cache", // cache hyperlinks
+});
+
+for await (const wsReader of reader) {
+  const sheetName = (wsReader as any).name; // name not in type defs but exists at runtime
+
+  for await (const row of wsReader) {
+    row.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+      // Process cell...
+    });
+  }
+}
+```
+
+### Materialising Individual Sheets
+
+If existing parse helpers require random cell access (`ws.getCell(row, col)`), materialise **one sheet at a time** into a temporary Worksheet, process it, then let it be garbage collected:
+
+```typescript
+async function materialiseWorksheet(
+  wsReader: ExcelJS.stream.xlsx.WorksheetReader,
+): Promise<ExcelJS.Worksheet> {
+  const tempWB = new ExcelJS.Workbook();
+  const ws = tempWB.addWorksheet((wsReader as any).name || "Sheet");
+
+  for await (const row of wsReader) {
+    const newRow = ws.getRow(row.number);
+    row.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+      const newCell = newRow.getCell(colNumber);
+      newCell.value = cell.value;
+      newCell.style = cell.style;
+      if (cell.note) newCell.note = cell.note;
+    });
+    newRow.commit();
+  }
+
+  return ws;
+}
+```
+
+### Type Definition Gaps
+
+- `WorksheetReader.name` exists at runtime but is **not in the type definitions** — use `(wsReader as any).name`
+- `WorkbookReader` constructor options are typed as `Partial<WorkbookStreamReaderOptions>`
+
+### Key Differences from Standard Reader
+
+| Feature      | `readFile()` / `load()` | `WorkbookReader`           |
+| ------------ | ----------------------- | -------------------------- |
+| Memory       | All sheets at once      | One sheet at a time        |
+| Cell access  | Random (`getCell`)      | Sequential (row iteration) |
+| Styles/fills | Always available        | Requires `styles: "cache"` |
+| Sheet names  | `worksheet.name`        | `(wsReader as any).name`   |
+| Merged cells | Tracked automatically   | May need manual handling   |
