@@ -243,6 +243,54 @@ Reference `pto-spreadsheet-layout` skill: data at D42:W53.
 
 **Validation**: All unit tests pass; manual review confirms spreadsheet matches legacy layout.
 
+### Phase 14 — Cover Sheet Tab
+
+Add a summary "Cover Sheet" as the first worksheet in the Excel workbook, providing an at-a-glance view of every employee's monthly PTO remaining balance and flagging negative balances and balances ≥ 80 hours.
+
+Reference layout from `TASKS/Spreadsheet tweaks.md` § Cover Sheet Tab.
+
+#### Layout
+
+| VALUE                       | LOCATION | ROWS | NOTES                 |
+| --------------------------- | -------- | ---- | --------------------- |
+| "Summary of PTO Hours"      | B2:N3    | 2    | Bold, 14pt, merged    |
+| "January YYYY"              | C5       | 1    | Month column header   |
+| "December YYYY"             | N5       | 1    | Month column header   |
+| "Negative PTO Hours"        | O3:O4    | 2    | Mild red background   |
+| "Amount of PTO Hours of 80" | P3:P4    | 2    | Mild green background |
+| Employee Name               | B6:B…    | N    | Bold                  |
+| PTO Hours (Jan)             | C6:C…    | N    | Per employee          |
+| PTO Hours (Dec)             | N6:N…    | N    | Per employee          |
+| Negative PTO flag           | O6:O…    | N    | Mild red bg if < 0    |
+| High PTO flag               | P6:P…    | N    | Mild green bg if ≥ 80 |
+
+- [ ] Create `writeCoverSheet(ws, data)` function in `excelReport.ts`
+- [ ] **Title (B2:N3)**: Write "Summary of PTO Hours" merged across B2:N3 (bold, 14pt)
+- [ ] **Month headers (C5:N5)**: Write "January YYYY" through "December YYYY" in columns C–N row 5
+- [ ] **Flag headers**: Write "Negative PTO Hours" in O3:O4 with mild red background; write "Amount of PTO Hours of 80" in P3:P4 with mild green background
+- [ ] **Employee rows (row 6+)**: For each employee, write name in column B and each month's remaining PTO balance in columns C–N
+- [ ] **Negative PTO highlighting**: If any month's remaining balance is negative, apply mild red fill to that employee's cell in column O
+- [ ] **High PTO highlighting**: If any month's remaining balance is ≥ 80, apply mild green fill to that employee's cell in column P
+- [ ] Call `writeCoverSheet()` in `generateExcelReport()` before creating employee sheets, so the cover sheet is the first tab
+- [ ] `pnpm run build` passes
+- [ ] `pnpm run lint` passes
+
+**Validation**: Opening the `.xlsx` shows the cover sheet as the first tab with all employees listed, monthly balances populated, and negative/high balance flags correctly highlighted.
+
+### Phase 15 — Cover Sheet Testing
+
+- [ ] Vitest unit test: cover sheet is the first worksheet
+- [ ] Vitest unit test: title cell contains "Summary of PTO Hours"
+- [ ] Vitest unit test: month headers span January–December for the report year
+- [ ] Vitest unit test: employee names appear in column B starting at row 6
+- [ ] Vitest unit test: monthly remaining balances are correct per employee
+- [ ] Vitest unit test: negative balance triggers mild red fill in column O
+- [ ] Vitest unit test: balance ≥ 80 triggers mild green fill in column P
+- [ ] `pnpm run build` passes
+- [ ] `pnpm run lint` passes
+
+**Validation**: All cover sheet unit tests pass; manual review confirms summary tab is accurate.
+
 ## Deferred Work (Separate Tasks)
 
 - **CSV format** (`format=csv`): Flat export of PTO entries with employee info.

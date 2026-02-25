@@ -29,3 +29,22 @@
 | PTO Calc Section Header    | B–W       | 40    | Merged, bold, centered                                                                           |
 | PTO Calc Column Headers    | B–W + X–Y | 41–42 | Two-row merged header                                                                            |
 | PTO Calc Totals            | B–W       | 55    | Sums row                                                                                         |
+
+## Cover Sheet Tab
+
+| VALUE                       | LOCATION | ROWS | NOTES                 |
+| --------------------------- | -------- | ---- | --------------------- |
+| "Summary of PTO Hours"      | B2-N3    | 2    | Bold, 14pt            |
+| "January 2025"              | C5       | 1    | -                     |
+| "December 2025"             | N5       | 1    | -                     |
+| "Negative PTO Hours"        | O3-O4    | 2    | mild red background   |
+| "Amount of PTO Hours of 80" | P3-P4    | 2    | mild green background |
+| Employee Name               | B5-B54   | 50   | Bold, 14pt            |
+| PTO Hours (Jan 2025)        | C5-C54   | 50   | -                     |
+| PTO Hours (Dec 2025)        | N5-N54   | 50   | -                     |
+
+If the employee has negative PTO hours, the "Negative PTO Hours" cell should be highlighted with a mild red background.
+For for the first employee, this would be written into cell O5, and for the second employee, it would be written into cell O6, and so on.
+
+If the employee has 80 or more PTO hours, the "Amount of PTO Hours of 80" cell should be highlighted with a mild green background.
+For the first employee, this would be written into cell P5, and for the second employee, it would be written into cell P6, and so on.
