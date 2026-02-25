@@ -118,22 +118,22 @@ Prevent accidental approvals or rejections with a brief confirmation step.
 
 The "AVAILABLE BALANCE" heading (from Stage 2) and the per-type "AVAIL" sub-labels inside `<month-summary>` are redundant. Remove the "AVAIL" sub-labels so only the heading provides context.
 
-- [ ] Remove or hide the "AVAIL" text that renders below each PTO type's available balance value inside the `<month-summary>` component (only in this page's context, or globally if appropriate)
-- [ ] Verify the "AVAILABLE BALANCE" heading still provides sufficient context without the sub-labels
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] Remove or hide the "AVAIL" text that renders below each PTO type's available balance value inside the `<month-summary>` component (only in this page's context, or globally if appropriate)
+- [x] Verify the "AVAILABLE BALANCE" heading still provides sufficient context without the sub-labels
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ### Stage 10: Responsive Card Field Grid Layout
 
 The request card fields (Name, Date Range, Hours, Submitted) currently render vertically. Use a responsive CSS Grid with breakpoints for 1-column, 2-column, and 4-column configurations.
 
-- [ ] Wrap the four card fields (Name, Date Range, Hours, Submitted) in a grid container
-- [ ] Default to `grid-template-columns: 1fr` (1-column) for mobile
-- [ ] Add `@media (min-width: 480px)` breakpoint for 2-column layout (`grid-template-columns: 1fr 1fr`)
-- [ ] Add `@media (min-width: 768px)` breakpoint for 4-column layout (`grid-template-columns: repeat(4, 1fr)`)
+- [x] Wrap the four card fields (Name, Date Range, Hours, Submitted) in a grid container
+- [x] Default to `grid-template-columns: 1fr` (1-column) for mobile
+- [x] Add `@media (min-width: 480px)` breakpoint for 2-column layout (`grid-template-columns: 1fr 1fr`)
+- [x] Add `@media (min-width: 768px)` breakpoint for 4-column layout (`grid-template-columns: repeat(4, 1fr)`)
 - [ ] Verify layout at 375px, 600px, and 1024px viewport widths
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ### Stage 11: Aggregate Consecutive PTO Requests on Client
 

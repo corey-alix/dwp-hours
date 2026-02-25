@@ -15,6 +15,7 @@ describe("EmployeeList Component - Search Filtering", () => {
     identifier: emp.identifier,
     ptoRate: emp.pto_rate,
     carryoverHours: emp.carryover_hours,
+    hireDate: emp.hire_date,
     role: emp.role,
     hash: emp.hash ?? "",
   }));

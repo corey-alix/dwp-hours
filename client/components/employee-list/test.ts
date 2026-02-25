@@ -51,6 +51,7 @@ export function playground() {
     identifier: emp.identifier,
     ptoRate: emp.pto_rate,
     carryoverHours: emp.carryover_hours,
+    hireDate: emp.hire_date,
     role: emp.role,
     hash: emp.hash ?? "",
   }));
@@ -94,6 +95,7 @@ export function playground() {
         identifier: "AW004",
         ptoRate: 0.71,
         carryoverHours: 0,
+        hireDate: "2025-01-01",
         role: "Employee",
         hash: "hash4",
       },

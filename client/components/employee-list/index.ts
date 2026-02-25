@@ -4,6 +4,7 @@ export interface Employee {
   identifier: string;
   ptoRate: number;
   carryoverHours: number;
+  hireDate: string;
   role: "Employee" | "Admin";
   hash: string;
 }
@@ -134,6 +135,10 @@ export class EmployeeList extends BaseComponent {
                     <div class="detail-item">
                         <span class="detail-label">Carryover</span>
                         <span class="detail-value">${employee.carryoverHours} hrs</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Hire Date</span>
+                        <span class="detail-value">${employee.hireDate || "—"}</span>
                     </div>
                 </div>
 

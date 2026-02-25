@@ -236,6 +236,7 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
       identifier: string;
       ptoRate: number;
       carryoverHours: number;
+      hireDate: string;
       role: string;
     };
     isEdit: boolean;
@@ -249,6 +250,7 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
           identifier: employee.identifier,
           ptoRate: employee.ptoRate,
           carryoverHours: employee.carryoverHours,
+          hireDate: employee.hireDate,
           role: employee.role as "Employee" | "Admin",
         });
         notifications.success(
@@ -260,7 +262,7 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
           identifier: employee.identifier,
           ptoRate: employee.ptoRate,
           carryoverHours: employee.carryoverHours,
-          hireDate: today(),
+          hireDate: employee.hireDate || today(),
           role: employee.role as "Employee" | "Admin",
         });
         notifications.success(

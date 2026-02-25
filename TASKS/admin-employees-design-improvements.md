@@ -25,6 +25,7 @@ Screenshot and shadow DOM captured via `pnpm screenshot /admin/employees admin@e
 11. **CSS fallback values in page css.ts** — The page's `css.ts` uses hardcoded fallback values like `var(--space-md, 16px)` and `var(--color-primary, #007bff)`. Other pages have removed fallbacks since the design token system is established. These should be cleaned up for consistency.
 12. **month-summary margin uses `1em` instead of design token** — The `month-summary { margin-bottom: 1em; }` rule in the page's `css.ts` should use `var(--space-md)` instead of a hardcoded `1em` value.
 13. **Add-Employee form renders at top of page instead of near button** — When clicking the "Add Employee" button at the bottom of the page, the `<employee-form>` appears above the `<employee-list>` at the top, forcing the user to scroll up. The form should render just above the "Add Employee" button so the user stays in context.
+14. **Employee hire date not visible or editable** — The `employees` table has a `hire_date` column (set to `today()` on creation) but the employee card does not display it and the employee form does not include an input for it. Admins have no way to review or correct an employee's hire date.
 
 ## Checklist
 
@@ -206,6 +207,19 @@ Root cause: In `employee-list/index.ts` `attributeChangedCallback`, when `editin
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
 
+### Stage 16: Add Hire Date to Card and Editor
+
+The `hire_date` column exists in the database schema but is never shown on employee cards and cannot be edited. Admins need to review and correct hire dates.
+
+- [x] Add a "Hire Date" detail item to `renderEmployeeCard()` in `employee-list/index.ts`, displaying the employee's `hireDate` value (formatted as a short date, using `shared/dateUtils.ts` helpers — no `new Date()`)
+- [x] Add a "Hire Date" `<input type="date">` field to the `employee-form` component's template
+- [x] Populate the hire date input from the `employee` property when editing an existing employee
+- [x] Include `hireDate` in the `employee-submit` event detail so the page handler sends it to the API on create and update
+- [x] Ensure the `Employee` interface in `employee-list/index.ts` includes `hireDate: string`
+- [x] Verify the API `createEmployee` and `updateEmployee` calls accept and persist the `hireDate` field
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+
 ## Implementation Notes
 
 - Page CSS: [client/pages/admin-employees-page/css.ts](../client/pages/admin-employees-page/css.ts) (35 lines — minimal, uses hardcoded fallbacks)
@@ -239,6 +253,7 @@ Root cause: In `employee-list/index.ts` `attributeChangedCallback`, when `editin
 
 15. **Add-Employee form position matters for UX** — The `render()` template in `admin-employees-page` places `<employee-form>` before `<employee-list>`. Moving it between `</employee-list>` and the `.toolbar` div puts it adjacent to the "Add Employee" button. After `requestUpdate()`, scroll the form into view with `scrollIntoView({ behavior: 'smooth', block: 'nearest' })` (use `behavior: 'auto'` for `prefers-reduced-motion`).
 16. **Switching editors requires JS property re-set** — `employee-form` does NOT observe its `employee` HTML attribute; it only reads the JS property. When `attributeChangedCallback` fires with `prevId !== null` (already editing), the code must call `renderEditorInPlace()` (not bare `requestUpdate()`) so the new employee data is set via the JS property after the innerHTML rebuild.
+17. **hire_date exists in schema but is invisible** — The `employees` table stores `hire_date DATE NOT NULL`, and `createEmployee` sets it to `today()`. But the `Employee` interface in `employee-list/index.ts` omits it, the card template doesn't display it, and the employee form doesn't include an input for it. Adding the field requires: (1) extend the `Employee` interface with `hireDate: string`, (2) add a detail item to `renderEmployeeCard()`, (3) add a date input to `employee-form`, (4) include `hireDate` in the `employee-submit` event payload, (5) verify the API accepts and persists it on both create and update.
 
 ## Questions and Concerns
 

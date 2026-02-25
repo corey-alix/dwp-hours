@@ -6,6 +6,14 @@ import { EmployeeForm } from "../../client/components/employee-form/index.js";
 describe("EmployeeForm Component", () => {
   let element: EmployeeForm;
 
+  /** Set the hireDate input to a default value so required-field validation passes. */
+  function fillHireDate(value = "2020-01-15"): void {
+    const input = element.shadowRoot?.querySelector(
+      "#hireDate",
+    ) as HTMLInputElement;
+    if (input) input.value = value;
+  }
+
   beforeEach(() => {
     // Happy DOM provides global document, window, etc.
     element = new EmployeeForm();
@@ -97,12 +105,16 @@ describe("EmployeeForm Component", () => {
       const roleSelect = element.shadowRoot?.querySelector(
         "#role",
       ) as HTMLSelectElement;
+      const hireDateInput = element.shadowRoot?.querySelector(
+        "#hireDate",
+      ) as HTMLInputElement;
 
       if (nameInput) nameInput.value = "John Doe";
       if (identifierInput) identifierInput.value = "john@example.com";
       if (ptoRateInput) ptoRateInput.value = "0.8";
       if (carryoverInput) carryoverInput.value = "15";
       if (roleSelect) roleSelect.value = "Admin";
+      if (hireDateInput) hireDateInput.value = "2020-01-15";
 
       const data = (element as any).collectFormData();
 
@@ -111,6 +123,7 @@ describe("EmployeeForm Component", () => {
       expect(data.ptoRate).toBe(0.8);
       expect(data.carryoverHours).toBe(15);
       expect(data.role).toBe("Admin");
+      expect(data.hireDate).toBe("2020-01-15");
     });
 
     it("should validate and collect data when form is valid", () => {
@@ -124,6 +137,11 @@ describe("EmployeeForm Component", () => {
 
       if (nameInput) nameInput.value = "John Doe";
       if (identifierInput) identifierInput.value = "john@example.com";
+
+      const hireDateInput = element.shadowRoot?.querySelector(
+        "#hireDate",
+      ) as HTMLInputElement;
+      if (hireDateInput) hireDateInput.value = "2020-01-15";
 
       const result = (element as any).validateAndCollectData();
 
@@ -234,6 +252,7 @@ describe("EmployeeForm Component", () => {
       if (identifierInput) identifierInput.value = "john@example.com";
       if (ptoRateInput) ptoRateInput.value = "1.5"; // Valid
       if (carryoverInput) carryoverInput.value = "50"; // Valid
+      fillHireDate();
 
       const result = (element as any).validateAndCollectData();
 
@@ -260,6 +279,7 @@ describe("EmployeeForm Component", () => {
       if (identifierInput) identifierInput.value = "john@example.com";
       if (ptoRateInput) ptoRateInput.value = ""; // Empty
       if (carryoverInput) carryoverInput.value = ""; // Empty
+      fillHireDate();
 
       const result = (element as any).validateAndCollectData();
 
@@ -277,6 +297,7 @@ describe("EmployeeForm Component", () => {
       ) as HTMLInputElement;
 
       if (nameInput) nameInput.value = "John Doe";
+      fillHireDate();
 
       // Test valid emails
       const validEmails = [

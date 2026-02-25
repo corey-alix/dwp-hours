@@ -4,6 +4,7 @@ interface Employee {
   identifier: string;
   ptoRate: number;
   carryoverHours: number;
+  hireDate?: string;
   role: string;
   hash?: string;
 }
@@ -41,7 +42,13 @@ export class EmployeeForm extends BaseComponent {
 
   private focusFirstError(): void {
     // Focus the first field with an error
-    const errorFields = ["name", "identifier", "ptoRate", "carryoverHours"];
+    const errorFields = [
+      "name",
+      "identifier",
+      "ptoRate",
+      "carryoverHours",
+      "hireDate",
+    ];
     for (const fieldId of errorFields) {
       if (this.hasError(fieldId)) {
         const input = this.shadowRoot?.querySelector(
@@ -194,6 +201,24 @@ export class EmployeeForm extends BaseComponent {
                     </div>
 
                     <div class="form-group">
+                        <label class="form-label" for="hireDate">
+                            Hire Date <span class="required" aria-label="required">*</span>
+                        </label>
+                        <input
+                          type="date"
+                          id="hireDate"
+                          name="hireDate"
+                          class="form-input ${this.hasError("hireDate") ? "error" : ""}"
+                          value="${this._stagedFormValues?.hireDate ?? this._employee?.hireDate ?? ""}"
+                          required
+                          aria-required="true"
+                          aria-describedby="hireDate-error"
+                          aria-invalid="${this.hasError("hireDate") ? "true" : "false"}"
+                        >
+                        <span class="error-message" id="hireDate-error" role="alert" aria-live="polite">${this._errors["hireDate"] ?? ""}</span>
+                    </div>
+
+                    <div class="form-group">
                         <label class="form-label" for="role">
                             Role
                         </label>
@@ -322,6 +347,7 @@ export class EmployeeForm extends BaseComponent {
       identifier: getStringValue("identifier"),
       ptoRate: getNumberValue("ptoRate", 0.71),
       carryoverHours: getNumberValue("carryoverHours", 0),
+      hireDate: getStringValue("hireDate"),
       role: getStringValue("role"),
       hash: this._employee?.hash,
     };
@@ -365,12 +391,17 @@ export class EmployeeForm extends BaseComponent {
       "#carryoverHours",
       this.shadowRoot,
     );
+    const hireDateInput = querySingle<HTMLInputElement>(
+      "#hireDate",
+      this.shadowRoot,
+    );
 
     this._stagedFormValues = {
       name: nameInput?.value ?? "",
       identifier: identifierInput?.value ?? "",
       ptoRate: ptoRateInput?.value ?? "",
       carryoverHours: carryoverInput?.value ?? "",
+      hireDate: hireDateInput?.value ?? "",
       role:
         this.shadowRoot?.querySelector<HTMLSelectElement>("#role")?.value ??
         this._employee?.role ??
@@ -381,6 +412,7 @@ export class EmployeeForm extends BaseComponent {
     if (!this.validateField(identifierInput)) isValid = false;
     if (!this.validatePtoRate(ptoRateInput)) isValid = false;
     if (!this.validateCarryoverHours(carryoverInput)) isValid = false;
+    if (!this.validateField(hireDateInput)) isValid = false;
 
     return isValid;
   }

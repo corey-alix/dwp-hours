@@ -159,9 +159,23 @@ export const styles = `<style>
 
   .request-details {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    grid-template-columns: 1fr;
     gap: var(--space-md);
     margin-bottom: var(--space-md);
+  }
+
+  @media (min-width: 480px) {
+
+    .request-details {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (min-width: 768px) {
+
+    .request-details {
+      grid-template-columns: repeat(4, 1fr);
+    }
   }
 
   .detail-item {

@@ -149,17 +149,8 @@ describe("MonthSummary Component", () => {
       expect(ptoValue?.classList.contains("balance-positive")).toBe(true);
     });
 
-    it("should show 'avail' sub-label when balances are set", () => {
+    it("should not show 'avail' sub-label (removed as redundant with balance heading)", () => {
       component.balances = { PTO: 40 };
-
-      const ptoItem = component.shadowRoot?.querySelector('[data-type="PTO"]');
-      const subLabel = ptoItem?.querySelector(".summary-sub-label");
-      expect(subLabel).toBeTruthy();
-      expect(subLabel?.textContent?.toLowerCase()).toContain("avail");
-    });
-
-    it("should not show 'avail' sub-label when no balances are set", () => {
-      component.ptoHours = 8;
 
       const ptoItem = component.shadowRoot?.querySelector('[data-type="PTO"]');
       const subLabel = ptoItem?.querySelector(".summary-sub-label");

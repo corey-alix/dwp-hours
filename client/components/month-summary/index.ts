@@ -186,15 +186,10 @@ export class MonthSummary extends BaseComponent {
       ? `${(balance - hours).toFixed(0)}`
       : `${hours.toFixed(0)}`;
 
-    const balanceSubLabel = hasBalance
-      ? `<span class="summary-sub-label">avail</span>`
-      : "";
-
     return `
       <div class="${itemClasses}" data-type="${config.deltaKey}"${ariaAttrs}>
         <span class="summary-label">${config.label}</span>
         <span class="summary-value ${valueClass} ${balanceClass}" data-summary-type="${config.attr.replace("-hours", "")}">${displayValue}${deltaHtml}</span>
-        ${balanceSubLabel}
       </div>
     `;
   }
