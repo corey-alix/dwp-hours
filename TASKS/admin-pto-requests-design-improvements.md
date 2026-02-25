@@ -139,14 +139,14 @@ The request card fields (Name, Date Range, Hours, Submitted) currently render ve
 
 On the client side, aggregate PTO request data so that records with the same employee, the same PTO type, and consecutive work days are collapsed into a single card showing a computed date range and summed PTO hours.
 
-- [ ] Implement a client-side aggregation function that groups requests by employee + PTO type + consecutive work days
-- [ ] Consecutive work days means Monday–Friday with no gaps (weekends are skipped but still considered consecutive; holidays are not considered)
-- [ ] Compute and display the aggregated date range (first day → last day) and total hours on a single card
-- [ ] Preserve individual request IDs so approve/reject actions apply to all aggregated requests in the group
-- [ ] When approving or rejecting an aggregated card, send actions for all underlying request IDs
-- [ ] Add Vitest tests for the aggregation logic: consecutive days, non-consecutive days, different PTO types, different employees, weekend-spanning ranges
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] Implement a client-side aggregation function that groups requests by employee + PTO type + consecutive work days
+- [x] Consecutive work days means Monday–Friday with no gaps (weekends are skipped but still considered consecutive; holidays are not considered)
+- [x] Compute and display the aggregated date range (first day → last day) and total hours on a single card
+- [x] Preserve individual request IDs so approve/reject actions apply to all aggregated requests in the group
+- [x] When approving or rejecting an aggregated card, send actions for all underlying request IDs
+- [x] Add Vitest tests for the aggregation logic: consecutive days, non-consecutive days, different PTO types, different employees, weekend-spanning ranges
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 ## Implementation Notes
 

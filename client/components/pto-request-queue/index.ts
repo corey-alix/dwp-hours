@@ -4,19 +4,15 @@ import {
 } from "../../../shared/dateUtils.js";
 import { BaseComponent } from "../base-component.js";
 import { animateDismiss } from "../../css-extensions/index.js";
+import {
+  aggregatePTORequests,
+  type AggregatedPTORequest,
+  type PTORequest,
+} from "../../shared/aggregate-pto-requests.js";
 import { styles } from "./css.js";
 
-interface PTORequest {
-  id: number;
-  employeeId: number;
-  employeeName: string;
-  startDate: string;
-  endDate: string;
-  type: "Sick" | "PTO" | "Bereavement" | "Jury Duty";
-  hours: number;
-  status: "pending" | "approved" | "rejected";
-  createdAt: string;
-}
+export type { PTORequest };
+export { type AggregatedPTORequest };
 
 export class PtoRequestQueue extends BaseComponent {
   private _requests: PTORequest[] = [];
@@ -44,12 +40,15 @@ export class PtoRequestQueue extends BaseComponent {
       (r) => r.status === "pending",
     );
 
-    // Group requests by employee, preserving chronological order within groups
+    // Aggregate consecutive work-day requests per employee + type
+    const aggregated = aggregatePTORequests(pendingRequests);
+
+    // Group aggregated entries by employee
     const employeeGroups = new Map<
       number,
-      { name: string; requests: PTORequest[] }
+      { name: string; requests: AggregatedPTORequest[] }
     >();
-    for (const req of pendingRequests) {
+    for (const req of aggregated) {
       let group = employeeGroups.get(req.employeeId);
       if (!group) {
         group = { name: req.employeeName, requests: [] };
@@ -58,6 +57,9 @@ export class PtoRequestQueue extends BaseComponent {
       group.requests.push(req);
     }
 
+    // Count original pending requests for the stats display
+    const totalPending = pendingRequests.length;
+
     return `
       ${styles}
       <div class="queue-container">
@@ -65,7 +67,7 @@ export class PtoRequestQueue extends BaseComponent {
           <h2 class="queue-title">PTO Request Queue</h2>
           <div class="queue-stats">
             <div class="stat-item">
-              <span class="stat-value">${pendingRequests.length}</span>
+              <span class="stat-value">${totalPending}</span>
               <span class="stat-label">Pending</span>
             </div>
           </div>
@@ -73,14 +75,14 @@ export class PtoRequestQueue extends BaseComponent {
 
         <div class="queue-content">
           ${
-            pendingRequests.length === 0
+            totalPending === 0
               ? '<div class="empty-state"><h3>No pending requests</h3><p>All PTO requests have been reviewed.</p></div>'
               : Array.from(employeeGroups.entries())
                   .map(
                     ([empId, group]) => `
                     <div class="employee-group" data-employee-id="${empId}">
                       <div class="employee-group-header">
-                        <h3 class="employee-group-name">${group.name} — ${group.requests.length} pending request${group.requests.length !== 1 ? "s" : ""}</h3>
+                        <h3 class="employee-group-name">${group.name} — ${group.requests.reduce((sum, r) => sum + r.requestIds.length, 0)} pending request${group.requests.reduce((sum, r) => sum + r.requestIds.length, 0) !== 1 ? "s" : ""}</h3>
                         <slot name="balance-${empId}"></slot>
                       </div>
                       <div class="employee-group-cards">
@@ -95,7 +97,7 @@ export class PtoRequestQueue extends BaseComponent {
     `;
   }
 
-  private renderRequestCard(request: PTORequest): string {
+  private renderRequestCard(request: AggregatedPTORequest): string {
     const startDate = formatDateForDisplay(request.startDate, {
       dateStyle: "short",
     });
@@ -110,8 +112,12 @@ export class PtoRequestQueue extends BaseComponent {
       dateStyle: "short",
     });
 
+    // Primary ID for card identification; all IDs stored in data attribute
+    const primaryId = request.requestIds[0];
+    const allIds = request.requestIds.join(",");
+
     return `
-      <div class="request-card" data-request-id="${request.id}">
+      <div class="request-card" data-request-id="${primaryId}" data-request-ids="${allIds}">
         <div class="request-header">
           <span class="request-type ${request.type.replace(" ", "-")}">${request.type}</span>
           <span class="status-badge pending">Pending</span>
@@ -140,10 +146,10 @@ export class PtoRequestQueue extends BaseComponent {
         </div>
 
         <div class="request-actions">
-          <button class="action-btn reject" data-action="reject" data-request-id="${request.id}">
+          <button class="action-btn reject" data-action="reject" data-request-id="${primaryId}" data-request-ids="${allIds}">
             Reject
           </button>
-          <button class="action-btn approve" data-action="approve" data-request-id="${request.id}">
+          <button class="action-btn approve" data-action="approve" data-request-id="${primaryId}" data-request-ids="${allIds}">
             Approve
           </button>
         </div>
@@ -174,10 +180,10 @@ export class PtoRequestQueue extends BaseComponent {
 
     const btn = target as HTMLButtonElement;
     const action = btn.dataset.action;
-    const requestId = btn.dataset.requestId;
-    if (!action || !requestId) return;
+    const requestIdsAttr = btn.dataset.requestIds;
+    if (!action || !requestIdsAttr) return;
 
-    const reqIdNum = parseInt(requestId, 10);
+    const requestIds = requestIdsAttr.split(",").map((id) => parseInt(id, 10));
     const card = btn.closest(".request-card") as HTMLElement | null;
     const group = card?.closest(".employee-group") as HTMLElement | null;
     const empId = group ? parseInt(group.dataset.employeeId ?? "0", 10) : 0;
@@ -204,7 +210,7 @@ export class PtoRequestQueue extends BaseComponent {
 
     this.dispatchEvent(
       new CustomEvent(`request-${action}`, {
-        detail: { requestId: reqIdNum },
+        detail: { requestId: requestIds[0], requestIds },
         bubbles: true,
         composed: true,
       }),

@@ -186,12 +186,14 @@ export class AdminPtoRequestsPage
 
     this.shadowRoot.addEventListener("request-approve", ((e: CustomEvent) => {
       e.stopPropagation();
-      this.handleApprove(e.detail.requestId);
+      const ids: number[] = e.detail.requestIds ?? [e.detail.requestId];
+      this.handleApproveAll(ids);
     }) as EventListener);
 
     this.shadowRoot.addEventListener("request-reject", ((e: CustomEvent) => {
       e.stopPropagation();
-      this.handleReject(e.detail.requestId);
+      const ids: number[] = e.detail.requestIds ?? [e.detail.requestId];
+      this.handleRejectAll(ids);
     }) as EventListener);
   }
 
@@ -202,16 +204,29 @@ export class AdminPtoRequestsPage
     }
   }
 
-  private async handleApprove(requestId: number): Promise<void> {
+  /**
+   * Approve all request IDs in an aggregated card.
+   * Dismisses the card (keyed by the first ID), then sends approve
+   * calls for every underlying request.
+   */
+  private async handleApproveAll(requestIds: number[]): Promise<void> {
     try {
       const adminUser = this._authService?.getUser();
       if (!adminUser) {
         notifications.error("Unable to approve: admin user not found.");
         return;
       }
-      await this.dismissQueueCard(requestId);
-      await this.api.approvePTOEntry(requestId, adminUser.id);
-      notifications.success("PTO request approved.");
+      // Dismiss the card using the primary (first) request ID
+      await this.dismissQueueCard(requestIds[0]);
+      // Approve all underlying requests
+      await Promise.all(
+        requestIds.map((id) => this.api.approvePTOEntry(id, adminUser.id)),
+      );
+      const label =
+        requestIds.length === 1
+          ? "PTO request approved."
+          : `${requestIds.length} PTO requests approved.`;
+      notifications.success(label);
       await this.refreshQueue();
     } catch (error) {
       notifications.error(
@@ -220,11 +235,18 @@ export class AdminPtoRequestsPage
     }
   }
 
-  private async handleReject(requestId: number): Promise<void> {
+  /**
+   * Reject all request IDs in an aggregated card.
+   */
+  private async handleRejectAll(requestIds: number[]): Promise<void> {
     try {
-      await this.dismissQueueCard(requestId);
-      await this.api.rejectPTOEntry(requestId);
-      notifications.success("PTO request rejected.");
+      await this.dismissQueueCard(requestIds[0]);
+      await Promise.all(requestIds.map((id) => this.api.rejectPTOEntry(id)));
+      const label =
+        requestIds.length === 1
+          ? "PTO request rejected."
+          : `${requestIds.length} PTO requests rejected.`;
+      notifications.success(label);
       await this.refreshQueue();
     } catch (error) {
       notifications.error(
