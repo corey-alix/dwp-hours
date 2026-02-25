@@ -642,7 +642,7 @@ function writeAcknowledgements(
     const row = dataStartRow + (m - 1);
     const monthStr = `${year}-${pad2(m)}`;
 
-    // Employee acknowledgement: ✓ if acknowledged, initials if not
+    // Employee acknowledgement: ✓ if acknowledged, empty if not
     const empAck = emp.acknowledgements.find((a) => a.month === monthStr);
     const empCell = ws.getCell(row, 24);
     if (empAck) {
@@ -653,27 +653,21 @@ function writeAcknowledgements(
         size: 11,
         name: "Calibri",
       };
-    } else {
-      empCell.value = initials;
-      empCell.font = { color: { argb: "FFC0392B" }, size: 11, name: "Calibri" };
     }
     empCell.alignment = { horizontal: "center" };
     empCell.border = THIN_BORDER;
 
-    // Admin acknowledgement
+    // Admin acknowledgement: ✓ if acknowledged, empty if not
     const admAck = emp.adminAcknowledgements.find((a) => a.month === monthStr);
     const admCell = ws.getCell(row, 25);
     if (admAck) {
-      admCell.value = admAck.adminName;
+      admCell.value = "✓";
       admCell.font = {
         bold: true,
         color: { argb: "FF27AE60" },
         size: 11,
         name: "Calibri",
       };
-    } else {
-      admCell.value = "—";
-      admCell.font = { color: { argb: "FFC0392B" }, size: 11, name: "Calibri" };
     }
     admCell.alignment = { horizontal: "center" };
     admCell.border = THIN_BORDER;
