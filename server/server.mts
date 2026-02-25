@@ -65,6 +65,8 @@ import {
 import { performBulkMigration, performFileMigration } from "./bulkMigration.js";
 import { authenticate, authenticateAdmin } from "./utils/auth.js";
 import { seedEmployees, seedPTOEntries } from "../shared/seedData.js";
+import { assembleReportData } from "./reportService.js";
+import { generateHtmlReport } from "./reportGenerators/htmlReport.js";
 import type {
   PTOCreateResponse,
   PTOUpdateResponse,
@@ -2790,6 +2792,68 @@ initDatabase()
           ) {
             return res.status(400).json({ error: error.message });
           }
+          res.status(500).json({ error: "Internal server error" });
+        }
+      },
+    );
+
+    // ── Admin Report Download ──
+
+    app.get(
+      "/api/admin/report",
+      authenticateAdmin(() => dataSource, log),
+      async (req: Request, res: Response) => {
+        logger.info(
+          `API access: ${req.method} ${req.path} by employee ${req.employee!.id}`,
+        );
+        try {
+          const format = (req.query.format as string) || "html";
+          const yearParam = req.query.year as string | undefined;
+          const year = yearParam
+            ? parseInt(yearParam, 10)
+            : new Date().getFullYear();
+
+          if (isNaN(year) || year < 2000 || year > 2100) {
+            return res.status(400).json({
+              error: "Invalid year parameter. Must be between 2000 and 2100.",
+            });
+          }
+
+          const validFormats = ["html", "excel", "csv", "json"];
+          if (!validFormats.includes(format)) {
+            return res.status(400).json({
+              error: `Invalid format "${format}". Supported: ${validFormats.join(", ")}`,
+            });
+          }
+
+          if (format !== "html") {
+            return res.status(501).json({
+              error: `Format "${format}" is not yet implemented. Only "html" is currently supported.`,
+            });
+          }
+
+          const reportData = await assembleReportData(dataSource, year);
+          const html = generateHtmlReport(reportData);
+
+          // Save to reports/ for developer review
+          const reportsDir = path.join(process.cwd(), "reports");
+          if (!fs.existsSync(reportsDir)) {
+            fs.mkdirSync(reportsDir, { recursive: true });
+          }
+          fs.writeFileSync(
+            path.join(reportsDir, `pto-report-${year}.html`),
+            html,
+            "utf-8",
+          );
+
+          res.setHeader("Content-Type", "text/html; charset=utf-8");
+          res.setHeader(
+            "Content-Disposition",
+            `attachment; filename="pto-report-${year}.html"`,
+          );
+          res.send(html);
+        } catch (error) {
+          logger.error(`Error generating report: ${error}`);
           res.status(500).json({ error: "Internal server error" });
         }
       },

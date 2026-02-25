@@ -63,7 +63,12 @@ export class DashboardNavigationMenu extends BaseComponent {
   }
 
   protected render(): string {
-    const menuItems: { id: string; label: string; isLogout?: boolean }[] = [
+    const menuItems: {
+      id: string;
+      label: string;
+      isLogout?: boolean;
+      isDownload?: boolean;
+    }[] = [
       { id: "submit-time-off", label: "Submit Time Off" },
       { id: "current-year-summary", label: "Current Year Summary" },
       { id: "prior-year-summary", label: "Prior Year Summary" },
@@ -75,6 +80,11 @@ export class DashboardNavigationMenu extends BaseComponent {
         { id: "admin/pto-requests", label: "PTO Requests" },
         { id: "admin/monthly-review", label: "Monthly Review" },
         { id: "admin/settings", label: "Settings" },
+        {
+          id: "download-report",
+          label: "\u2B73 Download Report",
+          isDownload: true,
+        },
       );
     }
 
@@ -91,10 +101,10 @@ export class DashboardNavigationMenu extends BaseComponent {
             .map(
               (item) => `
             <button
-              class="menu-item text-nowrap ${item.isLogout ? "logout" : ""} ${this.currentPage === item.id ? "active" : ""}"
+              class="menu-item text-nowrap ${item.isLogout ? "logout" : ""} ${item.isDownload ? "download" : ""} ${this.currentPage === item.id ? "active" : ""}"
               data-action="${item.id}"
-              aria-label="${item.isLogout ? "Logout" : `Switch to ${item.label}`}"
-              ${!item.isLogout ? `aria-pressed="${this.currentPage === item.id}"` : ""}
+              aria-label="${item.isLogout ? "Logout" : item.isDownload ? "Download PTO Report" : `Switch to ${item.label}`}"
+              ${!item.isLogout && !item.isDownload ? `aria-pressed="${this.currentPage === item.id}"` : ""}
               tabindex="0"
             >
               ${item.label}
@@ -116,6 +126,8 @@ export class DashboardNavigationMenu extends BaseComponent {
       const action = target.dataset.action;
       if (action === "logout") {
         this.handleLogout();
+      } else if (action === "download-report") {
+        this.handleDownloadReport();
       } else if (action) {
         this.selectPage(action as Page);
       }
@@ -131,6 +143,8 @@ export class DashboardNavigationMenu extends BaseComponent {
         const action = target.dataset.action;
         if (action === "logout") {
           this.handleLogout();
+        } else if (action === "download-report") {
+          this.handleDownloadReport();
         } else if (action) {
           this.selectPage(action as Page);
         }
@@ -253,6 +267,16 @@ export class DashboardNavigationMenu extends BaseComponent {
 
     // Animate menu close
     this.closeMenuAnimated();
+  }
+
+  private handleDownloadReport(): void {
+    // Close the menu
+    this.removeAutoCloseListeners();
+    this.closeMenuAnimated();
+
+    // Trigger download via direct navigation
+    const year = new Date().getFullYear();
+    window.location.href = `/api/admin/report?format=html&year=${year}`;
   }
 
   private handleLogout(): void {

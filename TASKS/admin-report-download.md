@@ -36,74 +36,74 @@ The feature supports multiple output formats via a `format` query parameter (`ht
 
 ### Phase 1 — Data Aggregation Service
 
-- [ ] Create `server/reportService.ts` module responsible for assembling per-employee report data
-- [ ] Query all employees (id, name, identifier, hireDate, ptoRate, carryoverHours)
-- [ ] Query PTO entries for each employee for the target year (date, hours, type, approved_by)
-- [ ] Query monthly hours for each employee for the target year
-- [ ] Query employee and admin acknowledgements for each employee for the target year
-- [ ] Compute PTO calculation rows (work days, daily rate, accrued, carryover, used, remaining) using existing `ptoCalculations.ts` logic
-- [ ] Unit test the data aggregation with mock data
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] Create `server/reportService.ts` module responsible for assembling per-employee report data
+- [x] Query all employees (id, name, identifier, hireDate, ptoRate, carryoverHours)
+- [x] Query PTO entries for each employee for the target year (date, hours, type, approved_by)
+- [x] Query monthly hours for each employee for the target year
+- [x] Query employee and admin acknowledgements for each employee for the target year
+- [x] Compute PTO calculation rows (work days, daily rate, accrued, carryover, used, remaining) using existing `ptoCalculations.ts` logic
+- [x] Unit test the data aggregation with mock data
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 **Validation**: Unit tests confirm correct data shape; build and lint pass.
 
 ### Phase 2 — HTML Report Generator
 
-- [ ] Create `server/reportGenerators/htmlReport.ts` module
-- [ ] Generate a self-contained HTML document (inline CSS + JS, no external dependencies)
-- [ ] Embed all employee report data as a JSON object in a `<script>` tag
-- [ ] Render employee selector dropdown (populated from embedded data)
-- [ ] Render calendar grid matching legacy layout (B6:X37 area — 4 months per row, 3 column blocks per month)
-- [ ] Apply color coding to PTO days using legend colors (Sick=green, Full PTO=yellow, Partial PTO=orange, Planned PTO=blue, Bereavement=gray, Jury Duty=red)
-- [ ] Render legend section matching legacy layout (column AA area)
-- [ ] Render PTO calculation section (rows 39+ area — work days, daily rate, accrued, carryover, used, remaining)
-- [ ] Render acknowledgement columns (employee + admin)
-- [ ] Render employee hire date header
-- [ ] Implement JavaScript to switch displayed employee on dropdown change
-- [ ] Style the report to be print-friendly
-- [ ] Unit test HTML generation produces valid markup
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] Create `server/reportGenerators/htmlReport.ts` module
+- [x] Generate a self-contained HTML document (inline CSS + JS, no external dependencies)
+- [x] Embed all employee report data as a JSON object in a `<script>` tag
+- [x] Render employee selector dropdown (populated from embedded data)
+- [x] Render calendar grid matching legacy layout (B6:X37 area — 4 months per row, 3 column blocks per month)
+- [x] Apply color coding to PTO days using legend colors (Sick=green, Full PTO=yellow, Partial PTO=orange, Planned PTO=blue, Bereavement=gray, Jury Duty=red)
+- [x] Render legend section matching legacy layout (column AA area)
+- [x] Render PTO calculation section (rows 39+ area — work days, daily rate, accrued, carryover, used, remaining)
+- [x] Render acknowledgement columns (employee + admin)
+- [x] Render employee hire date header
+- [x] Implement JavaScript to switch displayed employee on dropdown change
+- [x] Style the report to be print-friendly
+- [x] Unit test HTML generation produces valid markup
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 **Validation**: Generated HTML opens in browser, dropdown switches employees, calendar colors match legend, calculation section is correct.
 
 ### Phase 3 — API Endpoint
 
-- [ ] Add `GET /api/admin/report` endpoint in `server.mts`
-- [ ] Apply `authenticateAdmin` middleware
-- [ ] Parse `format` and `year` query parameters with validation
-- [ ] For `format=html`: call report service + HTML generator, respond with `Content-Type: text/html` and `Content-Disposition: attachment; filename="pto-report-YYYY.html"`
-- [ ] Save the generated report to `reports/` folder (e.g., `reports/pto-report-YYYY.html`) for developer review; create directory if it doesn't exist
-- [ ] For unsupported formats (`excel`, `csv`, `json`): return 501 Not Implemented with descriptive message
-- [ ] For invalid format values: return 400 Bad Request
-- [ ] Add request logging
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] Add `GET /api/admin/report` endpoint in `server.mts`
+- [x] Apply `authenticateAdmin` middleware
+- [x] Parse `format` and `year` query parameters with validation
+- [x] For `format=html`: call report service + HTML generator, respond with `Content-Type: text/html` and `Content-Disposition: attachment; filename="pto-report-YYYY.html"`
+- [x] Save the generated report to `reports/` folder (e.g., `reports/pto-report-YYYY.html`) for developer review; create directory if it doesn't exist
+- [x] For unsupported formats (`excel`, `csv`, `json`): return 501 Not Implemented with descriptive message
+- [x] For invalid format values: return 400 Bad Request
+- [x] Add request logging
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 **Validation**: `curl` or browser request to `/api/admin/report?format=html` returns downloadable HTML file; unsupported formats return 501.
 
 ### Phase 4 — Admin UI Integration
 
-- [ ] Add "Download Report" link/button to the admin navigation menu
-- [ ] Wire click handler to trigger `GET /api/admin/report?format=html&year=CURRENT_YEAR`
-- [ ] Handle download via `window.location.href` or `<a>` with download attribute
+- [x] Add "Download Report" link/button to the admin navigation menu
+- [x] Wire click handler to trigger `GET /api/admin/report?format=html&year=CURRENT_YEAR`
+- [x] Handle download via `window.location.href` or `<a>` with download attribute
 - [ ] Show loading indicator during download (optional)
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 **Validation**: Admin can click "Download Report", browser downloads the HTML file, and the report displays correctly.
 
 ### Phase 5 — Testing & Quality Gates
 
-- [ ] Vitest unit tests for report data aggregation
-- [ ] Vitest unit tests for HTML generation
+- [x] Vitest unit tests for report data aggregation
+- [x] Vitest unit tests for HTML generation
 - [ ] E2E test: admin can access the download endpoint and receive valid HTML
 - [ ] Manual testing: open generated HTML in Chrome, verify layout, color coding, dropdown behavior, print preview
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
-- [ ] Error cases handled (no employees, missing data, invalid year)
-- [ ] Input validation implemented (year range, format enum)
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+- [x] Error cases handled (no employees, missing data, invalid year)
+- [x] Input validation implemented (year range, format enum)
 
 **Validation**: All tests pass; manual review confirms report accuracy and usability.
 

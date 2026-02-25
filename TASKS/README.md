@@ -6,7 +6,6 @@
 - markdown-rendering.md
 - LATER: See ./TASKS/login-page-redirect-and-policy.md for details
 - LATER: See ./TASKS/auto-provision-new-users.md for details
-- LATER: See ./TASKS/admin-report-download.md for details
 
 ## SOME WORK REMAINS
 
@@ -34,6 +33,7 @@
 
 ## TESTS MISSING
 
+- admin-report-download.md: E2E test for download endpoint, manual testing of HTML report layout
 - admin-review-inline-calendar.md: Update test.html demo, manual testing of toggle behavior
 - admin-monthly-review-per-employee-balances.md: Update test data with balance calculations, manual testing
 - app-run-entry-point.md: Stage 5: Regression testing
