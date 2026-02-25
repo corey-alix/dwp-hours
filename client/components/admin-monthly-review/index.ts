@@ -795,7 +795,7 @@ export class AdminMonthlyReview extends BaseComponent {
     return `
       <div class="employee-card ${activityClass}" data-employee-id="${employee.employeeId}">
         <div class="employee-header">
-          <h3 class="employee-name">${employee.employeeName}</h3>
+          <h3 class="employee-name" title="${employee.employeeName}">${employee.employeeName}</h3>
           ${lockIndicatorHtml}
           <div class="activity-indicator">
             <div class="activity-dot ${hasActivity ? "active" : "inactive"}"></div>

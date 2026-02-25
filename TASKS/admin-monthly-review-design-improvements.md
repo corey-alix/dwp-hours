@@ -205,6 +205,28 @@ The current "Acknowledge Review" flow pops a `<confirmation-dialog>` modal whose
 - The `admin-monthly-review-page` currently fires dismiss **then** calls `submitAcknowledgment` fire-and-forget. The new flow should `await` the API call and branch on success/failure.
 - Remove the `ConfirmationDialog` import and `createElement<ConfirmationDialog>` usage from the page component.
 
+### Stage 11: Fix Card Header Height Consistency
+
+Employee cards in the `.employee-grid` render at inconsistent heights when longer names wrap inside `.employee-header`. On wider viewports where multiple cards sit side-by-side, height mismatches break visual alignment. The fix increases the card `min-width` (via the grid `minmax()` track) to `40ch` so names rarely wrap, and truncates overflow names with ellipsis as a safety net.
+
+- [ ] Update `.employee-grid` `grid-template-columns` from `minmax(18em, 1fr)` to `minmax(40ch, 1fr)` in `admin-monthly-review/css.ts`
+- [ ] Add `white-space: nowrap; overflow: hidden; text-overflow: ellipsis;` to `.employee-name` so extremely long names truncate gracefully
+- [ ] Add `title` attribute to `.employee-name` element in `renderEmployeeCard()` so the full name is accessible on hover for truncated names
+- [ ] Verify cards align at consistent height across varying name lengths
+- [ ] `pnpm run build` passes
+- [ ] `pnpm run lint` passes
+
+### Stage 12: Contain Calendar Swipe Overflow Within Cards
+
+The inline `<pto-calendar>` swipe animation overflows the `.employee-card` boundary, causing visual artifacts and horizontal scroll. The card itself needs `overflow: hidden` to clip animated content during swipe transitions.
+
+- [ ] Add `overflow: hidden` to `.employee-card` in `admin-monthly-review/css.ts`
+- [ ] Verify calendar month-swipe animation is contained within the card boundary
+- [ ] Verify card content (header, toolbar, summary) is not clipped unexpectedly
+- [ ] Manual testing at various viewport widths
+- [ ] `pnpm run build` passes
+- [ ] `pnpm run lint` passes
+
 ## Implementation Notes
 
 - Balance display fix is in `<month-summary>` component ([client/components/month-summary/index.ts](../client/components/month-summary/index.ts)) — the `balances` property injection from `admin-monthly-review` may be producing the raw `available-scheduled` string format

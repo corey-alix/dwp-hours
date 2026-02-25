@@ -24,7 +24,7 @@ export const styles = `
 
   .employee-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(18em, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(40ch, 1fr));
     gap: var(--space-md);
   }
 
@@ -34,6 +34,7 @@ export const styles = `
     padding: 20px;
     background: var(--color-background);
     box-shadow: 0 2px 4px var(--color-shadow);
+    overflow: hidden;
   }
 
   .employee-header {
@@ -48,6 +49,9 @@ export const styles = `
     font-weight: 600;
     color: var(--color-text);
     margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .acknowledge-btn {
