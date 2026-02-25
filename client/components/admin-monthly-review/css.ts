@@ -212,9 +212,8 @@ export const styles = `
     padding-top: var(--space-sm, 8px);
     --slide-offset: 16px;
     --duration-normal: 200ms;
-    /* Isolate touch: allow vertical scroll only; horizontal is handled by JS swipe */
+    /* Allow native vertical scroll; horizontal swipe is handled by JS */
     touch-action: pan-y;
-    overscroll-behavior: contain;
   }
 
   @media (prefers-reduced-motion: reduce) {

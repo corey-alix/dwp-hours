@@ -10,9 +10,17 @@
  */
 
 import { animationCSS } from "./animations.js";
-import type { AnimationHandle, SwipeNavigationHandle } from "./types.js";
+import type {
+  AnimationHandle,
+  SwipeNavigationHandle,
+  SwipeNavigationOptions,
+} from "./types.js";
 
-export type { AnimationHandle, SwipeNavigationHandle } from "./types.js";
+export type {
+  AnimationHandle,
+  SwipeNavigationHandle,
+  SwipeNavigationOptions,
+} from "./types.js";
 
 // ── Constructable stylesheet singleton ──
 
@@ -389,6 +397,7 @@ export interface ListenerHost {
  * @param onNavigate Callback invoked with `-1` (prev) or `1` (next)
  *                   while the container is off-screen during the
  *                   carousel animation — swap content here.
+ * @param options    Optional {@link SwipeNavigationOptions}.
  * @returns A {@link SwipeNavigationHandle} with `cancel()` and
  *          `destroy()` methods.
  */
@@ -396,7 +405,9 @@ export function setupSwipeNavigation(
   host: ListenerHost,
   container: HTMLElement,
   onNavigate: (direction: -1 | 1) => void,
+  options?: SwipeNavigationOptions,
 ): SwipeNavigationHandle {
+  const preventPageScroll = options?.preventPageScroll ?? false;
   let swipeStartX: number | null = null;
   let swipeStartY: number | null = null;
   let isAnimating = false;
@@ -474,9 +485,14 @@ export function setupSwipeNavigation(
   host.addListener(container, "touchstart", onTouchStart);
   host.addListener(container, "touchend", onTouchEnd);
 
-  // touchmove needs { passive: false } to allow preventDefault().
-  // addListener doesn't support options, so register directly.
-  container.addEventListener("touchmove", onTouchMove, { passive: false });
+  // Only register touchmove when the caller opts in to preventing page
+  // scroll. The non-passive listener forces Chrome to wait for JS before
+  // scrolling, which blocks vertical page scroll until gesture direction
+  // is determined. Callers that rely on CSS `touch-action: pan-y` instead
+  // should leave this off (the default).
+  if (preventPageScroll) {
+    container.addEventListener("touchmove", onTouchMove, { passive: false });
+  }
 
   return {
     cancel() {
@@ -490,7 +506,9 @@ export function setupSwipeNavigation(
       destroyed = true;
       this.cancel();
       // touchmove was registered directly — clean it up here
-      container.removeEventListener("touchmove", onTouchMove);
+      if (preventPageScroll) {
+        container.removeEventListener("touchmove", onTouchMove);
+      }
       // Listeners are removed by host's cleanup (disconnectedCallback)
       // but mark state so callbacks become no-ops immediately.
       swipeStartX = null;

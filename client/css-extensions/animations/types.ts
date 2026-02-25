@@ -19,3 +19,22 @@ export interface SwipeNavigationHandle {
   /** Remove touch listeners and release resources. */
   destroy(): void;
 }
+
+/**
+ * Options for {@link setupSwipeNavigation}.
+ */
+export interface SwipeNavigationOptions {
+  /**
+   * When `true`, registers a non-passive `touchmove` handler that calls
+   * `preventDefault()` during horizontal swipes to stop the page from
+   * scrolling. This blocks **all** native touch scrolling (including
+   * vertical) until gesture direction is determined.
+   *
+   * When `false` (default), only `touchstart`/`touchend` are observed.
+   * Rely on CSS `touch-action: pan-y` on the container to isolate
+   * horizontal swipes without blocking vertical page scroll.
+   *
+   * @default false
+   */
+  preventPageScroll?: boolean;
+}

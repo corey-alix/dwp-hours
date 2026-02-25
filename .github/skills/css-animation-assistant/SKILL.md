@@ -66,6 +66,17 @@ Hard-won patterns from real implementations in this project:
 - **Use `getBoundingClientRect().top` before and after re-render** to calculate drift. After the synchronous `requestUpdate()` (innerHTML replacement), read the editor's `getBoundingClientRect().top` — this forces a layout before the browser paints, making the `window.scrollBy(0, drift)` correction invisible to the user. Measured drift is <1px.
 - **Cancel and form-cancel handlers need the same treatment** — when exiting inline edit mode, clear `editingEmployeeId` on the existing child component rather than re-rendering the parent. Distinguish between "was inline editing" vs "was showing add form" to decide whether a parent re-render is needed.
 
+### Touch swipe isolation on mobile (Android Chrome)
+
+Touch-driven swipe navigation (e.g., swiping a calendar to change months) must not drag the page. The solution depends on the component's scroll context.
+
+- **Prefer CSS `touch-action: pan-y`** on the swipe container. This tells the browser to handle vertical panning natively (page scrolls normally) and leave horizontal gestures to JavaScript. It's declarative, zero-runtime-cost, and works reliably on Android Chrome hardware — no `touchmove` handler needed.
+- **Do NOT combine `overscroll-behavior: contain` with `overflow: hidden`**. On an element that has no scrollable content, `overscroll-behavior: contain` tells the browser "this element is at its scroll boundary, don't chain to the parent." On real Android Chrome hardware, this kills vertical page scrolling entirely when touching the element. Chrome DevTools device emulation does not reproduce this — always test on real hardware.
+- **The `touchmove` + `preventDefault()` approach is a power tool, not a default.** Registering a non-passive `touchmove` handler to call `preventDefault()` during horizontal swipes works but forces Chrome to block all native scrolling until the JS handler runs and determines gesture direction. This adds input latency and temporarily freezes vertical scrolling. Make it opt-in via a `preventPageScroll` option (see `SwipeNavigationOptions`), and document that CSS `touch-action: pan-y` is the preferred alternative.
+- **Swipe detection needs only `touchstart` + `touchend`** for direction and threshold. The `setupSwipeNavigation` helper records start coordinates on `touchstart`, computes delta on `touchend`, and fires the navigation callback if horizontal distance exceeds the threshold and dominates vertical distance. No `touchmove` tracking needed for the core gesture.
+- **Grid `minmax()` can overflow narrow viewports.** A grid like `repeat(auto-fill, minmax(40ch, 1fr))` can push cards past the right edge on a Pixel 7 (412 CSS px). Use `minmax(min(40ch, 100%), 1fr)` to cap the minimum at the container width.
+- **DevTools emulation ≠ real device.** Touch event handling, DPR subpixel rounding, and overscroll chaining all behave differently on real Android Chrome. Always validate touch interactions on hardware via `chrome://inspect` remote debugging.
+
 ## Examples
 
 Common user queries that should trigger this skill:
