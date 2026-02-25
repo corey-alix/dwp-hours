@@ -119,9 +119,131 @@ The feature supports multiple output formats via a `format` query parameter (`ht
 - Consider adding a "Print" button in the HTML report for convenience.
 - The server should save every generated report to a `reports/` directory at the project root (e.g., `reports/pto-report-2026.html`). This allows developers to quickly open and review the last generated report without re-downloading. The `reports/` directory should be added to `.gitignore`.
 
+## Excel Format Implementation
+
+### Phase 6 — Excel Report Generator Module
+
+- [x] Create `server/reportGenerators/excelReport.ts` module
+- [x] Import ExcelJS (already in `package.json` as `exceljs@^4.4.0`) and `ReportData` from `reportService.ts`
+- [x] Export `generateExcelReport(data: ReportData): Promise<Buffer>` function that returns an `.xlsx` file as a Buffer
+- [x] Create one worksheet per employee, named with the employee name (truncated to 31 chars for Excel sheet name limit)
+- [x] Set worksheet properties: `showGridLines: false`
+- [x] Set default font to Calibri 11pt to match legacy spreadsheet
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+
+**Validation**: Module compiles; calling it with mock `ReportData` produces a valid `.xlsx` buffer that opens in Excel/LibreOffice.
+
+### Phase 7 — Employee Header & Calendar Grid
+
+Reference the `pto-spreadsheet-layout` skill for exact cell coordinates.
+
+- [x] **Row 1–3 header area**: Write employee name in B1 (bold, 14pt); write `Hire Date: YYYY-MM-DD` in R2
+- [x] **Month headers**: Write month names merged across 7 columns; 4 row-groups × 3 column-groups for all 12 months
+- [x] **Day-of-week headers**: Write Sun–Sat across 7-column blocks under each month header
+- [x] **Calendar date cells**: Populate day numbers in standard 7-column calendar grid (up to 6 rows per month)
+- [x] **PTO color fills**: For each date with a PTO entry, apply the legacy ARGB fill color to the cell:
+  - Sick → `FF00B050` (green)
+  - PTO → `FFFFFF00` (yellow)
+  - Bereavement → `FFBFBFBF` (gray)
+  - Jury Duty → `FFFF0000` (red)
+- [x] **Weekend styling**: Apply light gray fill and lighter font for weekend cells
+- [x] **Column widths**: Set calendar columns to 4 characters wide
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+
+**Validation**: Opening the generated `.xlsx` shows a 4×3 month calendar grid with correct dates, PTO days are color-coded, layout resembles legacy spreadsheet.
+
+### Phase 8 — Legend Section
+
+- [x] **Legend header (AA8)**: Write "Legend" in row 8, column 27 (bold)
+- [x] **Legend entries (AA9–AA14)**: Write each PTO type name with its corresponding fill color in the cell:
+  - AA9: Sick (fill `FF00B050`)
+  - AA10: Full PTO (fill `FFFFFF00`)
+  - AA11: Partial PTO (fill `FFFFC000`)
+  - AA12: Planned PTO (fill `FF00B0F0`)
+  - AA13: Bereavement (fill `FFBFBFBF`)
+  - AA14: Jury Duty (fill `FFFF0000`)
+- [x] Apply borders around legend cells
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+
+**Validation**: Legend section appears in column AA with correct labels, colors, and borders.
+
+### Phase 9 — PTO Calculation Section
+
+Reference `pto-spreadsheet-layout` skill: data at D42:W53.
+
+- [x] **Section header (row 40)**: Write "PTO CALCULATION SECTION" merged across columns B–W (bold, centered)
+- [x] **Column headers (rows 41–42)**: Two-row merged header structure with Month, Work Days, Daily Rate, Accrued PTO, Carryover, Subtotal, Used, Remaining
+- [x] **Month labels (B43:B54)**: Write month names January–December
+- [x] **Data rows (rows 43–54)**: Fill each column with values from `ptoCalculation[]`
+- [x] **Number formatting**: Apply `0.00` format for rates/hours, `0` for work days
+- [x] **Header styling**: Bold, background fill `#1A5276`, white font for column headers
+- [x] **Totals row**: Sum row with accrued total, used total, and final remaining balance
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+
+**Validation**: PTO calculation section shows 12 monthly rows with correct numerical data matching the HTML report output.
+
+### Phase 10 — Acknowledgement Columns
+
+- [x] **Employee acknowledgements (column 23, rows 43–54)**: Write employee identifier prefix (uppercase) for acknowledged months, dash for unacknowledged
+- [x] **Admin acknowledgements (column 24, rows 43–54)**: Write admin name for acknowledged months, dash otherwise
+- [x] **Column headers**: "Employee Ack" and "Admin Ack" merged across rows 41–42
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+
+**Validation**: Acknowledgement columns show correct data aligned with monthly rows.
+
+### Phase 11 — Wire Up API Endpoint
+
+- [x] Import `generateExcelReport` in `server.mts`
+- [x] Update the `format !== "html"` guard to also handle `format === "excel"`
+- [x] For `format=excel`: call `assembleReportData()` then `generateExcelReport()`, respond with:
+  - `Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
+  - `Content-Disposition: attachment; filename="pto-report-YYYY.xlsx"`
+- [x] Save the generated report to `reports/pto-report-YYYY.xlsx` for developer review
+- [x] Keep `csv` and `json` as 501 Not Implemented
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+
+**Validation**: `curl` or browser request to `/api/admin/report?format=excel` downloads a valid `.xlsx` file; file opens correctly in Excel/LibreOffice.
+
+### Phase 12 — Admin UI Download Option
+
+- [x] Update the admin "Download Report" button/menu to offer both HTML and Excel formats (two separate buttons: "Report (HTML)" and "Report (Excel)")
+- [x] Wire Excel download to `GET /api/admin/report?format=excel&year=CURRENT_YEAR`
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+
+**Validation**: Admin can download either HTML or Excel report from the UI.
+
+### Phase 13 — Excel Testing & Quality Gates
+
+- [x] Vitest unit tests for `generateExcelReport()` (20 tests passing):
+  - Produces a valid Buffer (non-zero length)
+  - Creates one worksheet per employee
+  - Worksheet names match employee names
+  - Truncates long names to 31 chars
+  - Calendar cells contain correct day numbers
+  - PTO days have correct fill colors (PTO=yellow, Sick=green)
+  - PTO calculation section header present
+  - PTO calculation rows have correct values
+  - All 12 month names in PTO calculation
+  - Legend cells have correct fill colors and labels
+  - Acknowledgement columns are populated correctly
+  - Empty employee list produces a "No Data" sheet
+  - Hide grid lines on worksheets
+- [x] Verify generated `.xlsx` can be parsed back by ExcelJS (round-trip test)
+- [ ] Manual testing: open in Excel/LibreOffice, verify layout, colors, calculations, multi-sheet navigation
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+
+**Validation**: All unit tests pass; manual review confirms spreadsheet matches legacy layout.
+
 ## Deferred Work (Separate Tasks)
 
-- **Excel format** (`format=excel`): Use ExcelJS to generate `.xlsx` file matching the legacy spreadsheet layout exactly. Reference `exceljs` skill.
 - **CSV format** (`format=csv`): Flat export of PTO entries with employee info.
 - **JSON format** (`format=json`): Structured JSON export of all report data.
 

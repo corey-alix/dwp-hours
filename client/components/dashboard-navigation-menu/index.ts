@@ -81,8 +81,13 @@ export class DashboardNavigationMenu extends BaseComponent {
         { id: "admin/monthly-review", label: "Monthly Review" },
         { id: "admin/settings", label: "Settings" },
         {
-          id: "download-report",
-          label: "\u2B73 Download Report",
+          id: "download-report-html",
+          label: "\u2B73 Report (HTML)",
+          isDownload: true,
+        },
+        {
+          id: "download-report-excel",
+          label: "\u2B73 Report (Excel)",
           isDownload: true,
         },
       );
@@ -126,8 +131,10 @@ export class DashboardNavigationMenu extends BaseComponent {
       const action = target.dataset.action;
       if (action === "logout") {
         this.handleLogout();
-      } else if (action === "download-report") {
-        this.handleDownloadReport();
+      } else if (action === "download-report-html") {
+        this.handleDownloadReport("html");
+      } else if (action === "download-report-excel") {
+        this.handleDownloadReport("excel");
       } else if (action) {
         this.selectPage(action as Page);
       }
@@ -143,8 +150,10 @@ export class DashboardNavigationMenu extends BaseComponent {
         const action = target.dataset.action;
         if (action === "logout") {
           this.handleLogout();
-        } else if (action === "download-report") {
-          this.handleDownloadReport();
+        } else if (action === "download-report-html") {
+          this.handleDownloadReport("html");
+        } else if (action === "download-report-excel") {
+          this.handleDownloadReport("excel");
         } else if (action) {
           this.selectPage(action as Page);
         }
@@ -269,14 +278,14 @@ export class DashboardNavigationMenu extends BaseComponent {
     this.closeMenuAnimated();
   }
 
-  private handleDownloadReport(): void {
+  private handleDownloadReport(format: "html" | "excel"): void {
     // Close the menu
     this.removeAutoCloseListeners();
     this.closeMenuAnimated();
 
     // Trigger download via direct navigation
     const year = new Date().getFullYear();
-    window.location.href = `/api/admin/report?format=html&year=${year}`;
+    window.location.href = `/api/admin/report?format=${format}&year=${year}`;
   }
 
   private handleLogout(): void {

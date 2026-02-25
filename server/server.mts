@@ -67,6 +67,7 @@ import { authenticate, authenticateAdmin } from "./utils/auth.js";
 import { seedEmployees, seedPTOEntries } from "../shared/seedData.js";
 import { assembleReportData } from "./reportService.js";
 import { generateHtmlReport } from "./reportGenerators/htmlReport.js";
+import { generateExcelReport } from "./reportGenerators/excelReport.js";
 import type {
   PTOCreateResponse,
   PTOUpdateResponse,
@@ -2826,32 +2827,49 @@ initDatabase()
             });
           }
 
-          if (format !== "html") {
+          if (format !== "html" && format !== "excel") {
             return res.status(501).json({
-              error: `Format "${format}" is not yet implemented. Only "html" is currently supported.`,
+              error: `Format "${format}" is not yet implemented. Only "html" and "excel" are currently supported.`,
             });
           }
 
           const reportData = await assembleReportData(dataSource, year);
-          const html = generateHtmlReport(reportData);
 
           // Save to reports/ for developer review
           const reportsDir = path.join(process.cwd(), "reports");
           if (!fs.existsSync(reportsDir)) {
             fs.mkdirSync(reportsDir, { recursive: true });
           }
-          fs.writeFileSync(
-            path.join(reportsDir, `pto-report-${year}.html`),
-            html,
-            "utf-8",
-          );
 
-          res.setHeader("Content-Type", "text/html; charset=utf-8");
-          res.setHeader(
-            "Content-Disposition",
-            `attachment; filename="pto-report-${year}.html"`,
-          );
-          res.send(html);
+          if (format === "excel") {
+            const buffer = await generateExcelReport(reportData);
+            fs.writeFileSync(
+              path.join(reportsDir, `pto-report-${year}.xlsx`),
+              buffer,
+            );
+            res.setHeader(
+              "Content-Type",
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            );
+            res.setHeader(
+              "Content-Disposition",
+              `attachment; filename="pto-report-${year}.xlsx"`,
+            );
+            res.send(buffer);
+          } else {
+            const html = generateHtmlReport(reportData);
+            fs.writeFileSync(
+              path.join(reportsDir, `pto-report-${year}.html`),
+              html,
+              "utf-8",
+            );
+            res.setHeader("Content-Type", "text/html; charset=utf-8");
+            res.setHeader(
+              "Content-Disposition",
+              `attachment; filename="pto-report-${year}.html"`,
+            );
+            res.send(html);
+          }
         } catch (error) {
           logger.error(`Error generating report: ${error}`);
           res.status(500).json({ error: "Internal server error" });
