@@ -4,10 +4,10 @@
 
 | VALUE                      | LOCATION  | ROWS  | NOTES                                                                                            |
 | -------------------------- | --------- | ----- | ------------------------------------------------------------------------------------------------ |
-| Current Year               | B2        | 2     | Bold, 14pt                                                                                       |
+| Current Year               | B2–C2     | 2     | Bold, 14pt, merged 2 cols                                                                        |
 | "PTO Form"                 | D2        | 2     | Bold, 14pt                                                                                       |
-| Employee Name              | J-P       | 2     | Bold, 14pt                                                                                       |
-| Hire Date                  | R-X       | 2     | "Hire Date: YYYY-MM-DD"                                                                          |
+| Employee Name              | J-P       | 2     | Bold, 14pt, center-justified                                                                     |
+| Hire Date                  | R-X       | 2     | "Hire Date: YYYY-MM-DD", right-justified                                                         |
 | Month (label)              | B–C       | 43–54 | Merged 2 cols                                                                                    |
 | Work Days in Month         | D–E       | 43–54 | Merged 2 cols                                                                                    |
 | Daily Rate                 | F–G       | 43–54 | Merged 2 cols                                                                                    |
@@ -28,6 +28,7 @@
 | Sick Hours Remaining       | AB        | 34    | Single col (value)                                                                               |
 | PTO Calc Section Header    | B–W       | 40    | Merged, bold, centered                                                                           |
 | PTO Calc Column Headers    | B–W + X–Y | 41–42 | Two-row merged header                                                                            |
+| PTO Calc Data & Totals     | B–W       | 43–55 | All numeric values right-justified, font size 9                                                  |
 | PTO Calc Totals            | B–W       | 55    | Sums row                                                                                         |
 
 ## Cover Sheet Tab

@@ -115,7 +115,7 @@ function buildPtoCalculationRows(
       .filter((e) => e.type === "PTO" && e.date.startsWith(monthStr))
       .reduce((sum, e) => sum + e.hours, 0);
 
-    const remainingBalance = Math.max(0, subtotal - usedHours);
+    const remainingBalance = subtotal - usedHours;
 
     rows.push({
       month,

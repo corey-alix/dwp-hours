@@ -100,26 +100,29 @@ function populateEmployeeSheet(
   year: number,
 ): void {
   // ── Row 2: Header area ──
-  // Current Year (B2)
+  // Current Year (B2–C2 merged)
   const yearCell = ws.getCell("B2");
   yearCell.value = year;
   yearCell.font = { bold: true, size: 14, name: "Calibri" };
+  ws.mergeCells("B2:C2");
 
   // "PTO Form" (D2)
   const ptoFormCell = ws.getCell("D2");
   ptoFormCell.value = "PTO Form";
   ptoFormCell.font = { bold: true, size: 14, name: "Calibri" };
 
-  // Employee Name (J–P merged)
+  // Employee Name (J–P merged, center-justified)
   const nameCell = ws.getCell("J2");
   nameCell.value = emp.name;
   nameCell.font = { bold: true, size: 14, name: "Calibri" };
+  nameCell.alignment = { horizontal: "center" };
   ws.mergeCells("J2:P2");
 
-  // Hire Date (R–X merged)
+  // Hire Date (R–X merged, right-justified)
   const hireDateCell = ws.getCell("R2");
   hireDateCell.value = `Hire Date: ${emp.hireDate}`;
   hireDateCell.font = { size: 11, name: "Calibri" };
+  hireDateCell.alignment = { horizontal: "right" };
   ws.mergeCells("R2:X2");
 
   // ── Calendar grid ──
@@ -453,11 +456,15 @@ function writePtoCalculation(
     monthCell.border = THIN_BORDER;
     ws.mergeCells(row, 2, row, 3);
 
+    const dataFont: Partial<ExcelJS.Font> = { size: 9, name: "Calibri" };
+    const dataAlign: Partial<ExcelJS.Alignment> = { horizontal: "right" };
+
     // Work Days (merged 2 cols)
     const wdCell = ws.getCell(row, 4);
     wdCell.value = calc.workDays;
     wdCell.numFmt = "0";
-    wdCell.alignment = { horizontal: "center" };
+    wdCell.font = dataFont;
+    wdCell.alignment = dataAlign;
     wdCell.border = THIN_BORDER;
     ws.mergeCells(row, 4, row, 5);
 
@@ -465,7 +472,8 @@ function writePtoCalculation(
     const drCell = ws.getCell(row, 6);
     drCell.value = calc.dailyRate;
     drCell.numFmt = "0.00";
-    drCell.alignment = { horizontal: "center" };
+    drCell.font = dataFont;
+    drCell.alignment = dataAlign;
     drCell.border = THIN_BORDER;
     ws.mergeCells(row, 6, row, 7);
 
@@ -473,7 +481,8 @@ function writePtoCalculation(
     const accCell = ws.getCell(row, 10);
     accCell.value = calc.accruedHours;
     accCell.numFmt = "0.00";
-    accCell.alignment = { horizontal: "center" };
+    accCell.font = dataFont;
+    accCell.alignment = dataAlign;
     accCell.border = THIN_BORDER;
     ws.mergeCells(row, 10, row, 11);
 
@@ -481,7 +490,8 @@ function writePtoCalculation(
     const coCell = ws.getCell(row, 12);
     coCell.value = calc.carryover;
     coCell.numFmt = "0.00";
-    coCell.alignment = { horizontal: "center" };
+    coCell.font = dataFont;
+    coCell.alignment = dataAlign;
     coCell.border = THIN_BORDER;
     ws.mergeCells(row, 12, row, 13);
 
@@ -489,7 +499,8 @@ function writePtoCalculation(
     const subCell = ws.getCell(row, 15);
     subCell.value = calc.subtotal;
     subCell.numFmt = "0.00";
-    subCell.alignment = { horizontal: "center" };
+    subCell.font = dataFont;
+    subCell.alignment = dataAlign;
     subCell.border = THIN_BORDER;
     ws.mergeCells(row, 15, row, 16);
 
@@ -497,7 +508,8 @@ function writePtoCalculation(
     const usedCell = ws.getCell(row, 19);
     usedCell.value = calc.usedHours;
     usedCell.numFmt = "0.0";
-    usedCell.alignment = { horizontal: "center" };
+    usedCell.font = dataFont;
+    usedCell.alignment = dataAlign;
     usedCell.border = THIN_BORDER;
     ws.mergeCells(row, 19, row, 20);
 
@@ -505,7 +517,8 @@ function writePtoCalculation(
     const remCell = ws.getCell(row, 22);
     remCell.value = calc.remainingBalance;
     remCell.numFmt = "0.00";
-    remCell.alignment = { horizontal: "center" };
+    remCell.font = dataFont;
+    remCell.alignment = dataAlign;
     remCell.border = THIN_BORDER;
     ws.mergeCells(row, 22, row, 23);
 
@@ -531,7 +544,7 @@ function writePtoCalculation(
   };
   const totalsFont: Partial<ExcelJS.Font> = {
     bold: true,
-    size: 11,
+    size: 9,
     name: "Calibri",
   };
   const totalsBorder: Partial<ExcelJS.Borders> = {
@@ -553,7 +566,7 @@ function writePtoCalculation(
   totalAccCell.numFmt = "0.00";
   totalAccCell.font = totalsFont;
   totalAccCell.fill = totalsFill;
-  totalAccCell.alignment = { horizontal: "center" };
+  totalAccCell.alignment = { horizontal: "right" };
   totalAccCell.border = totalsBorder;
   ws.mergeCells(totalsRow, 10, totalsRow, 11);
 
@@ -562,7 +575,7 @@ function writePtoCalculation(
   totalUsedCell.numFmt = "0.0";
   totalUsedCell.font = totalsFont;
   totalUsedCell.fill = totalsFill;
-  totalUsedCell.alignment = { horizontal: "center" };
+  totalUsedCell.alignment = { horizontal: "right" };
   totalUsedCell.border = totalsBorder;
   ws.mergeCells(totalsRow, 19, totalsRow, 20);
 
@@ -575,7 +588,7 @@ function writePtoCalculation(
   totalRemCell.numFmt = "0.00";
   totalRemCell.font = totalsFont;
   totalRemCell.fill = totalsFill;
-  totalRemCell.alignment = { horizontal: "center" };
+  totalRemCell.alignment = { horizontal: "right" };
   totalRemCell.border = totalsBorder;
   ws.mergeCells(totalsRow, 22, totalsRow, 23);
 
