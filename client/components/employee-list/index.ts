@@ -39,6 +39,11 @@ export class EmployeeList extends BaseComponent {
       // Animate card → editor transition when entering edit mode
       if (this._editingEmployeeId !== null && prevId === null) {
         this.transitionCardToEditor(this._editingEmployeeId);
+      } else if (this._editingEmployeeId !== null && prevId !== null) {
+        // Switching from one employee to another — need renderEditorInPlace
+        // so the form's employee JS property is set (employee-form does NOT
+        // observe the employee HTML attribute).
+        this.renderEditorInPlace(null);
       } else {
         this.requestUpdate();
       }

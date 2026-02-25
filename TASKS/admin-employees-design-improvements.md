@@ -195,9 +195,19 @@ Root cause: In `admin-employees-page/index.ts` `render()`, the `${this._showForm
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
 
+### Stage 15: Fix Blank Editor When Switching Between Employees
+
+When clicking "Edit" on employee A and then "Edit" on employee B, the editor for employee B appears blank — the form is not populated with employee B's data.
+
+Root cause: In `employee-list/index.ts` `attributeChangedCallback`, when `editing-employee-id` changes from one employee to another (`prevId !== null` → `newId !== null`), the code calls `this.requestUpdate()` directly. But `renderEditorInPlace()` — which sets the `form.employee` JS property required to populate the form — is only called via `transitionCardToEditor()`, and that method only fires when `prevId === null` (first edit). The `employee-form` component does NOT observe the `employee` HTML attribute set in the `renderInlineEditor()` template; it requires the JS property to be set after render.
+
+- [x] In `attributeChangedCallback`, when switching from one employee to another (`prevId !== null && this._editingEmployeeId !== null`), call `renderEditorInPlace()` (or `transitionCardToEditor()`) instead of bare `requestUpdate()` so the form's `employee` JS property is set
+- [x] Verify the editor shows the correct employee data when switching directly from editing employee A to employee B
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+
 ## Implementation Notes
 
-- Page component: [client/pages/admin-employees-page/index.ts](../client/pages/admin-employees-page/index.ts) (324 lines)
 - Page CSS: [client/pages/admin-employees-page/css.ts](../client/pages/admin-employees-page/css.ts) (35 lines — minimal, uses hardcoded fallbacks)
 - List component: [client/components/employee-list/index.ts](../client/components/employee-list/index.ts) (200 lines)
 - List CSS: [client/components/employee-list/css.ts](../client/components/employee-list/css.ts) (216 lines — has unused selectors)
@@ -228,6 +238,7 @@ Root cause: In `admin-employees-page/index.ts` `render()`, the `${this._showForm
 14. **innerHTML re-render resets scroll — use screen coordinates, not container scroll** — `BaseComponent.renderTemplate()` replaces all shadow DOM via `innerHTML`. The `.employee-grid` has `overflow-y: auto` but is NOT actually a scroll container — `scrollHeight === clientHeight` because the flex/height chain doesn't constrain it. The real scroll container is the window/body. Don't manipulate `grid.scrollTop` (it's always 0). Instead: (1) capture `card.getBoundingClientRect().top` before re-render, (2) call `requestUpdate()` (synchronous), (3) read `editor.getBoundingClientRect().top` (forces layout before paint), (4) call `window.scrollBy(0, drift)`. This positions the editor at the card's exact screen location with <1px drift.
 
 15. **Add-Employee form position matters for UX** — The `render()` template in `admin-employees-page` places `<employee-form>` before `<employee-list>`. Moving it between `</employee-list>` and the `.toolbar` div puts it adjacent to the "Add Employee" button. After `requestUpdate()`, scroll the form into view with `scrollIntoView({ behavior: 'smooth', block: 'nearest' })` (use `behavior: 'auto'` for `prefers-reduced-motion`).
+16. **Switching editors requires JS property re-set** — `employee-form` does NOT observe its `employee` HTML attribute; it only reads the JS property. When `attributeChangedCallback` fires with `prevId !== null` (already editing), the code must call `renderEditorInPlace()` (not bare `requestUpdate()`) so the new employee data is set via the JS property after the innerHTML rebuild.
 
 ## Questions and Concerns
 
