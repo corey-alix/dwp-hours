@@ -184,13 +184,7 @@ export interface AdminAcknowledgementSubmitResponse {
   acknowledgement: AdminAcknowledgement;
 }
 
-export interface EmployeesResponse extends Array<{
-  id: number;
-  name: string;
-  identifier: string;
-  role: string;
-  hire_date: string;
-}> {}
+export interface EmployeesResponse extends Array<Employee> {}
 
 export interface EmployeeResponse extends Employee {}
 

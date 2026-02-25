@@ -21,6 +21,23 @@ The DWP Hours Tracker uses a lightweight bespoke date management library to ensu
 - **Compatibility**: Ensures reliable operation across different environments
 - **Performance**: Avoids the complexities of JavaScript Date objects
 
+### Anti-Patterns
+
+Never extract date components by slicing `today()` or other date strings. Instead, use or extend `dateUtils.ts` with a purpose-built function.
+
+```typescript
+// ❌ WRONG — opaque string slicing, duplicates logic, breaks if format changes
+const currentYear = today().slice(0, 4);
+const currentMonth = today().slice(0, 7);
+
+// ✅ CORRECT — use existing dateUtils functions
+import { getCurrentYear, getCurrentMonth } from "../shared/dateUtils.js";
+const year = getCurrentYear(); // returns number
+const month = getCurrentMonth(); // returns "YYYY-MM" string
+```
+
+If no suitable function exists in `dateUtils.ts`, **extend the library** with a well-named, tested function rather than inlining string manipulation at the call site.
+
 ### Key Implementation Areas
 
 #### Database Layer

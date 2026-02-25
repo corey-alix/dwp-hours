@@ -2,9 +2,10 @@ import { BaseComponent } from "../../components/base-component.js";
 import type { PageComponent } from "../../router/types.js";
 import { APIClient } from "../../APIClient.js";
 import { notifications } from "../../app.js";
-import { today } from "../../../shared/dateUtils.js";
+import { getCurrentYear, today } from "../../../shared/dateUtils.js";
 import {
   BUSINESS_RULES_CONSTANTS,
+  computeAnnualAllocation,
   type PTOType,
 } from "../../../shared/businessRules.js";
 import type { MonthSummary } from "../../components/month-summary/index.js";
@@ -25,6 +26,7 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
     hours: number;
     date: string;
   }> = [];
+  private _currentYear = String(getCurrentYear());
   private _showForm = false;
   private _editEmployee: any = null;
 
@@ -42,13 +44,13 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
     this._employees = (loaderData as any)?.employees ?? [];
     this._showForm = false;
     this._editEmployee = null;
+    this._currentYear = _search.get("current_year") || String(getCurrentYear());
 
     // Fetch PTO entries for balance calculations
     try {
       const ptoEntries = await this.api.getAdminPTOEntries();
-      const currentYear = today().slice(0, 4);
       this._ptoEntries = (ptoEntries || [])
-        .filter((p: any) => p.date?.startsWith(currentYear))
+        .filter((p: any) => p.date?.startsWith(this._currentYear))
         .map((p: any) => ({
           employee_id: p.employeeId,
           type: p.type,
@@ -122,17 +124,28 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
       "month-summary",
     ) as NodeListOf<MonthSummary>;
 
-    const limits: Record<string, number> = {
-      PTO: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.PTO,
-      Sick: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.SICK,
-      Bereavement: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.BEREAVEMENT,
-      "Jury Duty": BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.JURY_DUTY,
-    };
+    const year = parseInt(this._currentYear, 10);
 
     summaries.forEach((el) => {
       const empIdAttr = el.getAttribute("data-employee-id");
       if (!empIdAttr) return;
       const empId = parseInt(empIdAttr, 10);
+
+      // Compute per-employee PTO allowance (annualAllocation + carryover)
+      // instead of using the hardcoded carryover cap
+      const emp = this._employees.find((e: any) => e.id === empId);
+      let ptoLimit = BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.PTO;
+      if (emp?.hireDate) {
+        const annualAllocation = computeAnnualAllocation(emp.hireDate, year);
+        ptoLimit = annualAllocation + (emp.carryoverHours ?? 0);
+      }
+
+      const limits: Record<string, number> = {
+        PTO: ptoLimit,
+        Sick: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.SICK,
+        Bereavement: BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.BEREAVEMENT,
+        "Jury Duty": BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.JURY_DUTY,
+      };
 
       el.ptoHours = this.getUsedHours(empId, "PTO");
       el.sickHours = this.getUsedHours(empId, "Sick");
@@ -289,9 +302,8 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
       }),
     ]);
     this._employees = employees;
-    const currentYear = today().slice(0, 4);
     this._ptoEntries = (ptoEntries || [])
-      .filter((p: any) => p.date?.startsWith(currentYear))
+      .filter((p: any) => p.date?.startsWith(this._currentYear))
       .map((p: any) => ({
         employee_id: p.employeeId,
         type: p.type,
