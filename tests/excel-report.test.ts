@@ -160,17 +160,28 @@ describe("Excel Report Generator", () => {
     expect(workbook.worksheets[0].name.length).toBeLessThanOrEqual(31);
   });
 
-  it("should write employee name in cell B1", async () => {
+  it("should write year and PTO Form header in row 2", async () => {
     const data = makeReportData();
     const buffer = await generateExcelReport(data);
 
     const workbook = await loadWorkbook(buffer);
 
     const ws = workbook.getWorksheet("Alice Smith")!;
-    expect(ws.getCell("B1").value).toBe("Alice Smith");
+    expect(ws.getCell("B2").value).toBe(2025);
+    expect(ws.getCell("D2").value).toBe("PTO Form");
   });
 
-  it("should write hire date in cell R2", async () => {
+  it("should write employee name merged J2:P2", async () => {
+    const data = makeReportData();
+    const buffer = await generateExcelReport(data);
+
+    const workbook = await loadWorkbook(buffer);
+
+    const ws = workbook.getWorksheet("Alice Smith")!;
+    expect(ws.getCell("J2").value).toBe("Alice Smith");
+  });
+
+  it("should write hire date merged R2:X2", async () => {
     const data = makeReportData();
     const buffer = await generateExcelReport(data);
 
@@ -283,15 +294,15 @@ describe("Excel Report Generator", () => {
     const workbook = await loadWorkbook(buffer);
 
     const ws = workbook.getWorksheet("Alice Smith")!;
-    // Legend header in column 27 (AA), row 8
-    expect(ws.getCell(8, 27).value).toBe("Legend");
-    // Legend entries
-    expect(ws.getCell(9, 27).value).toBe("Sick");
-    expect(ws.getCell(10, 27).value).toBe("Full PTO");
-    expect(ws.getCell(11, 27).value).toBe("Partial PTO");
-    expect(ws.getCell(12, 27).value).toBe("Planned PTO");
-    expect(ws.getCell(13, 27).value).toBe("Bereavement");
-    expect(ws.getCell(14, 27).value).toBe("Jury Duty");
+    // Legend header in columns 26-27 (Z-AA), row 8
+    expect(ws.getCell(8, 26).value).toBe("Legend");
+    // Legend entries (merged Z-AA per row)
+    expect(ws.getCell(9, 26).value).toBe("Sick");
+    expect(ws.getCell(10, 26).value).toBe("Full PTO");
+    expect(ws.getCell(11, 26).value).toBe("Partial PTO");
+    expect(ws.getCell(12, 26).value).toBe("Planned PTO");
+    expect(ws.getCell(13, 26).value).toBe("Bereavement");
+    expect(ws.getCell(14, 26).value).toBe("Jury Duty");
   });
 
   it("should apply correct fill colors to legend entries", async () => {
@@ -301,13 +312,13 @@ describe("Excel Report Generator", () => {
     const workbook = await loadWorkbook(buffer);
 
     const ws = workbook.getWorksheet("Alice Smith")!;
-    const sickFill = ws.getCell(9, 27).fill as ExcelJS.FillPattern;
+    const sickFill = ws.getCell(9, 26).fill as ExcelJS.FillPattern;
     expect(sickFill.fgColor?.argb).toBe("FF00B050");
 
-    const ptoFill = ws.getCell(10, 27).fill as ExcelJS.FillPattern;
+    const ptoFill = ws.getCell(10, 26).fill as ExcelJS.FillPattern;
     expect(ptoFill.fgColor?.argb).toBe("FFFFFF00");
 
-    const juryFill = ws.getCell(14, 27).fill as ExcelJS.FillPattern;
+    const juryFill = ws.getCell(14, 26).fill as ExcelJS.FillPattern;
     expect(juryFill.fgColor?.argb).toBe("FFFF0000");
   });
 
@@ -332,11 +343,11 @@ describe("Excel Report Generator", () => {
     expect(ws.getCell(43, 2).value).toBe("January");
     expect(ws.getCell(43, 4).value).toBe(22); // work days
     expect(ws.getCell(43, 6).value).toBe(0.71); // daily rate
-    expect(ws.getCell(43, 8).value).toBe(15.62); // accrued
-    expect(ws.getCell(43, 11).value).toBe(16); // carryover (January)
-    expect(ws.getCell(43, 14).value).toBe(31.62); // subtotal
-    expect(ws.getCell(43, 17).value).toBe(8); // used (January)
-    expect(ws.getCell(43, 20).value).toBe(23.62); // remaining
+    expect(ws.getCell(43, 10).value).toBe(15.62); // accrued (col J)
+    expect(ws.getCell(43, 12).value).toBe(16); // carryover (col L)
+    expect(ws.getCell(43, 15).value).toBe(31.62); // subtotal (col O)
+    expect(ws.getCell(43, 19).value).toBe(8); // used (col S)
+    expect(ws.getCell(43, 22).value).toBe(23.62); // remaining (col V)
   });
 
   it("should write month names for all 12 months in PTO calculation", async () => {
@@ -372,11 +383,11 @@ describe("Excel Report Generator", () => {
     const workbook = await loadWorkbook(buffer);
 
     const ws = workbook.getWorksheet("Alice Smith")!;
-    // January (row 43) should have acknowledgement
-    const janEmpAck = ws.getCell(43, 23).value;
-    expect(janEmpAck).toBe("ALICE");
-    // February (row 44) should have dash
-    expect(ws.getCell(44, 23).value).toBe("—");
+    // January (row 43) acknowledged → checkmark
+    const janEmpAck = ws.getCell(43, 24).value;
+    expect(janEmpAck).toBe("✓");
+    // February (row 44) not acknowledged → initials
+    expect(ws.getCell(44, 24).value).toBe("AS");
   });
 
   it("should write admin acknowledgements", async () => {
@@ -387,9 +398,9 @@ describe("Excel Report Generator", () => {
 
     const ws = workbook.getWorksheet("Alice Smith")!;
     // January (row 43) should have "Mandi"
-    expect(ws.getCell(43, 24).value).toBe("Mandi");
+    expect(ws.getCell(43, 25).value).toBe("Mandi");
     // February (row 44) should have dash
-    expect(ws.getCell(44, 24).value).toBe("—");
+    expect(ws.getCell(44, 25).value).toBe("—");
   });
 
   it("should handle empty employee list with a placeholder sheet", async () => {
@@ -431,5 +442,23 @@ describe("Excel Report Generator", () => {
     const views = ws.views;
     expect(views.length).toBeGreaterThan(0);
     expect(views[0].showGridLines).toBe(false);
+  });
+
+  it("should write sick hours section in rows 32-34", async () => {
+    const data = makeReportData();
+    const buffer = await generateExcelReport(data);
+
+    const workbook = await loadWorkbook(buffer);
+
+    const ws = workbook.getWorksheet("Alice Smith")!;
+    // Row 32: Sick Hours Allowed
+    expect(ws.getCell(32, 25).value).toBe("Sick Hours Allowed");
+    expect(ws.getCell(32, 28).value).toBe(24);
+    // Row 33: Sick Hours Used (Alice has 1 sick entry of 8 hours)
+    expect(ws.getCell(33, 25).value).toBe("Sick Hours Used");
+    expect(ws.getCell(33, 28).value).toBe(8);
+    // Row 34: Sick Hours Remaining
+    expect(ws.getCell(34, 25).value).toBe("Sick Hours Remaining");
+    expect(ws.getCell(34, 28).value).toBe(16);
   });
 });

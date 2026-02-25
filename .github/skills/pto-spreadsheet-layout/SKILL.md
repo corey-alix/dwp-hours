@@ -38,8 +38,8 @@ This skill integrates with the data-migration task and provides foundational kno
 
 ### Legend Location
 
-- **Coordinates**: Row 8, Column 27 (cell AA8)
-- **Structure**: Vertical list starting with "Legend" header, followed by colored cells for each PTO type
+- **Coordinates**: Row 8, Columns 26–27 (cells Z8:AA8), spanning 2 columns
+- **Structure**: Vertical list starting with "Legend" header (merged Z–AA), followed by colored cells for each PTO type
 - **PTO Types and Colors** (from sample "Corey Alix 2025.xlsx"):
   - Sick: FF00B050 (green)
   - Full PTO: FFFFFF00 (yellow)
@@ -79,10 +79,10 @@ This skill integrates with the data-migration task and provides foundational kno
 
 - **Location**: D42-W53 (rows 42-53, columns 4-23)
 - **Headers**: Located in rows 40-41 (two-row header structure)
-- **Column Structure** (from sample "Corey Alix 2025.xlsx"):
+- **Column Structure**:
   - **D-E (Work Days in Month)**: Number of work days in each month
   - **F-G (Daily Rate)**: Daily PTO accrual rate (e.g., 0.68, 0.71 hours per day)
-  - **J (Available PTO)**: Total available PTO hours before usage
+  - **J (Accrued PTO)**: Accrued PTO hours (single column)
   - **L-M (Previous Month's Carryover)**: PTO hours carried over from previous month
   - **O-P (Subtotal PTO hours)**: Subtotal of accrued + carryover hours
   - **S-T (PTO hours per Month)**: PTO hours used/taken during the month
@@ -93,22 +93,37 @@ This skill integrates with the data-migration task and provides foundational kno
 
 ### Acknowledgement Sections
 
-- **Admin Acknowledgements**: Column Y (25), Rows 42-53
-  - **Purpose**: Records admin approval/acknowledgement for each month's PTO data
-  - **Sample Data**: "Mandi" (appears in all 12 rows)
-  - **Structure**: One acknowledgement per month, corresponding to months in column B
 - **Employee Acknowledgements**: Column X (24), Rows 42-53
   - **Purpose**: Records employee acknowledgement/approval for each month's PTO data
   - **Sample Data**: "CA" (Corey Alix, appears in all 12 rows)
+  - **Structure**: One acknowledgement per month, corresponding to months in column B
+- **Admin Acknowledgements**: Column Y (25), Rows 42-53
+  - **Purpose**: Records admin approval/acknowledgement for each month's PTO data
+  - **Sample Data**: "Mandi" (appears in all 12 rows)
   - **Structure**: One acknowledgement per month, corresponding to months in column B
 - **Relationship**: Both acknowledgement columns align with the monthly data in the PTO calculation section
 
 ### Employee Information Section
 
+- **Employee Name**: Cell J2 (Row 2, Column 10)
+  - **Format**: Bold, 14pt employee full name
+  - **Purpose**: Identifies the employee for the worksheet
 - **Hire Date**: Cell R2 (Row 2, Column 18)
   - **Format**: "Hire Date: <date>"
   - **Sample Data**: "Hire Date: 2/13/23"
   - **Purpose**: Records the employee's hire date for HR and payroll purposes
+
+### Sick Hours Tracking Section
+
+- **Location**: Rows 32-34, Columns Y-AB (25-28)
+- **Structure**:
+  - **Row 32**: "Sick Hours Allowed" label merged Y-Z-AA (25-27), value in AB (28)
+  - **Row 33**: "Sick Hours Used" label merged Y-Z-AA (25-27), value in AB (28)
+  - **Row 34**: "Sick Hours Remaining" label merged Y-Z-AA (25-27), value in AB (28)
+- **Purpose**: Tracks annual sick time allowance vs usage alongside the calendar grid
+- **Sick Hours Allowed**: 24 hours per year (from SICK_HOURS_BEFORE_PTO business rule)
+- **Sick Hours Used**: Sum of all PTO entries with type "Sick" for the year
+- **Sick Hours Remaining**: Allowed minus used
 
 ### Color Coding System
 

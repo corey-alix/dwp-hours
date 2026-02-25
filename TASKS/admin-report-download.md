@@ -138,7 +138,7 @@ The feature supports multiple output formats via a `format` query parameter (`ht
 
 Reference the `pto-spreadsheet-layout` skill for exact cell coordinates.
 
-- [x] **Row 1–3 header area**: Write employee name in B1 (bold, 14pt); write `Hire Date: YYYY-MM-DD` in R2
+- [x] **Row 1–3 header area**: Write employee name in J2 (bold, 14pt); write `Hire Date: YYYY-MM-DD` in R2
 - [x] **Month headers**: Write month names merged across 7 columns; 4 row-groups × 3 column-groups for all 12 months
 - [x] **Day-of-week headers**: Write Sun–Sat across 7-column blocks under each month header
 - [x] **Calendar date cells**: Populate day numbers in standard 7-column calendar grid (up to 6 rows per month)
@@ -156,8 +156,8 @@ Reference the `pto-spreadsheet-layout` skill for exact cell coordinates.
 
 ### Phase 8 — Legend Section
 
-- [x] **Legend header (AA8)**: Write "Legend" in row 8, column 27 (bold)
-- [x] **Legend entries (AA9–AA14)**: Write each PTO type name with its corresponding fill color in the cell:
+- [x] **Legend header (Z8:AA8)**: Write "Legend" in row 8, columns 26–27 (bold, merged)
+- [x] **Legend entries (Z9:AA14)**: Write each PTO type name with its corresponding fill color, merged across Z–AA:
   - AA9: Sick (fill `FF00B050`)
   - AA10: Full PTO (fill `FFFFFF00`)
   - AA11: Partial PTO (fill `FFFFC000`)
@@ -165,6 +165,7 @@ Reference the `pto-spreadsheet-layout` skill for exact cell coordinates.
   - AA13: Bereavement (fill `FFBFBFBF`)
   - AA14: Jury Duty (fill `FFFF0000`)
 - [x] Apply borders around legend cells
+- [x] **Sick Hours section (rows 32–34, columns Y–AB)**: Write sick hours allowed, used, and remaining
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
 
@@ -175,7 +176,7 @@ Reference the `pto-spreadsheet-layout` skill for exact cell coordinates.
 Reference `pto-spreadsheet-layout` skill: data at D42:W53.
 
 - [x] **Section header (row 40)**: Write "PTO CALCULATION SECTION" merged across columns B–W (bold, centered)
-- [x] **Column headers (rows 41–42)**: Two-row merged header structure with Month, Work Days, Daily Rate, Accrued PTO, Carryover, Subtotal, Used, Remaining
+- [x] **Column headers (rows 41–42)**: Two-row merged header structure with Month, Work Days, Daily Rate, Accrued PTO (J), Carryover (L–M), Subtotal (O–P), Used (S–T), Remaining (V–W)
 - [x] **Month labels (B43:B54)**: Write month names January–December
 - [x] **Data rows (rows 43–54)**: Fill each column with values from `ptoCalculation[]`
 - [x] **Number formatting**: Apply `0.00` format for rates/hours, `0` for work days
@@ -188,8 +189,8 @@ Reference `pto-spreadsheet-layout` skill: data at D42:W53.
 
 ### Phase 10 — Acknowledgement Columns
 
-- [x] **Employee acknowledgements (column 23, rows 43–54)**: Write employee identifier prefix (uppercase) for acknowledged months, dash for unacknowledged
-- [x] **Admin acknowledgements (column 24, rows 43–54)**: Write admin name for acknowledged months, dash otherwise
+- [x] **Employee acknowledgements (column 24, rows 43–54)**: Write employee identifier prefix (uppercase) for acknowledged months, dash for unacknowledged
+- [x] **Admin acknowledgements (column 25, rows 43–54)**: Write admin name for acknowledged months, dash otherwise
 - [x] **Column headers**: "Employee Ack" and "Admin Ack" merged across rows 41–42
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes

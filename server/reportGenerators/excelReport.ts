@@ -16,7 +16,10 @@ import type {
   ReportPtoEntry,
 } from "../reportService.js";
 import { getDaysInMonth } from "../../shared/dateUtils.js";
-import { MONTH_NAMES } from "../../shared/businessRules.js";
+import {
+  MONTH_NAMES,
+  SICK_HOURS_BEFORE_PTO,
+} from "../../shared/businessRules.js";
 
 // ── Legacy ARGB fill colors (from pto-spreadsheet-layout skill) ──
 
@@ -96,14 +99,28 @@ function populateEmployeeSheet(
   emp: EmployeeReportData,
   year: number,
 ): void {
-  // ── Row 1–3: Employee header ──
-  const nameCell = ws.getCell("B1");
+  // ── Row 2: Header area ──
+  // Current Year (B2)
+  const yearCell = ws.getCell("B2");
+  yearCell.value = year;
+  yearCell.font = { bold: true, size: 14, name: "Calibri" };
+
+  // "PTO Form" (D2)
+  const ptoFormCell = ws.getCell("D2");
+  ptoFormCell.value = "PTO Form";
+  ptoFormCell.font = { bold: true, size: 14, name: "Calibri" };
+
+  // Employee Name (J–P merged)
+  const nameCell = ws.getCell("J2");
   nameCell.value = emp.name;
   nameCell.font = { bold: true, size: 14, name: "Calibri" };
+  ws.mergeCells("J2:P2");
 
+  // Hire Date (R–X merged)
   const hireDateCell = ws.getCell("R2");
   hireDateCell.value = `Hire Date: ${emp.hireDate}`;
   hireDateCell.font = { size: 11, name: "Calibri" };
+  ws.mergeCells("R2:X2");
 
   // ── Calendar grid ──
   const ptoMap = buildPtoMap(emp.ptoEntries);
@@ -111,6 +128,9 @@ function populateEmployeeSheet(
 
   // ── Legend section ──
   writeLegend(ws);
+
+  // ── Sick Hours section ──
+  writeSickHours(ws, emp);
 
   // ── PTO Calculation section ──
   writePtoCalculation(ws, emp);
@@ -152,9 +172,10 @@ function writeCalendarGrid(
   for (let c = 10; c <= 16; c++) ws.getColumn(c).width = 4;
   ws.getColumn(17).width = 1.5;
   for (let c = 18; c <= 24; c++) ws.getColumn(c).width = 4;
-  ws.getColumn(25).width = 1.5; // gap before legend
-  ws.getColumn(26).width = 1.5;
-  ws.getColumn(27).width = 16; // legend column AA
+  ws.getColumn(25).width = 1.5; // gap before legend/ack
+  ws.getColumn(26).width = 10; // legend column Z
+  ws.getColumn(27).width = 10; // legend column AA
+  ws.getColumn(28).width = 10; // sick hours values AB
 
   // Column-group start columns
   const colStarts = [2, 10, 18];
@@ -260,19 +281,22 @@ function writeCalendarGrid(
  * Write the legend section in column AA (column 27).
  */
 function writeLegend(ws: ExcelJS.Worksheet): void {
-  const legendCol = 27; // AA
+  const legendStartCol = 26; // Z
+  const legendEndCol = 27; // AA
   const startRow = 8;
 
-  // Header
-  const headerCell = ws.getCell(startRow, legendCol);
+  // Header (merged Z–AA)
+  const headerCell = ws.getCell(startRow, legendStartCol);
   headerCell.value = "Legend";
   headerCell.font = { bold: true, size: 12, name: "Calibri" };
+  headerCell.alignment = { horizontal: "center" };
+  ws.mergeCells(startRow, legendStartCol, startRow, legendEndCol);
 
-  // Legend entries
+  // Legend entries (merged Z–AA per row)
   for (let i = 0; i < LEGEND_ENTRIES.length; i++) {
     const entry = LEGEND_ENTRIES[i];
     const row = startRow + 1 + i;
-    const cell = ws.getCell(row, legendCol);
+    const cell = ws.getCell(row, legendStartCol);
     cell.value = entry.label;
     cell.fill = {
       type: "pattern",
@@ -291,12 +315,58 @@ function writeLegend(ws: ExcelJS.Worksheet): void {
             : "FF333333",
       },
     };
-    cell.border = {
+    cell.alignment = { horizontal: "center" };
+    const border: Partial<ExcelJS.Borders> = {
       top: { style: "thin", color: { argb: "FF999999" } },
       left: { style: "thin", color: { argb: "FF999999" } },
       bottom: { style: "thin", color: { argb: "FF999999" } },
       right: { style: "thin", color: { argb: "FF999999" } },
     };
+    cell.border = border;
+    // Apply fill/border to second column in the merge
+    const cell2 = ws.getCell(row, legendEndCol);
+    cell2.fill = cell.fill;
+    cell2.border = border;
+    ws.mergeCells(row, legendStartCol, row, legendEndCol);
+  }
+}
+
+/**
+ * Write the Sick Hours tracking section (rows 32–34, columns Y–AB).
+ */
+function writeSickHours(ws: ExcelJS.Worksheet, emp: EmployeeReportData): void {
+  const labelStartCol = 25; // Y
+  const labelEndCol = 27; // AA
+  const valueCol = 28; // AB
+
+  const sickAllowed = SICK_HOURS_BEFORE_PTO;
+  const sickUsed = emp.ptoEntries
+    .filter((e) => e.type === "Sick")
+    .reduce((sum, e) => sum + e.hours, 0);
+  const sickRemaining = sickAllowed - sickUsed;
+
+  const rows: [number, string, number][] = [
+    [32, "Sick Hours Allowed", sickAllowed],
+    [33, "Sick Hours Used", sickUsed],
+    [34, "Sick Hours Remaining", sickRemaining],
+  ];
+
+  for (const [row, label, value] of rows) {
+    // Label merged Y–AA
+    const labelCell = ws.getCell(row, labelStartCol);
+    labelCell.value = label;
+    labelCell.font = { bold: true, size: 11, name: "Calibri" };
+    labelCell.alignment = { horizontal: "right", vertical: "middle" };
+    labelCell.border = THIN_BORDER;
+    ws.mergeCells(row, labelStartCol, row, labelEndCol);
+
+    // Value in AB
+    const valueCell = ws.getCell(row, valueCol);
+    valueCell.value = value;
+    valueCell.numFmt = "0.00";
+    valueCell.alignment = { horizontal: "center" };
+    valueCell.font = { size: 11, name: "Calibri" };
+    valueCell.border = THIN_BORDER;
   }
 }
 
@@ -330,11 +400,11 @@ function writePtoCalculation(
     ["Month", 2, 3],
     ["Work Days\nin Month", 4, 5],
     ["Daily\nRate", 6, 7],
-    ["Accrued\nPTO", 8, 9],
-    ["Previous Month's\nCarryover", 11, 12],
-    ["Subtotal\nPTO hours", 14, 15],
-    ["PTO hours\nper Month", 17, 18],
-    ["Total Available\nPTO", 20, 21],
+    ["Accrued\nPTO", 10, 11],
+    ["Previous Month's\nCarryover", 12, 13],
+    ["Subtotal\nPTO hours", 15, 16],
+    ["PTO hours\nper Month", 19, 20],
+    ["Total Available\nPTO", 22, 23],
   ];
 
   for (const [label, startCol, endCol] of headers) {
@@ -399,45 +469,45 @@ function writePtoCalculation(
     drCell.border = THIN_BORDER;
     ws.mergeCells(row, 6, row, 7);
 
-    // Accrued PTO (merged 2 cols)
-    const accCell = ws.getCell(row, 8);
+    // Accrued PTO (merged 2 cols J-K)
+    const accCell = ws.getCell(row, 10);
     accCell.value = calc.accruedHours;
     accCell.numFmt = "0.00";
     accCell.alignment = { horizontal: "center" };
     accCell.border = THIN_BORDER;
-    ws.mergeCells(row, 8, row, 9);
+    ws.mergeCells(row, 10, row, 11);
 
-    // Carryover (merged 2 cols)
-    const coCell = ws.getCell(row, 11);
+    // Carryover (merged 2 cols L-M)
+    const coCell = ws.getCell(row, 12);
     coCell.value = calc.carryover;
     coCell.numFmt = "0.00";
     coCell.alignment = { horizontal: "center" };
     coCell.border = THIN_BORDER;
-    ws.mergeCells(row, 11, row, 12);
+    ws.mergeCells(row, 12, row, 13);
 
-    // Subtotal (merged 2 cols)
-    const subCell = ws.getCell(row, 14);
+    // Subtotal (merged 2 cols O-P)
+    const subCell = ws.getCell(row, 15);
     subCell.value = calc.subtotal;
     subCell.numFmt = "0.00";
     subCell.alignment = { horizontal: "center" };
     subCell.border = THIN_BORDER;
-    ws.mergeCells(row, 14, row, 15);
+    ws.mergeCells(row, 15, row, 16);
 
-    // Used PTO (merged 2 cols)
-    const usedCell = ws.getCell(row, 17);
+    // Used PTO (merged 2 cols S-T)
+    const usedCell = ws.getCell(row, 19);
     usedCell.value = calc.usedHours;
     usedCell.numFmt = "0.0";
     usedCell.alignment = { horizontal: "center" };
     usedCell.border = THIN_BORDER;
-    ws.mergeCells(row, 17, row, 18);
+    ws.mergeCells(row, 19, row, 20);
 
-    // Remaining (merged 2 cols)
-    const remCell = ws.getCell(row, 20);
+    // Remaining (merged 2 cols V-W)
+    const remCell = ws.getCell(row, 22);
     remCell.value = calc.remainingBalance;
     remCell.numFmt = "0.00";
     remCell.alignment = { horizontal: "center" };
     remCell.border = THIN_BORDER;
-    ws.mergeCells(row, 20, row, 21);
+    ws.mergeCells(row, 22, row, 23);
 
     // Alternate row shading
     if (i % 2 === 1) {
@@ -446,7 +516,7 @@ function writePtoCalculation(
         pattern: "solid",
         fgColor: { argb: "FFFAFAFA" },
       };
-      for (const c of [2, 4, 6, 8, 11, 14, 17, 20]) {
+      for (const c of [2, 4, 6, 10, 12, 15, 19, 22]) {
         ws.getCell(row, c).fill = shadeFill;
       }
     }
@@ -478,39 +548,39 @@ function writePtoCalculation(
   totalLabel.border = totalsBorder;
   ws.mergeCells(totalsRow, 2, totalsRow, 3);
 
-  const totalAccCell = ws.getCell(totalsRow, 8);
+  const totalAccCell = ws.getCell(totalsRow, 10);
   totalAccCell.value = Math.round(totalAccrued * 100) / 100;
   totalAccCell.numFmt = "0.00";
   totalAccCell.font = totalsFont;
   totalAccCell.fill = totalsFill;
   totalAccCell.alignment = { horizontal: "center" };
   totalAccCell.border = totalsBorder;
-  ws.mergeCells(totalsRow, 8, totalsRow, 9);
+  ws.mergeCells(totalsRow, 10, totalsRow, 11);
 
-  const totalUsedCell = ws.getCell(totalsRow, 17);
+  const totalUsedCell = ws.getCell(totalsRow, 19);
   totalUsedCell.value = Math.round(totalUsed * 10) / 10;
   totalUsedCell.numFmt = "0.0";
   totalUsedCell.font = totalsFont;
   totalUsedCell.fill = totalsFill;
   totalUsedCell.alignment = { horizontal: "center" };
   totalUsedCell.border = totalsBorder;
-  ws.mergeCells(totalsRow, 17, totalsRow, 18);
+  ws.mergeCells(totalsRow, 19, totalsRow, 20);
 
   const lastRemaining =
     emp.ptoCalculation.length > 0
       ? emp.ptoCalculation[emp.ptoCalculation.length - 1].remainingBalance
       : 0;
-  const totalRemCell = ws.getCell(totalsRow, 20);
+  const totalRemCell = ws.getCell(totalsRow, 22);
   totalRemCell.value = lastRemaining;
   totalRemCell.numFmt = "0.00";
   totalRemCell.font = totalsFont;
   totalRemCell.fill = totalsFill;
   totalRemCell.alignment = { horizontal: "center" };
   totalRemCell.border = totalsBorder;
-  ws.mergeCells(totalsRow, 20, totalsRow, 21);
+  ws.mergeCells(totalsRow, 22, totalsRow, 23);
 
   // Fill empty totals cells with styling
-  for (const c of [4, 6, 11, 14]) {
+  for (const c of [4, 6, 12, 15]) {
     const cell = ws.getCell(totalsRow, c);
     cell.fill = totalsFill;
     cell.border = totalsBorder;
@@ -521,7 +591,7 @@ function writePtoCalculation(
 /**
  * Write acknowledgement columns.
  *
- * Employee acknowledgements in columns 23–24, admin in columns 25–26,
+ * Employee acknowledgements in column 24 (X), admin in column 25 (Y),
  * aligned with PTO calculation data rows (43–54).
  */
 function writeAcknowledgements(
@@ -532,20 +602,27 @@ function writeAcknowledgements(
   const colHeaderRow = 41;
   const dataStartRow = 43;
 
+  // Derive employee initials from name (e.g. "Alice Smith" → "AS")
+  const initials = emp.name
+    .split(/\s+/)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+
   // ── Column headers ──
-  const empAckHeader = ws.getCell(colHeaderRow, 23);
-  empAckHeader.value = "Employee\nAck";
+  const empAckHeader = ws.getCell(colHeaderRow, 24);
+  empAckHeader.value = initials;
   empAckHeader.font = HEADER_FONT;
   empAckHeader.fill = HEADER_FILL;
   empAckHeader.alignment = {
     horizontal: "center",
     vertical: "middle",
-    wrapText: true,
+    wrapText: false,
   };
   empAckHeader.border = THIN_BORDER;
-  ws.mergeCells(colHeaderRow, 23, colHeaderRow + 1, 23);
+  ws.mergeCells(colHeaderRow, 24, colHeaderRow + 1, 24);
 
-  const admAckHeader = ws.getCell(colHeaderRow, 24);
+  const admAckHeader = ws.getCell(colHeaderRow, 25);
   admAckHeader.value = "Admin\nAck";
   admAckHeader.font = HEADER_FONT;
   admAckHeader.fill = HEADER_FILL;
@@ -555,22 +632,21 @@ function writeAcknowledgements(
     wrapText: true,
   };
   admAckHeader.border = THIN_BORDER;
-  ws.mergeCells(colHeaderRow, 24, colHeaderRow + 1, 24);
+  ws.mergeCells(colHeaderRow, 25, colHeaderRow + 1, 25);
 
-  // Widen ack columns
-  ws.getColumn(23).width = 10;
-  ws.getColumn(24).width = 10;
+  // Column 24 (X) keeps calendar width (4) — no override
+  ws.getColumn(25).width = 10;
 
   // ── Data rows ──
   for (let m = 1; m <= 12; m++) {
     const row = dataStartRow + (m - 1);
     const monthStr = `${year}-${pad2(m)}`;
 
-    // Employee acknowledgement
+    // Employee acknowledgement: ✓ if acknowledged, initials if not
     const empAck = emp.acknowledgements.find((a) => a.month === monthStr);
-    const empCell = ws.getCell(row, 23);
+    const empCell = ws.getCell(row, 24);
     if (empAck) {
-      empCell.value = emp.identifier.split("@")[0].toUpperCase() || "✓";
+      empCell.value = "✓";
       empCell.font = {
         bold: true,
         color: { argb: "FF27AE60" },
@@ -578,7 +654,7 @@ function writeAcknowledgements(
         name: "Calibri",
       };
     } else {
-      empCell.value = "—";
+      empCell.value = initials;
       empCell.font = { color: { argb: "FFC0392B" }, size: 11, name: "Calibri" };
     }
     empCell.alignment = { horizontal: "center" };
@@ -586,7 +662,7 @@ function writeAcknowledgements(
 
     // Admin acknowledgement
     const admAck = emp.adminAcknowledgements.find((a) => a.month === monthStr);
-    const admCell = ws.getCell(row, 24);
+    const admCell = ws.getCell(row, 25);
     if (admAck) {
       admCell.value = admAck.adminName;
       admCell.font = {
