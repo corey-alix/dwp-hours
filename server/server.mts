@@ -68,6 +68,8 @@ import { seedEmployees, seedPTOEntries } from "../shared/seedData.js";
 import { assembleReportData } from "./reportService.js";
 import { generateHtmlReport } from "./reportGenerators/htmlReport.js";
 import { generateExcelReport } from "./reportGenerators/excelReport.js";
+import { importExcelWorkbook } from "./reportGenerators/excelImport.js";
+import multer from "multer";
 import type {
   PTOCreateResponse,
   PTOUpdateResponse,
@@ -2873,6 +2875,64 @@ initDatabase()
         } catch (error) {
           logger.error(`Error generating report: ${error}`);
           res.status(500).json({ error: "Internal server error" });
+        }
+      },
+    );
+
+    // ── Admin Excel Import ──
+
+    const excelUpload = multer({
+      storage: multer.memoryStorage(),
+      limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+      fileFilter: (_req, file, cb) => {
+        if (
+          file.mimetype ===
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+          file.originalname.endsWith(".xlsx")
+        ) {
+          cb(null, true);
+        } else {
+          cb(new Error("Only .xlsx files are allowed"));
+        }
+      },
+    });
+
+    app.post(
+      "/api/admin/import-excel",
+      authenticateAdmin(() => dataSource, log),
+      excelUpload.single("file"),
+      async (req: Request, res: Response) => {
+        logger.info(
+          `API access: ${req.method} ${req.path} by employee ${req.employee!.id}`,
+        );
+        try {
+          const file = (req as any).file;
+          if (!file) {
+            return res
+              .status(400)
+              .json({
+                error: "No file uploaded. Send an .xlsx file as 'file' field.",
+              });
+          }
+
+          const adminId = req.employee!.id;
+          const result = await importExcelWorkbook(
+            dataSource,
+            file.buffer,
+            adminId,
+          );
+
+          logger.info(
+            `Excel import completed: ${result.employeesProcessed} employees, ${result.ptoEntriesUpserted} PTO entries`,
+          );
+
+          res.json({
+            message: `Import complete: ${result.employeesProcessed} employees processed (${result.employeesCreated} created), ${result.ptoEntriesUpserted} PTO entries upserted, ${result.acknowledgementsSynced} acknowledgements synced.`,
+            ...result,
+          });
+        } catch (error) {
+          logger.error(`Error importing Excel: ${error}`);
+          res.status(500).json({ error: "Failed to import Excel file" });
         }
       },
     );

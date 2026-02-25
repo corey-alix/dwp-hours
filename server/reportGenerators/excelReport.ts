@@ -42,6 +42,34 @@ const LEGEND_ENTRIES: { label: string; argb: string }[] = [
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+// Superscript Unicode digits for partial-day decoration
+const SUPERSCRIPTS: Record<number, string> = {
+  0: "\u2070",
+  1: "\u00B9",
+  2: "\u00B2",
+  3: "\u00B3",
+  4: "\u2074",
+  5: "\u2075",
+  6: "\u2076",
+  7: "\u2077",
+  8: "\u2078",
+  9: "\u2079",
+};
+
+/**
+ * Decorate a day number with a partial-hours indicator.
+ * - 8h → plain number
+ * - 4h → "½" suffix (legacy)
+ * - other → superscript digit suffix (e.g. 3h → "³")
+ */
+function decorateDay(day: number, hours: number): string | number {
+  if (hours >= 8) return day;
+  if (hours === 4) return `${day}\u00BD`; // ½
+  const h = Math.round(hours);
+  const sup = SUPERSCRIPTS[h];
+  return sup ? `${day}${sup}` : `${day}(${hours}h)`;
+}
+
 // Header styling
 const HEADER_FILL: ExcelJS.FillPattern = {
   type: "pattern",
@@ -250,6 +278,8 @@ function writeCalendarGrid(
           pattern: "solid",
           fgColor: { argb },
         };
+        // Decorate day number for partial days
+        cell.value = decorateDay(day, ptoEntry.hours);
         cell.font = {
           bold: true,
           size: 10,

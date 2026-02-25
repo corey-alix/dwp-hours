@@ -274,4 +274,27 @@ export class APIClient {
   ): Promise<ApiTypes.NotificationCreateResponse> {
     return this.post("/notifications", { employeeId, type, message });
   }
+
+  async importExcel(file: File): Promise<any> {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await fetch(`${this.baseURL}/admin/import-excel`, {
+      method: "POST",
+      body: formData,
+      credentials: "include",
+    });
+    if (!response.ok) {
+      const errorData = await response
+        .json()
+        .catch(() => ({ error: "Unknown error" }));
+      const error = new Error(
+        errorData.message ||
+          errorData.error ||
+          `HTTP ${response.status}: ${response.statusText}`,
+      );
+      (error as any).responseData = errorData;
+      throw error;
+    }
+    return response.json();
+  }
 }
