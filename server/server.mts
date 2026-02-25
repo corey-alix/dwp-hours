@@ -2908,11 +2908,9 @@ initDatabase()
         try {
           const file = (req as any).file;
           if (!file) {
-            return res
-              .status(400)
-              .json({
-                error: "No file uploaded. Send an .xlsx file as 'file' field.",
-              });
+            return res.status(400).json({
+              error: "No file uploaded. Send an .xlsx file as 'file' field.",
+            });
           }
 
           const adminId = req.employee!.id;
@@ -2920,6 +2918,7 @@ initDatabase()
             dataSource,
             file.buffer,
             adminId,
+            (msg: string) => logger.info(`[Excel Import] ${msg}`),
           );
 
           logger.info(

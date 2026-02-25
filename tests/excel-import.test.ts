@@ -2,6 +2,9 @@ import { describe, it, expect } from "vitest";
 import ExcelJS from "exceljs";
 import {
   parseLegend,
+  findLegendHeaderRow,
+  findPtoCalcStartRow,
+  isEmployeeSheet,
   parseCalendarGrid,
   parsePtoCalcUsedHours,
   parseCarryoverHours,
@@ -12,6 +15,7 @@ import {
   parseEmployeeSheet,
 } from "../server/reportGenerators/excelImport.js";
 import { generateExcelReport } from "../server/reportGenerators/excelReport.js";
+import { smartParseDate } from "../shared/dateUtils.js";
 import type { ReportData } from "../server/reportService.js";
 
 /** Load a generated buffer into an ExcelJS workbook */
@@ -186,7 +190,7 @@ describe("Excel Import", () => {
   });
 
   describe("parseCarryoverHours", () => {
-    it("should read carryover from cell L43", async () => {
+    it("should read carryover from PTO calc start row, column L", async () => {
       const buffer = await generateTestBuffer();
       const wb = await loadWorkbook(buffer);
       const ws = wb.getWorksheet("Alice Smith")!;
@@ -329,15 +333,22 @@ describe("Excel Import", () => {
   });
 
   describe("Cover Sheet skipping", () => {
-    it("should not parse Cover Sheet as an employee", async () => {
+    it("should not be detected as an employee sheet", async () => {
       const buffer = await generateTestBuffer();
       const wb = await loadWorkbook(buffer);
       const coverSheet = wb.getWorksheet("Cover Sheet");
       expect(coverSheet).toBeDefined();
 
-      // parseLegend on cover sheet should return empty (no legend there)
-      const legend = parseLegend(coverSheet!);
-      expect(legend.size).toBe(0);
+      // Cover Sheet has no "Hire Date" in header, so isEmployeeSheet returns false
+      expect(isEmployeeSheet(coverSheet!)).toBe(false);
+    });
+
+    it("should throw when parsing legend from Cover Sheet (no Legend header)", async () => {
+      const buffer = await generateTestBuffer();
+      const wb = await loadWorkbook(buffer);
+      const coverSheet = wb.getWorksheet("Cover Sheet")!;
+
+      expect(() => parseLegend(coverSheet)).toThrow(/Legend header not found/);
     });
   });
 
@@ -422,13 +433,99 @@ describe("Excel Import", () => {
       expect(jul20!.hours).toBe(3);
     });
 
-    it("should recover carryover hours from L43", async () => {
+    it("should recover carryover hours from PTO calc section", async () => {
       const buffer = await generateTestBuffer();
       const wb = await loadWorkbook(buffer);
       const ws = wb.getWorksheet("Alice Smith")!;
 
       const info = parseEmployeeInfo(ws);
       expect(info.carryoverHours).toBe(16);
+    });
+  });
+
+  describe("findLegendHeaderRow", () => {
+    it("should find the Legend header row in exported workbook", async () => {
+      const buffer = await generateTestBuffer();
+      const wb = await loadWorkbook(buffer);
+      const ws = wb.getWorksheet("Alice Smith")!;
+
+      const row = findLegendHeaderRow(ws);
+      expect(row).toBe(8); // Our export puts legend header at row 8
+    });
+
+    it("should return -1 when no Legend header exists", async () => {
+      const buffer = await generateTestBuffer();
+      const wb = await loadWorkbook(buffer);
+      const ws = wb.getWorksheet("Cover Sheet")!;
+
+      const row = findLegendHeaderRow(ws);
+      expect(row).toBe(-1);
+    });
+  });
+
+  describe("findPtoCalcStartRow", () => {
+    it("should find PTO calc start row in exported workbook", async () => {
+      const buffer = await generateTestBuffer();
+      const wb = await loadWorkbook(buffer);
+      const ws = wb.getWorksheet("Alice Smith")!;
+
+      const row = findPtoCalcStartRow(ws);
+      expect(row).toBe(43); // Our export writes PTO calc data at row 43
+    });
+
+    it("should throw when PTO calc section not found", async () => {
+      const buffer = await generateTestBuffer();
+      const wb = await loadWorkbook(buffer);
+      const ws = wb.getWorksheet("Cover Sheet")!;
+
+      expect(() => findPtoCalcStartRow(ws)).toThrow(
+        /PTO Calc validation failed/,
+      );
+    });
+  });
+
+  describe("isEmployeeSheet", () => {
+    it("should return true for employee sheets with Hire Date", async () => {
+      const buffer = await generateTestBuffer();
+      const wb = await loadWorkbook(buffer);
+      const ws = wb.getWorksheet("Alice Smith")!;
+
+      expect(isEmployeeSheet(ws)).toBe(true);
+    });
+
+    it("should return false for Cover Sheet", async () => {
+      const buffer = await generateTestBuffer();
+      const wb = await loadWorkbook(buffer);
+      const ws = wb.getWorksheet("Cover Sheet")!;
+
+      expect(isEmployeeSheet(ws)).toBe(false);
+    });
+  });
+
+  describe("smartParseDate", () => {
+    it("should parse YYYY-MM-DD format", () => {
+      expect(smartParseDate("2023-02-13")).toBe("2023-02-13");
+    });
+
+    it("should parse M/D/YY with 2-digit year < 50 → 2000s", () => {
+      expect(smartParseDate("2/13/23")).toBe("2023-02-13");
+      expect(smartParseDate("1/5/09")).toBe("2009-01-05");
+    });
+
+    it("should parse M/D/YY with 2-digit year >= 50 → 1900s", () => {
+      expect(smartParseDate("6/15/95")).toBe("1995-06-15");
+      expect(smartParseDate("12/1/50")).toBe("1950-12-01");
+    });
+
+    it("should parse M/D/YYYY with 4-digit year", () => {
+      expect(smartParseDate("2/13/2023")).toBe("2023-02-13");
+      expect(smartParseDate("12/25/1999")).toBe("1999-12-25");
+    });
+
+    it("should return null for invalid input", () => {
+      expect(smartParseDate("")).toBeNull();
+      expect(smartParseDate("not-a-date")).toBeNull();
+      expect(smartParseDate("13/32/2023")).toBeNull(); // invalid month
     });
   });
 });

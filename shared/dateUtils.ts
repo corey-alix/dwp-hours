@@ -114,6 +114,54 @@ export function parseMMDDYY(dateStr: string): string {
 }
 
 /**
+ * Smart date parser that accepts multiple common formats and returns YYYY-MM-DD.
+ * Supported formats:
+ * - YYYY-MM-DD (ISO)
+ * - M/D/YY or MM/DD/YY (US short year)
+ * - M/D/YYYY or MM/DD/YYYY (US full year)
+ * Returns null if no format matches.
+ */
+export function smartParseDate(dateStr: string): string | null {
+  if (!dateStr || typeof dateStr !== "string") return null;
+  const trimmed = dateStr.trim();
+
+  // YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return isValidDateString(trimmed) ? trimmed : null;
+  }
+
+  // M/D/YY
+  const shortMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+  if (shortMatch) {
+    const month = parseInt(shortMatch[1], 10);
+    const day = parseInt(shortMatch[2], 10);
+    let year = parseInt(shortMatch[3], 10);
+    // 2-digit year: 00-49 → 2000-2049, 50-99 → 1950-1999
+    year = year < 50 ? 2000 + year : 1900 + year;
+    try {
+      return formatDate(year, month, day);
+    } catch {
+      return null;
+    }
+  }
+
+  // M/D/YYYY
+  const longMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (longMatch) {
+    const month = parseInt(longMatch[1], 10);
+    const day = parseInt(longMatch[2], 10);
+    const year = parseInt(longMatch[3], 10);
+    try {
+      return formatDate(year, month, day);
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
+
+/**
  * Gets the number of days in a month
  */
 export function getDaysInMonth(year: number, month: number): number {

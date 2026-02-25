@@ -20,7 +20,11 @@ import {
   MONTH_NAMES,
   PTO_EARNING_SCHEDULE,
 } from "../../shared/businessRules.js";
-import { getDaysInMonth, formatDate } from "../../shared/dateUtils.js";
+import {
+  getDaysInMonth,
+  formatDate,
+  smartParseDate,
+} from "../../shared/dateUtils.js";
 import { Employee } from "../entities/Employee.js";
 import { PtoEntry } from "../entities/PtoEntry.js";
 import { Acknowledgement } from "../entities/Acknowledgement.js";
@@ -28,23 +32,20 @@ import { AdminAcknowledgement } from "../entities/AdminAcknowledgement.js";
 
 // ── Constants ──
 
-/** Sheets to skip during import (not employee tabs). */
-const SKIP_SHEET_NAMES = new Set(["Cover Sheet", "No Data"]);
-
 /** Calendar grid column-group start columns (1-indexed). */
 const COL_STARTS = [2, 10, 18];
 
 /** Calendar grid row-group header rows. */
 const ROW_GROUP_STARTS = [4, 13, 22, 31];
 
-/** Legend section location. */
-const LEGEND_START_ROW = 9; // first entry row (header is row 8)
-const LEGEND_END_ROW = 14;
+/** Legend column (Z = 26). */
 const LEGEND_COL = 26; // column Z
 
-/** PTO Calculation section rows. */
-const PTO_CALC_DATA_START_ROW = 43;
-const PTO_CALC_DATA_END_ROW = 54;
+/** Max rows to scan when searching for dynamic positions. */
+const LEGEND_SCAN_MAX_ROW = 30;
+
+/** PTO Calculation section: assumed data start row (January). */
+const PTO_CALC_DATA_START_ROW = 42;
 
 /** Acknowledgement columns. */
 const EMP_ACK_COL = 24; // X
@@ -119,15 +120,42 @@ export interface ImportResult {
 // ── Phase 1: Legend & Color Parser ──
 
 /**
- * Parse the legend section (rows 9–14, column Z) to build a color→PTOType map.
- * Reads the fill color and label from each legend entry row.
+ * Find the row containing the "Legend" header in column Z.
+ * Scans rows 1–30 looking for a cell whose text is "Legend".
+ * Returns the header row number, or -1 if not found.
+ */
+export function findLegendHeaderRow(ws: ExcelJS.Worksheet): number {
+  for (let r = 1; r <= LEGEND_SCAN_MAX_ROW; r++) {
+    const cell = ws.getCell(r, LEGEND_COL);
+    const val = cell.value?.toString().trim() || "";
+    if (val.toLowerCase() === "legend") return r;
+  }
+  return -1;
+}
+
+/**
+ * Parse the legend section from column Z to build a color→PTOType map.
+ * Dynamically finds the "Legend" header row, then reads up to 10 entry
+ * rows below it. Throws if "Legend" header is not found.
  */
 export function parseLegend(ws: ExcelJS.Worksheet): Map<string, PTOType> {
   const colorMap = new Map<string, PTOType>();
 
-  for (let row = LEGEND_START_ROW; row <= LEGEND_END_ROW; row++) {
+  const headerRow = findLegendHeaderRow(ws);
+  if (headerRow < 0) {
+    throw new Error(
+      `Legend header not found in column Z on sheet "${ws.name}"`,
+    );
+  }
+
+  // Scan up to 10 rows after the header for legend entries
+  const maxEntries = 10;
+  for (let i = 1; i <= maxEntries; i++) {
+    const row = headerRow + i;
     const cell = ws.getCell(row, LEGEND_COL);
     const label = cell.value?.toString().trim() || "";
+    if (!label) break; // stop at first blank row
+
     const ptoType = LEGEND_LABEL_TO_PTO_TYPE[label];
     if (!ptoType) continue;
 
@@ -219,20 +247,40 @@ interface PtoCalcRow {
 }
 
 /**
+ * Find the PTO Calculation data start row by looking for "January" in
+ * column B. Tries row 42 first (legacy 2018 format), then row 43 (our
+ * export format). Throws if neither row contains "January".
+ */
+export function findPtoCalcStartRow(ws: ExcelJS.Worksheet): number {
+  for (const candidate of [PTO_CALC_DATA_START_ROW, 43]) {
+    const cell = ws.getCell(candidate, 2); // Column B
+    const val = cell.value?.toString().trim() || "";
+    if (val.toLowerCase() === "january") return candidate;
+  }
+  throw new Error(
+    `PTO Calc validation failed on sheet "${ws.name}": ` +
+      `could not find "January" at B42 or B43. ` +
+      `Check PTO Calc section layout.`,
+  );
+}
+
+/**
  * Read the PTO Calculation section to get declared used hours per month.
- * Reads columns S–T (merged, col 19) rows 43–54.
+ * Dynamically finds the start row, then reads column S for 12 months.
  */
 export function parsePtoCalcUsedHours(ws: ExcelJS.Worksheet): PtoCalcRow[] {
+  const startRow = findPtoCalcStartRow(ws);
   const rows: PtoCalcRow[] = [];
   for (let i = 0; i < 12; i++) {
-    const row = PTO_CALC_DATA_START_ROW + i;
+    const row = startRow + i;
     const cell = ws.getCell(row, 19); // Column S
     const val = cell.value;
     let hours = 0;
     if (typeof val === "number") {
       hours = val;
     } else if (val !== null && val !== undefined) {
-      hours = parseFloat(val.toString()) || 0;
+      const parsed = parseFloat(val.toString());
+      hours = isNaN(parsed) ? 0 : parsed;
     }
     rows.push({ month: i + 1, usedHours: hours });
   }
@@ -240,13 +288,18 @@ export function parsePtoCalcUsedHours(ws: ExcelJS.Worksheet): PtoCalcRow[] {
 }
 
 /**
- * Read carryover_hours from cell L43 (column 12, row 43 — January's carryover).
+ * Read carryover_hours from column L at the PTO calc start row
+ * (January's "Previous Month's Carryover").
  */
 export function parseCarryoverHours(ws: ExcelJS.Worksheet): number {
-  const cell = ws.getCell(43, 12); // L43
+  const startRow = findPtoCalcStartRow(ws);
+  const cell = ws.getCell(startRow, 12); // Column L
   const val = cell.value;
   if (typeof val === "number") return val;
-  if (val !== null && val !== undefined) return parseFloat(val.toString()) || 0;
+  if (val !== null && val !== undefined) {
+    const parsed = parseFloat(val.toString());
+    return isNaN(parsed) ? 0 : parsed;
+  }
   return 0;
 }
 
@@ -312,9 +365,23 @@ export function adjustPartialDays(
 // ── Phase 3: Employee Info Parsing ──
 
 /**
+ * Detect whether a worksheet is an employee sheet.
+ * An employee sheet contains "Hire Date" (case-insensitive) somewhere in
+ * the header area (row 2, columns R–X). Returns true if found.
+ */
+export function isEmployeeSheet(ws: ExcelJS.Worksheet): boolean {
+  for (let c = 18; c <= 24; c++) {
+    const cell = ws.getCell(2, c);
+    const val = cell.value?.toString() || "";
+    if (val.toLowerCase().includes("hire date")) return true;
+  }
+  return false;
+}
+
+/**
  * Parse employee metadata from a worksheet.
  * - Name: from the worksheet tab name
- * - Hire date: from cell R2 (format "Hire Date: YYYY-MM-DD")
+ * - Hire date: from cell R2 (flexible format via smartParseDate)
  * - Year: from cell B2
  */
 export function parseEmployeeInfo(ws: ExcelJS.Worksheet): EmployeeImportInfo {
@@ -329,18 +396,24 @@ export function parseEmployeeInfo(ws: ExcelJS.Worksheet): EmployeeImportInfo {
     year = parseInt(yearCell.value.toString(), 10) || 0;
   }
 
-  // Hire date from R2 (format: "Hire Date: YYYY-MM-DD")
+  // Hire date from R2 — flexible format
+  // Supports: "Hire Date: YYYY-MM-DD", "HIRE DATE: M/D/YY", etc.
   const hireDateCell = ws.getCell("R2");
   let hireDate = "";
   if (hireDateCell.value) {
     const hireDateStr = hireDateCell.value.toString();
-    const match = hireDateStr.match(/Hire Date:\s*(\d{4}-\d{2}-\d{2})/);
+    // Extract the date portion after "Hire Date:" (case-insensitive)
+    const match = hireDateStr.match(/hire\s*date:\s*(.+)/i);
     if (match) {
-      hireDate = match[1];
+      const datePart = match[1].trim();
+      const parsed = smartParseDate(datePart);
+      if (parsed) {
+        hireDate = parsed;
+      }
     }
   }
 
-  // Carryover from L43
+  // Carryover from PTO calc start row, column L
   const carryoverHours = parseCarryoverHours(ws);
 
   return { name, hireDate, year, carryoverHours };
@@ -363,41 +436,60 @@ export function generateIdentifier(name: string): string {
 }
 
 /**
- * Upsert an employee by name (case-insensitive).
- * If not found, creates a new employee with a generated identifier.
+ * Upsert an employee by name (case-insensitive) or generated identifier.
+ * If not found by name, falls back to identifier lookup to avoid UNIQUE
+ * constraint violations. Creates a new employee only when neither matches.
  * Returns the employee ID and whether it was newly created.
  */
 export async function upsertEmployee(
   dataSource: DataSource,
   info: EmployeeImportInfo,
+  log?: (msg: string) => void,
 ): Promise<{ employeeId: number; created: boolean }> {
   const empRepo = dataSource.getRepository(Employee);
+  const trimmedName = info.name.trim();
+  const generatedId = generateIdentifier(trimmedName);
 
   // Case-insensitive name match
-  const existing = await empRepo
+  let existing = await empRepo
     .createQueryBuilder("emp")
-    .where("LOWER(emp.name) = LOWER(:name)", { name: info.name.trim() })
+    .where("LOWER(emp.name) = LOWER(:name)", { name: trimmedName })
     .getOne();
+
+  // Fallback: match by generated identifier to avoid UNIQUE constraint
+  if (!existing) {
+    existing = await empRepo.findOne({ where: { identifier: generatedId } });
+    if (existing) {
+      log?.(
+        `Employee "${trimmedName}" not found by name, matched by identifier "${generatedId}" (id=${existing.id})`,
+      );
+    }
+  }
 
   if (existing) {
     // Update carryover_hours if provided
     if (info.carryoverHours !== 0) {
       existing.carryover_hours = info.carryoverHours;
-      await empRepo.save(existing);
     }
+    // Update hire_date if provided and currently missing
+    if (info.hireDate && !existing.hire_date) {
+      existing.hire_date = new Date(info.hireDate);
+    }
+    await empRepo.save(existing);
     return { employeeId: existing.id, created: false };
   }
 
   // Create new employee
   const newEmp = empRepo.create({
-    name: info.name.trim(),
-    identifier: generateIdentifier(info.name),
+    name: trimmedName,
+    identifier: generatedId,
     hire_date: info.hireDate ? new Date(info.hireDate) : new Date(),
     pto_rate: PTO_EARNING_SCHEDULE[0].dailyRate,
     carryover_hours: info.carryoverHours,
     role: "Employee",
   });
 
+  log?.(`Creating new employee: "${trimmedName}" (${generatedId})`);
   const saved = await empRepo.save(newEmp);
   return { employeeId: saved.id, created: true };
 }
@@ -470,16 +562,17 @@ export async function upsertPtoEntries(
 /**
  * Parse acknowledgement marks from the worksheet.
  * Column X (24) = employee ack, Column Y (25) = admin ack.
- * Rows 43–54 correspond to months 1–12.
+ * Dynamically finds the PTO calc start row and reads 12 months from there.
  */
 export function parseAcknowledgements(
   ws: ExcelJS.Worksheet,
   year: number,
 ): ImportedAcknowledgement[] {
   const acks: ImportedAcknowledgement[] = [];
+  const startRow = findPtoCalcStartRow(ws);
 
   for (let m = 1; m <= 12; m++) {
-    const row = PTO_CALC_DATA_START_ROW + (m - 1);
+    const row = startRow + (m - 1);
     const monthStr = `${year}-${pad2(m)}`;
 
     // Employee ack
@@ -584,14 +677,22 @@ export function parseEmployeeSheet(ws: ExcelJS.Worksheet): SheetImportResult {
 /**
  * Import an entire Excel workbook.
  * Iterates employee tabs, parses data, and upserts into the database.
+ * Accepts an optional logger; each sheet is wrapped in try/catch so
+ * one bad sheet does not abort the entire import.
  */
 export async function importExcelWorkbook(
   dataSource: DataSource,
   buffer: Buffer,
   adminId?: number,
+  log?: (msg: string) => void,
 ): Promise<ImportResult> {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer);
+
+  const sheetNames = workbook.worksheets.map((ws) => ws.name);
+  log?.(
+    `Workbook contains ${sheetNames.length} sheets: ${sheetNames.join(", ")}`,
+  );
 
   const result: ImportResult = {
     employeesProcessed: 0,
@@ -603,48 +704,90 @@ export async function importExcelWorkbook(
   };
 
   for (const ws of workbook.worksheets) {
-    // Skip non-employee sheets
-    if (SKIP_SHEET_NAMES.has(ws.name)) continue;
+    // Skip non-employee sheets (detect by presence of "Hire Date" in header)
+    if (!isEmployeeSheet(ws)) {
+      log?.(`Skipping non-employee sheet: "${ws.name}"`);
+      continue;
+    }
 
-    result.employeesProcessed++;
+    try {
+      result.employeesProcessed++;
+      log?.(`Processing employee sheet: "${ws.name}"`);
 
-    // Parse sheet data
-    const sheetResult = parseEmployeeSheet(ws);
-    result.warnings.push(...sheetResult.warnings);
+      // Parse sheet data
+      const sheetResult = parseEmployeeSheet(ws);
 
-    // Upsert employee
-    const { employeeId, created } = await upsertEmployee(
-      dataSource,
-      sheetResult.employee,
-    );
-    if (created) result.employeesCreated++;
+      // Log blank/null value warnings
+      const emp = sheetResult.employee;
+      if (!emp.name) {
+        const msg = `Sheet "${ws.name}": employee name is blank`;
+        log?.(msg);
+        result.warnings.push(msg);
+      }
+      if (!emp.hireDate) {
+        const msg = `Sheet "${ws.name}": hire date is blank/unparseable`;
+        log?.(msg);
+        result.warnings.push(msg);
+      }
+      if (!emp.year) {
+        const msg = `Sheet "${ws.name}": year is blank/unparseable`;
+        log?.(msg);
+        result.warnings.push(msg);
+      }
+      result.warnings.push(...sheetResult.warnings);
 
-    // Upsert PTO entries
-    const { upserted, warnings: ptoWarnings } = await upsertPtoEntries(
-      dataSource,
-      employeeId,
-      sheetResult.ptoEntries,
-    );
-    result.ptoEntriesUpserted += upserted;
-    result.warnings.push(...ptoWarnings);
+      // Upsert employee
+      const { employeeId, created } = await upsertEmployee(
+        dataSource,
+        sheetResult.employee,
+        log,
+      );
+      if (created) result.employeesCreated++;
 
-    // Upsert acknowledgements
-    const acksSynced = await upsertAcknowledgements(
-      dataSource,
-      employeeId,
-      sheetResult.acknowledgements,
-      adminId,
-    );
-    result.acknowledgementsSynced += acksSynced;
+      // Upsert PTO entries
+      const { upserted, warnings: ptoWarnings } = await upsertPtoEntries(
+        dataSource,
+        employeeId,
+        sheetResult.ptoEntries,
+      );
+      result.ptoEntriesUpserted += upserted;
+      result.warnings.push(...ptoWarnings);
 
-    result.perEmployee.push({
-      name: sheetResult.employee.name,
-      employeeId,
-      ptoEntries: upserted,
-      acknowledgements: acksSynced,
-      created,
-    });
+      // Upsert acknowledgements
+      const acksSynced = await upsertAcknowledgements(
+        dataSource,
+        employeeId,
+        sheetResult.acknowledgements,
+        adminId,
+      );
+      result.acknowledgementsSynced += acksSynced;
+
+      result.perEmployee.push({
+        name: sheetResult.employee.name,
+        employeeId,
+        ptoEntries: upserted,
+        acknowledgements: acksSynced,
+        created,
+      });
+
+      log?.(
+        `  → ${created ? "Created" : "Updated"} employee id=${employeeId}, ` +
+          `${upserted} PTO entries, ${acksSynced} acknowledgements`,
+      );
+    } catch (sheetError) {
+      const msg = `Failed to process sheet "${ws.name}": ${sheetError}`;
+      log?.(msg);
+      result.warnings.push(msg);
+    }
   }
+
+  log?.(
+    `Import complete: ${result.employeesProcessed} processed, ` +
+      `${result.employeesCreated} created, ` +
+      `${result.ptoEntriesUpserted} PTO entries, ` +
+      `${result.acknowledgementsSynced} acknowledgements, ` +
+      `${result.warnings.length} warnings`,
+  );
 
   return result;
 }
