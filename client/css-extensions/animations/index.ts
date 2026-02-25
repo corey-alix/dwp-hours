@@ -403,11 +403,31 @@ export function setupSwipeNavigation(
   let currentAnimation: AnimationHandle | null = null;
   let destroyed = false;
 
+  // Track whether this gesture looks horizontal so we can suppress page scroll
+  let isHorizontalSwipe = false;
+
   const onTouchStart = ((e: TouchEvent) => {
     if (destroyed) return;
     swipeStartX = e.touches[0].clientX;
     swipeStartY = e.touches[0].clientY;
+    isHorizontalSwipe = false;
   }) as EventListener;
+
+  // Prevent page scroll while a horizontal swipe is in progress.
+  // Registered with { passive: false } so preventDefault() is honoured.
+  const onTouchMove = (e: TouchEvent) => {
+    if (destroyed || swipeStartX === null || swipeStartY === null) return;
+    const dx = e.touches[0].clientX - swipeStartX;
+    const dy = e.touches[0].clientY - swipeStartY;
+
+    // Once we determine direction, lock it for the rest of the gesture
+    if (!isHorizontalSwipe && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
+      isHorizontalSwipe = Math.abs(dx) > Math.abs(dy);
+    }
+    if (isHorizontalSwipe) {
+      e.preventDefault(); // stop the page from scrolling
+    }
+  };
 
   const onTouchEnd = ((e: TouchEvent) => {
     if (destroyed) return;
@@ -422,6 +442,7 @@ export function setupSwipeNavigation(
     // Reset touch coordinates
     swipeStartX = null;
     swipeStartY = null;
+    isHorizontalSwipe = false;
 
     // Ensure horizontal swipe is dominant over vertical scrolling
     if (
@@ -453,6 +474,10 @@ export function setupSwipeNavigation(
   host.addListener(container, "touchstart", onTouchStart);
   host.addListener(container, "touchend", onTouchEnd);
 
+  // touchmove needs { passive: false } to allow preventDefault().
+  // addListener doesn't support options, so register directly.
+  container.addEventListener("touchmove", onTouchMove, { passive: false });
+
   return {
     cancel() {
       if (currentAnimation) {
@@ -464,6 +489,8 @@ export function setupSwipeNavigation(
     destroy() {
       destroyed = true;
       this.cancel();
+      // touchmove was registered directly — clean it up here
+      container.removeEventListener("touchmove", onTouchMove);
       // Listeners are removed by host's cleanup (disconnectedCallback)
       // but mark state so callbacks become no-ops immediately.
       swipeStartX = null;

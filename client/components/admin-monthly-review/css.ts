@@ -24,7 +24,7 @@ export const styles = `
 
   .employee-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(40ch, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(40ch, 100%), 1fr));
     gap: var(--space-md);
   }
 
@@ -212,6 +212,9 @@ export const styles = `
     padding-top: var(--space-sm, 8px);
     --slide-offset: 16px;
     --duration-normal: 200ms;
+    /* Isolate touch: allow vertical scroll only; horizontal is handled by JS swipe */
+    touch-action: pan-y;
+    overscroll-behavior: contain;
   }
 
   @media (prefers-reduced-motion: reduce) {
