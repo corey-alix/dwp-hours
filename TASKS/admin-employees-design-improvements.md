@@ -24,6 +24,7 @@ Screenshot and shadow DOM captured via `pnpm screenshot /admin/employees admin@e
 10. **No delete confirmation differentiation** — The delete action uses a confirmation dialog (good).
 11. **CSS fallback values in page css.ts** — The page's `css.ts` uses hardcoded fallback values like `var(--space-md, 16px)` and `var(--color-primary, #007bff)`. Other pages have removed fallbacks since the design token system is established. These should be cleaned up for consistency.
 12. **month-summary margin uses `1em` instead of design token** — The `month-summary { margin-bottom: 1em; }` rule in the page's `css.ts` should use `var(--space-md)` instead of a hardcoded `1em` value.
+13. **Add-Employee form renders at top of page instead of near button** — When clicking the "Add Employee" button at the bottom of the page, the `<employee-form>` appears above the `<employee-list>` at the top, forcing the user to scroll up. The form should render just above the "Add Employee" button so the user stays in context.
 
 ## Checklist
 
@@ -182,6 +183,18 @@ Root cause: `BaseComponent.renderTemplate()` replaces all shadow DOM content via
 
 **Root cause discovery**: The `.employee-grid` has `overflow-y: auto` and `flex: 1`, but its parent chain (`:host { height: 100% }` → `<employee-list>` → `<admin-employees-page>` → `<main id="router-outlet">`) doesn't establish a fixed-height constraint. The `100%` height cascades up to an unconstrained parent, so the grid grows freely. The actual scroll container is the **document body/window**, not the grid. E2E test confirmed: `scrollHeight === clientHeight` on the grid (always 0 scroll).
 
+### Stage 14: Move Add-Employee Form Next to Add Button
+
+When clicking "Add Employee" at the bottom of the page, the `<employee-form>` renders above the `<employee-list>`, forcing the user to scroll back to the top to fill it in. The form should appear just above the "Add Employee" button so the user stays in context.
+
+Root cause: In `admin-employees-page/index.ts` `render()`, the `${this._showForm ? "<employee-form></employee-form>" : ""}` block is positioned before `<employee-list>` in the template. The "Add Employee" button is in a `.toolbar` div after `<employee-list>`.
+
+- [x] Move the `<employee-form>` block in `render()` from above `<employee-list>` to just above the `.toolbar` div (between `</employee-list>` and `<div class="toolbar">`)
+- [x] After `requestUpdate()` in the add-employee click handler, scroll the form into view so it's visible without manual scrolling (e.g., query `employee-form` in shadow DOM and call `scrollIntoView({ behavior: 'smooth', block: 'nearest' })`)
+- [x] Respect `prefers-reduced-motion`: use `behavior: 'auto'` instead of `'smooth'` when reduced motion is preferred
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+
 ## Implementation Notes
 
 - Page component: [client/pages/admin-employees-page/index.ts](../client/pages/admin-employees-page/index.ts) (324 lines)
@@ -213,6 +226,8 @@ Root cause: `BaseComponent.renderTemplate()` replaces all shadow DOM content via
 12. **WCAG touch target minimum** — 44×44px minimum for interactive elements. The current `space-xs` + `space-sm` padding on action buttons is below this threshold.
 13. **Skip auto-focus on mobile** — `window.matchMedia("(pointer: fine)")` distinguishes mouse/trackpad (desktop) from touch (mobile). Auto-focusing an input on mobile opens the on-screen keyboard immediately, which is disruptive. Only auto-focus on `pointer: fine` devices.
 14. **innerHTML re-render resets scroll — use screen coordinates, not container scroll** — `BaseComponent.renderTemplate()` replaces all shadow DOM via `innerHTML`. The `.employee-grid` has `overflow-y: auto` but is NOT actually a scroll container — `scrollHeight === clientHeight` because the flex/height chain doesn't constrain it. The real scroll container is the window/body. Don't manipulate `grid.scrollTop` (it's always 0). Instead: (1) capture `card.getBoundingClientRect().top` before re-render, (2) call `requestUpdate()` (synchronous), (3) read `editor.getBoundingClientRect().top` (forces layout before paint), (4) call `window.scrollBy(0, drift)`. This positions the editor at the card's exact screen location with <1px drift.
+
+15. **Add-Employee form position matters for UX** — The `render()` template in `admin-employees-page` places `<employee-form>` before `<employee-list>`. Moving it between `</employee-list>` and the `.toolbar` div puts it adjacent to the "Add Employee" button. After `requestUpdate()`, scroll the form into view with `scrollIntoView({ behavior: 'smooth', block: 'nearest' })` (use `behavior: 'auto'` for `prefers-reduced-motion`).
 
 ## Questions and Concerns
 
