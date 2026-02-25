@@ -22,6 +22,9 @@ Screenshot and shadow DOM captured via `pnpm screenshot /admin/pto-requests admi
 8. **No request grouping by employee** — When an employee has multiple pending requests, they're interleaved with other employees' requests. Grouping by employee (with the balance summary shown once per employee group) would reduce visual clutter and make the balance context more meaningful.
 9. **Card layout not mobile-first** — The component uses `flex-wrap: wrap` with `flex: 1 1 24em` for card layout. Other pages have been migrated to mobile-first CSS Grid with `@media (min-width: 768px)` breakpoints (Implementation Learning #8). The card layout should default to single-column on mobile and use a grid breakpoint for wider viewports.
 10. **No confirmation for approve/reject actions** — Clicking Approve or Reject immediately fires the action with no confirmation dialog. Accidental clicks could approve or reject the wrong request. A brief visual confirmation (e.g., a confirm/cancel state on the button) would help prevent mistakes.
+11. **Redundant "AVAIL" sub-labels** — Each PTO type balance in `<month-summary>` renders an "AVAIL" label below the value. Combined with the "AVAILABLE BALANCE" heading (added in Stage 2), this is redundant. The sub-labels should be removed.
+12. **Card fields render vertically** — The request card fields (Name, Date Range, Hours, Submitted) stack vertically at all viewport widths. They should use a responsive grid: 1-column on mobile, 2-column on medium, 4-column on desktop.
+13. **Individual cards for consecutive work days** — When an employee submits PTO for consecutive work days (e.g., Mon–Fri) of the same type, each day appears as a separate card. These should be aggregated client-side into a single card showing the date range and summed hours to reduce clutter.
 
 ## Checklist
 
@@ -110,6 +113,40 @@ Prevent accidental approvals or rejections with a brief confirmation step.
 - [x] Update Vitest tests for the conditional confirmation flow (confirm on negative balance, immediate on normal)
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
+
+### Stage 9: Remove Redundant "AVAIL" Labels
+
+The "AVAILABLE BALANCE" heading (from Stage 2) and the per-type "AVAIL" sub-labels inside `<month-summary>` are redundant. Remove the "AVAIL" sub-labels so only the heading provides context.
+
+- [ ] Remove or hide the "AVAIL" text that renders below each PTO type's available balance value inside the `<month-summary>` component (only in this page's context, or globally if appropriate)
+- [ ] Verify the "AVAILABLE BALANCE" heading still provides sufficient context without the sub-labels
+- [ ] `pnpm run build` passes
+- [ ] `pnpm run lint` passes
+
+### Stage 10: Responsive Card Field Grid Layout
+
+The request card fields (Name, Date Range, Hours, Submitted) currently render vertically. Use a responsive CSS Grid with breakpoints for 1-column, 2-column, and 4-column configurations.
+
+- [ ] Wrap the four card fields (Name, Date Range, Hours, Submitted) in a grid container
+- [ ] Default to `grid-template-columns: 1fr` (1-column) for mobile
+- [ ] Add `@media (min-width: 480px)` breakpoint for 2-column layout (`grid-template-columns: 1fr 1fr`)
+- [ ] Add `@media (min-width: 768px)` breakpoint for 4-column layout (`grid-template-columns: repeat(4, 1fr)`)
+- [ ] Verify layout at 375px, 600px, and 1024px viewport widths
+- [ ] `pnpm run build` passes
+- [ ] `pnpm run lint` passes
+
+### Stage 11: Aggregate Consecutive PTO Requests on Client
+
+On the client side, aggregate PTO request data so that records with the same employee, the same PTO type, and consecutive work days are collapsed into a single card showing a computed date range and summed PTO hours.
+
+- [ ] Implement a client-side aggregation function that groups requests by employee + PTO type + consecutive work days
+- [ ] Consecutive work days means Monday–Friday with no gaps (weekends are skipped but still considered consecutive; holidays are not considered)
+- [ ] Compute and display the aggregated date range (first day → last day) and total hours on a single card
+- [ ] Preserve individual request IDs so approve/reject actions apply to all aggregated requests in the group
+- [ ] When approving or rejecting an aggregated card, send actions for all underlying request IDs
+- [ ] Add Vitest tests for the aggregation logic: consecutive days, non-consecutive days, different PTO types, different employees, weekend-spanning ranges
+- [ ] `pnpm run build` passes
+- [ ] `pnpm run lint` passes
 
 ## Implementation Notes
 

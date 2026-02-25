@@ -8,7 +8,7 @@ import {
   type PTOType,
 } from "../../../shared/businessRules.js";
 import type { MonthSummary } from "../../components/month-summary/index.js";
-import { adoptToolbar } from "../../css-extensions/index.js";
+import { adoptAnimations, adoptToolbar } from "../../css-extensions/index.js";
 import { styles } from "./css.js";
 
 /**
@@ -31,6 +31,7 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
   connectedCallback() {
     super.connectedCallback();
     adoptToolbar(this.shadowRoot);
+    adoptAnimations(this.shadowRoot);
   }
 
   async onRouteEnter(
@@ -74,7 +75,6 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
     return `
       ${styles}
       <h2 class="page-heading">Employee Management</h2>
-      ${this._showForm ? "<employee-form></employee-form>" : ""}
       <employee-list>
         ${this._employees
           .map(
@@ -91,6 +91,7 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
           )
           .join("")}
       </employee-list>
+      ${this._showForm ? '<employee-form class="anim-slide-down-in"></employee-form>' : ""}
       <div class="toolbar">
         <button class="add-btn" data-action="add-employee">${buttonLabel}</button>
       </div>
@@ -310,6 +311,18 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
       requestAnimationFrame(() => {
         this.populateList();
         this.hydrateBalanceSummaries();
+        if (this._showForm) {
+          const form = this.shadowRoot.querySelector("employee-form");
+          if (form) {
+            const prefersReducedMotion = window.matchMedia(
+              "(prefers-reduced-motion: reduce)",
+            ).matches;
+            form.scrollIntoView({
+              behavior: prefersReducedMotion ? "auto" : "smooth",
+              block: "nearest",
+            });
+          }
+        }
       });
     }
   }
