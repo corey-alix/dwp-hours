@@ -264,30 +264,30 @@ Reference layout from `TASKS/Spreadsheet tweaks.md` § Cover Sheet Tab.
 | Negative PTO flag           | O6:O…    | N    | Mild red bg if < 0    |
 | High PTO flag               | P6:P…    | N    | Mild green bg if ≥ 80 |
 
-- [ ] Create `writeCoverSheet(ws, data)` function in `excelReport.ts`
-- [ ] **Title (B2:N3)**: Write "Summary of PTO Hours" merged across B2:N3 (bold, 14pt)
-- [ ] **Month headers (C5:N5)**: Write "January YYYY" through "December YYYY" in columns C–N row 5
-- [ ] **Flag headers**: Write "Negative PTO Hours" in O3:O4 with mild red background; write "Amount of PTO Hours of 80" in P3:P4 with mild green background
-- [ ] **Employee rows (row 6+)**: For each employee, write name in column B and each month's remaining PTO balance in columns C–N
-- [ ] **Negative PTO highlighting**: If any month's remaining balance is negative, apply mild red fill to that employee's cell in column O
-- [ ] **High PTO highlighting**: If any month's remaining balance is ≥ 80, apply mild green fill to that employee's cell in column P
-- [ ] Call `writeCoverSheet()` in `generateExcelReport()` before creating employee sheets, so the cover sheet is the first tab
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] Create `writeCoverSheet(ws, data)` function in `excelReport.ts`
+- [x] **Title (B2:N3)**: Write "Summary of PTO Hours" merged across B2:N3 (bold, 14pt)
+- [x] **Month headers (C5:N5)**: Write "January YYYY" through "December YYYY" in columns C–N row 5
+- [x] **Flag headers**: Write "Negative PTO Hours" in O3:O4 with mild red background; write "Amount of PTO Hours of 80" in P3:P4 with mild green background
+- [x] **Employee rows (row 6+)**: For each employee, write name in column B and each month's remaining PTO balance in columns C–N
+- [x] **Negative PTO highlighting**: If any month's remaining balance is negative, apply mild red fill to that employee's cell in column O
+- [x] **High PTO highlighting**: If any month's remaining balance is ≥ 80, apply mild green fill to that employee's cell in column P
+- [x] Call `writeCoverSheet()` in `generateExcelReport()` before creating employee sheets, so the cover sheet is the first tab
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 **Validation**: Opening the `.xlsx` shows the cover sheet as the first tab with all employees listed, monthly balances populated, and negative/high balance flags correctly highlighted.
 
 ### Phase 15 — Cover Sheet Testing
 
-- [ ] Vitest unit test: cover sheet is the first worksheet
-- [ ] Vitest unit test: title cell contains "Summary of PTO Hours"
-- [ ] Vitest unit test: month headers span January–December for the report year
-- [ ] Vitest unit test: employee names appear in column B starting at row 6
-- [ ] Vitest unit test: monthly remaining balances are correct per employee
-- [ ] Vitest unit test: negative balance triggers mild red fill in column O
-- [ ] Vitest unit test: balance ≥ 80 triggers mild green fill in column P
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] Vitest unit test: cover sheet is the first worksheet
+- [x] Vitest unit test: title cell contains "Summary of PTO Hours"
+- [x] Vitest unit test: month headers span January–December for the report year
+- [x] Vitest unit test: employee names appear in column B starting at row 6
+- [x] Vitest unit test: monthly remaining balances are correct per employee
+- [x] Vitest unit test: negative balance triggers mild red fill in column O
+- [x] Vitest unit test: balance ≥ 80 triggers mild green fill in column P
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 
 **Validation**: All cover sheet unit tests pass; manual review confirms summary tab is accurate.
 

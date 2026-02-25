@@ -130,7 +130,8 @@ describe("Excel Report Generator", () => {
 
     const workbook = await loadWorkbook(buffer);
 
-    expect(workbook.worksheets.length).toBe(2);
+    // 1 cover sheet + 2 employee sheets
+    expect(workbook.worksheets.length).toBe(3);
   });
 
   it("should name worksheets after employees", async () => {
@@ -140,6 +141,7 @@ describe("Excel Report Generator", () => {
     const workbook = await loadWorkbook(buffer);
 
     const names = workbook.worksheets.map((ws) => ws.name);
+    expect(names[0]).toBe("Cover Sheet");
     expect(names).toContain("Alice Smith");
     expect(names).toContain("Bob Jones");
   });
@@ -386,8 +388,8 @@ describe("Excel Report Generator", () => {
     // January (row 43) acknowledged → checkmark
     const janEmpAck = ws.getCell(43, 24).value;
     expect(janEmpAck).toBe("✓");
-    // February (row 44) not acknowledged → initials
-    expect(ws.getCell(44, 24).value).toBe("AS");
+    // February (row 44) not acknowledged → empty
+    expect(ws.getCell(44, 24).value).toBeNull();
   });
 
   it("should write admin acknowledgements", async () => {
@@ -397,10 +399,10 @@ describe("Excel Report Generator", () => {
     const workbook = await loadWorkbook(buffer);
 
     const ws = workbook.getWorksheet("Alice Smith")!;
-    // January (row 43) should have "Mandi"
-    expect(ws.getCell(43, 25).value).toBe("Mandi");
-    // February (row 44) should have dash
-    expect(ws.getCell(44, 25).value).toBe("—");
+    // January (row 43) should have checkmark
+    expect(ws.getCell(43, 25).value).toBe("✓");
+    // February (row 44) not acknowledged → empty
+    expect(ws.getCell(44, 25).value).toBeNull();
   });
 
   it("should handle empty employee list with a placeholder sheet", async () => {
@@ -409,6 +411,7 @@ describe("Excel Report Generator", () => {
 
     const workbook = await loadWorkbook(buffer);
 
+    // No cover sheet when no employees, just the placeholder
     expect(workbook.worksheets.length).toBe(1);
     expect(workbook.worksheets[0].name).toBe("No Data");
     const value = workbook.worksheets[0].getCell("A1").value as string;
@@ -428,7 +431,7 @@ describe("Excel Report Generator", () => {
 
     // Load the re-written buffer
     const workbook2 = await loadWorkbook(Buffer.from(buffer2));
-    expect(workbook2.worksheets.length).toBe(2);
+    expect(workbook2.worksheets.length).toBe(3);
   });
 
   it("should hide grid lines on worksheets", async () => {
@@ -460,5 +463,162 @@ describe("Excel Report Generator", () => {
     // Row 34: Sick Hours Remaining
     expect(ws.getCell(34, 25).value).toBe("Sick Hours Remaining");
     expect(ws.getCell(34, 28).value).toBe(16);
+  });
+});
+
+describe("Excel Report - Cover Sheet", () => {
+  it("should be the first worksheet", async () => {
+    const data = makeReportData();
+    const buffer = await generateExcelReport(data);
+    const workbook = await loadWorkbook(buffer);
+
+    expect(workbook.worksheets[0].name).toBe("Cover Sheet");
+  });
+
+  it("should have title 'Summary of PTO Hours' in B2", async () => {
+    const data = makeReportData();
+    const buffer = await generateExcelReport(data);
+    const workbook = await loadWorkbook(buffer);
+
+    const ws = workbook.getWorksheet("Cover Sheet")!;
+    expect(ws.getCell(2, 2).value).toBe("Summary of PTO Hours");
+  });
+
+  it("should have month headers spanning January–December for the report year", async () => {
+    const data = makeReportData();
+    const buffer = await generateExcelReport(data);
+    const workbook = await loadWorkbook(buffer);
+
+    const ws = workbook.getWorksheet("Cover Sheet")!;
+    expect(ws.getCell(5, 3).value).toBe("January 2025");
+    expect(ws.getCell(5, 14).value).toBe("December 2025");
+    // Spot-check a middle month
+    expect(ws.getCell(5, 8).value).toBe("June 2025");
+  });
+
+  it("should list employee names in column B starting at row 6", async () => {
+    const data = makeReportData();
+    const buffer = await generateExcelReport(data);
+    const workbook = await loadWorkbook(buffer);
+
+    const ws = workbook.getWorksheet("Cover Sheet")!;
+    expect(ws.getCell(6, 2).value).toBe("Alice Smith");
+    expect(ws.getCell(7, 2).value).toBe("Bob Jones");
+  });
+
+  it("should write monthly remaining balances for each employee", async () => {
+    const data = makeReportData();
+    const buffer = await generateExcelReport(data);
+    const workbook = await loadWorkbook(buffer);
+
+    const ws = workbook.getWorksheet("Cover Sheet")!;
+    // Alice January remaining = 23.62 (column C, row 6)
+    expect(ws.getCell(6, 3).value).toBe(23.62);
+    // Alice February remaining = 31.24
+    expect(ws.getCell(6, 4).value).toBe(31.24);
+    // Bob January remaining = 14.3
+    expect(ws.getCell(7, 3).value).toBe(14.3);
+  });
+
+  it("should show negative value with red fill in column O for negative final balance", async () => {
+    // Create employee whose December balance is negative
+    const data = makeReportData({
+      employees: [
+        {
+          ...makeReportData().employees[0],
+          name: "Negative Nancy",
+          ptoCalculation: Array.from({ length: 12 }, (_, i) => ({
+            month: i + 1,
+            monthName: [
+              "January",
+              "February",
+              "March",
+              "April",
+              "May",
+              "June",
+              "July",
+              "August",
+              "September",
+              "October",
+              "November",
+              "December",
+            ][i],
+            workDays: 22,
+            dailyRate: 0.71,
+            accruedHours: 15.62,
+            carryover: 0,
+            subtotal: 15.62,
+            usedHours: i === 11 ? 20 : 0,
+            remainingBalance: i === 11 ? -4.38 : 15.62,
+          })),
+        },
+      ],
+    });
+    const buffer = await generateExcelReport(data);
+    const workbook = await loadWorkbook(buffer);
+
+    const ws = workbook.getWorksheet("Cover Sheet")!;
+    const negCell = ws.getCell(6, 15);
+    expect(negCell.value).toBe(-4.38);
+    const fill = negCell.fill as ExcelJS.FillPattern;
+    expect(fill.fgColor?.argb).toBe("FFFCE4EC");
+  });
+
+  it("should show excess over 80 with green fill in column P for final balance > 80", async () => {
+    const data = makeReportData({
+      employees: [
+        {
+          ...makeReportData().employees[0],
+          name: "Rich Rick",
+          ptoCalculation: Array.from({ length: 12 }, (_, i) => ({
+            month: i + 1,
+            monthName: [
+              "January",
+              "February",
+              "March",
+              "April",
+              "May",
+              "June",
+              "July",
+              "August",
+              "September",
+              "October",
+              "November",
+              "December",
+            ][i],
+            workDays: 22,
+            dailyRate: 0.71,
+            accruedHours: 15.62,
+            carryover: 80,
+            subtotal: 95.62,
+            usedHours: 0,
+            remainingBalance: 95.62,
+          })),
+        },
+      ],
+    });
+    const buffer = await generateExcelReport(data);
+    const workbook = await loadWorkbook(buffer);
+
+    const ws = workbook.getWorksheet("Cover Sheet")!;
+    const highCell = ws.getCell(6, 16);
+    expect(highCell.value).toBe(15.62);
+    const fill = highCell.fill as ExcelJS.FillPattern;
+    expect(fill.fgColor?.argb).toBe("FFE8F5E9");
+  });
+
+  it("should leave columns O and P blank when balance is normal", async () => {
+    const data = makeReportData();
+    const buffer = await generateExcelReport(data);
+    const workbook = await loadWorkbook(buffer);
+
+    const ws = workbook.getWorksheet("Cover Sheet")!;
+    // Alice final balance is 31.24 — neither negative nor > 80
+    expect(ws.getCell(6, 15).value).toBeNull();
+    expect(ws.getCell(6, 16).value).toBeNull();
+    const negFill = ws.getCell(6, 15).fill as ExcelJS.FillPattern;
+    const highFill = ws.getCell(6, 16).fill as ExcelJS.FillPattern;
+    expect(negFill.fgColor?.argb).toBeUndefined();
+    expect(highFill.fgColor?.argb).toBeUndefined();
   });
 });

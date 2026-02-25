@@ -674,6 +674,135 @@ function writeAcknowledgements(
   }
 }
 
+// ── Cover Sheet ──
+
+/**
+ * Write a summary "Cover Sheet" as the first worksheet in the workbook.
+ *
+ * Layout:
+ *   B2:N3  – "Summary of PTO Hours" (bold, 14pt, merged)
+ *   C5:N5  – Month column headers ("January YYYY" … "December YYYY")
+ *   O3:O4  – "Negative PTO Hours" header (mild red background)
+ *   P3:P4  – "Amount of PTO Hours of 80" header (mild green background)
+ *   B6+    – Employee name per row
+ *   C6:N6+ – Monthly remaining PTO balance per employee
+ *   O6+    – Mild red fill if any month's balance < 0
+ *   P6+    – Mild green fill if any month's balance ≥ 80
+ */
+function writeCoverSheet(ws: ExcelJS.Worksheet, data: ReportData): void {
+  const year = data.year;
+
+  // ── Column widths ──
+  ws.getColumn(1).width = 2; // gutter
+  ws.getColumn(2).width = 24; // employee name
+  for (let c = 3; c <= 14; c++) {
+    ws.getColumn(c).width = 12; // month columns
+  }
+  ws.getColumn(15).width = 18; // Negative PTO flag
+  ws.getColumn(16).width = 26; // High PTO flag
+
+  // ── Title (B2:N3) ──
+  const titleCell = ws.getCell(2, 2);
+  titleCell.value = "Summary of PTO Hours";
+  titleCell.font = { bold: true, size: 14, name: "Calibri" };
+  titleCell.alignment = { horizontal: "center", vertical: "middle" };
+  ws.mergeCells(2, 2, 3, 14);
+
+  // ── Flag headers ──
+  const NEG_RED_FILL: ExcelJS.FillPattern = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FFFCE4EC" }, // mild red
+  };
+  const HIGH_GREEN_FILL: ExcelJS.FillPattern = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FFE8F5E9" }, // mild green
+  };
+
+  const negHeader = ws.getCell(3, 15);
+  negHeader.value = "Negative PTO Hours";
+  negHeader.font = { bold: true, size: 10, name: "Calibri" };
+  negHeader.fill = NEG_RED_FILL;
+  negHeader.alignment = {
+    horizontal: "center",
+    vertical: "middle",
+    wrapText: true,
+  };
+  negHeader.border = THIN_BORDER;
+  ws.mergeCells(3, 15, 4, 15);
+
+  const highHeader = ws.getCell(3, 16);
+  highHeader.value = "Amount of PTO Hours of 80";
+  highHeader.font = { bold: true, size: 10, name: "Calibri" };
+  highHeader.fill = HIGH_GREEN_FILL;
+  highHeader.alignment = {
+    horizontal: "center",
+    vertical: "middle",
+    wrapText: true,
+  };
+  highHeader.border = THIN_BORDER;
+  ws.mergeCells(3, 16, 4, 16);
+
+  // ── Month headers (row 5, columns C–N) ──
+  for (let m = 0; m < 12; m++) {
+    const col = 3 + m; // C=3 … N=14
+    const cell = ws.getCell(5, col);
+    cell.value = `${MONTH_NAMES[m]} ${year}`;
+    cell.font = { bold: true, size: 10, name: "Calibri" };
+    cell.alignment = { horizontal: "center" };
+    cell.border = THIN_BORDER;
+  }
+
+  // ── Employee rows (starting at row 6) ──
+  for (let i = 0; i < data.employees.length; i++) {
+    const emp = data.employees[i];
+    const row = 6 + i;
+
+    // Employee name (column B)
+    const nameCell = ws.getCell(row, 2);
+    nameCell.value = emp.name;
+    nameCell.font = { bold: true, size: 11, name: "Calibri" };
+    nameCell.border = THIN_BORDER;
+
+    // Monthly remaining balances (columns C–N)
+    let finalBalance = 0;
+    for (let m = 0; m < 12; m++) {
+      const col = 3 + m;
+      const calcRow = emp.ptoCalculation.find((c) => c.month === m + 1);
+      const remaining = calcRow ? calcRow.remainingBalance : 0;
+
+      const cell = ws.getCell(row, col);
+      cell.value = Math.round(remaining * 100) / 100;
+      cell.numFmt = "0.00";
+      cell.alignment = { horizontal: "center" };
+      cell.border = THIN_BORDER;
+
+      finalBalance = remaining;
+    }
+
+    // Negative PTO Hours (column O): show value if < 0, blank otherwise
+    const negCell = ws.getCell(row, 15);
+    negCell.border = THIN_BORDER;
+    if (finalBalance < 0) {
+      negCell.value = Math.round(finalBalance * 100) / 100;
+      negCell.numFmt = "0.00";
+      negCell.alignment = { horizontal: "center" };
+      negCell.fill = NEG_RED_FILL;
+    }
+
+    // Amount of PTO Hours of 80 (column P): show excess over 80 if > 80, blank otherwise
+    const highCell = ws.getCell(row, 16);
+    highCell.border = THIN_BORDER;
+    if (finalBalance > 80) {
+      highCell.value = Math.round((finalBalance - 80) * 100) / 100;
+      highCell.numFmt = "0.00";
+      highCell.alignment = { horizontal: "center" };
+      highCell.fill = HIGH_GREEN_FILL;
+    }
+  }
+}
+
 // ── Public API ──
 
 /**
@@ -683,6 +812,14 @@ export async function generateExcelReport(data: ReportData): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "DWP Hours Tracker";
   workbook.created = new Date(data.generatedAt);
+
+  // Cover sheet first (summary of all employees)
+  if (data.employees.length > 0) {
+    const coverWs = workbook.addWorksheet("Cover Sheet", {
+      views: [{ showGridLines: false }],
+    });
+    writeCoverSheet(coverWs, data);
+  }
 
   for (const emp of data.employees) {
     // Excel sheet name limit: 31 characters, no special chars
