@@ -64,6 +64,7 @@ export const styles = `
     font-weight: 500;
     cursor: pointer;
     transition: background-color 0.3s ease;
+    white-space: normal;
   }
 
   .acknowledge-btn:hover {
@@ -108,6 +109,7 @@ export const styles = `
     font-weight: 500;
     cursor: pointer;
     transition: background-color 0.3s ease;
+    white-space: normal;
   }
 
   .view-calendar-btn:hover {
@@ -116,10 +118,7 @@ export const styles = `
   }
 
   .toolbar {
-    display: flex;
-    gap: var(--space-sm, 8px);
     margin-top: var(--space-md, 16px);
-    flex-wrap: wrap;
   }
 
   .employee-card.has-activity {

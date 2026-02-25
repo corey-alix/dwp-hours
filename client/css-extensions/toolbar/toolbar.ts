@@ -6,16 +6,24 @@ export const toolbarCSS = `
   /* ── Toolbar layout ── */
 
   .toolbar {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    align-items: stretch;
     padding: var(--space-sm, 8px) var(--space-md, 16px);
     gap: var(--space-sm, 8px);
   }
 
+  .toolbar > * {
+    min-width: 0;
+    white-space: normal;
+    word-wrap: break-word;
+    text-align: center;
+  }
+
   @media (min-width: 768px) {
     .toolbar {
-      justify-content: flex-end;
+      grid-template-columns: repeat(auto-fit, minmax(120px, auto));
+      justify-content: end;
     }
   }
 
