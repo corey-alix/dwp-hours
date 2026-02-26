@@ -734,7 +734,15 @@ describe("Excel Import", () => {
       expect(parseHoursFromNote("2.5 hr")).toBe(2.5);
     });
 
-    it("should return undefined for non-hour notes", () => {
+    it("should extract first number from note text regardless of unit suffix", () => {
+      expect(parseHoursFromNote("Mandi Davenport:\n2 HRS PTO")).toBe(2);
+      expect(parseHoursFromNote("Mandi Davenport:\n5 HRS PTO")).toBe(5);
+      expect(parseHoursFromNote("3")).toBe(3);
+      expect(parseHoursFromNote("1.5h")).toBe(1.5);
+      expect(parseHoursFromNote("Author:\n1.1 hours of PTO")).toBe(1.1);
+    });
+
+    it("should return undefined for notes without numbers", () => {
       expect(parseHoursFromNote("some other text")).toBeUndefined();
       expect(parseHoursFromNote("")).toBeUndefined();
     });
@@ -910,6 +918,51 @@ describe("Excel Import", () => {
         );
         const janTotal = janEntries.reduce((sum, e) => sum + e.hours, 0);
         expect(janTotal).toBe(24.5);
+      });
+
+      it("should extract hours from cell notes for July 25-27 partial PTO", () => {
+        const result = parseEmployeeSheet(ws, themeColors);
+
+        // M27 (July 25): note "Mandi Davenport:\n2 HRS PTO" → 2h
+        const jul25 = result.ptoEntries.find((e) => e.date === "2018-07-25");
+        expect(jul25).toBeDefined();
+        expect(jul25!.hours).toBe(2);
+        expect(jul25!.type).toBe("PTO");
+        expect(jul25!.notes).toContain("2 HRS PTO");
+
+        // N27 (July 26): note "Mandi Davenport:\n5 HRS PTO" → 5h
+        const jul26 = result.ptoEntries.find((e) => e.date === "2018-07-26");
+        expect(jul26).toBeDefined();
+        expect(jul26!.hours).toBe(5);
+        expect(jul26!.type).toBe("PTO");
+        expect(jul26!.notes).toContain("5 HRS PTO");
+
+        // O27 (July 27): note "Mandi Davenport:\n5 HRS PTO" → 5h
+        const jul27 = result.ptoEntries.find((e) => e.date === "2018-07-27");
+        expect(jul27).toBeDefined();
+        expect(jul27!.hours).toBe(5);
+        expect(jul27!.type).toBe("PTO");
+        expect(jul27!.notes).toContain("5 HRS PTO");
+      });
+
+      it("should produce correct July total of 12h (2+5+5)", () => {
+        const result = parseEmployeeSheet(ws, themeColors);
+
+        const julyEntries = result.ptoEntries.filter((e) =>
+          e.date.startsWith("2018-07-"),
+        );
+        const julyTotal = julyEntries.reduce((sum, e) => sum + e.hours, 0);
+        expect(julyTotal).toBe(12);
+      });
+
+      it("should default to 8h for cells without notes", () => {
+        const result = parseEmployeeSheet(ws, themeColors);
+
+        // January full PTO days should still be 8h each
+        const janFullDays = result.ptoEntries.filter(
+          (e) => e.date.startsWith("2018-01-") && e.hours === 8,
+        );
+        expect(janFullDays.length).toBeGreaterThanOrEqual(3);
       });
     },
   );

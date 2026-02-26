@@ -105,6 +105,8 @@ SESSION=$(curl -s "http://localhost:$PORT/api/auth/validate?token=$TOKEN" \
 
 | Method | Endpoint                                  | Description                                             |
 | ------ | ----------------------------------------- | ------------------------------------------------------- |
+| GET    | `/api/employees`                          | List all employees (sorted by name)                     |
+| GET    | `/api/employees/:id`                      | Get a single employee by ID                             |
 | GET    | `/api/admin/monthly-review/:month`        | Get all employees' data for a month (format: `YYYY-MM`) |
 | GET    | `/api/admin/pto`                          | Get all employees' PTO entries                          |
 | GET    | `/api/admin/report?year=YYYY`             | Generate annual report data                             |
@@ -118,6 +120,72 @@ SESSION=$(curl -s "http://localhost:$PORT/api/auth/validate?token=$TOKEN" \
 | ------ | --------------------------- | ---------------------------- | --------------------- |
 | POST   | `/api/test/seed`            | Seed database with test data | `x-test-seed: true`   |
 | POST   | `/api/test/reload-database` | Reload database from disk    | `x-test-reload: true` |
+
+## Employee Listing
+
+List all employees or look up a single employee by ID. Both endpoints require admin authentication.
+
+### List All Employees
+
+```bash
+curl -s "http://localhost:$PORT/api/employees" \
+  -H "Cookie: auth_hash=$ADMIN_SESSION" | python3 -m json.tool
+```
+
+### Get Single Employee by ID
+
+```bash
+curl -s "http://localhost:$PORT/api/employees/4" \
+  -H "Cookie: auth_hash=$ADMIN_SESSION" | python3 -m json.tool
+```
+
+### List Response Pattern
+
+Returns an array of employees sorted by name (camelCase fields):
+
+```json
+[
+  {
+    "id": 13,
+    "name": "A Campbell",
+    "identifier": "a-campbell@example.com",
+    "ptoRate": 0.71,
+    "carryoverHours": 43.53,
+    "hireDate": "2015-08-19",
+    "role": "Employee"
+  }
+]
+```
+
+### Single Employee Response Pattern
+
+Returns a single employee object (snake_case fields):
+
+```json
+{
+  "id": 4,
+  "name": "a-bylenga@example.com",
+  "identifier": "a-bylenga@example.com",
+  "pto_rate": 0.74,
+  "carryover_hours": 48.07,
+  "hire_date": "2026-02-25",
+  "role": "Employee"
+}
+```
+
+**Note:** The list endpoint returns camelCase fields (serialized) while the single-employee endpoint returns snake_case fields (raw entity). Filter results with tools like `python3` or `jq`:
+
+```bash
+# Find a specific employee by name
+curl -s "http://localhost:$PORT/api/employees" \
+  -H "Cookie: auth_hash=$ADMIN_SESSION" \
+  | python3 -c "
+import sys,json
+for emp in json.load(sys.stdin):
+    if 'bylenga' in emp['name'].lower():
+        json.dump(emp, sys.stdout, indent=2); print()
+"
+```
 
 ## Database Seeding
 
@@ -276,6 +344,31 @@ curl -s -X POST http://localhost:$PORT/api/admin/import-excel \
   }
 ]
 ```
+
+### PTO Entries Response (`GET /api/admin/pto`)
+
+Returns an array of all PTO entries across all employees (camelCase fields):
+
+```json
+[
+  {
+    "id": 403,
+    "employeeId": 12,
+    "date": "2018-07-27",
+    "type": "PTO",
+    "hours": 8,
+    "createdAt": "2026-02-26T01:15:11.000Z",
+    "approved_by": null,
+    "notes": null
+  }
+]
+```
+
+**Notes:**
+
+- The `notes` field contains import reconciliation reasoning or cell note text (often `null`)
+- Filter by `employeeId` and `date` prefix to find entries for a specific employee and month
+- The `type` field is one of: `"PTO"`, `"Sick"`, `"Bereavement"`, `"Jury Duty"`
 
 ### Hours Response (`GET /api/hours?year=YYYY`)
 

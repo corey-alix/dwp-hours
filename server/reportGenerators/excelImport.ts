@@ -257,10 +257,12 @@ export function extractCellNoteText(cell: ExcelJS.Cell): string {
 
 /**
  * Try to parse hours from a note string.
- * Handles formats like ".5 hrs", "0.5 hrs", "4 hours", "4h", etc.
+ * Extracts the first number (integer or decimal) found in the text.
+ * Handles formats like ".5 hrs", "0.5 hrs", "4 hours", "2 HRS PTO",
+ * "1.5h", "3", etc. — only the first numeric value matters.
  */
 export function parseHoursFromNote(note: string): number | undefined {
-  const match = note.match(/(\d*\.?\d+)\s*(?:hrs?|hours?)\b/i);
+  const match = note.match(/(\d+(?:\.\d+)?|\.\d+)/);
   if (match) {
     const val = parseFloat(match[1]);
     if (!isNaN(val) && val > 0) return val;
@@ -548,12 +550,6 @@ export function parseCalendarGrid(
           const noteHours = parseHoursFromNote(noteText);
           if (noteHours !== undefined) {
             hours = noteHours;
-          } else {
-            // Legacy format: "Author:\nNh" or similar
-            const legacyMatch = noteText.match(/:\s*(\d+(?:\.\d+)?)h/i);
-            if (legacyMatch) {
-              hours = parseFloat(legacyMatch[1]);
-            }
           }
         }
         const entry: ImportedPtoEntry = { date: dateStr, type: ptoType, hours };

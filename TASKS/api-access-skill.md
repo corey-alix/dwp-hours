@@ -34,12 +34,19 @@ Create a specialized agent skill that documents how to authenticate with and que
 - [x] Document the full flow: seed → authenticate as admin → import Excel
 - [x] Verify import of `reports/2018.xlsx` succeeds (66 employees, 2396 PTO entries)
 
-### Phase 4: Copilot Instructions Integration
+### Phase 4: Employee Listing
+
+- [x] Document `GET /api/employees` endpoint (admin auth, returns all employees sorted by name)
+- [x] Document `GET /api/employees/:id` endpoint (admin auth, returns single employee)
+- [x] Document response shape differences (list uses camelCase, single uses snake_case)
+- [x] Include filtering example with python3
+
+### Phase 5: Copilot Instructions Integration
 
 - [ ] Register the skill in `.github/copilot-instructions.md` skills list
 - [ ] Verify skill triggers work with example queries
 
-### Phase 5: Validation
+### Phase 6: Validation
 
 - [ ] Test authentication flow against running server
 - [ ] Verify documented endpoints match current server routes

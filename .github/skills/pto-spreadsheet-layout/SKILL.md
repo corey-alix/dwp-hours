@@ -144,6 +144,19 @@ This skill integrates with the data-migration task and provides foundational kno
   - September: 4 PTO days
   - Other months: Varies by employee schedule
 
+### Calendar Cell Notes (Comments)
+
+- **Format**: Excel cell notes (comments) with rich text, typically containing the author name in bold followed by a newline and the note content
+- **Structure**: `{texts: [{font: {bold: true, ...}, text: "Author Name:"}, {font: {...}, text: "\nNote content"}]}`
+- **Common usage**: Partial PTO cells (`FFFFC000` fill) often have notes specifying actual hours taken when less than a full 8-hour day
+- **Examples from "A Bylenga" sheet in `reports/2018.xlsx`**:
+  - M27 (July 25): `"Mandi Davenport:\n2 HRS PTO"` — 2 hours PTO
+  - N27 (July 26): `"Mandi Davenport:\n5 HRS PTO"` — 5 hours PTO
+  - O27 (July 27): `"Mandi Davenport:\n5 HRS PTO"` — 5 hours PTO
+- **Hours pattern**: Note text typically matches `/^(\d+(?:\.\d+)?)\s*(?:hrs?|hours?)\s+(?:pto|sick|bereavement)/i`
+- **Access via ExcelJS**: Use `cell.note` property; for rich text notes, concatenate `cell.note.texts[].text` to get the full display string
+- **Known bug**: The importer currently ignores notes on color-matched cells, defaulting to 8h per entry instead of reading the actual hours from the note. See `TASKS/legacy-data-import.md` Known Issues.
+
 ### Known Layout Anomalies
 
 - **Row offset in legacy spreadsheets**: Some employee sheets have extra blank rows inserted within a single month's calendar area, shifting the date array formula down by 1 (or more) rows. This is a per-sheet, per-month anomaly — other months on the same sheet and other employee sheets are unaffected.
