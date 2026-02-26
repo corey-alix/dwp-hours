@@ -188,6 +188,13 @@ The prompt sent to the AI should include:
 ## Questions and Concerns
 
 1. Which AI provider should be the default? OpenAI GPT-4o is assumed, but the implementation should be provider-agnostic (configurable URL + API key).
+   ANS: I will provide an API key for xAI
+
 2. Should the AI reconciliation run automatically during bulk import, or only via the manual admin endpoint? Current spec does both, with auto-reconciliation gated behind `AI_API_KEY` being set.
+   ANS: For testing purposes, let's first invoke it from the command line after an import. The imported data will have status="warning" entries, and we can use those as triggers to do further research. So we invoke from the command line after an import, and when the results seem to be good, we will integrate into the API
+
 3. Rate limiting: if importing 68 employee sheets with multiple months each, the AI may be called dozens of times. Should there be a concurrency limit or batch delay?
+   ANS: Yes, just do a single employee and stop until the process has proven itself. In fact, in the beginning just console log the prompt and I will paste it into a browser-based AI to tweak the prompt as-needed. So initially, _no_ API actually gets invoked, just a stub method that logs the prompt to the console.
+
 4. Cost tracking: should we log the number of AI API calls and estimated token usage for billing awareness?
+   ANS: Absolutely, log the entire conversation history, what was asked, what was answered.

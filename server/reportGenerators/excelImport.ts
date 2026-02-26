@@ -442,11 +442,19 @@ export interface WorkedCell {
   note: string;
 }
 
+/** Info about a calendar cell with a non-legend fill color and no note. */
+export interface UnmatchedColoredCell {
+  date: string;
+  color: string; // Resolved ARGB string
+  note: string; // May be empty
+}
+
 /** Result of parsing the calendar grid. */
 export interface CalendarParseResult {
   entries: ImportedPtoEntry[];
   unmatchedNotedCells: UnmatchedNotedCell[];
   workedCells: WorkedCell[];
+  unmatchedColoredCells: UnmatchedColoredCell[];
   warnings: string[];
 }
 
@@ -497,6 +505,7 @@ export function parseCalendarGrid(
   const entries: ImportedPtoEntry[] = [];
   const unmatchedNotedCells: UnmatchedNotedCell[] = [];
   const workedCells: WorkedCell[] = [];
+  const unmatchedColoredCells: UnmatchedColoredCell[] = [];
   const warnings: string[] = [];
 
   for (let month = 1; month <= 12; month++) {
@@ -640,22 +649,49 @@ export function parseCalendarGrid(
         } else {
           // Cell has a note but no color match — save for reconciliation
           unmatchedNotedCells.push({ date: dateStr, note: noteText });
+          // Also track as unmatched colored cell if it has a non-white fill
+          if (fill?.type === "pattern") {
+            const cellArgb =
+              resolveColorToARGB(fill.fgColor as any, themeColors) ||
+              resolveColorToARGB(fill.bgColor as any, themeColors);
+            if (
+              cellArgb &&
+              cellArgb !== "FFFFFFFF" &&
+              cellArgb !== "FF000000"
+            ) {
+              unmatchedColoredCells.push({
+                date: dateStr,
+                color: cellArgb,
+                note: noteText,
+              });
+            }
+          }
         }
-      } else if (fill?.type === "pattern" && (dow === 0 || dow === 6)) {
-        // Non-legend-colored weekend cell without notes — potential worked day
+      } else if (fill?.type === "pattern") {
+        // Non-legend-colored cell without notes
         const cellArgb =
           resolveColorToARGB(fill.fgColor as any, themeColors) ||
           resolveColorToARGB(fill.bgColor as any, themeColors);
         if (cellArgb && cellArgb !== "FFFFFFFF" && cellArgb !== "FF000000") {
-          workedCells.push({
-            date: dateStr,
-            note: `(inferred weekend work from cell color ${cellArgb})`,
-          });
-          const monthName = MONTH_NAMES[month - 1];
-          warnings.push(
-            `Sheet "${ws.name}" ${monthName}: non-legend colored weekend cell ` +
-              `on ${dateStr} (color=${cellArgb}). Treating as potential weekend work.`,
-          );
+          if (dow === 0 || dow === 6) {
+            // Weekend cell — potential worked day
+            workedCells.push({
+              date: dateStr,
+              note: `(inferred weekend work from cell color ${cellArgb})`,
+            });
+            const monthName = MONTH_NAMES[month - 1];
+            warnings.push(
+              `Sheet "${ws.name}" ${monthName}: non-legend colored weekend cell ` +
+                `on ${dateStr} (color=${cellArgb}). Treating as potential weekend work.`,
+            );
+          } else {
+            // Weekday cell with unrecognized color — track for Phase 13 reconciliation
+            unmatchedColoredCells.push({
+              date: dateStr,
+              color: cellArgb,
+              note: "",
+            });
+          }
         }
       }
 
@@ -668,7 +704,13 @@ export function parseCalendarGrid(
     }
   }
 
-  return { entries, unmatchedNotedCells, workedCells, warnings };
+  return {
+    entries,
+    unmatchedNotedCells,
+    workedCells,
+    unmatchedColoredCells,
+    warnings,
+  };
 }
 
 // ── Phase 2: Partial-Day Detection ──
@@ -1620,6 +1662,536 @@ export async function upsertAcknowledgements(
   return synced;
 }
 
+// ── Phase 12: Sick-Time Exhaustion — Reclassify Sick as PTO ──
+
+/** Annual sick-time allowance in hours. */
+const ANNUAL_SICK_ALLOWANCE = 24;
+
+// ── Phase 15: Note-Based Type Override ──
+
+/**
+ * Override the PTO type for approximate-color-matched entries when the cell
+ * note contains an explicit type keyword that contradicts the color-based
+ * classification.
+ *
+ * This handles spreadsheets (e.g., L Cole) that use custom theme-tinted
+ * colors instead of the standard ARGB legend colors.  The approximate
+ * color matcher maps these to the closest legend entry (often
+ * "Bereavement"), but the cell notes reveal the true intent:
+ *
+ *  - Note contains "PTO" (case-insensitive) → type = "PTO"
+ *  - Note contains "sick" (case-insensitive, no "PTO") → type = "Sick"
+ *  - Note starts with / contains "Worked" (case-insensitive) and the
+ *    original type was NOT an exact match → demote to workedCell
+ *
+ * Only entries whose `notes` field contains "Color matched via approximate"
+ * are candidates — exact-match entries are left untouched.
+ *
+ * Returns the filtered entries (with "Worked" entries removed), any new
+ * worked-cell records, and warnings describing the overrides.
+ */
+export function overrideTypeFromNote(
+  entries: ImportedPtoEntry[],
+  sheetName = "",
+): {
+  entries: ImportedPtoEntry[];
+  workedCells: WorkedCell[];
+  warnings: string[];
+} {
+  const result: ImportedPtoEntry[] = [];
+  const workedCells: WorkedCell[] = [];
+  const warnings: string[] = [];
+
+  for (const entry of entries) {
+    const isApprox = entry.notes?.includes("Color matched via approximate");
+    if (!isApprox) {
+      result.push({ ...entry });
+      continue;
+    }
+
+    // Extract the raw note text from the notes field
+    const noteMatch = entry.notes?.match(/Cell note: "(.+?)"/);
+    const rawNote = noteMatch?.[1] || "";
+    if (!rawNote) {
+      result.push({ ...entry });
+      continue;
+    }
+
+    // Check for "Worked" pattern — these are work-credit cells, not PTO
+    if (/\bworked\b/i.test(rawNote)) {
+      workedCells.push({ date: entry.date, note: rawNote });
+      warnings.push(
+        `"${sheetName}" ${entry.date}: approximate-matched ${entry.type} ` +
+          `overridden → Worked cell (note: "${rawNote.substring(0, 60)}").`,
+      );
+      continue; // Remove from PTO entries
+    }
+
+    // Check for PTO keyword
+    if (/\bPTO\b/i.test(rawNote) && entry.type !== "PTO") {
+      const copy = { ...entry };
+      const oldType = copy.type;
+      copy.type = "PTO";
+      copy.notes =
+        (copy.notes || "") +
+        ` Type overridden from ${oldType} to PTO based on note keyword.`;
+      result.push(copy);
+      warnings.push(
+        `"${sheetName}" ${entry.date}: approximate-matched ${oldType} ` +
+          `overridden → PTO (note: "${rawNote.substring(0, 60)}").`,
+      );
+      continue;
+    }
+
+    // Check for Sick keyword (only if no PTO keyword present)
+    if (/\bsick\b/i.test(rawNote) && entry.type !== "Sick") {
+      const copy = { ...entry };
+      const oldType = copy.type;
+      copy.type = "Sick";
+      copy.notes =
+        (copy.notes || "") +
+        ` Type overridden from ${oldType} to Sick based on note keyword.`;
+      result.push(copy);
+      warnings.push(
+        `"${sheetName}" ${entry.date}: approximate-matched ${oldType} ` +
+          `overridden → Sick (note: "${rawNote.substring(0, 60)}").`,
+      );
+      continue;
+    }
+
+    // No keyword match — keep original type
+    result.push({ ...entry });
+  }
+
+  return { entries: result, workedCells, warnings };
+}
+
+// ── Phase 12: Sick → PTO Reclassification ──
+
+/**
+ * Reclassify Sick-colored entries as PTO when the employee has exhausted
+ * their annual sick-time allowance (24h).
+ *
+ * Processes entries in chronological order, accumulating Sick hours.
+ * Once cumulative Sick hours reach or exceed ANNUAL_SICK_ALLOWANCE,
+ * any subsequent Sick entry is reclassified as PTO with an explanatory note.
+ *
+ * Returns updated entries and warnings.
+ */
+export function reclassifySickAsPto(
+  entries: ImportedPtoEntry[],
+  sheetName = "",
+): { entries: ImportedPtoEntry[]; warnings: string[] } {
+  const result = entries.map((e) => ({ ...e }));
+  const warnings: string[] = [];
+
+  // Sort by date to process chronologically
+  const sorted = result.slice().sort((a, b) => a.date.localeCompare(b.date));
+  // Build index map for updating the result array
+  const dateToIndices = new Map<string, number[]>();
+  for (let i = 0; i < result.length; i++) {
+    const key = `${result[i].date}|${result[i].type}|${result[i].hours}`;
+    if (!dateToIndices.has(key)) dateToIndices.set(key, []);
+    dateToIndices.get(key)!.push(i);
+  }
+
+  let cumulativeSickHours = 0;
+
+  for (const entry of sorted) {
+    if (entry.type !== "Sick") continue;
+
+    const entryHours = Math.abs(entry.hours);
+
+    if (cumulativeSickHours >= ANNUAL_SICK_ALLOWANCE) {
+      // Allowance already exhausted — reclassify this Sick entry as PTO
+      const key = `${entry.date}|Sick|${entry.hours}`;
+      const indices = dateToIndices.get(key);
+      if (indices && indices.length > 0) {
+        const idx = indices.shift()!;
+        result[idx].type = "PTO";
+        const note =
+          `Cell colored as Sick but reclassified as PTO — employee had exhausted ` +
+          `${ANNUAL_SICK_ALLOWANCE}h sick allowance (used ${cumulativeSickHours}h prior to this date).`;
+        result[idx].notes = result[idx].notes
+          ? `${result[idx].notes} ${note}`
+          : note;
+        warnings.push(
+          `"${sheetName}" ${entry.date}: Sick entry reclassified as PTO ` +
+            `(${entryHours}h). Employee had used ${cumulativeSickHours}h of ` +
+            `${ANNUAL_SICK_ALLOWANCE}h sick allowance.`,
+        );
+      }
+      // Still count toward cumulative total for tracking
+      cumulativeSickHours += entryHours;
+    } else {
+      // Within allowance — keep as Sick
+      cumulativeSickHours += entryHours;
+    }
+  }
+
+  return { entries: result, warnings };
+}
+
+// ── Phase 12b: Column-S-Guided Sick → PTO Reclassification ──
+
+/**
+ * After all reconciliation phases, some months may still have a gap between
+ * the PTO total and the column-S declared total, with Sick entries that could
+ * close the gap. This happens when the cumulative sick-hour tracking in
+ * Phase 12 doesn't reach the 24h threshold (e.g., because earlier medical
+ * absences were tracked with a non-standard color rather than Sick green).
+ *
+ * **Guard**: Only runs when Phase 12 has already reclassified at least one
+ * entry for this employee (indicating genuine sick-time exhaustion).
+ *
+ * For each month where `declared > PTO total`, reclassify Sick entries
+ * as PTO (earliest first) as long as each Sick entry's hours ≤ remaining gap.
+ * This avoids overshooting the declared total.
+ */
+export function reclassifySickByColumnS(
+  entries: ImportedPtoEntry[],
+  ptoCalcRows: PtoCalcRow[],
+  sheetName = "",
+): { entries: ImportedPtoEntry[]; warnings: string[] } {
+  // Guard: only proceed if Phase 12 already reclassified at least one entry
+  const phase12Occurred = entries.some(
+    (e) =>
+      e.notes?.includes("reclassified as PTO") &&
+      e.notes?.includes("sick allowance"),
+  );
+  if (!phase12Occurred) {
+    return { entries, warnings: [] };
+  }
+
+  const result = entries.map((e) => ({ ...e }));
+  const warnings: string[] = [];
+
+  for (const { month, usedHours: declared } of ptoCalcRows) {
+    // Compute current PTO total for this month
+    const monthIndices: number[] = [];
+    let ptoTotal = 0;
+    const sickIndices: number[] = [];
+
+    for (let i = 0; i < result.length; i++) {
+      const m = parseInt(result[i].date.substring(5, 7));
+      if (m !== month) continue;
+      monthIndices.push(i);
+      if (result[i].type === "PTO") {
+        ptoTotal += result[i].hours;
+      } else if (result[i].type === "Sick") {
+        sickIndices.push(i);
+      }
+    }
+
+    let gap = declared - ptoTotal;
+    if (gap < 0.1 || sickIndices.length === 0) continue;
+
+    // Sort sick entries by date (earliest first)
+    sickIndices.sort((a, b) => result[a].date.localeCompare(result[b].date));
+
+    for (const idx of sickIndices) {
+      const entryHours = Math.abs(result[idx].hours);
+      if (entryHours > gap + 0.1) continue; // Would overshoot — skip
+
+      result[idx].type = "PTO";
+      const note =
+        `Sick entry reclassified as PTO based on column S gap ` +
+        `(sick allowance appears exhausted). ` +
+        `Declared=${declared}h, PTO before reclassification=${ptoTotal.toFixed(1)}h, ` +
+        `gap=${gap.toFixed(1)}h.`;
+      result[idx].notes = result[idx].notes
+        ? `${result[idx].notes} ${note}`
+        : note;
+
+      warnings.push(
+        `"${sheetName}" ${result[idx].date}: Sick reclassified as PTO ` +
+          `(${entryHours}h) based on column S gap. ` +
+          `Declared=${declared}h, prior PTO=${ptoTotal.toFixed(1)}h.`,
+      );
+
+      ptoTotal += entryHours;
+      gap -= entryHours;
+      if (gap < 0.1) break;
+    }
+  }
+
+  return { entries: result, warnings };
+}
+
+// ── Phase 16: Column-S-Guided Bereavement → PTO Reclassification ──
+
+/**
+ * Reclassify approximate-matched Bereavement entries as PTO when column S
+ * declares more PTO than detected for a given month.
+ *
+ * Some spreadsheets (e.g., L Cole) use custom theme-tinted colors that the
+ * approximate color matcher maps to "Bereavement", but the employee actually
+ * used those days as PTO.  When the cell note lacks a type keyword (so
+ * Phase 15 could not override), and column S shows a PTO gap, this phase
+ * reclassifies the Bereavement entries (smallest hours first) to fill the gap.
+ *
+ * **Guard**: Only reclassifies entries whose notes contain
+ * `"Color matched via approximate"` — exact-matched entries are left alone.
+ */
+export function reclassifyBereavementByColumnS(
+  entries: ImportedPtoEntry[],
+  ptoCalcRows: PtoCalcRow[],
+  sheetName = "",
+): { entries: ImportedPtoEntry[]; warnings: string[] } {
+  const result = entries.map((e) => ({ ...e }));
+  const warnings: string[] = [];
+
+  for (const { month, usedHours: declared } of ptoCalcRows) {
+    const monthStr = pad2(month);
+    const monthIndices: number[] = [];
+    let ptoTotal = 0;
+    const bereavIndices: number[] = [];
+
+    for (let i = 0; i < result.length; i++) {
+      if (result[i].date.substring(5, 7) !== monthStr) continue;
+      monthIndices.push(i);
+      if (result[i].type === "PTO") {
+        ptoTotal += result[i].hours;
+      } else if (
+        result[i].type === "Bereavement" &&
+        result[i].notes?.includes("Color matched via approximate")
+      ) {
+        bereavIndices.push(i);
+      }
+    }
+
+    let gap = declared - ptoTotal;
+    if (gap < 0.5 || bereavIndices.length === 0) continue;
+
+    // Sort by hours ascending (smallest first) to avoid overshooting
+    bereavIndices.sort((a, b) => result[a].hours - result[b].hours);
+
+    for (const idx of bereavIndices) {
+      const entryHours = Math.abs(result[idx].hours);
+      if (entryHours > gap + 0.1) continue; // Would overshoot — skip
+
+      result[idx].type = "PTO";
+      const note =
+        `Bereavement reclassified as PTO based on column S gap. ` +
+        `Declared=${declared}h, PTO before=${ptoTotal.toFixed(1)}h, ` +
+        `gap=${gap.toFixed(1)}h.`;
+      result[idx].notes = result[idx].notes
+        ? `${result[idx].notes} ${note}`
+        : note;
+
+      warnings.push(
+        `"${sheetName}" ${result[idx].date}: Bereavement reclassified as PTO ` +
+          `(${entryHours}h) based on column S gap. ` +
+          `Declared=${declared}h, prior PTO=${ptoTotal.toFixed(1)}h.`,
+      );
+
+      ptoTotal += entryHours;
+      gap -= entryHours;
+      if (gap < 0.5) break;
+    }
+  }
+
+  return { entries: result, warnings };
+}
+
+// ── Phase 13: Non-Standard Color PTO Recognition ──
+
+/**
+ * Reconcile unmatched colored cells as PTO when the PTO Calc declared total
+ * exceeds the calendar-detected total.
+ *
+ * After all standard reconciliation, some months may still have a gap where
+ * declared > detected. This function scans cells that had fill colors not
+ * matching any legend entry and assigns PTO hours to close the gap.
+ *
+ * For cells with notes containing hours, uses note-derived hours.
+ * For cells without notes, distributes remaining gap evenly (assuming 8h
+ * full-day PTO when the math works out).
+ *
+ * Returns new PTO entries from unmatched colored cells and warnings.
+ */
+export function reconcileUnmatchedColoredCells(
+  existingEntries: ImportedPtoEntry[],
+  unmatchedColoredCells: UnmatchedColoredCell[],
+  ptoCalcRows: PtoCalcRow[],
+  sheetName: string,
+): { entries: ImportedPtoEntry[]; warnings: string[] } {
+  const newEntries: ImportedPtoEntry[] = [];
+  const warnings: string[] = [];
+
+  if (unmatchedColoredCells.length === 0) {
+    return { entries: newEntries, warnings };
+  }
+
+  for (const calc of ptoCalcRows) {
+    if (calc.usedHours <= 0) continue;
+
+    const monthStr = pad2(calc.month);
+    const declaredTotal = calc.usedHours;
+
+    // Sum current PTO entries for this month
+    const calendarTotal = existingEntries
+      .filter(
+        (e) =>
+          e.date.substring(5, 7) === monthStr &&
+          COLUMN_S_TRACKED_TYPES.has(e.type),
+      )
+      .reduce((sum, e) => sum + e.hours, 0);
+
+    let gap = Math.round((declaredTotal - calendarTotal) * 100) / 100;
+
+    // Only process when calendar is under-reporting by at least 8h
+    if (gap < 7.9) continue;
+
+    // Find unmatched colored cells in this month
+    const monthCells = unmatchedColoredCells.filter(
+      (c) => c.date.substring(5, 7) === monthStr,
+    );
+    if (monthCells.length === 0) continue;
+
+    // Skip cells that are already in existing entries (e.g., from reconcilePartialPto)
+    const existingDates = new Set(existingEntries.map((e) => e.date));
+    const availableCells = monthCells.filter((c) => !existingDates.has(c.date));
+    if (availableCells.length === 0) continue;
+
+    // Process cells with notes first
+    const withNotes: UnmatchedColoredCell[] = [];
+    const withoutNotes: UnmatchedColoredCell[] = [];
+    for (const cell of availableCells) {
+      if (cell.note) {
+        withNotes.push(cell);
+      } else {
+        withoutNotes.push(cell);
+      }
+    }
+
+    // Assign hours from noted cells
+    for (const cell of withNotes) {
+      if (gap <= 0.1) break;
+      const noteHours = parseHoursFromNote(cell.note);
+      const assignedHours =
+        noteHours !== undefined ? Math.min(noteHours, gap) : Math.min(8, gap);
+      newEntries.push({
+        date: cell.date,
+        type: "PTO",
+        hours: Math.round(assignedHours * 100) / 100,
+        notes:
+          `Non-standard color (${cell.color}) treated as PTO — cell color not in legend ` +
+          `but PTO Calc discrepancy suggests PTO. Cell note: "${cell.note.replace(/\n/g, " ")}"`,
+      });
+      gap = Math.round((gap - assignedHours) * 100) / 100;
+    }
+
+    // Distribute remaining gap across cells without notes
+    if (gap > 0.1 && withoutNotes.length > 0) {
+      const hoursEach = Math.round((gap / withoutNotes.length) * 100) / 100;
+
+      if (hoursEach > 0 && hoursEach <= 8) {
+        for (const cell of withoutNotes) {
+          if (gap <= 0.1) break;
+          const assignedHours = Math.min(hoursEach, gap);
+          newEntries.push({
+            date: cell.date,
+            type: "PTO",
+            hours: Math.round(assignedHours * 100) / 100,
+            notes:
+              `Non-standard color (${cell.color}) treated as PTO — cell color not in legend ` +
+              `but PTO Calc discrepancy suggests PTO.`,
+          });
+          gap = Math.round((gap - assignedHours) * 100) / 100;
+        }
+      } else {
+        warnings.push(
+          `"${sheetName}" month ${calc.month}: ${withoutNotes.length} unmatched colored cells ` +
+            `but distributing ${gap}h yields ${hoursEach}h each (out of 0–8 range). ` +
+            `No PTO entries created from unmatched cells.`,
+        );
+      }
+    }
+
+    // Report if gap remains
+    if (gap > 0.1) {
+      warnings.push(
+        `"${sheetName}" month ${calc.month}: partially reconciled via unmatched colored cells. ` +
+          `Declared=${declaredTotal}h, calendar=${calendarTotal}h, ` +
+          `assigned ${Math.round((declaredTotal - calendarTotal - gap) * 100) / 100}h from unmatched cells, ` +
+          `${gap}h still unaccounted for.`,
+      );
+    } else if (newEntries.some((e) => e.date.substring(5, 7) === monthStr)) {
+      warnings.push(
+        `"${sheetName}" month ${calc.month}: Phase 13 reconciled ` +
+          `${availableCells.length} unmatched colored cell(s) as PTO. ` +
+          `Declared=${declaredTotal}h, original calendar=${calendarTotal}h.`,
+      );
+    }
+  }
+
+  return { entries: newEntries, warnings };
+}
+
+// ── Phase 14: Over-Coloring & Weekend-Makeup Discrepancy Detection ──
+
+/** Keywords in cell notes indicating weekend-makeup work. */
+const OVERCOLOR_NOTE_KEYWORDS = /worked|make\s*up|makeup|offset/i;
+
+/**
+ * Detect months where calendar-detected PTO exceeds the declared column S total.
+ *
+ * After all reconciliation passes, this function checks for over-coloring:
+ * months where employees colored more PTO cells than they actually used.
+ * This can be caused by clerical errors (extra colored cells) or by
+ * weekend-makeup work noted only in cell comments on PTO days.
+ *
+ * Does NOT auto-correct. Returns warnings for manual admin review.
+ */
+export function detectOverColoring(
+  entries: ImportedPtoEntry[],
+  ptoCalcRows: PtoCalcRow[],
+  sheetName: string,
+): { warnings: string[] } {
+  const warnings: string[] = [];
+
+  for (const calc of ptoCalcRows) {
+    const monthStr = pad2(calc.month);
+    const declaredTotal = calc.usedHours;
+
+    // Sum current PTO entries for this month
+    const monthEntries = entries.filter(
+      (e) =>
+        e.date.substring(5, 7) === monthStr &&
+        COLUMN_S_TRACKED_TYPES.has(e.type),
+    );
+    const calendarTotal = monthEntries.reduce((sum, e) => sum + e.hours, 0);
+
+    const delta = Math.round((calendarTotal - declaredTotal) * 100) / 100;
+    if (delta <= 0.1) continue;
+
+    // Check PTO entry notes for weekend-makeup keywords
+    const noteMatches: string[] = [];
+    for (const entry of monthEntries) {
+      if (entry.notes && OVERCOLOR_NOTE_KEYWORDS.test(entry.notes)) {
+        noteMatches.push(
+          `${entry.date} note: '${entry.notes.replace(/\n/g, " ").substring(0, 120)}'`,
+        );
+      }
+    }
+
+    let warning =
+      `Over-coloring detected for ${sheetName} month ${calc.month}: ` +
+      `calendar=${calendarTotal}h, declared=${declaredTotal}h (Δ=+${delta}h).`;
+
+    if (noteMatches.length > 0) {
+      warning += ` Relevant notes: ${noteMatches.join("; ")}.`;
+    }
+
+    warning += ` Column S is authoritative; calendar over-reports by ${delta}h.`;
+
+    warnings.push(warning);
+  }
+
+  return { warnings };
+}
+
 // ── Phase 6: Orchestrator ──
 
 /**
@@ -1661,7 +2233,8 @@ export function parseEmployeeSheet(
   const {
     entries: calendarEntries,
     unmatchedNotedCells,
-    workedCells,
+    workedCells: calendarWorkedCells,
+    unmatchedColoredCells,
     warnings: calendarWarnings,
   } = parseCalendarGrid(
     ws,
@@ -1672,10 +2245,24 @@ export function parseEmployeeSheet(
   );
   warnings.push(...calendarWarnings);
 
+  // Phase 15: Override approximate-matched types based on cell note keywords
+  const {
+    entries: noteOverriddenEntries,
+    workedCells: noteWorkedCells,
+    warnings: noteOverrideWarnings,
+  } = overrideTypeFromNote(calendarEntries, ws.name);
+  const workedCells = [...calendarWorkedCells, ...noteWorkedCells];
+  warnings.push(...noteOverrideWarnings);
+
+  // Phase 12: Reclassify Sick entries as PTO when sick allowance is exhausted
+  const { entries: sickReclassifiedEntries, warnings: sickWarnings } =
+    reclassifySickAsPto(noteOverriddenEntries, ws.name);
+  warnings.push(...sickWarnings);
+
   // Parse PTO calc section for partial-day adjustment
   const ptoCalcRows = parsePtoCalcUsedHours(ws);
   const { entries: adjustedEntries, warnings: adjustWarnings } =
-    adjustPartialDays(calendarEntries, ptoCalcRows, ws.name);
+    adjustPartialDays(sickReclassifiedEntries, ptoCalcRows, ws.name);
   let ptoEntries = adjustedEntries;
   warnings.push(...adjustWarnings);
 
@@ -1703,6 +2290,37 @@ export function parseEmployeeSheet(
     processWorkedCells(remainingWorkedCells, ptoEntries, ptoCalcRows, ws.name);
   ptoEntries = [...ptoEntries, ...workedEntries];
   warnings.push(...workedWarnings);
+
+  // Phase 13: Reconcile unmatched colored cells as PTO
+  const { entries: unmatchedColorEntries, warnings: unmatchedColorWarnings } =
+    reconcileUnmatchedColoredCells(
+      ptoEntries,
+      unmatchedColoredCells,
+      ptoCalcRows,
+      ws.name,
+    );
+  ptoEntries = [...ptoEntries, ...unmatchedColorEntries];
+  warnings.push(...unmatchedColorWarnings);
+
+  // Phase 12b: Column-S-guided sick → PTO reclassification
+  const { entries: columnSReclassEntries, warnings: columnSReclassWarnings } =
+    reclassifySickByColumnS(ptoEntries, ptoCalcRows, ws.name);
+  ptoEntries = columnSReclassEntries;
+  warnings.push(...columnSReclassWarnings);
+
+  // Phase 16: Column-S-guided bereavement → PTO reclassification
+  const { entries: bereavReclassEntries, warnings: bereavReclassWarnings } =
+    reclassifyBereavementByColumnS(ptoEntries, ptoCalcRows, ws.name);
+  ptoEntries = bereavReclassEntries;
+  warnings.push(...bereavReclassWarnings);
+
+  // Phase 14: Detect over-coloring discrepancies (warning only, no data changes)
+  const { warnings: overColorWarnings } = detectOverColoring(
+    ptoEntries,
+    ptoCalcRows,
+    ws.name,
+  );
+  warnings.push(...overColorWarnings);
 
   // Parse acknowledgements
   const acknowledgements = parseAcknowledgements(ws, employee.year);

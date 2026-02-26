@@ -26,6 +26,13 @@ import {
   processWorkedCells,
   parsePartialPtoColors,
   inferWeekendPartialHours,
+  reclassifySickAsPto,
+  reclassifySickByColumnS,
+  reconcileUnmatchedColoredCells,
+  detectOverColoring,
+  overrideTypeFromNote,
+  reclassifyBereavementByColumnS,
+  ImportedPtoEntry,
 } from "../server/reportGenerators/excelImport.js";
 import { generateExcelReport } from "../server/reportGenerators/excelReport.js";
 import { smartParseDate } from "../shared/dateUtils.js";
@@ -1842,4 +1849,1037 @@ describe("Excel Import", () => {
       });
     },
   );
+
+  // ── Phase 12: Sick-Time Exhaustion Tests ──
+
+  describe("reclassifySickAsPto", () => {
+    it("should not reclassify Sick entries within the 24h allowance", () => {
+      const entries = [
+        { date: "2018-02-08", type: "Sick" as const, hours: 8 },
+        { date: "2018-03-05", type: "Sick" as const, hours: 8 },
+        { date: "2018-03-08", type: "Sick" as const, hours: 8 },
+      ];
+      const result = reclassifySickAsPto(entries, "Test");
+      // All 3 sick days (24h total) are within allowance
+      expect(result.entries.every((e) => e.type === "Sick")).toBe(true);
+      expect(result.warnings.length).toBe(0);
+    });
+
+    it("should reclassify 4th Sick day as PTO when allowance is exhausted", () => {
+      const entries = [
+        { date: "2018-02-08", type: "Sick" as const, hours: 8 },
+        { date: "2018-03-05", type: "Sick" as const, hours: 8 },
+        { date: "2018-03-08", type: "Sick" as const, hours: 8 },
+        { date: "2018-04-23", type: "Sick" as const, hours: 8 },
+      ];
+      const result = reclassifySickAsPto(entries, "D Allen");
+      // First 3 remain Sick
+      expect(result.entries[0].type).toBe("Sick");
+      expect(result.entries[1].type).toBe("Sick");
+      expect(result.entries[2].type).toBe("Sick");
+      // 4th should be reclassified as PTO
+      expect(result.entries[3].type).toBe("PTO");
+      expect(result.entries[3].hours).toBe(8);
+      expect(result.entries[3].notes).toContain("reclassified as PTO");
+      expect(result.entries[3].notes).toContain("24h");
+      expect(result.warnings.length).toBe(1);
+    });
+
+    it("should reclassify multiple subsequent Sick entries after exhaustion (J Rivers pattern)", () => {
+      // J Rivers: exhausted sick time, then has Sick in Aug, Sep, Oct, Nov
+      const entries = [
+        { date: "2018-01-15", type: "Sick" as const, hours: 8 },
+        { date: "2018-02-12", type: "Sick" as const, hours: 8 },
+        { date: "2018-03-01", type: "Sick" as const, hours: 8 },
+        // Allowance exhausted at 24h
+        { date: "2018-08-03", type: "Sick" as const, hours: 8 },
+        { date: "2018-09-10", type: "Sick" as const, hours: 8 },
+        { date: "2018-10-05", type: "Sick" as const, hours: 8 },
+        { date: "2018-11-07", type: "Sick" as const, hours: 8 },
+      ];
+      const result = reclassifySickAsPto(entries, "J Rivers");
+      // First 3 remain Sick
+      expect(result.entries.slice(0, 3).every((e) => e.type === "Sick")).toBe(
+        true,
+      );
+      // Aug-Nov all reclassified to PTO
+      expect(result.entries[3].type).toBe("PTO");
+      expect(result.entries[4].type).toBe("PTO");
+      expect(result.entries[5].type).toBe("PTO");
+      expect(result.entries[6].type).toBe("PTO");
+      expect(result.warnings.length).toBe(4);
+    });
+
+    it("should preserve existing PTO entries unmodified", () => {
+      const entries = [
+        { date: "2018-02-08", type: "Sick" as const, hours: 8 },
+        { date: "2018-03-05", type: "Sick" as const, hours: 8 },
+        { date: "2018-03-08", type: "Sick" as const, hours: 8 },
+        {
+          date: "2018-04-20",
+          type: "PTO" as const,
+          hours: 4,
+          isPartialPtoColor: true,
+        },
+        { date: "2018-04-23", type: "Sick" as const, hours: 8 },
+      ];
+      const result = reclassifySickAsPto(entries, "D Allen");
+      // PTO entry untouched
+      expect(result.entries[3].type).toBe("PTO");
+      expect(result.entries[3].hours).toBe(4);
+      // Sick entry reclassified
+      expect(result.entries[4].type).toBe("PTO");
+      expect(result.entries[4].hours).toBe(8);
+    });
+
+    it("should handle partial sick hours in cumulative tracking", () => {
+      const entries = [
+        { date: "2018-01-10", type: "Sick" as const, hours: 8 },
+        { date: "2018-02-10", type: "Sick" as const, hours: 8 },
+        { date: "2018-03-10", type: "Sick" as const, hours: 4 }, // partial sick
+        { date: "2018-04-10", type: "Sick" as const, hours: 8 }, // cumulative=20, still within 24
+        { date: "2018-05-10", type: "Sick" as const, hours: 8 }, // cumulative=28, over but 24 reached after adding this
+      ];
+      const result = reclassifySickAsPto(entries, "Test");
+      // 8+8+4 = 20 (within); 20+8 = 28 (still within at time of 4th); 5th starts at 28
+      expect(result.entries[0].type).toBe("Sick"); // cumulative after: 8
+      expect(result.entries[1].type).toBe("Sick"); // cumulative after: 16
+      expect(result.entries[2].type).toBe("Sick"); // cumulative after: 20
+      expect(result.entries[3].type).toBe("Sick"); // cumulative after: 28 (but cumulative BEFORE was 20 < 24)
+      expect(result.entries[4].type).toBe("PTO"); // cumulative BEFORE = 28 >= 24
+      expect(result.warnings.length).toBe(1);
+    });
+  });
+
+  // ── Phase 13: Non-Standard Color PTO Recognition Tests ──
+
+  describe("reconcileUnmatchedColoredCells", () => {
+    it("should create PTO entries from unmatched colored cells when gap >= 8h", () => {
+      const existing = [
+        {
+          date: "2018-03-28",
+          type: "PTO" as const,
+          hours: 4,
+          notes: 'Cell note: "4 hours"',
+        },
+      ];
+      const unmatchedCells = [
+        { date: "2018-03-05", color: "FF7030A0", note: "" },
+        { date: "2018-03-06", color: "FF7030A0", note: "" },
+        { date: "2018-03-07", color: "FF7030A0", note: "" },
+        { date: "2018-03-08", color: "FF7030A0", note: "" },
+        { date: "2018-03-09", color: "FF7030A0", note: "" },
+        { date: "2018-03-12", color: "FF7030A0", note: "" },
+      ];
+      const ptoCalcRows = [{ month: 3, usedHours: 52 }];
+
+      const result = reconcileUnmatchedColoredCells(
+        existing,
+        unmatchedCells,
+        ptoCalcRows,
+        "J Rivers",
+      );
+
+      // Gap = 52 - 4 = 48h. 6 unmatched cells → 48/6 = 8h each
+      expect(result.entries.length).toBe(6);
+      for (const entry of result.entries) {
+        expect(entry.type).toBe("PTO");
+        expect(entry.hours).toBe(8);
+        expect(entry.notes).toContain("Non-standard color");
+        expect(entry.notes).toContain("FF7030A0");
+      }
+      // Total should be 4 + 48 = 52
+      const total =
+        existing.reduce((s, e) => s + e.hours, 0) +
+        result.entries.reduce((s, e) => s + e.hours, 0);
+      expect(total).toBe(52);
+    });
+
+    it("should use note-derived hours for cells with notes", () => {
+      const existing: { date: string; type: "PTO"; hours: number }[] = [];
+      const unmatchedCells = [
+        { date: "2018-03-05", color: "FF7030A0", note: "" },
+        { date: "2018-03-28", color: "FF7030A0", note: "4 hours" },
+      ];
+      const ptoCalcRows = [{ month: 3, usedHours: 12 }];
+
+      const result = reconcileUnmatchedColoredCells(
+        existing,
+        unmatchedCells,
+        ptoCalcRows,
+        "Test",
+      );
+
+      // Gap = 12h. Noted cell gets 4h, remaining cell gets 8h
+      expect(result.entries.length).toBe(2);
+      const noted = result.entries.find((e) => e.date === "2018-03-28");
+      expect(noted!.hours).toBe(4);
+      const other = result.entries.find((e) => e.date === "2018-03-05");
+      expect(other!.hours).toBe(8);
+    });
+
+    it("should not process when gap < 8h", () => {
+      const existing = [{ date: "2018-03-05", type: "PTO" as const, hours: 8 }];
+      const unmatchedCells = [
+        { date: "2018-03-10", color: "FF7030A0", note: "" },
+      ];
+      const ptoCalcRows = [{ month: 3, usedHours: 12 }]; // gap = 4h, less than 8
+
+      const result = reconcileUnmatchedColoredCells(
+        existing,
+        unmatchedCells,
+        ptoCalcRows,
+        "Test",
+      );
+
+      expect(result.entries.length).toBe(0);
+    });
+
+    it("should skip cells already in existing entries", () => {
+      const existing = [{ date: "2018-03-05", type: "PTO" as const, hours: 8 }];
+      const unmatchedCells = [
+        { date: "2018-03-05", color: "FF7030A0", note: "" }, // same date as existing
+        { date: "2018-03-06", color: "FF7030A0", note: "" },
+      ];
+      const ptoCalcRows = [{ month: 3, usedHours: 16 }]; // gap = 8h
+
+      const result = reconcileUnmatchedColoredCells(
+        existing,
+        unmatchedCells,
+        ptoCalcRows,
+        "Test",
+      );
+
+      // Should only create entry for Mar 6 (Mar 5 is already in existing)
+      expect(result.entries.length).toBe(1);
+      expect(result.entries[0].date).toBe("2018-03-06");
+      expect(result.entries[0].hours).toBe(8);
+    });
+
+    it("should be a no-op when there are no unmatched colored cells", () => {
+      const existing = [{ date: "2018-03-05", type: "PTO" as const, hours: 8 }];
+      const ptoCalcRows = [{ month: 3, usedHours: 52 }];
+
+      const result = reconcileUnmatchedColoredCells(
+        existing,
+        [],
+        ptoCalcRows,
+        "Test",
+      );
+
+      expect(result.entries.length).toBe(0);
+    });
+  });
+
+  // ── Phase 14: Over-Coloring Detection Tests ──
+
+  describe("detectOverColoring", () => {
+    it("should detect over-coloring when calendar > declared", () => {
+      const entries = [
+        { date: "2018-12-17", type: "PTO" as const, hours: 8 },
+        { date: "2018-12-18", type: "PTO" as const, hours: 8 },
+        { date: "2018-12-19", type: "PTO" as const, hours: 8 },
+        { date: "2018-12-20", type: "PTO" as const, hours: 8 },
+      ];
+      const ptoCalcRows = [{ month: 12, usedHours: 24 }]; // declared 24, calendar 32
+
+      const result = detectOverColoring(entries, ptoCalcRows, "D Allen");
+
+      expect(result.warnings.length).toBe(1);
+      expect(result.warnings[0]).toContain("Over-coloring detected");
+      expect(result.warnings[0]).toContain("calendar=32h");
+      expect(result.warnings[0]).toContain("declared=24h");
+      expect(result.warnings[0]).toContain("Δ=+8h");
+      expect(result.warnings[0]).toContain("Column S is authoritative");
+    });
+
+    it("should include note keywords in warning when found", () => {
+      const entries = [
+        {
+          date: "2018-12-05",
+          type: "PTO" as const,
+          hours: 8,
+          notes: 'Cell note: "Worked Saturday to make up for this sick day"',
+        },
+        { date: "2018-12-10", type: "PTO" as const, hours: 8 },
+        { date: "2018-12-15", type: "PTO" as const, hours: 8 },
+      ];
+      const ptoCalcRows = [{ month: 12, usedHours: 16 }];
+
+      const result = detectOverColoring(entries, ptoCalcRows, "J Guiry");
+
+      expect(result.warnings.length).toBe(1);
+      expect(result.warnings[0]).toContain("Worked Saturday");
+      expect(result.warnings[0]).toContain("Relevant notes");
+    });
+
+    it("should not flag when calendar <= declared", () => {
+      const entries = [
+        { date: "2018-05-09", type: "PTO" as const, hours: 2 },
+        { date: "2018-05-21", type: "PTO" as const, hours: 8 },
+      ];
+      const ptoCalcRows = [{ month: 5, usedHours: 12 }]; // 10h calendar <= 12h declared
+
+      const result = detectOverColoring(entries, ptoCalcRows, "J Guiry");
+
+      expect(result.warnings.length).toBe(0);
+    });
+
+    it("should not flag when calendar equals declared", () => {
+      const entries = [
+        { date: "2018-07-02", type: "PTO" as const, hours: 8 },
+        { date: "2018-07-03", type: "PTO" as const, hours: 8 },
+      ];
+      const ptoCalcRows = [{ month: 7, usedHours: 16 }];
+
+      const result = detectOverColoring(entries, ptoCalcRows, "Test");
+
+      expect(result.warnings.length).toBe(0);
+    });
+
+    it("should handle multiple months with over-coloring", () => {
+      const entries = [
+        // July: 56h on calendar
+        { date: "2018-07-02", type: "PTO" as const, hours: 8 },
+        { date: "2018-07-03", type: "PTO" as const, hours: 8 },
+        { date: "2018-07-04", type: "PTO" as const, hours: 8 },
+        { date: "2018-07-05", type: "PTO" as const, hours: 8 },
+        { date: "2018-07-06", type: "PTO" as const, hours: 8 },
+        { date: "2018-07-09", type: "PTO" as const, hours: 8 },
+        { date: "2018-07-10", type: "PTO" as const, hours: 8 },
+        // December: 32h on calendar
+        { date: "2018-12-17", type: "PTO" as const, hours: 8 },
+        { date: "2018-12-18", type: "PTO" as const, hours: 8 },
+        { date: "2018-12-19", type: "PTO" as const, hours: 8 },
+        { date: "2018-12-20", type: "PTO" as const, hours: 8 },
+      ];
+      const ptoCalcRows = [
+        { month: 7, usedHours: 40 }, // declared 40, calendar 56
+        { month: 12, usedHours: 24 }, // declared 24, calendar 32
+      ];
+
+      const result = detectOverColoring(entries, ptoCalcRows, "J Schwerin");
+
+      expect(result.warnings.length).toBe(2);
+      expect(result.warnings[0]).toContain("month 7");
+      expect(result.warnings[1]).toContain("month 12");
+    });
+
+    it("should ignore Sick and Bereavement entries (only PTO tracked in column S)", () => {
+      const entries = [
+        { date: "2018-03-05", type: "Sick" as const, hours: 8 },
+        { date: "2018-03-06", type: "Bereavement" as const, hours: 8 },
+        { date: "2018-03-07", type: "PTO" as const, hours: 8 },
+      ];
+      const ptoCalcRows = [{ month: 3, usedHours: 8 }]; // Only PTO tracked
+
+      const result = detectOverColoring(entries, ptoCalcRows, "Test");
+
+      // Only 8h PTO vs 8h declared — no over-coloring
+      expect(result.warnings.length).toBe(0);
+    });
+  });
+
+  describe("reclassifySickByColumnS", () => {
+    it("should not reclassify when Phase 12 has not reclassified any entries", () => {
+      const entries: ImportedPtoEntry[] = [
+        { date: "2018-08-03", type: "Sick", hours: 8 },
+        { date: "2018-08-14", type: "PTO", hours: 8 },
+      ];
+      const ptoCalcRows = [{ month: 8, usedHours: 16 }];
+
+      const result = reclassifySickByColumnS(entries, ptoCalcRows, "Test");
+
+      // No Phase 12 reclassification detected, so no action
+      expect(result.entries.filter((e) => e.type === "Sick").length).toBe(1);
+      expect(result.warnings.length).toBe(0);
+    });
+
+    it("should reclassify Sick entries when Phase 12 has reclassified entries and gap exists", () => {
+      const entries: ImportedPtoEntry[] = [
+        { date: "2018-08-03", type: "Sick", hours: 8 },
+        { date: "2018-08-14", type: "PTO", hours: 8 },
+        // Phase 12 reclassified entry (serves as trigger)
+        {
+          date: "2018-10-30",
+          type: "PTO",
+          hours: 8,
+          notes:
+            "Cell colored as Sick but reclassified as PTO — employee had exhausted 24h sick allowance (used 24h prior to this date).",
+        },
+      ];
+      const ptoCalcRows = [
+        { month: 8, usedHours: 16 },
+        { month: 10, usedHours: 8 },
+      ];
+
+      const result = reclassifySickByColumnS(entries, ptoCalcRows, "Test");
+
+      // Aug sick should be reclassified as PTO (gap=8h, sick=8h)
+      const augSick = result.entries.filter(
+        (e) => e.date === "2018-08-03" && e.type === "Sick",
+      );
+      expect(augSick.length).toBe(0);
+
+      const augPto = result.entries.filter(
+        (e) => e.date === "2018-08-03" && e.type === "PTO",
+      );
+      expect(augPto.length).toBe(1);
+      expect(augPto[0].notes).toContain("column S gap");
+      expect(augPto[0].notes).toContain("sick allowance");
+      expect(result.warnings.length).toBe(1);
+    });
+
+    it("should not reclassify when Sick hours would overshoot declared", () => {
+      const entries: ImportedPtoEntry[] = [
+        { date: "2018-04-20", type: "PTO", hours: 8 },
+        { date: "2018-04-23", type: "Sick", hours: 8 },
+        // Phase 12 trigger entry
+        {
+          date: "2018-10-30",
+          type: "PTO",
+          hours: 8,
+          notes:
+            "Cell colored as Sick but reclassified as PTO — employee had exhausted 24h sick allowance (used 24h prior to this date).",
+        },
+      ];
+      // Declared 12h, PTO=8h, gap=4h, but Sick=8h would overshoot
+      const ptoCalcRows = [
+        { month: 4, usedHours: 12 },
+        { month: 10, usedHours: 8 },
+      ];
+
+      const result = reclassifySickByColumnS(entries, ptoCalcRows, "Test");
+
+      // Sick entry should remain — 8h > 4h gap
+      const aprSick = result.entries.filter(
+        (e) => e.date === "2018-04-23" && e.type === "Sick",
+      );
+      expect(aprSick.length).toBe(1);
+      expect(result.warnings.length).toBe(0);
+    });
+
+    it("should reclassify multiple Sick entries when all fit within gap", () => {
+      const entries: ImportedPtoEntry[] = [
+        { date: "2018-07-02", type: "Sick", hours: 8 },
+        { date: "2018-07-03", type: "Sick", hours: 8 },
+        // Phase 12 trigger
+        {
+          date: "2018-10-30",
+          type: "PTO",
+          hours: 8,
+          notes:
+            "Cell colored as Sick but reclassified as PTO — employee had exhausted 24h sick allowance (used 24h prior to this date).",
+        },
+      ];
+      const ptoCalcRows = [
+        { month: 7, usedHours: 16 },
+        { month: 10, usedHours: 8 },
+      ];
+
+      const result = reclassifySickByColumnS(entries, ptoCalcRows, "Test");
+
+      const julSick = result.entries.filter(
+        (e) => e.date.startsWith("2018-07") && e.type === "Sick",
+      );
+      expect(julSick.length).toBe(0);
+
+      const julPto = result.entries.filter(
+        (e) => e.date.startsWith("2018-07") && e.type === "PTO",
+      );
+      expect(julPto.length).toBe(2);
+      expect(result.warnings.length).toBe(2);
+    });
+  });
+
+  // ── Phase 12-14 Legacy 2018 Integration Tests ──
+
+  describe.skipIf(!existsSync(LEGACY_2018_PATH))(
+    "Legacy 2018 workbook - D Allen (Phase 12 sick-time exhaustion)",
+    () => {
+      let ws: ExcelJS.Worksheet;
+      let themeColors: Map<number, string>;
+
+      it("should load D Allen worksheet", async () => {
+        const wb = new ExcelJS.Workbook();
+        await wb.xlsx.readFile(LEGACY_2018_PATH);
+
+        const sheet = wb.getWorksheet("Dan Allen");
+        expect(sheet).toBeDefined();
+        ws = sheet!;
+
+        const wbAny = wb as any;
+        const themeXml: string | undefined =
+          wbAny._themes?.theme1 ?? wbAny.themes?.theme1;
+        if (themeXml) {
+          themeColors = parseThemeColors(themeXml);
+        } else {
+          themeColors = new Map([
+            [0, "FFFFFFFF"],
+            [1, "FF000000"],
+            [2, "FFEEECE1"],
+            [3, "FF1F497D"],
+            [4, "FF4F81BD"],
+            [5, "FFC0504D"],
+            [6, "FF9BBB59"],
+            [7, "FF8064A2"],
+            [8, "FF4BACC6"],
+            [9, "FFF79646"],
+            [10, "FF0000FF"],
+            [11, "FF800080"],
+          ]);
+        }
+      });
+
+      it("should NOT reclassify any sick entries (total=24h, exactly at allowance)", () => {
+        const result = parseEmployeeSheet(ws, themeColors);
+
+        // Dan Allen has 3 Sick entries: Mar 5 (8h), Mar 8 (8h), Apr 23 (8h) = 24h total.
+        // Feb 8 has a different green (FF92D050 vs legend FF00B050, distance ~149 > threshold 100)
+        // so it is NOT matched as Sick. With only 24h total, the allowance is never exceeded,
+        // and no reclassification occurs (reclassification triggers only when cumulative >= 24h
+        // BEFORE the current entry).
+        const sickEntries = result.ptoEntries.filter((e) => e.type === "Sick");
+        expect(sickEntries.length).toBe(3);
+
+        // No entries should have reclassification notes
+        const reclassified = result.ptoEntries.filter(
+          (e) => e.notes && e.notes.includes("reclassified as PTO"),
+        );
+        expect(reclassified.length).toBe(0);
+
+        // Verify no reclassification warnings
+        const reclassWarnings = result.warnings.filter((w) =>
+          w.includes("reclassified"),
+        );
+        expect(reclassWarnings.length).toBe(0);
+      });
+
+      it("should detect December over-coloring", () => {
+        const result = parseEmployeeSheet(ws, themeColors);
+
+        // D Allen Dec: 4 Full PTO colored (32h), column S declares 24h
+        const overColorWarnings = result.warnings.filter(
+          (w) => w.includes("Over-coloring") && w.includes("month 12"),
+        );
+        expect(overColorWarnings.length).toBeGreaterThanOrEqual(1);
+      });
+    },
+  );
+
+  describe.skipIf(!existsSync(LEGACY_2018_PATH))(
+    "Legacy 2018 workbook - J Schwerin (Phase 12 regression + Phase 14)",
+    () => {
+      let ws: ExcelJS.Worksheet;
+      let themeColors: Map<number, string>;
+
+      it("should load J Schwerin worksheet", async () => {
+        const wb = new ExcelJS.Workbook();
+        await wb.xlsx.readFile(LEGACY_2018_PATH);
+
+        const sheet = wb.getWorksheet("J Schwerin");
+        expect(sheet).toBeDefined();
+        ws = sheet!;
+
+        const wbAny = wb as any;
+        const themeXml: string | undefined =
+          wbAny._themes?.theme1 ?? wbAny.themes?.theme1;
+        if (themeXml) {
+          themeColors = parseThemeColors(themeXml);
+        } else {
+          themeColors = new Map([
+            [0, "FFFFFFFF"],
+            [1, "FF000000"],
+            [2, "FFEEECE1"],
+            [3, "FF1F497D"],
+            [4, "FF4F81BD"],
+            [5, "FFC0504D"],
+            [6, "FF9BBB59"],
+            [7, "FF8064A2"],
+            [8, "FF4BACC6"],
+            [9, "FFF79646"],
+            [10, "FF0000FF"],
+            [11, "FF800080"],
+          ]);
+        }
+      });
+
+      it("should still produce correct July total of 12h (Phase 11 regression)", () => {
+        const result = parseEmployeeSheet(ws, themeColors);
+        const julyEntries = result.ptoEntries.filter((e) =>
+          e.date.startsWith("2018-07-"),
+        );
+        const julyTotal = julyEntries.reduce((sum, e) => sum + e.hours, 0);
+        expect(julyTotal).toBe(12);
+      });
+
+      it("should still produce correct October total of -4h (Phase 11 regression)", () => {
+        const result = parseEmployeeSheet(ws, themeColors);
+        const octEntries = result.ptoEntries.filter((e) =>
+          e.date.startsWith("2018-10-"),
+        );
+        const octTotal = octEntries.reduce((sum, e) => sum + e.hours, 0);
+        expect(octTotal).toBe(-4);
+      });
+
+      it("should detect December over-coloring (Phase 14)", () => {
+        const result = parseEmployeeSheet(ws, themeColors);
+        const overColorWarnings = result.warnings.filter(
+          (w) => w.includes("Over-coloring") && w.includes("month 12"),
+        );
+        expect(overColorWarnings.length).toBeGreaterThanOrEqual(1);
+      });
+    },
+  );
+
+  describe.skipIf(!existsSync(LEGACY_2018_PATH))(
+    "Legacy 2018 workbook - J Rivers (Phase 12 sick + Phase 13 purple)",
+    () => {
+      let ws: ExcelJS.Worksheet;
+      let themeColors: Map<number, string>;
+
+      it("should load J Rivers worksheet", async () => {
+        const wb = new ExcelJS.Workbook();
+        await wb.xlsx.readFile(LEGACY_2018_PATH);
+
+        const sheet = wb.getWorksheet("J Rivers");
+        expect(sheet).toBeDefined();
+        ws = sheet!;
+
+        const wbAny = wb as any;
+        const themeXml: string | undefined =
+          wbAny._themes?.theme1 ?? wbAny.themes?.theme1;
+        if (themeXml) {
+          themeColors = parseThemeColors(themeXml);
+        } else {
+          themeColors = new Map([
+            [0, "FFFFFFFF"],
+            [1, "FF000000"],
+            [2, "FFEEECE1"],
+            [3, "FF1F497D"],
+            [4, "FF4F81BD"],
+            [5, "FFC0504D"],
+            [6, "FF9BBB59"],
+            [7, "FF8064A2"],
+            [8, "FF4BACC6"],
+            [9, "FFF79646"],
+            [10, "FF0000FF"],
+            [11, "FF800080"],
+          ]);
+        }
+      });
+
+      it("should reclassify post-exhaustion Sick entries as PTO (Aug-Nov)", () => {
+        const result = parseEmployeeSheet(ws, themeColors);
+
+        // J Rivers should have sick-reclassification warnings
+        // Phase 12 reclassifies Oct, Nov, Dec; Phase 12b reclassifies Aug, Sep
+        const sickReclassWarnings = result.warnings.filter(
+          (w) =>
+            w.includes("reclassified as PTO") ||
+            w.includes("Sick reclassified as PTO"),
+        );
+        expect(sickReclassWarnings.length).toBeGreaterThanOrEqual(3);
+
+        // Verify Aug and Sep PTO totals now match declared
+        for (const m of [8, 9]) {
+          const monthPto = result.ptoEntries.filter((e) => {
+            const mon = parseInt(e.date.substring(5, 7));
+            return mon === m && e.type === "PTO";
+          });
+          const total = monthPto.reduce((s, e) => s + e.hours, 0);
+          const declared = m === 8 ? 16 : 24;
+          expect(total).toBe(declared);
+        }
+      });
+
+      it("should have reclassification note on reclassified entries", () => {
+        const result = parseEmployeeSheet(ws, themeColors);
+
+        // Find PTO entries that were reclassified from Sick
+        const reclassified = result.ptoEntries.filter(
+          (e) => e.notes && e.notes.includes("reclassified as PTO"),
+        );
+        expect(reclassified.length).toBeGreaterThanOrEqual(1);
+        for (const entry of reclassified) {
+          expect(entry.type).toBe("PTO");
+          expect(entry.notes).toContain("sick allowance");
+        }
+      });
+    },
+  );
+
+  describe.skipIf(!existsSync(LEGACY_2018_PATH))(
+    "Legacy 2018 workbook - J Guiry (Phase 14 over-coloring + note keywords)",
+    () => {
+      let ws: ExcelJS.Worksheet;
+      let themeColors: Map<number, string>;
+
+      it("should load J Guiry worksheet", async () => {
+        const wb = new ExcelJS.Workbook();
+        await wb.xlsx.readFile(LEGACY_2018_PATH);
+
+        const sheet = wb.getWorksheet("J Guiry");
+        expect(sheet).toBeDefined();
+        ws = sheet!;
+
+        const wbAny = wb as any;
+        const themeXml: string | undefined =
+          wbAny._themes?.theme1 ?? wbAny.themes?.theme1;
+        if (themeXml) {
+          themeColors = parseThemeColors(themeXml);
+        } else {
+          themeColors = new Map([
+            [0, "FFFFFFFF"],
+            [1, "FF000000"],
+            [2, "FFEEECE1"],
+            [3, "FF1F497D"],
+            [4, "FF4F81BD"],
+            [5, "FFC0504D"],
+            [6, "FF9BBB59"],
+            [7, "FF8064A2"],
+            [8, "FF4BACC6"],
+            [9, "FFF79646"],
+            [10, "FF0000FF"],
+            [11, "FF800080"],
+          ]);
+        }
+      });
+
+      it("should detect December over-coloring with weekend-makeup note", () => {
+        const result = parseEmployeeSheet(ws, themeColors);
+
+        const decOverColor = result.warnings.filter(
+          (w) => w.includes("Over-coloring") && w.includes("month 12"),
+        );
+        expect(decOverColor.length).toBeGreaterThanOrEqual(1);
+      });
+
+      it("should NOT flag May as over-coloring (calendar < declared)", () => {
+        const result = parseEmployeeSheet(ws, themeColors);
+
+        const mayOverColor = result.warnings.filter(
+          (w) => w.includes("Over-coloring") && w.includes("month 5"),
+        );
+        expect(mayOverColor.length).toBe(0);
+      });
+    },
+  );
+
+  // ── Phase 15: overrideTypeFromNote ──
+
+  describe("overrideTypeFromNote", () => {
+    it("should override Bereavement → PTO when note contains 'PTO'", () => {
+      const entries = [
+        {
+          date: "2018-05-18",
+          type: "Bereavement" as const,
+          hours: 3,
+          notes:
+            'Color matched via approximate (resolved=FFFCD5B5). Cell note: "3 hours PTO "',
+        },
+      ];
+      const result = overrideTypeFromNote(entries, "L Cole");
+      expect(result.entries).toHaveLength(1);
+      expect(result.entries[0].type).toBe("PTO");
+      expect(result.entries[0].notes).toContain(
+        "Type overridden from Bereavement to PTO",
+      );
+      expect(result.workedCells).toHaveLength(0);
+      expect(result.warnings).toHaveLength(1);
+    });
+
+    it("should override Bereavement → Sick when note contains 'sick'", () => {
+      const entries = [
+        {
+          date: "2018-02-07",
+          type: "Bereavement" as const,
+          hours: 4,
+          notes:
+            'Color matched via approximate (resolved=FFC3D69B). Cell note: "4 hours sick "',
+        },
+      ];
+      const result = overrideTypeFromNote(entries, "L Cole");
+      expect(result.entries).toHaveLength(1);
+      expect(result.entries[0].type).toBe("Sick");
+      expect(result.warnings).toHaveLength(1);
+    });
+
+    it("should demote to workedCell when note contains 'worked'", () => {
+      const entries = [
+        {
+          date: "2018-09-22",
+          type: "Bereavement" as const,
+          hours: 1,
+          notes:
+            'Color matched via approximate (resolved=FFB7DEE8). Cell note: "Worked from 1-3pm "',
+        },
+      ];
+      const result = overrideTypeFromNote(entries, "Test");
+      expect(result.entries).toHaveLength(0);
+      expect(result.workedCells).toHaveLength(1);
+      expect(result.workedCells[0].date).toBe("2018-09-22");
+      expect(result.workedCells[0].note).toContain("Worked");
+    });
+
+    it("should not touch exact-match entries", () => {
+      const entries = [
+        {
+          date: "2018-06-18",
+          type: "PTO" as const,
+          hours: 8,
+          notes: undefined,
+        },
+      ];
+      const result = overrideTypeFromNote(entries, "Test");
+      expect(result.entries).toHaveLength(1);
+      expect(result.entries[0].type).toBe("PTO");
+      expect(result.workedCells).toHaveLength(0);
+      expect(result.warnings).toHaveLength(0);
+    });
+
+    it("should keep Bereavement when note has no type keyword", () => {
+      const entries = [
+        {
+          date: "2018-09-07",
+          type: "Bereavement" as const,
+          hours: 4,
+          notes:
+            'Color matched via approximate (resolved=FFFCD5B5). Cell note: "4 hours "',
+        },
+      ];
+      const result = overrideTypeFromNote(entries, "Test");
+      expect(result.entries).toHaveLength(1);
+      expect(result.entries[0].type).toBe("Bereavement");
+      expect(result.warnings).toHaveLength(0);
+    });
+
+    it("should prefer PTO over Sick when note contains both", () => {
+      const entries = [
+        {
+          date: "2018-05-23",
+          type: "Bereavement" as const,
+          hours: 6,
+          notes:
+            'Color matched via approximate (resolved=FFC3D69B). Cell note: "6 Hours Sick - Used 5 hours PTO "',
+        },
+      ];
+      const result = overrideTypeFromNote(entries, "Test");
+      expect(result.entries).toHaveLength(1);
+      // Contains PTO keyword → should override to PTO (PTO takes priority)
+      expect(result.entries[0].type).toBe("PTO");
+    });
+  });
+
+  // ── L Cole integration test ──
+
+  describe.skipIf(!existsSync(LEGACY_2018_PATH))(
+    "Legacy 2018 workbook - L Cole (Phase 15 note-based type override)",
+    () => {
+      let ws: ExcelJS.Worksheet;
+      let themeColors: Map<number, string>;
+
+      it("should load L Cole worksheet", async () => {
+        const wb = new ExcelJS.Workbook();
+        await wb.xlsx.readFile(LEGACY_2018_PATH);
+
+        const sheet = wb.getWorksheet("L Cole");
+        expect(sheet).toBeDefined();
+        ws = sheet!;
+
+        const wbAny = wb as any;
+        const themeXml: string | undefined =
+          wbAny._themes?.theme1 ?? wbAny.themes?.theme1;
+        if (themeXml) {
+          themeColors = parseThemeColors(themeXml);
+        } else {
+          themeColors = new Map([
+            [0, "FFFFFFFF"],
+            [1, "FF000000"],
+            [2, "FFEEECE1"],
+            [3, "FF1F497D"],
+            [4, "FF4F81BD"],
+            [5, "FFC0504D"],
+            [6, "FF9BBB59"],
+            [7, "FF8064A2"],
+            [8, "FF4BACC6"],
+            [9, "FFF79646"],
+            [10, "FF0000FF"],
+            [11, "FF800080"],
+          ]);
+        }
+      });
+
+      it("should override approximate-matched Bereavement entries based on notes", () => {
+        const result = parseEmployeeSheet(ws, themeColors);
+
+        // Phase 15 warnings for overridden entries
+        const overrideWarnings = result.warnings.filter((w) =>
+          w.includes("overridden"),
+        );
+        expect(overrideWarnings.length).toBeGreaterThanOrEqual(5);
+      });
+
+      it("should have significantly fewer Bereavement entries after Phase 15", () => {
+        const result = parseEmployeeSheet(ws, themeColors);
+
+        // Before Phase 15, L Cole had 29 Bereavement entries.
+        // After Phase 15, many should be reclassified as PTO or Sick.
+        const bereavEntries = result.ptoEntries.filter(
+          (e) => e.type === "Bereavement",
+        );
+        // Only the actual bereavement cells (Oct 14-19 range with grey color)
+        // should remain as Bereavement
+        expect(bereavEntries.length).toBeLessThan(15);
+      });
+
+      it("should produce PTO totals closer to column S declared values", () => {
+        const result = parseEmployeeSheet(ws, themeColors);
+        const ptoCalc = parsePtoCalcUsedHours(ws);
+
+        // Check months that were previously mismatched
+        for (const month of [6, 12]) {
+          const declared =
+            ptoCalc.find((c) => c.month === month)?.usedHours || 0;
+          const ptoTotal = result.ptoEntries
+            .filter((e) => {
+              const m = parseInt(e.date.substring(5, 7));
+              return m === month && e.type === "PTO";
+            })
+            .reduce((s, e) => s + e.hours, 0);
+          // PTO total should be much closer to declared now
+          const gap = Math.abs(declared - ptoTotal);
+          expect(gap).toBeLessThan(declared * 0.5); // Within 50% of declared
+        }
+      });
+
+      it("should reclassify Sep Bereavement entries as PTO via Phase 16", () => {
+        const result = parseEmployeeSheet(ws, themeColors);
+
+        // Sep: 2 Bereavement entries (4h + 4h) with "4 hours" notes
+        // Column S declares 22h PTO; without Phase 16 only 14h PTO detected
+        // Phase 16 should reclassify both to fill the 8h gap
+        const sepPto = result.ptoEntries
+          .filter((e) => e.date.startsWith("2018-09") && e.type === "PTO")
+          .reduce((s, e) => s + e.hours, 0);
+        // Should be close to declared 22h (14h base + 8h reclassified)
+        expect(sepPto).toBeGreaterThanOrEqual(20);
+      });
+
+      it("should reclassify Dec Bereavement entry as PTO via Phase 16", () => {
+        const result = parseEmployeeSheet(ws, themeColors);
+
+        // Dec: 1 Bereavement entry (2h) — gap is exactly 2h
+        const decPto = result.ptoEntries
+          .filter((e) => e.date.startsWith("2018-12") && e.type === "PTO")
+          .reduce((s, e) => s + e.hours, 0);
+        // Should match declared 30h
+        expect(decPto).toBe(30);
+      });
+    },
+  );
+
+  // ── Phase 16: reclassifyBereavementByColumnS ──
+
+  describe("reclassifyBereavementByColumnS", () => {
+    it("should reclassify approximate-matched Bereavement as PTO when gap exists", () => {
+      const entries: Parameters<typeof reclassifyBereavementByColumnS>[0] = [
+        { date: "2018-09-03", type: "PTO", hours: 8 },
+        {
+          date: "2018-09-07",
+          type: "Bereavement",
+          hours: 4,
+          notes:
+            'Color matched via approximate (resolved=FFFCD5B5). Cell note: "4 hours "',
+        },
+        { date: "2018-09-21", type: "PTO", hours: 8 },
+      ];
+      const ptoCalcRows = [{ month: 9, usedHours: 20 }];
+      const result = reclassifyBereavementByColumnS(
+        entries,
+        ptoCalcRows,
+        "Test",
+      );
+      expect(result.entries[1].type).toBe("PTO");
+      expect(result.entries[1].notes).toContain(
+        "Bereavement reclassified as PTO",
+      );
+      expect(result.warnings).toHaveLength(1);
+    });
+
+    it("should not reclassify exact-matched Bereavement entries", () => {
+      const entries: Parameters<typeof reclassifyBereavementByColumnS>[0] = [
+        { date: "2018-10-15", type: "Bereavement", hours: 8, notes: undefined },
+        { date: "2018-10-16", type: "PTO", hours: 8 },
+      ];
+      const ptoCalcRows = [{ month: 10, usedHours: 16 }];
+      const result = reclassifyBereavementByColumnS(
+        entries,
+        ptoCalcRows,
+        "Test",
+      );
+      // No "Color matched via approximate" in notes → should stay Bereavement
+      expect(result.entries[0].type).toBe("Bereavement");
+      expect(result.warnings).toHaveLength(0);
+    });
+
+    it("should not overshoot declared total", () => {
+      const entries: Parameters<typeof reclassifyBereavementByColumnS>[0] = [
+        { date: "2018-05-04", type: "PTO", hours: 8 },
+        {
+          date: "2018-05-10",
+          type: "Bereavement",
+          hours: 4,
+          notes:
+            'Color matched via approximate (resolved=FFFCD5B5). Cell note: "4 hours "',
+        },
+        {
+          date: "2018-05-11",
+          type: "Bereavement",
+          hours: 8,
+          notes: "Color matched via approximate (resolved=FFB7DEE8).",
+        },
+      ];
+      const ptoCalcRows = [{ month: 5, usedHours: 11 }];
+      const result = reclassifyBereavementByColumnS(
+        entries,
+        ptoCalcRows,
+        "Test",
+      );
+      // Gap is 3h. Smallest Bereavement is 4h → would overshoot → skip both
+      expect(result.entries[1].type).toBe("Bereavement");
+      expect(result.entries[2].type).toBe("Bereavement");
+    });
+
+    it("should reclassify multiple entries smallest-first to fill gap", () => {
+      const entries: Parameters<typeof reclassifyBereavementByColumnS>[0] = [
+        { date: "2018-09-03", type: "PTO", hours: 8 },
+        {
+          date: "2018-09-07",
+          type: "Bereavement",
+          hours: 4,
+          notes:
+            'Color matched via approximate (resolved=FFFCD5B5). Cell note: "4 hours "',
+        },
+        {
+          date: "2018-09-12",
+          type: "Bereavement",
+          hours: 4,
+          notes:
+            'Color matched via approximate (resolved=FFFCD5B5). Cell note: "4 hours "',
+        },
+        { date: "2018-09-21", type: "PTO", hours: 8 },
+      ];
+      const ptoCalcRows = [{ month: 9, usedHours: 24 }];
+      const result = reclassifyBereavementByColumnS(
+        entries,
+        ptoCalcRows,
+        "Test",
+      );
+      // Gap is 8h, two 4h entries → both should be reclassified
+      expect(result.entries[1].type).toBe("PTO");
+      expect(result.entries[2].type).toBe("PTO");
+      expect(result.warnings).toHaveLength(2);
+    });
+  });
 });

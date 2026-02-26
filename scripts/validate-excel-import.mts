@@ -343,8 +343,9 @@ function compareAndReport(
       totalActual += actualHours;
 
       // Use a small tolerance for floating point comparison
+      // 0.05h covers partial-day rounding artefacts (e.g., 6.52 vs 6.5)
       const delta = actualHours - declaredHours;
-      if (Math.abs(delta) > 0.01) {
+      if (Math.abs(delta) > 0.05) {
         totalMismatches++;
         empDiscrepancies.push({
           employeeName: emp.employeeName,

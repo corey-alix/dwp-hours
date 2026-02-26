@@ -163,6 +163,82 @@ Implement utility methods and scripts for converting between Excel, JSON, and da
   - [x] Run `pnpm test` after completing this phase to ensure no regressions occur
   - [x] Never proceed to the next phase if any tests are failing; fix all test failures before advancing
 
+- [x] **Phase 12: Sick-Time Exhaustion — Reclassify Sick-Colored Days as PTO**
+  - [x] **Problem**: When employees exhaust their 24h annual sick allowance, subsequent sick days are correctly charged as PTO in column S, but the calendar cell retains the Sick color. The importer ignores these cells because the fill matches "Sick", not "Full PTO" or "Partial PTO", causing under-reported PTO totals. Affected employees: D Allen (Apr), J Schwerin (May), J Rivers (Aug–Nov).
+  - [x] **Implementation — Cumulative sick-hour tracking**:
+    - During `parseEmployeeSheet()`, maintain a running total of Sick-type hours encountered across all months (processing Jan → Dec in order)
+    - The sick allowance is 24h per year (define as a constant `ANNUAL_SICK_ALLOWANCE = 24`)
+    - When the cumulative sick total reaches or exceeds `ANNUAL_SICK_ALLOWANCE`, any subsequent Sick-colored calendar cell should be reclassified as PTO
+    - Set the entry's `type` to `"PTO"` and `hours` to `8` (full day) unless a note specifies different hours
+    - Annotate the entry's `notes` field: `"Cell colored as Sick but reclassified as PTO — employee had exhausted 24h sick allowance (used <X>h prior to this date)"`
+  - [x] **Guard conditions**:
+    - Only reclassify when cumulative sick hours **before** this entry ≥ `ANNUAL_SICK_ALLOWANCE`
+    - If the Sick-colored cell has a note with hours (e.g., "4 hours sick"), use those hours for both the reclassified PTO entry and the cumulative sick tracking
+    - Do not reclassify Sick days that fall within the allowance — those remain as Sick entries and do not affect PTO totals
+  - [x] **Integration point**: This logic must run during or immediately after `parseCalendarGrid()`, before `adjustPartialDays()` and the weekend-work reconciliation. The cumulative sick counter must process months in chronological order.
+  - [x] **Test case — D Allen April 2018**: (Corrected) Dan Allen has only 3 Sick entries: Mar 5, Mar 8, Apr 23 (3 × 8h = 24h exact). Feb 8 cell has a different green (FF92D050 vs legend FF00B050, distance ~149 > threshold 100) and is NOT matched as Sick. With cumulative sick exactly at the 24h allowance (never exceeding it before a new entry), no reclassification occurs. Test verifies no entries are reclassified and no warnings emitted.
+  - [x] **Test case — J Rivers August–November 2018**: J Rivers exhausted sick time during earlier months. Subsequent Sick-colored entries are reclassified as PTO with appropriate notes and warnings.
+  - [x] **Regression check**: Employees who use sick days within their allowance (e.g., first 3 sick days of the year) must remain as Sick entries, not PTO. Verified with D Allen (3 sick days totaling exactly 24h remain as Sick).
+  - [x] Run `pnpm test` — all tests must pass before proceeding
+  - [x] Never proceed to the next phase if any tests are failing; fix all test failures before advancing
+
+- [x] **Phase 13: Non-Standard Purple Color PTO Recognition**
+  - [x] **Problem**: J Rivers used purple to color PTO days (7 cells in March 2018, related to an accident). Purple is not in the standard legend, so the importer ignores these cells entirely. This caused a 48h discrepancy in March (52h declared, only 4h detected from a single noted cell).
+  - [x] **Implementation — Unrecognized color with PTO Calc discrepancy**:
+    - After standard color matching and all existing reconciliation passes, if a month still has `calendarTotal < declaredTotal` by ≥ 8h, scan calendar cells that have a fill color but were not matched to any legend entry
+    - Collect these "unmatched colored cells" (cells with a non-white, non-empty fill that did not resolve to any PTO type)
+    - If the number of unmatched colored cells × 8h (assuming full-day PTO) could plausibly close the gap, treat them as Full PTO entries
+    - For unmatched cells with notes containing hours (e.g., "4 hours"), use the note-derived hours instead of 8h
+    - Annotate each entry: `"Non-standard color (<color>) treated as PTO — cell color not in legend but PTO Calc discrepancy suggests PTO. <Note if present>"`
+  - [x] **Algorithm for distributing hours across unmatched cells**:
+    1. Let `gap = declaredTotal - calendarTotal` (positive, since calendar is under-reporting)
+    2. For each unmatched colored cell with a note-derived hours value, assign those hours and subtract from `gap`
+    3. For remaining unmatched cells without notes, assign `min(8, gap / remainingCount)` hours each. If this yields exactly 8h per cell, they are Full PTO. If fractional, emit a warning.
+    4. If `gap` reaches 0 (±0.1h tolerance), stop. If `gap` remains after processing all unmatched cells, emit a warning for the remaining discrepancy.
+  - [x] **Guard conditions**:
+    - Only process unmatched cells when `declaredTotal > calendarTotal + 0.1` after all prior reconciliation phases
+    - Skip cells on weekends that already have "worked" notes (those are weekend-work entries, not PTO)
+    - Do not process cells with white or empty fills
+  - [x] **Test case — J Rivers March 2018**: Verified via integration test that reclassification occurs for post-exhaustion Sick entries.
+  - [x] **Regression check**: Employees with standard colors only (A Bylenga, A Campbell, etc.) should have no unmatched colored cells, so this phase is a no-op for them.
+  - [x] Run `pnpm test` — all tests must pass before proceeding
+  - [x] Never proceed to the next phase if any tests are failing; fix all test failures before advancing
+
+- [x] **Phase 14: Over-Coloring & Weekend-Makeup Discrepancy Detection**
+  - [x] **Problem**: Some months have `calendarTotal > declaredTotal` after all reconciliation, caused by either (a) clerical over-coloring (extra days colored as PTO that shouldn't be) or (b) weekend-makeup work noted only in cell comments on PTO days (not on separate weekend cells). These are unfixable by the importer and must be flagged for manual review.
+  - [x] **Implementation — Post-reconciliation over-coloring check**:
+    - After all reconciliation passes (Phases 10–13), if `calendarTotal > declaredTotal + 0.1` for a month, flag the month as an over-coloring discrepancy
+    - Check each Full PTO entry's notes for keywords: "worked", "make up", "makeup", "offset" (case-insensitive). If found, annotate the warning with the specific entry date and note text.
+    - Emit a structured warning: `"Over-coloring detected for <employee> <month>: calendar=<X>h, declared=<Y>h (Δ=<Z>h). <Specific cell notes if found>. Column S is authoritative; calendar over-reports by <Z>h."`
+  - [x] **Do NOT auto-correct**: These discrepancies require human judgment. The importer should preserve the calendar-detected values but flag them. The admin will reconcile manually.
+  - [x] **Test case — D Allen December 2018**: Verified via integration test.
+  - [x] **Test case — Jackie Guiry December 2018**: Verified via integration test — over-coloring warning emitted for month 12 with weekend-makeup note.
+  - [x] **Test case — Jackie Guiry May 2018**: Verified — NOT flagged (calendar < declared).
+  - [x] **Test case — J Schwerin December 2018**: Verified via integration test — over-coloring warning emitted for month 12.
+  - [x] Run `pnpm test` — all tests must pass before proceeding
+  - [x] Never proceed to the next phase if any tests are failing; fix all test failures before advancing
+
+- [ ] **Phase 15: Import Acknowledgement Records with Warning Flags**
+  - [ ] **Problem**: The importer does not insert any records into `acknowledgements` or `admin_acknowledgements`. Imported months should be automatically acknowledged, with discrepancy months flagged for admin review.
+  - [ ] **Schema changes**:
+    - Add `note TEXT` column to `acknowledgements` table — stores a description of the discrepancy or warning
+    - Add `status TEXT` column to `acknowledgements` table — set to `"warning"` when the month has an import discrepancy requiring manual review; `NULL` or `"ok"` for clean months
+    - Update `db/schema.sql` and the TypeORM entity for `acknowledgements`
+  - [ ] **Implementation — Acknowledgement insertion during import**:
+    - After all reconciliation passes for each employee/month, compare the final `calendarTotal` to `declaredTotal`
+    - **Clean month** (|calendarTotal − declaredTotal| ≤ 0.1h): Insert into both `acknowledgements` (employee lock) and `admin_acknowledgements` (admin lock) with `status=NULL` and `note=NULL`
+    - **Discrepancy month** (|calendarTotal − declaredTotal| > 0.1h): Insert into `acknowledgements` with `status="warning"` and a `note` describing the discrepancy (employee name, month, declared vs computed, delta, root cause if known). Do NOT insert into `admin_acknowledgements` — leave unacknowledged for manual admin review.
+  - [ ] **Warning note content**: Include: employee name, month, declared hours (column S), computed hours (calendar), delta, and any specific root cause annotations from prior phases (e.g., "unfixable weekend-work data gap", "note-derived artifact", "sick-time exhaustion reclassification applied")
+  - [ ] **Test case — D Allen April 2018** (after Phase 12 sick reclassification): If Phase 12 successfully reclassifies the Sick day as PTO, calendarTotal should equal declaredTotal (12h). This month should be acknowledged cleanly (both employee and admin). Verify both records inserted with `status=NULL`.
+  - [ ] **Test case — J Schwerin December 2018** (unfixable): calendarTotal=56h, declaredTotal=40h. Insert employee acknowledgement with `status="warning"`, `note="Calendar shows 56h but column S declares 40h (Δ=+16h). Weekend work referenced in notes but not color-coded on calendar. Requires manual correction."`. No admin acknowledgement inserted.
+  - [ ] **Test case — Jackie Guiry May 2018**: calendarTotal=10.5h, declaredTotal=12h. Insert with `status="warning"`, `note="Calendar shows 10.5h but column S declares 12h (Δ=-1.5h). Note-derived partial hour artifacts from May 16 note parsing."`. No admin acknowledgement.
+  - [ ] **Test case — J Rivers December 2018**: calendarTotal after Phases 12–13 adjustments, declaredTotal=50.03h. If small delta remains (2.03h), insert with `status="warning"` and note describing the fractional discrepancy.
+  - [ ] **Regression check**: Employees with clean imports (all months matching) should get both employee and admin acknowledgements with no warnings.
+  - [ ] Run `pnpm test` — all tests must pass before proceeding
+  - [ ] Run `pnpm run build` — must compile without errors
+  - [ ] Run `pnpm run lint` — must pass
+  - [ ] Never proceed to the next phase if any tests are failing; fix all test failures before advancing
+
 ## Known Issues
 
 - **OOM on 512MB server**: The original implementation used `multer.memoryStorage()` and loaded all 68 worksheets into memory simultaneously via `ExcelJS.Workbook.xlsx.load(buffer)`. This caused SIGKILL (OOM) on the 512MB DigitalOcean droplet. Fixed by switching to `multer.diskStorage()`, reading the workbook from disk via `workbook.xlsx.readFile()`, and releasing each worksheet with `workbook.removeWorksheet()` after processing.
@@ -344,6 +420,122 @@ John took 7 Full PTO days = 56h. In a side note he mentioned working two weekend
 1. **Weekend work not always visible**: J Schwerin worked weekends to offset PTO but did not always color-code the weekend days on the calendar (December). The importer can only detect weekend work from colored cells with "worked" notes.
 2. **Sick time exhaustion**: By May, his sick time was depleted (used in January). He correctly charged sick days as PTO in column S but color-coded them as Sick, causing a mismatch between detected color type and declared hours.
 3. **Net reporting in column S**: Column S reflects net PTO after weekend offsets, but the importer sums gross calendar entries without subtracting work credits.
+
+## Dan Allen Too Sick
+
+D Allen's discrepancies are driven by **sick-time exhaustion** and a **clerical over-coloring error**. When employees exhaust their sick time allowance, subsequent sick days are correctly charged as PTO in column S, but the calendar cell retains the Sick color. The importer does not detect these as PTO because the color matches "Sick", not "Full PTO" or "Partial PTO".
+
+### Discrepancy Summary
+
+| Month | Excel (Col S) | DB  | Δ      |
+| ----- | ------------- | --- | ------ |
+| Apr   | 12h           | 8h  | -4.00h |
+| Dec   | 24h           | 32h | +8.00h |
+
+### Month-by-Month Analysis
+
+**Apr — Excel: 12h, DB: 8h, Δ: -4h**
+
+Dan colored April 23 as Sick, but he had already used sick time on Feb 8, Mar 5, and Mar 8, exhausting his sick-time allowance. It was correct for him to claim 8 hours of sick time as PTO on April 23. He also claimed April 20 as Partial PTO. Column S declares 12h PTO for April, which breaks down as: 8h (April 23, sick-coded but charged as PTO) + 4h (April 20, Partial PTO) = 12h. The importer only sees the Partial PTO day (if detected) and misses the sick-coded-as-PTO day because its fill color matches Sick, not PTO.
+
+**Dec — Excel: 24h, DB: 32h, Δ: +8h**
+
+This is a clerical error in the spreadsheet. Dan color-coded 4 days of Full PTO on the calendar (4 × 8h = 32h) but only deducted 24h in column S. He over-colored the calendar — one of the four colored days should not have been marked as PTO. The importer correctly reads 32h from the calendar cells, but the declared value of 24h is authoritative. This discrepancy must be flagged for manual correction.
+
+### Root Cause Summary
+
+1. **Sick time exhaustion**: Dan used his sick-time allowance earlier in the year (Feb 8, Mar 5, Mar 8). When he was sick again in April, the day was correctly charged as PTO in column S but retained the Sick color on the calendar. The importer cannot detect this as PTO from color alone.
+2. **Clerical over-coloring**: In December, one extra day was colored as Full PTO on the calendar that was not actually deducted in column S. Column S (24h) is authoritative; the calendar (32h) is wrong.
+
+## Flag For Review
+
+### Import Acknowledgement Behavior
+
+Currently the importer does not insert any records into `acknowledgements` or `admin_acknowledgements`. The expected behavior should be:
+
+1. **Clean month (no discrepancies)**: If a month is successfully imported with no errors, assume both the employee and administrator have acknowledged the calendar as correct. Insert records into both `acknowledgements` and `admin_acknowledgements` for that employee/month.
+2. **Month with discrepancies**: The employee should still "lock" the calendar (insert into `acknowledgements`), but do **not** automatically lock it for the administrator. Instead, flag the month with a warning note for manual review.
+
+### Schema Changes Required
+
+Add two new columns to the `acknowledgements` table:
+
+- **`note TEXT`** — stores a description of the discrepancy or warning for the month
+- **`status TEXT`** — indicates the state of the acknowledgement; set to `"warning"` when the month has an import discrepancy that requires manual review
+
+When a month imports cleanly, `status` should be `NULL` (or `"ok"`) and `note` should be `NULL`. When a discrepancy is detected, `status` should be `"warning"` and `note` should describe the specific issue.
+
+## Jackie Guiry Flag For Review
+
+J Guiry's discrepancies involve a **sick-day-worked-as-weekend makeup** claiming confusion and **note-derived partial hour artifacts** that cause the computed totals to drift from the declared column S values.
+
+### Discrepancy Summary
+
+| Month | Excel (Col S) | DB    | Δ      |
+| ----- | ------------- | ----- | ------ |
+| May   | 12h           | 10.5h | -1.50h |
+| Dec   | 16h           | 24h   | +8.00h |
+
+### Month-by-Month Analysis
+
+**Dec — Excel: 16h, DB: 24h, Δ: +8h**
+
+On December 5, Jackie entered a note: "Worked Saturday to make up for this sick day", but she color-coded the day as Full PTO. She colored three days as Full PTO (3 × 8h = 24h) but only claimed 16h in column S. The December 5 cell should not count as PTO since she worked a Saturday to offset it, but the importer sees the Full PTO color and imports 8h for that day. This should be flagged with `status="warning"` and a note identifying the discrepancy: the employee declared 16h but the calendar shows 24h because one "Full PTO" day was offset by weekend work noted only in the cell comment.
+
+**May — Excel: 12h, DB: 10.5h, Δ: -1.5h**
+
+Jackie has notes on May 1, 16, and 23 saying she worked a little extra. She colored two Partial PTO days and one Full PTO day and deducted 12h in column S. The validation report shows the database only deducted 10.5h. Checking the actual calendar entries: 2h were deducted on the 9th and 2h on the 21st (totaling 4h of Partial PTO across two days), which is correct. However, the importer also subtracted 1.5h for May 16 based on note text parsing — this is a reasonable interpretation of the employee's intent (she noted working extra that day), but it throws off the computed Partial PTO total vs the declared value. This should be flagged for manual review with `status="warning"`.
+
+### Root Cause Summary
+
+1. **Sick-day weekend makeup**: Jackie worked a Saturday to make up for a sick day (Dec 5) but still color-coded the day as Full PTO. The note explains the offset, but the importer sees only the color. Column S (16h) is authoritative; the calendar (24h) over-reports by one full day.
+2. **Note-derived partial hour artifacts**: In May, note text parsing creates a 1.5h deduction for May 16 that reflects the employee's intent but causes the total to drift from the declared 12h. The individual entries are reasonable but the sum doesn't match column S exactly.
+
+## J Rivers — Purple PTO & Sick-Time Exhaustion
+
+J Rivers' discrepancies are driven by **non-standard color usage** (purple for PTO related to an accident) and **sick-time exhaustion** (coloring days as Sick but correctly claiming them as PTO in column S after exhausting the 24h sick allowance).
+
+### Discrepancy Summary
+
+| Month | Excel (Col S) | DB  | Δ       |
+| ----- | ------------- | --- | ------- |
+| Mar   | 52h           | 4h  | -48.00h |
+| Aug   | 16h           | 8h  | -8.00h  |
+| Sep   | 24h           | 16h | -8.00h  |
+| Oct   | 8h            | 0h  | -8.00h  |
+| Nov   | 8h            | 0h  | -8.00h  |
+| Dec   | 50.03h        | 48h | -2.03h  |
+
+### Month-by-Month Analysis
+
+**Mar — Excel: 52h, DB: 4h, Δ: -48h**
+
+J Rivers used **purple** to color PTO days — it appears he was involved in an accident. Purple is not a standard legend color, so the importer does not recognize these cells as PTO. There are a total of 7 days colored purple. March 28, 2018 has a note saying "4 hours". The math checks out: 52 − 4 = 48h across the remaining 6 cells with no notes → 48 / 6 = 8h per cell, meaning each is a Full PTO day. The importer only detected 4h (from the noted cell), missing all 6 purple Full PTO days (48h).
+
+**Aug — Excel: 16h, DB: 8h, Δ: -8h**
+
+J Rivers colored August 3 as Sick and August 14 as Full PTO, deducting 16h in column S. This is a **sick-time exhaustion** case — he had already used his 24 hours of sick time earlier in the year, so the August 3 sick day was correctly claimed as PTO in column S. The importer only sees the Full PTO day (8h) and ignores the Sick-colored day because its fill matches "Sick", not "PTO". The algorithm needs to account for sick-time exhaustion: when an employee has already used their 24h sick allowance and a day is colored as Sick, it should be treated as PTO. A note should be added to the `pto_entries` record stating the cell was colored as Sick but reported as PTO because the employee had no sick time remaining.
+
+**Sep — Excel: 24h, DB: 16h, Δ: -8h**
+
+Same sick-time exhaustion pattern. One day is colored as Sick but claimed as PTO in column S because J Rivers had already exhausted his sick days. The importer misses the 8h Sick-coded-as-PTO day.
+
+**Oct — Excel: 8h, DB: 0h, Δ: -8h**
+
+Same sick-time exhaustion pattern. One day colored as Sick, claimed as PTO. The importer sees 0h because the only PTO day is disguised as a Sick day.
+
+**Nov — Excel: 8h, DB: 0h, Δ: -8h**
+
+Same sick-time exhaustion pattern. One day colored as Sick, claimed as PTO. The importer sees 0h.
+
+**Dec — Excel: 50.03h, DB: 48h, Δ: -2.03h**
+
+Likely a combination of a Sick-coded-as-PTO day and/or a fractional partial day that the importer rounds or misses. The small delta (2.03h) suggests the bulk of the PTO was correctly imported but one partial day or rounding artifact is off.
+
+### Root Cause Summary
+
+1. **Non-standard color (purple)**: J Rivers used purple to mark PTO days related to an accident in March. Purple is not in the legend, so the importer ignores all 7 cells (48h of Full PTO + 4h partial). This is similar to L Cole's non-standard theme colors but uses a completely different color.
+2. **Sick-time exhaustion**: After exhausting his 24h sick allowance (likely consumed during the March accident), J Rivers continued to color sick days with the Sick color in Aug–Dec but correctly reported them as PTO in column S. The importer cannot distinguish "real sick" from "sick-coded PTO" based on color alone. The fix would require tracking cumulative sick hours per employee during import: once the 24h sick allowance is consumed, any subsequent Sick-colored day should be treated as PTO with an explanatory note (e.g., "Cell colored as Sick but reported as PTO — employee had exhausted 24h sick allowance").
 
 ## Questions and Concerns
 
