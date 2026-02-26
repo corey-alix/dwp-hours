@@ -257,14 +257,23 @@ export function extractCellNoteText(cell: ExcelJS.Cell): string {
 
 /**
  * Try to parse hours from a note string.
- * Extracts the first number (integer or decimal) found in the text.
- * Handles formats like ".5 hrs", "0.5 hrs", "4 hours", "2 HRS PTO",
- * "1.5h", "3", etc. — only the first numeric value matters.
+ *
+ * First tries a strict pattern requiring a unit suffix (hrs/hours/h) to
+ * avoid false positives from time references like "1PM" or "12:30".
+ * Falls back to extracting the first bare number if the strict pattern fails.
  */
 export function parseHoursFromNote(note: string): number | undefined {
-  const match = note.match(/(\d+(?:\.\d+)?|\.\d+)/);
-  if (match) {
-    const val = parseFloat(match[1]);
+  // Strict pattern: number followed by a time-unit suffix
+  const strict = note.match(/(\d+(?:\.\d+)?|\.\d+)\s*(?:hrs?|hours?)\b/i);
+  if (strict) {
+    const val = parseFloat(strict[1]);
+    if (!isNaN(val) && val > 0) return val;
+  }
+
+  // Fallback: first bare number in the text
+  const bare = note.match(/(\d+(?:\.\d+)?|\.\d+)/);
+  if (bare) {
+    const val = parseFloat(bare[1]);
     if (!isNaN(val) && val > 0) return val;
   }
   return undefined;
@@ -277,6 +286,8 @@ export interface ImportedPtoEntry {
   type: PTOType;
   hours: number;
   notes?: string;
+  /** True when the calendar cell matched a "Partial PTO" legend color. */
+  isPartialPtoColor?: boolean;
 }
 
 export interface ImportedAcknowledgement {
@@ -373,6 +384,36 @@ export function parseLegend(
   return colorMap;
 }
 
+/**
+ * Scan the legend section and return the set of ARGB color strings
+ * whose label is "Partial PTO".  Used to tag calendar entries so
+ * `adjustPartialDays` can identify them for back-calculation.
+ */
+export function parsePartialPtoColors(
+  ws: ExcelJS.Worksheet,
+  themeColors: Map<number, string> = DEFAULT_OFFICE_THEME,
+): Set<string> {
+  const colors = new Set<string>();
+  const headerRow = findLegendHeaderRow(ws);
+  if (headerRow < 0) return colors;
+
+  const maxEntries = 10;
+  for (let i = 1; i <= maxEntries; i++) {
+    const row = headerRow + i;
+    const cell = ws.getCell(row, LEGEND_COL);
+    const label = cell.value?.toString().trim() || "";
+    if (!label) break;
+    if (label !== "Partial PTO") continue;
+
+    const fill = cell.fill as ExcelJS.FillPattern | undefined;
+    if (fill?.type === "pattern") {
+      const argb = resolveColorToARGB(fill.fgColor as any, themeColors);
+      if (argb) colors.add(argb);
+    }
+  }
+  return colors;
+}
+
 function pad2(n: number): string {
   return n < 10 ? `0${n}` : `${n}`;
 }
@@ -439,6 +480,7 @@ export function parseCalendarGrid(
   year: number,
   legend: Map<string, PTOType>,
   themeColors: Map<number, string> = DEFAULT_OFFICE_THEME,
+  partialPtoColors: Set<string> = new Set(),
 ): CalendarParseResult {
   const entries: ImportedPtoEntry[] = [];
   const unmatchedNotedCells: UnmatchedNotedCell[] = [];
@@ -517,6 +559,7 @@ export function parseCalendarGrid(
       const fill = cell.fill as ExcelJS.FillPattern | undefined;
       let ptoType: PTOType | undefined;
       let matchMethod = "";
+      let matchedArgb: string | undefined;
 
       if (fill?.type === "pattern") {
         // 1. Try resolving fgColor (exact ARGB or theme-resolved)
@@ -525,11 +568,13 @@ export function parseCalendarGrid(
           ptoType = legend.get(fgArgb);
           if (ptoType) {
             matchMethod = "exact";
+            matchedArgb = fgArgb;
           } else {
             // 2. Try approximate color match
             ptoType = findClosestLegendColor(fgArgb, legend);
             if (ptoType) {
               matchMethod = `approximate (resolved=${fgArgb})`;
+              matchedArgb = fgArgb;
             }
           }
         }
@@ -541,10 +586,12 @@ export function parseCalendarGrid(
             ptoType = legend.get(bgArgb);
             if (ptoType) {
               matchMethod = "bgColor exact";
+              matchedArgb = bgArgb;
             } else {
               ptoType = findClosestLegendColor(bgArgb, legend);
               if (ptoType) {
                 matchMethod = `bgColor approximate (resolved=${bgArgb})`;
+                matchedArgb = bgArgb;
               }
             }
           }
@@ -561,6 +608,10 @@ export function parseCalendarGrid(
           }
         }
         const entry: ImportedPtoEntry = { date: dateStr, type: ptoType, hours };
+        // Tag entries whose cell color matched a "Partial PTO" legend color
+        if (matchedArgb && partialPtoColors.has(matchedArgb)) {
+          entry.isPartialPtoColor = true;
+        }
         if (matchMethod !== "exact" && matchMethod) {
           entry.notes = `Color matched via ${matchMethod}.`;
         }
@@ -669,7 +720,8 @@ export function parseCarryoverHours(ws: ExcelJS.Worksheet): number {
 export function adjustPartialDays(
   entries: ImportedPtoEntry[],
   ptoCalcRows: PtoCalcRow[],
-): ImportedPtoEntry[] {
+  sheetName = "",
+): { entries: ImportedPtoEntry[]; warnings: string[] } {
   // Group entries by month
   const byMonth = new Map<number, ImportedPtoEntry[]>();
   for (const e of entries) {
@@ -682,6 +734,7 @@ export function adjustPartialDays(
   for (const e of entries) {
     result.push({ ...e });
   }
+  const warnings: string[] = [];
 
   for (const calc of ptoCalcRows) {
     const monthEntries = byMonth.get(calc.month);
@@ -690,36 +743,81 @@ export function adjustPartialDays(
     const calendarTotal = monthEntries.reduce((sum, e) => sum + e.hours, 0);
     const declaredTotal = calc.usedHours;
 
-    if (declaredTotal <= 0 || calendarTotal <= declaredTotal) continue;
+    if (declaredTotal <= 0) continue;
 
-    // Need to reduce — find the last entry in this month (by date) in the result
     const monthStr = pad2(calc.month);
     const monthResultEntries = result.filter(
       (e) => e.date.substring(5, 7) === monthStr,
     );
     if (monthResultEntries.length === 0) continue;
 
-    // Sort by date to find the last one
-    monthResultEntries.sort((a, b) => a.date.localeCompare(b.date));
-    const lastEntry = monthResultEntries[monthResultEntries.length - 1];
+    if (calendarTotal > declaredTotal) {
+      // ── Existing logic: reduce last entry ──
+      monthResultEntries.sort((a, b) => a.date.localeCompare(b.date));
+      const lastEntry = monthResultEntries[monthResultEntries.length - 1];
 
-    // Calculate the partial hours for the last day
-    const otherTotal = calendarTotal - lastEntry.hours;
-    const partialHours = declaredTotal - otherTotal;
+      const otherTotal = calendarTotal - lastEntry.hours;
+      const partialHours = declaredTotal - otherTotal;
 
-    if (partialHours > 0 && partialHours < lastEntry.hours) {
-      const originalHours = lastEntry.hours;
-      lastEntry.hours = Math.round(partialHours * 100) / 100;
-      const adjustNote =
-        `Adjusted from ${originalHours}h to ${lastEntry.hours}h ` +
-        `based on PTO Calc (declared ${declaredTotal}h for month ${calc.month}).`;
-      lastEntry.notes = lastEntry.notes
-        ? `${lastEntry.notes} ${adjustNote}`
-        : adjustNote;
+      if (partialHours > 0 && partialHours < lastEntry.hours) {
+        const originalHours = lastEntry.hours;
+        lastEntry.hours = Math.round(partialHours * 100) / 100;
+        const adjustNote =
+          `Adjusted from ${originalHours}h to ${lastEntry.hours}h ` +
+          `based on PTO Calc (declared ${declaredTotal}h for month ${calc.month}).`;
+        lastEntry.notes = lastEntry.notes
+          ? `${lastEntry.notes} ${adjustNote}`
+          : adjustNote;
+      }
+    } else if (calendarTotal < declaredTotal) {
+      // ── Phase 10: back-calculate partial-day hours ──
+      const partials = monthResultEntries.filter(
+        (e) => e.isPartialPtoColor === true,
+      );
+
+      if (partials.length === 1) {
+        const partial = partials[0];
+        const othersTotal = calendarTotal - partial.hours;
+        const corrected = Math.round((declaredTotal - othersTotal) * 100) / 100;
+
+        if (corrected > 0 && corrected <= 8 && corrected !== partial.hours) {
+          const originalHours = partial.hours;
+          partial.hours = corrected;
+          const adjustNote =
+            `Hours adjusted from ${originalHours}h to ${corrected}h ` +
+            `based on PTO Calc (declared=${declaredTotal}h for month ${calc.month}).`;
+          partial.notes = partial.notes
+            ? `${partial.notes} ${adjustNote}`
+            : adjustNote;
+        } else if (corrected !== partial.hours) {
+          // Guard failed — corrected is out of range
+          warnings.push(
+            `"${sheetName}" month ${calc.month}: ` +
+              `back-calculation produced ${corrected}h (out of 0–8 range). ` +
+              `Declared=${declaredTotal}h, calendar=${calendarTotal}h. ` +
+              `No adjustment applied.`,
+          );
+        }
+      } else if (partials.length === 0) {
+        // No partial PTO entries — can't determine which to adjust
+        warnings.push(
+          `"${sheetName}" month ${calc.month}: ` +
+            `calendar total (${calendarTotal}h) < declared (${declaredTotal}h) ` +
+            `but no Partial PTO entries found. Cannot back-calculate.`,
+        );
+      } else {
+        // Multiple partial PTO entries — ambiguous
+        warnings.push(
+          `"${sheetName}" month ${calc.month}: ` +
+            `calendar total (${calendarTotal}h) < declared (${declaredTotal}h) ` +
+            `with ${partials.length} Partial PTO entries (ambiguous). ` +
+            `Cannot back-calculate.`,
+        );
+      }
     }
   }
 
-  return result;
+  return { entries: result, warnings };
 }
 
 /**
@@ -1334,18 +1432,30 @@ export function parseEmployeeSheet(
     warnings.push(rateWarning);
   }
 
+  // Build set of "Partial PTO" legend colors for entry tagging
+  const partialPtoColors = parsePartialPtoColors(ws, themeColors);
+
   // Parse calendar with theme-aware color matching
   const {
     entries: calendarEntries,
     unmatchedNotedCells,
     workedCells,
     warnings: calendarWarnings,
-  } = parseCalendarGrid(ws, employee.year, legend, themeColors);
+  } = parseCalendarGrid(
+    ws,
+    employee.year,
+    legend,
+    themeColors,
+    partialPtoColors,
+  );
   warnings.push(...calendarWarnings);
 
   // Parse PTO calc section for partial-day adjustment
   const ptoCalcRows = parsePtoCalcUsedHours(ws);
-  let ptoEntries = adjustPartialDays(calendarEntries, ptoCalcRows);
+  const { entries: adjustedEntries, warnings: adjustWarnings } =
+    adjustPartialDays(calendarEntries, ptoCalcRows, ws.name);
+  let ptoEntries = adjustedEntries;
+  warnings.push(...adjustWarnings);
 
   // Reconcile: add missing partial PTO entries from cell notes
   const { entries: reconciledEntries, warnings: reconWarnings } =

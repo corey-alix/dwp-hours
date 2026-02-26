@@ -24,6 +24,7 @@ import {
   reconcilePartialPto,
   parseWorkedHoursFromNote,
   processWorkedCells,
+  parsePartialPtoColors,
 } from "../server/reportGenerators/excelImport.js";
 import { generateExcelReport } from "../server/reportGenerators/excelReport.js";
 import { smartParseDate } from "../shared/dateUtils.js";
@@ -226,7 +227,7 @@ describe("Excel Import", () => {
         })),
       ];
 
-      const adjusted = adjustPartialDays(entries, ptoCalc);
+      const { entries: adjusted } = adjustPartialDays(entries, ptoCalc);
       expect(adjusted[0].hours).toBe(8); // unchanged
       expect(adjusted[1].hours).toBe(8); // unchanged
       expect(adjusted[2].hours).toBe(4); // reduced: 20 - 16 = 4
@@ -243,7 +244,7 @@ describe("Excel Import", () => {
         })),
       ];
 
-      const adjusted = adjustPartialDays(entries, ptoCalc);
+      const { entries: adjusted } = adjustPartialDays(entries, ptoCalc);
       expect(adjusted[0].hours).toBe(8);
     });
 
@@ -262,8 +263,80 @@ describe("Excel Import", () => {
         })),
       ];
 
-      const adjusted = adjustPartialDays(entries, ptoCalc);
+      const { entries: adjusted } = adjustPartialDays(entries, ptoCalc);
       expect(adjusted[1].hours).toBe(5);
+    });
+
+    it("should back-calculate partial-day hours when calendarTotal < declaredTotal with one partial entry", () => {
+      // Simulates A Campbell Dec 2018: 5×8h Full PTO + 1×1h Partial PTO (wrong)
+      // PTO Calc declares 44.5h → partial should be 4.5h
+      const entries = [
+        {
+          date: "2026-12-19",
+          type: "PTO" as const,
+          hours: 1,
+          isPartialPtoColor: true,
+        },
+        { date: "2026-12-20", type: "PTO" as const, hours: 8 },
+        { date: "2026-12-21", type: "PTO" as const, hours: 8 },
+        { date: "2026-12-24", type: "PTO" as const, hours: 8 },
+        { date: "2026-12-25", type: "PTO" as const, hours: 8 },
+        { date: "2026-12-26", type: "PTO" as const, hours: 8 },
+      ];
+      const ptoCalc = [
+        ...Array.from({ length: 11 }, (_, i) => ({
+          month: i + 1,
+          usedHours: 0,
+        })),
+        { month: 12, usedHours: 44.5 },
+      ];
+
+      const { entries: adjusted, warnings } = adjustPartialDays(
+        entries,
+        ptoCalc,
+      );
+      const dec19 = adjusted.find((e) => e.date === "2026-12-19");
+      expect(dec19!.hours).toBe(4.5);
+      expect(dec19!.notes).toContain("adjusted from 1h to 4.5h");
+      expect(warnings.length).toBe(0);
+    });
+
+    it("should not back-calculate when multiple partial entries exist (ambiguous)", () => {
+      const entries = [
+        {
+          date: "2026-07-25",
+          type: "PTO" as const,
+          hours: 2,
+          isPartialPtoColor: true,
+        },
+        {
+          date: "2026-07-26",
+          type: "PTO" as const,
+          hours: 5,
+          isPartialPtoColor: true,
+        },
+      ];
+      const ptoCalc = [
+        ...Array.from({ length: 6 }, (_, i) => ({
+          month: i + 1,
+          usedHours: 0,
+        })),
+        { month: 7, usedHours: 10 },
+        ...Array.from({ length: 5 }, (_, i) => ({
+          month: i + 8,
+          usedHours: 0,
+        })),
+      ];
+
+      const { entries: adjusted, warnings } = adjustPartialDays(
+        entries,
+        ptoCalc,
+      );
+      // No adjustment — ambiguous
+      expect(adjusted.find((e) => e.date === "2026-07-25")!.hours).toBe(2);
+      expect(adjusted.find((e) => e.date === "2026-07-26")!.hours).toBe(5);
+      expect(warnings.length).toBeGreaterThan(0);
+      expect(warnings[0]).toContain("ambiguous");
     });
   });
 
@@ -747,6 +820,16 @@ describe("Excel Import", () => {
     it("should return undefined for notes without numbers", () => {
       expect(parseHoursFromNote("some other text")).toBeUndefined();
       expect(parseHoursFromNote("")).toBeUndefined();
+    });
+
+    it("should prefer strict pattern with unit suffix over bare numbers", () => {
+      // "PTO at 1PM" — strict regex does NOT match (no unit suffix after 1)
+      // fallback bare number still gets 1
+      expect(parseHoursFromNote("PTO at 1PM")).toBe(1);
+      // But "4 hrs PTO" matches strict first
+      expect(parseHoursFromNote("4 hrs PTO")).toBe(4);
+      // "2 HRS" matches strict
+      expect(parseHoursFromNote("Author:\n2 HRS")).toBe(2);
     });
   });
 
@@ -1306,6 +1389,172 @@ describe("Excel Import", () => {
           (w) => w.includes("2018-10-14") && w.includes("worked"),
         );
         expect(workedWarning).toBeDefined();
+      });
+    },
+  );
+
+  // ── Phase 10: PTO Calc–Driven Reconciliation for Ambiguous Cell Notes ──
+
+  describe.skipIf(!existsSync(LEGACY_2018_PATH))(
+    "Legacy 2018 workbook - A Campbell (Phase 10: ambiguous note reconciliation)",
+    () => {
+      let ws: ExcelJS.Worksheet;
+      let themeColors: Map<number, string>;
+
+      it("should load A Campbell worksheet and extract theme colors", async () => {
+        const wb = new ExcelJS.Workbook();
+        await wb.xlsx.readFile(LEGACY_2018_PATH);
+
+        const sheet = wb.getWorksheet("A Campbell");
+        expect(sheet).toBeDefined();
+        ws = sheet!;
+
+        const wbAny = wb as any;
+        const themeXml: string | undefined =
+          wbAny._themes?.theme1 ?? wbAny.themes?.theme1;
+        if (themeXml) {
+          themeColors = parseThemeColors(themeXml);
+        } else {
+          themeColors = new Map([
+            [0, "FFFFFFFF"],
+            [1, "FF000000"],
+            [2, "FFEEECE1"],
+            [3, "FF1F497D"],
+            [4, "FF4F81BD"],
+            [5, "FFC0504D"],
+            [6, "FF9BBB59"],
+            [7, "FF8064A2"],
+            [8, "FF4BACC6"],
+            [9, "FFF79646"],
+            [10, "FF0000FF"],
+            [11, "FF800080"],
+          ]);
+        }
+      });
+
+      it("should tag Dec 19 cell (U36) as Partial PTO color in parseCalendarGrid", () => {
+        const legend = parseLegend(ws, themeColors);
+        const partialColors = parsePartialPtoColors(ws, themeColors);
+        expect(partialColors.size).toBeGreaterThan(0);
+
+        const { entries } = parseCalendarGrid(
+          ws,
+          2018,
+          legend,
+          themeColors,
+          partialColors,
+        );
+
+        const dec19 = entries.find((e) => e.date === "2018-12-19");
+        expect(dec19).toBeDefined();
+        expect(dec19!.isPartialPtoColor).toBe(true);
+        expect(dec19!.type).toBe("PTO");
+        // Note contains "PTO at 1PM" — bare number fallback extracts 1
+        expect(dec19!.notes).toContain("PTO at 1PM");
+      });
+
+      it("should back-calculate Dec 19 from 1h to 4.5h via adjustPartialDays", () => {
+        const legend = parseLegend(ws, themeColors);
+        const partialColors = parsePartialPtoColors(ws, themeColors);
+        const { entries } = parseCalendarGrid(
+          ws,
+          2018,
+          legend,
+          themeColors,
+          partialColors,
+        );
+
+        const ptoCalcRows = parsePtoCalcUsedHours(ws);
+        const { entries: adjusted } = adjustPartialDays(
+          entries,
+          ptoCalcRows,
+          ws.name,
+        );
+
+        const dec19 = adjusted.find((e) => e.date === "2018-12-19");
+        expect(dec19).toBeDefined();
+        expect(dec19!.hours).toBe(4.5);
+        expect(dec19!.notes).toContain("adjusted from 1h to 4.5h");
+      });
+
+      it("should produce correct December total of 44.5h via full pipeline", () => {
+        const result = parseEmployeeSheet(ws, themeColors);
+
+        const decEntries = result.ptoEntries.filter((e) =>
+          e.date.startsWith("2018-12-"),
+        );
+        const decTotal = decEntries.reduce((sum, e) => sum + e.hours, 0);
+        expect(decTotal).toBe(44.5);
+      });
+
+      it("should not regress A Campbell months with correct note-based hours", () => {
+        const result = parseEmployeeSheet(ws, themeColors);
+
+        // Dec Full PTO entries should still be 8h each
+        const decFullDays = result.ptoEntries.filter(
+          (e) =>
+            e.date.startsWith("2018-12-") &&
+            e.date !== "2018-12-19" &&
+            e.hours === 8,
+        );
+        expect(decFullDays.length).toBe(5);
+      });
+    },
+  );
+
+  describe.skipIf(!existsSync(LEGACY_2018_PATH))(
+    "Legacy 2018 workbook - A Bylenga July (Phase 10 regression check)",
+    () => {
+      let ws: ExcelJS.Worksheet;
+      let themeColors: Map<number, string>;
+
+      it("should load A Bylenga worksheet", async () => {
+        const wb = new ExcelJS.Workbook();
+        await wb.xlsx.readFile(LEGACY_2018_PATH);
+
+        const sheet = wb.getWorksheet("A Bylenga");
+        expect(sheet).toBeDefined();
+        ws = sheet!;
+
+        const wbAny = wb as any;
+        const themeXml: string | undefined =
+          wbAny._themes?.theme1 ?? wbAny.themes?.theme1;
+        if (themeXml) {
+          themeColors = parseThemeColors(themeXml);
+        } else {
+          themeColors = new Map([
+            [0, "FFFFFFFF"],
+            [1, "FF000000"],
+            [2, "FFEEECE1"],
+            [3, "FF1F497D"],
+            [4, "FF4F81BD"],
+            [5, "FFC0504D"],
+            [6, "FF9BBB59"],
+            [7, "FF8064A2"],
+            [8, "FF4BACC6"],
+            [9, "FFF79646"],
+            [10, "FF0000FF"],
+            [11, "FF800080"],
+          ]);
+        }
+      });
+
+      it("should still produce correct July total of 12h (no regression)", () => {
+        const result = parseEmployeeSheet(ws, themeColors);
+
+        const julyEntries = result.ptoEntries.filter((e) =>
+          e.date.startsWith("2018-07-"),
+        );
+        const julyTotal = julyEntries.reduce((sum, e) => sum + e.hours, 0);
+        expect(julyTotal).toBe(12);
+
+        // Individual entries
+        const jul25 = julyEntries.find((e) => e.date === "2018-07-25");
+        expect(jul25!.hours).toBe(2);
+        const jul26 = julyEntries.find((e) => e.date === "2018-07-26");
+        expect(jul26!.hours).toBe(5);
+        const jul27 = julyEntries.find((e) => e.date === "2018-07-27");
+        expect(jul27!.hours).toBe(5);
       });
     },
   );
