@@ -54,6 +54,8 @@
     "stop//": "kill process on port 3000",
     "screenshot": "node scripts/review-screenshot.mjs",
     "screenshot//": "capture screenshot and shadow DOM HTML of a page (usage: pnpm screenshot <route> [user] [component])",
+    "query:pto": "tsx scripts/query-pto.mts",
+    "query:pto//": "query PTO entries from server (usage: pnpm query:pto --employee <name> [--date YYYY-MM-DD] [--month YYYY-MM] [--year YYYY])",
     "query:xlsx": "tsx scripts/query-xlsx.mts",
     "query:xlsx//": "query a cell in an Excel file (usage: pnpm query:xlsx --file <path> --sheet <name> --cell <ref>)",
     "pm2:start": "pm2 start ecosystem.config.json",

@@ -65,8 +65,57 @@ This skill integrates with the data-migration task and provides foundational kno
   - October: Row 13, Columns 20-22 (T13-V13) - continued from row 4
   - November: Row 22, Columns 20-22 (T22-V22) - continued from row 4
   - December: Row 31, Columns 20-22 (T31-V31) - continued from row 4
-- **Date Structure**: Each month occupies 3 columns horizontally, with dates flowing vertically within each month's column block (7 rows per week)
+- **Date Structure**: Each month's header spans 3 merged columns (center of a 7-column block), but the full calendar block is 7 columns wide (Sun–Sat), with dates flowing vertically (one row per week)
 - **Cell Content**: Numbers 1-31 representing days, calculated using Excel array formulas with PTOYEAR variable
+
+### Programmatic Cell Lookup (Month → Cell)
+
+Given a 1-based month number `M` (1=Jan, 12=Dec) and a day-of-month `D`, compute the Excel cell:
+
+```
+colGroup  = floor((M - 1) / 4)        // 0, 1, or 2
+rowGroup  = (M - 1) % 4               // 0, 1, 2, or 3
+headerRow = 4 + rowGroup * 9           // 4, 13, 22, or 31
+startCol  = 2 + colGroup * 8           // 2 (B), 10 (J), or 18 (R)
+dataRow   = headerRow + 2              // first row of day numbers
+
+firstDow  = dayOfWeek(year, M, 1)      // 0=Sun, 6=Sat
+week      = floor((D - 1 + firstDow) / 7)
+dow       = (D - 1 + firstDow) % 7    // 0=Sun..6=Sat
+
+row = dataRow + week
+col = startCol + dow
+```
+
+**Quick reference table** (headerRow / startCol):
+
+| Month     | M   | colGroup | rowGroup | headerRow | startCol | Cols |
+| --------- | --- | -------- | -------- | --------- | -------- | ---- |
+| January   | 1   | 0        | 0        | 4         | 2 (B)    | B–H  |
+| February  | 2   | 0        | 1        | 13        | 2 (B)    | B–H  |
+| March     | 3   | 0        | 2        | 22        | 2 (B)    | B–H  |
+| April     | 4   | 0        | 3        | 31        | 2 (B)    | B–H  |
+| May       | 5   | 1        | 0        | 4         | 10 (J)   | J–P  |
+| June      | 6   | 1        | 1        | 13        | 10 (J)   | J–P  |
+| July      | 7   | 1        | 2        | 22        | 10 (J)   | J–P  |
+| August    | 8   | 1        | 3        | 31        | 10 (J)   | J–P  |
+| September | 9   | 2        | 0        | 4         | 18 (R)   | R–X  |
+| October   | 10  | 2        | 1        | 13        | 18 (R)   | R–X  |
+| November  | 11  | 2        | 2        | 22        | 18 (R)   | R–X  |
+| December  | 12  | 2        | 3        | 31        | 18 (R)   | R–X  |
+
+**Verified example** — December 19, 2018 (Wednesday):
+
+- `colGroup=2, rowGroup=3, headerRow=31, startCol=18 (R)`
+- Dec 1, 2018 = Saturday → `firstDow=6`
+- `week = floor((19-1+6)/7) = 3`, `dow = (18+6)%7 = 3` (Wed)
+- **row=36, col=21 (U)** → cell **U36** ✓ (confirmed: value=19, fill=FFFFC000, note="PTO at 1PM")
+
+**Day-of-week column order** within each 7-column block:
+
+| Offset | 0   | 1   | 2   | 3   | 4   | 5   | 6   |
+| ------ | --- | --- | --- | --- | --- | --- | --- |
+| Day    | Sun | Mon | Tue | Wed | Thu | Fri | Sat |
 
 ### PTO Calculation Section
 

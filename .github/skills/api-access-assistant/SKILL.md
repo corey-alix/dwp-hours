@@ -387,6 +387,34 @@ Returns an array of all PTO entries across all employees (camelCase fields):
 }
 ```
 
+## Quick PTO Query Script
+
+The `pnpm query:pto` command authenticates as admin and queries PTO entries from the running server. It uses the `$PORT` environment variable (default: 3003).
+
+### Usage
+
+```bash
+# Query a specific employee + date
+pnpm query:pto --employee "A Campbell" --date 2018-12-19
+
+# Query by month
+pnpm query:pto --employee campbell --month 2018-12
+
+# Query by year
+pnpm query:pto --employee campbell --year 2018
+```
+
+### How It Works
+
+1. Authenticates as `admin@example.com` via the magic-link flow (request-link → validate → session token)
+2. Fetches `/api/employees` to resolve the employee name substring to an ID
+3. Fetches `/api/admin/pto` and filters by employee ID and date prefix
+4. Displays matching entries with type, hours, and notes
+
+### Script Location
+
+[scripts/query-pto.mts](../../../scripts/query-pto.mts)
+
 ## Examples
 
 - "How do I query the API for employee hours?"
@@ -397,6 +425,7 @@ Returns an array of all PTO entries across all employees (camelCase fields):
 - "Seed the database and import the 2018 spreadsheet"
 - "How do I reset the database to a clean state?"
 - "Import an Excel file into the running server"
+- "Query A Campbell's PTO for December 19, 2018"
 
 ## Additional Context
 

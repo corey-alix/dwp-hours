@@ -383,10 +383,17 @@ export interface UnmatchedNotedCell {
   note: string;
 }
 
+/** Info about a calendar cell with a "worked" note and no legend color match. */
+export interface WorkedCell {
+  date: string;
+  note: string;
+}
+
 /** Result of parsing the calendar grid. */
 export interface CalendarParseResult {
   entries: ImportedPtoEntry[];
   unmatchedNotedCells: UnmatchedNotedCell[];
+  workedCells: WorkedCell[];
   warnings: string[];
 }
 
@@ -435,6 +442,7 @@ export function parseCalendarGrid(
 ): CalendarParseResult {
   const entries: ImportedPtoEntry[] = [];
   const unmatchedNotedCells: UnmatchedNotedCell[] = [];
+  const workedCells: WorkedCell[] = [];
   const warnings: string[] = [];
 
   for (let month = 1; month <= 12; month++) {
@@ -563,8 +571,13 @@ export function parseCalendarGrid(
         }
         entries.push(entry);
       } else if (noteText) {
-        // Cell has a note but no color match — save for reconciliation
-        unmatchedNotedCells.push({ date: dateStr, note: noteText });
+        if (/worked/i.test(noteText)) {
+          // "Worked" note on non-legend cell — track for negative PTO credit
+          workedCells.push({ date: dateStr, note: noteText });
+        } else {
+          // Cell has a note but no color match — save for reconciliation
+          unmatchedNotedCells.push({ date: dateStr, note: noteText });
+        }
       }
 
       // Advance to next cell
@@ -576,7 +589,7 @@ export function parseCalendarGrid(
     }
   }
 
-  return { entries, unmatchedNotedCells, warnings };
+  return { entries, unmatchedNotedCells, workedCells, warnings };
 }
 
 // ── Phase 2: Partial-Day Detection ──
@@ -791,6 +804,159 @@ export function reconcilePartialPto(
   }
 
   return { entries: result, warnings };
+}
+
+// ── Phase 2b: Weekend "Worked" Days — Negative PTO Credit ──
+
+/**
+ * Try to parse hours from a "worked" note.
+ * Uses patterns specific to make-up/credit notes:
+ *  - Parenthesised hours: "(+5 hours)", "(5 hours PTO)"
+ *  - "make up" followed by a number: "make up 1.5"
+ *  - Standalone hours: "3.3 hours", "2 hrs"
+ * Returns the positive hour value (caller negates), or undefined.
+ */
+export function parseWorkedHoursFromNote(note: string): number | undefined {
+  // 1. Explicit hours in parentheses: "(5 hours)", "(+5.30 hours)", "(5 hours PTO)"
+  let match = note.match(/\(\+?\s*(\d+(?:\.\d+)?)\s*hours?\s*(?:PTO)?\s*\)/i);
+  if (match) return parseFloat(match[1]);
+
+  // 2. "make up" followed by a number: "make up 1.5"
+  match = note.match(/make\s*up\s+(\d+(?:\.\d+)?)/i);
+  if (match) return parseFloat(match[1]);
+
+  // 3. Number followed by hours/hrs: "3.3 hours", "2 hrs", "2 hours"
+  match = note.match(/(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)\b/i);
+  if (match) {
+    const val = parseFloat(match[1]);
+    if (val > 0 && val <= 12) return val;
+  }
+
+  return undefined;
+}
+
+/**
+ * Process "worked" weekend/off-day cells to create negative PTO credit entries.
+ *
+ * For each worked cell:
+ * 1. Try to extract hours from the note text.
+ * 2. If not found, infer from the PTO Calc deficit (declared total minus
+ *    existing positive entries) — only when there is a single unparsed
+ *    worked cell in the month.
+ * 3. If hours still cannot be determined, emit a warning and skip.
+ *
+ * Returns new negative-hours PTO entries and warnings for each detection.
+ */
+export function processWorkedCells(
+  workedCells: WorkedCell[],
+  existingEntries: ImportedPtoEntry[],
+  ptoCalcRows: { month: number; usedHours: number }[],
+  sheetName: string,
+): { entries: ImportedPtoEntry[]; warnings: string[] } {
+  const entries: ImportedPtoEntry[] = [];
+  const warnings: string[] = [];
+
+  if (workedCells.length === 0) return { entries, warnings };
+
+  // Group worked cells by month
+  const byMonth = new Map<number, WorkedCell[]>();
+  for (const wc of workedCells) {
+    const month = parseInt(wc.date.substring(5, 7), 10);
+    if (!byMonth.has(month)) byMonth.set(month, []);
+    byMonth.get(month)!.push(wc);
+  }
+
+  for (const [month, cells] of byMonth) {
+    const monthStr = pad2(month);
+    const ptoCalc = ptoCalcRows.find((r) => r.month === month);
+    const declaredTotal = ptoCalc?.usedHours ?? 0;
+
+    // Sum of existing (positive) PTO entries for this month
+    const existingTotal = existingEntries
+      .filter((e) => e.date.substring(5, 7) === monthStr)
+      .reduce((sum, e) => sum + e.hours, 0);
+
+    // Split cells into those with parseable hours and those without
+    const parsed: { cell: WorkedCell; hours: number }[] = [];
+    const unparsed: WorkedCell[] = [];
+
+    for (const wc of cells) {
+      const hours = parseWorkedHoursFromNote(wc.note);
+      if (hours !== undefined) {
+        parsed.push({ cell: wc, hours });
+      } else {
+        unparsed.push(wc);
+      }
+    }
+
+    // Create entries for cells with parseable hours
+    for (const { cell, hours } of parsed) {
+      entries.push({
+        date: cell.date,
+        type: "PTO",
+        hours: -hours,
+        notes:
+          `Weekend/off-day work credit (${hours}h). ` +
+          `Cell note: "${cell.note.replace(/\n/g, " ").trim()}"`,
+      });
+      warnings.push(
+        `"${sheetName}": detected worked day on ${cell.date}. ` +
+          `Note: "${cell.note.replace(/\n/g, " ").trim()}". ` +
+          `Assigned -${hours}h PTO credit from note.`,
+      );
+    }
+
+    // Handle unparsed cells using PTO Calc deficit
+    if (unparsed.length > 0) {
+      const parsedCredit = parsed.reduce((sum, p) => sum + p.hours, 0);
+      // Net PTO after all entries should equal declaredTotal:
+      // existingTotal + (-parsedCredit) + (-unparsedCredit) = declaredTotal
+      // unparsedCredit = existingTotal - parsedCredit - declaredTotal
+      const unparsedCredit =
+        Math.round((existingTotal - parsedCredit - declaredTotal) * 100) / 100;
+
+      if (unparsedCredit > 0 && unparsed.length === 1) {
+        // Single unparsed cell — assign all remaining credit
+        const cell = unparsed[0];
+        entries.push({
+          date: cell.date,
+          type: "PTO",
+          hours: -unparsedCredit,
+          notes:
+            `Weekend/off-day work credit inferred from PTO Calc. ` +
+            `Declared=${declaredTotal}h, detected=${existingTotal}h, ` +
+            `other credits=${parsedCredit}h, inferred=${unparsedCredit}h. ` +
+            `Cell note: "${cell.note.replace(/\n/g, " ").trim()}"`,
+        });
+        warnings.push(
+          `"${sheetName}": detected worked day on ${cell.date}. ` +
+            `Note: "${cell.note.replace(/\n/g, " ").trim()}". ` +
+            `Inferred -${unparsedCredit}h PTO credit from PTO Calc deficit.`,
+        );
+      } else if (unparsedCredit > 0 && unparsed.length > 1) {
+        // Multiple unparsed cells — can't distribute reliably
+        for (const cell of unparsed) {
+          warnings.push(
+            `"${sheetName}": detected worked day on ${cell.date}. ` +
+              `Note: "${cell.note.replace(/\n/g, " ").trim()}". ` +
+              `Could not determine hours — ${unparsed.length} worked cells ` +
+              `in month ${month} with ${unparsedCredit}h total deficit. Skipping.`,
+          );
+        }
+      } else {
+        // No deficit to assign
+        for (const cell of unparsed) {
+          warnings.push(
+            `"${sheetName}": detected worked day on ${cell.date}. ` +
+              `Note: "${cell.note.replace(/\n/g, " ").trim()}". ` +
+              `Could not determine hours (no PTO Calc deficit). Skipping.`,
+          );
+        }
+      }
+    }
+  }
+
+  return { entries, warnings };
 }
 
 // ── Phase 3: Employee Info Parsing ──
@@ -1021,8 +1187,8 @@ export async function upsertPtoEntries(
       continue;
     }
 
-    // Import accepts any positive hours (legacy data may have non-standard values)
-    if (typeof entry.hours !== "number" || entry.hours <= 0) {
+    // Import accepts any non-zero hours (negative values represent worked-day credits)
+    if (typeof entry.hours !== "number" || entry.hours === 0) {
       warnings.push(`Skipped ${entry.date}: invalid hours ${entry.hours}`);
       continue;
     }
@@ -1172,6 +1338,7 @@ export function parseEmployeeSheet(
   const {
     entries: calendarEntries,
     unmatchedNotedCells,
+    workedCells,
     warnings: calendarWarnings,
   } = parseCalendarGrid(ws, employee.year, legend, themeColors);
   warnings.push(...calendarWarnings);
@@ -1185,6 +1352,12 @@ export function parseEmployeeSheet(
     reconcilePartialPto(ptoEntries, unmatchedNotedCells, ptoCalcRows, ws.name);
   ptoEntries = reconciledEntries;
   warnings.push(...reconWarnings);
+
+  // Process "worked" weekend/off-day cells for negative PTO credit
+  const { entries: workedEntries, warnings: workedWarnings } =
+    processWorkedCells(workedCells, ptoEntries, ptoCalcRows, ws.name);
+  ptoEntries = [...ptoEntries, ...workedEntries];
+  warnings.push(...workedWarnings);
 
   // Parse acknowledgements
   const acknowledgements = parseAcknowledgements(ws, employee.year);

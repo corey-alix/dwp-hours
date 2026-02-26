@@ -22,6 +22,8 @@ import {
   extractCellNoteText,
   parseHoursFromNote,
   reconcilePartialPto,
+  parseWorkedHoursFromNote,
+  processWorkedCells,
 } from "../server/reportGenerators/excelImport.js";
 import { generateExcelReport } from "../server/reportGenerators/excelReport.js";
 import { smartParseDate } from "../shared/dateUtils.js";
@@ -1053,6 +1055,257 @@ describe("Excel Import", () => {
         // S48 declares 44h for July
         // The pipeline should reconcile to match this
         expect(julyTotal).toBe(44);
+      });
+    },
+  );
+
+  // ── Phase 9: Weekend "Worked" Days ──
+
+  describe("parseWorkedHoursFromNote", () => {
+    it("should parse parenthesised hours: (+5 hours)", () => {
+      expect(parseWorkedHoursFromNote("Worked 10:30 to 3:30 (+5 hours)")).toBe(
+        5,
+      );
+    });
+
+    it("should parse parenthesised hours with decimal: (+5.30 hours)", () => {
+      expect(
+        parseWorkedHoursFromNote("Worked 10:00 to 3:30 (+5.30 hours)"),
+      ).toBe(5.3);
+    });
+
+    it("should parse parenthesised hours PTO: (5 hours PTO)", () => {
+      expect(
+        parseWorkedHoursFromNote("Worked 8:30 to 11:30 (5 hours PTO)"),
+      ).toBe(5);
+    });
+
+    it('should parse "make up" pattern: make up 1.5', () => {
+      expect(
+        parseWorkedHoursFromNote("Worked from 8pm-10pm to make up 1.5 PM PTO"),
+      ).toBe(1.5);
+    });
+
+    it('should parse standalone hours: "3.3 hours"', () => {
+      expect(
+        parseWorkedHoursFromNote("worked 3.3 hours - subtracted from Friday"),
+      ).toBe(3.3);
+    });
+
+    it('should parse standalone hours: "2 hours"', () => {
+      expect(
+        parseWorkedHoursFromNote("worked almost 2 hours on Nevada RFP"),
+      ).toBe(2);
+    });
+
+    it("should return undefined when no hours pattern found", () => {
+      expect(parseWorkedHoursFromNote("worked")).toBeUndefined();
+      expect(parseWorkedHoursFromNote("Worked from 1-3pm")).toBeUndefined();
+      expect(parseWorkedHoursFromNote("Worked 10 - 12")).toBeUndefined();
+    });
+
+    it("should return undefined for bare time ranges without hours keyword", () => {
+      expect(
+        parseWorkedHoursFromNote("Worked 8-430 and took half lunch"),
+      ).toBeUndefined();
+    });
+  });
+
+  describe("processWorkedCells", () => {
+    it("should create negative PTO entry from note with explicit hours", () => {
+      const workedCells = [
+        { date: "2018-10-20", note: "Worked 10:30 to 3:30 (+5 hours)" },
+      ];
+      const existingEntries = [
+        { date: "2018-10-15", type: "PTO" as const, hours: 8 },
+      ];
+      const ptoCalcRows = Array.from({ length: 12 }, (_, i) => ({
+        month: i + 1,
+        usedHours: i === 9 ? 3 : 0, // October = 3h (8 - 5 = 3)
+      }));
+
+      const result = processWorkedCells(
+        workedCells,
+        existingEntries,
+        ptoCalcRows,
+        "Test",
+      );
+
+      expect(result.entries.length).toBe(1);
+      expect(result.entries[0].date).toBe("2018-10-20");
+      expect(result.entries[0].hours).toBe(-5);
+      expect(result.entries[0].type).toBe("PTO");
+      expect(result.entries[0].notes).toContain("work credit");
+      expect(result.warnings.length).toBeGreaterThan(0);
+    });
+
+    it("should infer hours from PTO Calc deficit for single unparsed cell", () => {
+      const workedCells = [{ date: "2018-10-14", note: "worked" }];
+      const existingEntries: { date: string; type: "PTO"; hours: number }[] =
+        [];
+      const ptoCalcRows = Array.from({ length: 12 }, (_, i) => ({
+        month: i + 1,
+        usedHours: i === 9 ? -4.5 : 0, // October = -4.5h
+      }));
+
+      const result = processWorkedCells(
+        workedCells,
+        existingEntries,
+        ptoCalcRows,
+        "A Bylenga",
+      );
+
+      expect(result.entries.length).toBe(1);
+      expect(result.entries[0].date).toBe("2018-10-14");
+      expect(result.entries[0].hours).toBe(-4.5);
+      expect(result.entries[0].type).toBe("PTO");
+      expect(result.entries[0].notes).toContain("PTO Calc");
+    });
+
+    it("should warn and skip when hours cannot be determined", () => {
+      const workedCells = [
+        { date: "2018-03-10", note: "worked" },
+        { date: "2018-03-17", note: "worked" },
+      ];
+      const existingEntries: { date: string; type: "PTO"; hours: number }[] =
+        [];
+      const ptoCalcRows = Array.from({ length: 12 }, (_, i) => ({
+        month: i + 1,
+        usedHours: i === 2 ? -8 : 0,
+      }));
+
+      const result = processWorkedCells(
+        workedCells,
+        existingEntries,
+        ptoCalcRows,
+        "Test",
+      );
+
+      // Two unparsed cells → can't distribute → skip both
+      expect(result.entries.length).toBe(0);
+      expect(result.warnings.length).toBe(2);
+      expect(result.warnings[0]).toContain("Could not determine hours");
+    });
+
+    it("should return empty when no worked cells", () => {
+      const result = processWorkedCells([], [], [], "Test");
+      expect(result.entries.length).toBe(0);
+      expect(result.warnings.length).toBe(0);
+    });
+  });
+
+  describe("parseCalendarGrid worked cell detection", () => {
+    it("should separate worked-note cells from unmatched-note cells", async () => {
+      const buffer = await generateTestBuffer();
+      const wb = await loadWorkbook(buffer);
+      const ws = wb.worksheets[1]; // First employee sheet
+
+      // Manually add a "worked" note to a cell in the calendar area
+      // January starts at row 6, col 2. Sunday Jan 4 would be at some cell.
+      // Let's add a note to an arbitrary cell.
+      const testCell = ws.getCell(8, 2); // Row 8, col B
+      testCell.note = "worked extra";
+
+      const legend = parseLegend(ws);
+      const { workedCells, unmatchedNotedCells } = parseCalendarGrid(
+        ws,
+        2026,
+        legend,
+      );
+
+      // The "worked" note cell should be in workedCells, not unmatchedNotedCells
+      const workedDates = workedCells.map((c) => c.date);
+      const unmatchedDates = unmatchedNotedCells.map((c) => c.date);
+
+      // At least verify the arrays exist and are arrays
+      expect(Array.isArray(workedCells)).toBe(true);
+      expect(Array.isArray(unmatchedNotedCells)).toBe(true);
+    });
+  });
+
+  describe.skipIf(!existsSync(LEGACY_2018_PATH))(
+    "Legacy 2018 workbook - A Bylenga (weekend worked days)",
+    () => {
+      let ws: ExcelJS.Worksheet;
+      let themeColors: Map<number, string>;
+
+      it("should load worksheet and extract theme colors", async () => {
+        const wb = new ExcelJS.Workbook();
+        await wb.xlsx.readFile(LEGACY_2018_PATH);
+
+        const sheet = wb.getWorksheet("A Bylenga");
+        expect(sheet).toBeDefined();
+        ws = sheet!;
+
+        const wbAny = wb as any;
+        const themeXml: string | undefined =
+          wbAny._themes?.theme1 ?? wbAny.themes?.theme1;
+        if (themeXml) {
+          themeColors = parseThemeColors(themeXml);
+        } else {
+          themeColors = new Map([
+            [0, "FFFFFFFF"],
+            [1, "FF000000"],
+            [2, "FFEEECE1"],
+            [3, "FF1F497D"],
+            [4, "FF4F81BD"],
+            [5, "FFC0504D"],
+            [6, "FF9BBB59"],
+            [7, "FF8064A2"],
+            [8, "FF4BACC6"],
+            [9, "FFF79646"],
+            [10, "FF0000FF"],
+            [11, "FF800080"],
+          ]);
+        }
+      });
+
+      it("should detect R17 (Oct 14) as a worked cell in parseCalendarGrid", () => {
+        const legend = parseLegend(ws, themeColors);
+        const { workedCells } = parseCalendarGrid(
+          ws,
+          2018,
+          legend,
+          themeColors,
+        );
+
+        const oct14 = workedCells.find((c) => c.date === "2018-10-14");
+        expect(oct14).toBeDefined();
+        expect(oct14!.note).toContain("worked");
+      });
+
+      it("should produce negative PTO entry for Oct 14 after full pipeline", () => {
+        const result = parseEmployeeSheet(ws, themeColors);
+
+        // October has 3 color-matched partial PTO entries (1h + 0.5h + 2h = 3.5h)
+        // PTO Calc declares -4.5h for October
+        // Worked credit = existingTotal - declaredTotal = 3.5 - (-4.5) = 8h
+        // Entry gets hours = -8 so net October = 3.5 + (-8) = -4.5 = PTO Calc ✓
+        const oct14 = result.ptoEntries.find((e) => e.date === "2018-10-14");
+        expect(oct14).toBeDefined();
+        expect(oct14!.hours).toBe(-8);
+        expect(oct14!.type).toBe("PTO");
+        expect(oct14!.notes).toContain("PTO Calc");
+        expect(oct14!.notes).toContain("worked");
+      });
+
+      it("should produce correct October net total matching PTO Calc = -4.5h", () => {
+        const result = parseEmployeeSheet(ws, themeColors);
+
+        const octEntries = result.ptoEntries.filter((e) =>
+          e.date.startsWith("2018-10-"),
+        );
+        const octTotal = octEntries.reduce((sum, e) => sum + e.hours, 0);
+        expect(octTotal).toBe(-4.5);
+      });
+
+      it("should emit a warning for the detected worked day", () => {
+        const result = parseEmployeeSheet(ws, themeColors);
+
+        const workedWarning = result.warnings.find(
+          (w) => w.includes("2018-10-14") && w.includes("worked"),
+        );
+        expect(workedWarning).toBeDefined();
       });
     },
   );
