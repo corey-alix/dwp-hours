@@ -218,26 +218,26 @@ Implement utility methods and scripts for converting between Excel, JSON, and da
   - [x] Run `pnpm test` — all tests must pass before proceeding
   - [x] Never proceed to the next phase if any tests are failing; fix all test failures before advancing
 
-- [ ] **Phase 15: Import Acknowledgement Records with Warning Flags**
-  - [ ] **Problem**: The importer does not insert any records into `acknowledgements` or `admin_acknowledgements`. Imported months should be automatically acknowledged, with discrepancy months flagged for admin review.
-  - [ ] **Schema changes**:
+- [x] **Phase 15: Import Acknowledgement Records with Warning Flags**
+  - [x] **Problem**: The importer does not insert any records into `acknowledgements` or `admin_acknowledgements`. Imported months should be automatically acknowledged, with discrepancy months flagged for admin review.
+  - [x] **Schema changes**:
     - Add `note TEXT` column to `acknowledgements` table — stores a description of the discrepancy or warning
     - Add `status TEXT` column to `acknowledgements` table — set to `"warning"` when the month has an import discrepancy requiring manual review; `NULL` or `"ok"` for clean months
     - Update `db/schema.sql` and the TypeORM entity for `acknowledgements`
-  - [ ] **Implementation — Acknowledgement insertion during import**:
+  - [x] **Implementation — Acknowledgement insertion during import**:
     - After all reconciliation passes for each employee/month, compare the final `calendarTotal` to `declaredTotal`
     - **Clean month** (|calendarTotal − declaredTotal| ≤ 0.1h): Insert into both `acknowledgements` (employee lock) and `admin_acknowledgements` (admin lock) with `status=NULL` and `note=NULL`
     - **Discrepancy month** (|calendarTotal − declaredTotal| > 0.1h): Insert into `acknowledgements` with `status="warning"` and a `note` describing the discrepancy (employee name, month, declared vs computed, delta, root cause if known). Do NOT insert into `admin_acknowledgements` — leave unacknowledged for manual admin review.
-  - [ ] **Warning note content**: Include: employee name, month, declared hours (column S), computed hours (calendar), delta, and any specific root cause annotations from prior phases (e.g., "unfixable weekend-work data gap", "note-derived artifact", "sick-time exhaustion reclassification applied")
-  - [ ] **Test case — D Allen April 2018** (after Phase 12 sick reclassification): If Phase 12 successfully reclassifies the Sick day as PTO, calendarTotal should equal declaredTotal (12h). This month should be acknowledged cleanly (both employee and admin). Verify both records inserted with `status=NULL`.
-  - [ ] **Test case — J Schwerin December 2018** (unfixable): calendarTotal=56h, declaredTotal=40h. Insert employee acknowledgement with `status="warning"`, `note="Calendar shows 56h but column S declares 40h (Δ=+16h). Weekend work referenced in notes but not color-coded on calendar. Requires manual correction."`. No admin acknowledgement inserted.
-  - [ ] **Test case — Jackie Guiry May 2018**: calendarTotal=10.5h, declaredTotal=12h. Insert with `status="warning"`, `note="Calendar shows 10.5h but column S declares 12h (Δ=-1.5h). Note-derived partial hour artifacts from May 16 note parsing."`. No admin acknowledgement.
-  - [ ] **Test case — J Rivers December 2018**: calendarTotal after Phases 12–13 adjustments, declaredTotal=50.03h. If small delta remains (2.03h), insert with `status="warning"` and note describing the fractional discrepancy.
-  - [ ] **Regression check**: Employees with clean imports (all months matching) should get both employee and admin acknowledgements with no warnings.
-  - [ ] Run `pnpm test` — all tests must pass before proceeding
-  - [ ] Run `pnpm run build` — must compile without errors
-  - [ ] Run `pnpm run lint` — must pass
-  - [ ] Never proceed to the next phase if any tests are failing; fix all test failures before advancing
+  - [x] **Warning note content**: Include: employee name, month, declared hours (column S), computed hours (calendar), delta, and any specific root cause annotations from prior phases (e.g., "unfixable weekend-work data gap", "note-derived artifact", "sick-time exhaustion reclassification applied")
+  - [x] **Test case — D Allen April 2018** (after Phase 12 sick reclassification): If Phase 12 successfully reclassifies the Sick day as PTO, calendarTotal should equal declaredTotal (12h). This month should be acknowledged cleanly (both employee and admin). Verify both records inserted with `status=NULL`.
+  - [x] **Test case — J Schwerin December 2018** (unfixable): calendarTotal=56h, declaredTotal=40h. Insert employee acknowledgement with `status="warning"`, `note="Calendar shows 56h but column S declares 40h (Δ=+16h). Weekend work referenced in notes but not color-coded on calendar. Requires manual correction."`. No admin acknowledgement inserted.
+  - [x] **Test case — Jackie Guiry May 2018**: calendarTotal=10.5h, declaredTotal=12h. Insert with `status="warning"`, `note="Calendar shows 10.5h but column S declares 12h (Δ=-1.5h). Note-derived partial hour artifacts from May 16 note parsing."`. No admin acknowledgement.
+  - [x] **Test case — J Rivers December 2018**: calendarTotal after Phases 12–13 adjustments, declaredTotal=50.03h. If small delta remains (2.03h), insert with `status="warning"` and note describing the fractional discrepancy.
+  - [x] **Regression check**: Employees with clean imports (all months matching) should get both employee and admin acknowledgements with no warnings.
+  - [x] Run `pnpm test` — all tests must pass before proceeding
+  - [x] Run `pnpm run build` — must compile without errors
+  - [x] Run `pnpm run lint` — must pass
+  - [x] Never proceed to the next phase if any tests are failing; fix all test failures before advancing
 
 ## Known Issues
 

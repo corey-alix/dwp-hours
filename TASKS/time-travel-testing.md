@@ -2,9 +2,14 @@
 
 ## Description
 
-The client is designed to operate within the current calendar year. While a "Prior Year Summary" view exists, there is no way to fully interact with data from arbitrary past years (e.g., 2018 imported data). This feature adds a "time travel" mechanism that lets the browser operate with a configurable reference year, shifting all date-related functions (`today()`, `getCurrentYear()`, `getCurrentMonth()`) to behave as if the current date falls within the chosen year. This is primarily for **manual testing and data review** of imported historical data.
+The client is designed to operate within the current calendar year. While a "Prior Year Summary" view exists, there is no way to fully interact with data from arbitrary past years (e.g., 2018 imported data). This feature adds a "time travel" mechanism that lets the browser operate with a configurable reference date, shifting all date-related functions (`today()`, `getCurrentYear()`, `getCurrentMonth()`) to behave as if the current date falls within the chosen year or on a specific day. This is primarily for **manual testing and data review** of imported historical data.
 
-The approach: the developer appends `?current_year=2018` to the URL. The client reads this query string parameter and shifts all date-related functions (`today()`, `getCurrentYear()`, `getCurrentMonth()`) to behave as if the current year is the specified value. Additionally, the API endpoints that currently derive the current date internally must be changed to accept an explicit date/year parameter so the client can pass the overridden year through to the server.
+Two query string modes are supported:
+
+- **Year-only**: `?current_year=2018` — shifts the year while keeping real month/day from the clock
+- **Full day**: `?current_day=2018-03-15` — freezes `today()` to the exact date; year and month are derived from it
+
+`current_day` takes precedence over `current_year` if both are present. The client reads the query string parameter, sets the override in `dateUtils.ts`, and passes the overridden date/year to API endpoints explicitly. The server remains date-agnostic — it never reads these query params itself.
 
 ## Priority
 
@@ -27,6 +32,20 @@ This is a developer/QA convenience feature. It has no user-facing production imp
 - [x] Verify `pnpm run build` passes
 - [x] Verify `pnpm run lint` passes
 
+### Phase 1b: Full Day Override (`?current_day=YYYY-MM-DD`)
+
+- [x] Add `setTimeTravelDay(dateStr: string | null): void` function to `shared/dateUtils.ts`
+- [x] Add `getTimeTravelDay(): string | null` function to `shared/dateUtils.ts`
+- [x] Modify `today()` to return the exact day override when active (takes precedence over year-only)
+- [x] Modify `getCurrentYear()` to derive year from day override when active
+- [x] Modify `getCurrentMonth()` to derive year-month from day override when active
+- [x] In `client/app.ts`, read `?current_day=YYYY-MM-DD` from `window.location.search` (precedence over `?current_year`)
+- [x] Ensure `?current_day` is preserved across client-side navigation in `router.ts`
+- [x] `APIClient.ts` requires no changes — `getTimeTravelYear()` and `today()` automatically reflect the day override
+- [x] Write Vitest unit tests for `setTimeTravelDay` / `getTimeTravelDay` and all derived behaviors
+- [x] Verify `pnpm run build` passes
+- [x] Verify `pnpm run lint` passes
+
 ### Phase 2: API Endpoint Hardening
 
 Make date-sensitive endpoints accept an explicit date/year parameter instead of deriving it internally:
@@ -43,10 +62,12 @@ Make date-sensitive endpoints accept an explicit date/year parameter instead of 
 ### Phase 3: Integration Testing & Documentation
 
 - [ ] Manual testing: navigate to `/?current_year=2018`, verify Current Year Summary shows 2018 data
+- [ ] Manual testing: navigate to `/?current_day=2018-03-15`, verify Current Year Summary shows 2018 data and month context is March
 - [ ] Manual testing: verify Prior Year Summary shows 2017 data when `?current_year=2018`
 - [ ] Manual testing: verify Submit Time Off page shows 2018 calendar
 - [ ] Manual testing: verify removing the query param returns to real current year
 - [ ] Add E2E test (Playwright) that navigates with `?current_year=2018` and verifies year display
+- [ ] Add E2E test (Playwright) that navigates with `?current_day=2018-03-15` and verifies date display
 - [ ] Update README.md "Development Best Practices" with time-travel usage instructions
 - [ ] Verify `pnpm run build` passes
 - [ ] Verify `pnpm run lint` passes
@@ -55,19 +76,20 @@ Make date-sensitive endpoints accept an explicit date/year parameter instead of 
 
 ### Architecture
 
-- **Query string driven**: The developer appends `?current_year=2018` to the URL. No UI controls, no persistent storage. Removing the param restores real-time behavior.
-- **Client + explicit API params**: The client shifts its date functions and passes the overridden year/date to API endpoints explicitly. The server never reads `?current_year` itself—it receives an explicit `current_date` or `current_year` parameter on each affected endpoint.
-- **Year offset, not absolute date**: `today()` returns the current month and day but with the overridden year. This keeps month-relative logic (e.g., "current month") working naturally.
-- **Centralized in `dateUtils.ts`**: Since all date operations already go through this module (per project convention), the override automatically propagates everywhere.
+- **Query string driven**: The developer appends `?current_year=2018` or `?current_day=2018-03-15` to the URL. No UI controls, no persistent storage. Removing the param restores real-time behavior.
+- **Two override modes**: Year-only (`?current_year`) shifts the year while keeping real month/day. Full day (`?current_day`) freezes `today()` to an exact date. `current_day` takes precedence.
+- **Client + explicit API params**: The client shifts its date functions and passes the overridden year/date to API endpoints explicitly. The server never reads `?current_year` or `?current_day` itself—it receives an explicit `current_date` or `current_year` parameter on each affected endpoint.
+- **Server is date-agnostic**: The server does not import or use time-travel functions. All date-sensitive server endpoints accept explicit date parameters from the client. Any server code that uses `today()` does so only for real wall-clock timestamps (e.g., `submitted_at`, `hire_date` defaults).
+- **Centralized in `dateUtils.ts`**: Since all date operations already go through this module (per project convention), the override automatically propagates everywhere. Code that bypasses `dateUtils.ts` for date operations violates the date management skill and would not be affected by time-travel.
 - **No banner/indicator**: This is a developer-only tool. The query string in the URL bar is sufficient indication.
 
-### Key Functions to Modify
+### Key Functions
 
-| Function            | Current Behavior          | Time-Travel Behavior            |
-| ------------------- | ------------------------- | ------------------------------- |
-| `today()`           | Returns real `YYYY-MM-DD` | Returns `<override-year>-MM-DD` |
-| `getCurrentYear()`  | Returns real year         | Returns override year           |
-| `getCurrentMonth()` | Returns real `YYYY-MM`    | Returns `<override-year>-MM`    |
+| Function            | No Override               | `?current_year=2018`            | `?current_day=2018-03-15`    |
+| ------------------- | ------------------------- | ------------------------------- | ---------------------------- |
+| `today()`           | Returns real `YYYY-MM-DD` | Returns `2018-MM-DD` (real M/D) | Returns `2018-03-15` exactly |
+| `getCurrentYear()`  | Returns real year         | Returns `2018`                  | Returns `2018`               |
+| `getCurrentMonth()` | Returns real `YYYY-MM`    | Returns `2018-MM` (real month)  | Returns `2018-03`            |
 
 ### API Parameter Convention
 
@@ -80,17 +102,21 @@ Client API calls pass the override through explicit query parameters:
 
 ### Query String Usage
 
-```
+```text
 http://localhost:3000/?current_year=2018
+http://localhost:3000/?current_day=2018-03-15
 http://localhost:3000/admin/monthly-review?current_year=2018
+http://localhost:3000/admin/monthly-review?current_day=2018-03-15
 ```
 
-The client reads `new URLSearchParams(window.location.search).get("current_year")` at startup and calls `setTimeTravelYear()`.
+The client reads `current_day` first (full date override), and falls back to `current_year` (year-only override). If both are present, `current_day` wins.
 
 ### Boundary Conditions
 
-- If the override year's month/day combination is invalid (e.g., Feb 29 in a non-leap year), `today()` should clamp to the last valid day of the month.
+- If the override year's month/day combination is invalid (e.g., Feb 29 in a non-leap year), `today()` should clamp to the last valid day of the month (year-only mode). In full-day mode the date is validated upfront.
 - The year value should be validated as a reasonable 4-digit year (e.g., 2000–2099).
+- `setTimeTravelDay()` validates the full date string format and year range.
+- Setting a day clears any active year-only override, and vice versa.
 
 ## Questions and Concerns
 

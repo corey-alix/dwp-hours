@@ -412,6 +412,21 @@ async function initDatabase() {
     db.exec(schema);
     logger.info("Schema executed successfully.");
 
+    // Run safe migrations for existing databases
+    // SQLite throws "duplicate column name" if column already exists — that's OK.
+    const migrations = [
+      "ALTER TABLE acknowledgements ADD COLUMN note TEXT",
+      "ALTER TABLE acknowledgements ADD COLUMN status TEXT",
+    ];
+    for (const sql of migrations) {
+      try {
+        db.exec(sql);
+        logger.info(`Migration applied: ${sql}`);
+      } catch {
+        // Column already exists — ignore
+      }
+    }
+
     // Initialize TypeORM DataSource
     logger.info("Initializing TypeORM DataSource...");
     dataSource = new DataSource({
@@ -1474,6 +1489,12 @@ initDatabase()
           });
           await adminAckRepo.save(newAck);
 
+          // Resolve any warning status on the employee acknowledgement
+          if (employeeAck.status === "warning") {
+            employeeAck.status = "resolved";
+            await acknowledgementRepo.save(employeeAck);
+          }
+
           const response: AdminAcknowledgementSubmitResponse = {
             message: "Admin acknowledgement submitted successfully",
             acknowledgement: serializeAdminAcknowledgement(newAck),
@@ -1636,128 +1657,14 @@ initDatabase()
               notificationReadAt: lockNotification?.read_at
                 ? dateToString(lockNotification.read_at)
                 : null,
+              employeeAckStatus: employeeAck?.status ?? null,
+              employeeAckNote: employeeAck?.note ?? null,
             });
           }
 
           res.json(result);
         } catch (error) {
           logger.error(`Error getting admin monthly review: ${error}`);
-          res.status(500).json({ error: "Internal server error" });
-        }
-      },
-    );
-
-    // Admin Monthly Review endpoint
-    app.get(
-      "/api/admin/monthly-review/:month",
-      authenticateAdmin(() => dataSource, log),
-      async (req, res) => {
-        try {
-          const { month } = req.params;
-          const monthStr = Array.isArray(month) ? month[0] : month;
-
-          // Validate month format
-          if (!/^\d{4}-\d{2}$/.test(monthStr)) {
-            log(
-              `Admin monthly review failed: Invalid month format: ${monthStr}`,
-            );
-            return res
-              .status(400)
-              .json({ error: "Invalid month format. Use YYYY-MM" });
-          }
-
-          const employeeRepo = dataSource.getRepository(Employee);
-          const monthlyHoursRepo = dataSource.getRepository(MonthlyHours);
-          const ptoEntryRepo = dataSource.getRepository(PtoEntry);
-          const adminAckRepo = dataSource.getRepository(AdminAcknowledgement);
-          const ackRepo = dataSource.getRepository(Acknowledgement);
-          const notificationRepo = dataSource.getRepository(Notification);
-
-          // Get all employees
-          const employees = await employeeRepo.find({
-            order: { name: "ASC" },
-          });
-
-          const result: AdminMonthlyReviewItem[] = [];
-
-          for (const employee of employees) {
-            // Get monthly hours for this employee and month
-            const monthlyHours = await monthlyHoursRepo.findOne({
-              where: { employee_id: employee.id, month: monthStr },
-            });
-
-            // Get PTO entries for this employee and month
-            const monthStart = monthStr + "-01";
-            const monthEnd = endOfMonth(monthStart);
-
-            const ptoEntries = await ptoEntryRepo.find({
-              where: {
-                employee_id: employee.id,
-                date: Between(monthStart, monthEnd),
-              },
-            });
-
-            // Calculate PTO usage by category
-            const ptoByCategory = {
-              PTO: 0,
-              Sick: 0,
-              Bereavement: 0,
-              "Jury Duty": 0,
-            };
-
-            ptoEntries.forEach((entry) => {
-              if (ptoByCategory.hasOwnProperty(entry.type)) {
-                ptoByCategory[entry.type as keyof typeof ptoByCategory] +=
-                  entry.hours;
-              }
-            });
-
-            // Check if acknowledged by admin
-            const adminAck = await adminAckRepo.findOne({
-              where: { employee_id: employee.id, month: monthStr },
-              relations: ["admin"],
-            });
-
-            // Check if employee has locked (acknowledged) their calendar
-            const employeeAck = await ackRepo.findOne({
-              where: { employee_id: employee.id, month: monthStr },
-            });
-
-            // Check for calendar_lock_reminder notification for this employee/month
-            const lockNotification = await notificationRepo.findOne({
-              where: {
-                employee_id: employee.id,
-                type: "calendar_lock_reminder",
-                message: Like(`%${monthStr}%`),
-              },
-              order: { created_at: "DESC" },
-            });
-
-            result.push({
-              employeeId: employee.id,
-              employeeName: employee.name,
-              month: monthStr,
-              totalHours: monthlyHours ? monthlyHours.hours_worked : 0,
-              ptoHours: ptoByCategory.PTO,
-              sickHours: ptoByCategory.Sick,
-              bereavementHours: ptoByCategory.Bereavement,
-              juryDutyHours: ptoByCategory["Jury Duty"],
-              acknowledgedByAdmin: !!adminAck,
-              adminAcknowledgedAt: adminAck
-                ? dateToString(adminAck.acknowledged_at)
-                : undefined,
-              adminAcknowledgedBy: adminAck?.admin?.name || undefined,
-              calendarLocked: !!employeeAck,
-              notificationSent: !!lockNotification,
-              notificationReadAt: lockNotification?.read_at
-                ? dateToString(lockNotification.read_at)
-                : null,
-            });
-          }
-
-          res.json(result);
-        } catch (error) {
-          log(`Error getting admin monthly review: ${error}`);
           res.status(500).json({ error: "Internal server error" });
         }
       },

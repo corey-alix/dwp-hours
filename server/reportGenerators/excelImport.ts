@@ -305,6 +305,8 @@ export interface ImportedPtoEntry {
 export interface ImportedAcknowledgement {
   month: string; // YYYY-MM
   type: "employee" | "admin";
+  note?: string;
+  status?: "warning" | null;
 }
 
 export interface EmployeeImportInfo {
@@ -1639,6 +1641,8 @@ export async function upsertAcknowledgements(
         const newAck = ackRepo.create({
           employee_id: employeeId,
           month: ack.month,
+          note: ack.note ?? null,
+          status: ack.status ?? null,
         });
         await ackRepo.save(newAck);
         synced++;
@@ -2192,6 +2196,57 @@ export function detectOverColoring(
   return { warnings };
 }
 
+// ── Phase 15 (Task): Import Acknowledgement Records with Warning Flags ──
+
+/**
+ * Generate import acknowledgement records by comparing the final calendar
+ * totals against declared PTO Calc totals for each month.
+ *
+ * - **Clean month** (|calendarTotal − declared| ≤ 0.1h): produces both
+ *   employee and admin acknowledgements with `status=null`, `note=null`.
+ * - **Discrepancy month**: produces only an employee acknowledgement with
+ *   `status="warning"` and a descriptive `note`. Admin acknowledgement is
+ *   omitted so the admin must review manually.
+ */
+export function generateImportAcknowledgements(
+  entries: ImportedPtoEntry[],
+  ptoCalcRows: PtoCalcRow[],
+  year: number,
+  sheetName: string,
+): ImportedAcknowledgement[] {
+  const acks: ImportedAcknowledgement[] = [];
+
+  for (const calc of ptoCalcRows) {
+    const monthStr = `${year}-${pad2(calc.month)}`;
+    const monthPad = pad2(calc.month);
+    const declaredTotal = calc.usedHours;
+
+    // Sum PTO entries tracked by Column S for this month
+    const monthEntries = entries.filter(
+      (e) =>
+        e.date.substring(5, 7) === monthPad &&
+        COLUMN_S_TRACKED_TYPES.has(e.type),
+    );
+    const calendarTotal = monthEntries.reduce((sum, e) => sum + e.hours, 0);
+    const delta = Math.round((calendarTotal - declaredTotal) * 100) / 100;
+
+    if (Math.abs(delta) <= 0.1) {
+      // Clean month — acknowledge for both employee and admin
+      acks.push({ month: monthStr, type: "employee", status: null });
+      acks.push({ month: monthStr, type: "admin", status: null });
+    } else {
+      // Discrepancy month — employee ack with warning, no admin ack
+      const sign = delta > 0 ? "+" : "";
+      const note =
+        `Calendar shows ${calendarTotal}h but column S declares ${declaredTotal}h ` +
+        `(Δ=${sign}${delta}h) for ${sheetName} month ${calc.month}. Requires manual review.`;
+      acks.push({ month: monthStr, type: "employee", status: "warning", note });
+    }
+  }
+
+  return acks;
+}
+
 // ── Phase 6: Orchestrator ──
 
 /**
@@ -2322,10 +2377,38 @@ export function parseEmployeeSheet(
   );
   warnings.push(...overColorWarnings);
 
-  // Parse acknowledgements
-  const acknowledgements = parseAcknowledgements(ws, employee.year);
+  // Parse acknowledgements from spreadsheet checkmarks
+  const spreadsheetAcks = parseAcknowledgements(ws, employee.year);
 
-  return { employee, ptoEntries, acknowledgements, warnings };
+  // Phase 15 (Task): Generate import-driven acknowledgements with warning flags
+  const importAcks = generateImportAcknowledgements(
+    ptoEntries,
+    ptoCalcRows,
+    employee.year,
+    ws.name,
+  );
+
+  // Merge: import-generated acks take priority (they have status/note info).
+  // Spreadsheet acks fill in months not covered by import acks.
+  // Additionally, suppress spreadsheet admin acks for months where the import
+  // flagged the employee ack with status="warning" — those months require
+  // manual admin review and must NOT be auto-acknowledged.
+  const importAckKeys = new Set(importAcks.map((a) => `${a.month}:${a.type}`));
+  const warningMonths = new Set(
+    importAcks
+      .filter((a) => a.type === "employee" && a.status === "warning")
+      .map((a) => a.month),
+  );
+  const mergedAcks = [
+    ...importAcks,
+    ...spreadsheetAcks.filter(
+      (a) =>
+        !importAckKeys.has(`${a.month}:${a.type}`) &&
+        !(a.type === "admin" && warningMonths.has(a.month)),
+    ),
+  ];
+
+  return { employee, ptoEntries, acknowledgements: mergedAcks, warnings };
 }
 
 /**

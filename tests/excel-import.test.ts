@@ -33,6 +33,8 @@ import {
   overrideTypeFromNote,
   reclassifyBereavementByColumnS,
   ImportedPtoEntry,
+  ImportedAcknowledgement,
+  generateImportAcknowledgements,
 } from "../server/reportGenerators/excelImport.js";
 import { generateExcelReport } from "../server/reportGenerators/excelReport.js";
 import { smartParseDate } from "../shared/dateUtils.js";
@@ -1103,6 +1105,32 @@ describe("Excel Import", () => {
           (e) => e.date.startsWith("2018-01-") && e.hours === 8,
         );
         expect(janFullDays.length).toBeGreaterThanOrEqual(3);
+      });
+
+      it("should generate import acknowledgements with warning flags for discrepancy months", () => {
+        const result = parseEmployeeSheet(ws, themeColors);
+        const acks = result.acknowledgements;
+
+        // A Bylenga should have import-generated acknowledgements for all 12 months
+        const empAcks = acks.filter((a) => a.type === "employee");
+        expect(empAcks.length).toBeGreaterThanOrEqual(12);
+
+        // Clean months (no discrepancy) should have both employee and admin acks
+        const admAcks = acks.filter((a) => a.type === "admin");
+        expect(admAcks.length).toBeGreaterThan(0);
+
+        // Warning acks should have status="warning" and a note
+        const warningAcks = empAcks.filter((a) => a.status === "warning");
+        for (const ack of warningAcks) {
+          expect(ack.note).toBeDefined();
+          expect(ack.note!.length).toBeGreaterThan(0);
+        }
+
+        // Clean acks should have status=null
+        const cleanAcks = empAcks.filter(
+          (a) => a.status === null || a.status === undefined,
+        );
+        expect(cleanAcks.length).toBeGreaterThan(0);
       });
     },
   );
@@ -2880,6 +2908,241 @@ describe("Excel Import", () => {
       expect(result.entries[1].type).toBe("PTO");
       expect(result.entries[2].type).toBe("PTO");
       expect(result.warnings).toHaveLength(2);
+    });
+  });
+
+  // ── Phase 15 (Task): Import Acknowledgement Records with Warning Flags ──
+
+  describe("generateImportAcknowledgements", () => {
+    it("should produce both employee and admin acks for clean months", () => {
+      const entries: ImportedPtoEntry[] = [
+        { date: "2018-04-02", type: "PTO", hours: 8 },
+        { date: "2018-04-03", type: "PTO", hours: 4 },
+      ];
+      const ptoCalcRows = [{ month: 4, usedHours: 12 }];
+      const acks = generateImportAcknowledgements(
+        entries,
+        ptoCalcRows,
+        2018,
+        "D Allen",
+      );
+      const empAcks = acks.filter((a) => a.type === "employee");
+      const admAcks = acks.filter((a) => a.type === "admin");
+      expect(empAcks).toHaveLength(1);
+      expect(admAcks).toHaveLength(1);
+      expect(empAcks[0].month).toBe("2018-04");
+      expect(empAcks[0].status).toBeNull();
+      expect(empAcks[0].note).toBeUndefined();
+      expect(admAcks[0].month).toBe("2018-04");
+      expect(admAcks[0].status).toBeNull();
+    });
+
+    it("should produce warning employee ack and no admin ack for discrepancy months", () => {
+      // J Schwerin December 2018 pattern: calendar=56h, declared=40h
+      const entries: ImportedPtoEntry[] = [];
+      // 7 Full PTO days (56h)
+      for (const d of [17, 18, 19, 20, 21, 24, 26]) {
+        entries.push({
+          date: `2018-12-${d < 10 ? "0" + d : d}`,
+          type: "PTO",
+          hours: 8,
+        });
+      }
+      const ptoCalcRows = [{ month: 12, usedHours: 40 }];
+      const acks = generateImportAcknowledgements(
+        entries,
+        ptoCalcRows,
+        2018,
+        "J Schwerin",
+      );
+      const empAcks = acks.filter((a) => a.type === "employee");
+      const admAcks = acks.filter((a) => a.type === "admin");
+      expect(empAcks).toHaveLength(1);
+      expect(admAcks).toHaveLength(0);
+      expect(empAcks[0].status).toBe("warning");
+      expect(empAcks[0].note).toContain("56");
+      expect(empAcks[0].note).toContain("40");
+      expect(empAcks[0].note).toContain("J Schwerin");
+    });
+
+    it("should handle tolerance — delta ≤ 0.1h is clean", () => {
+      const entries: ImportedPtoEntry[] = [
+        { date: "2018-03-05", type: "PTO", hours: 8.05 },
+      ];
+      const ptoCalcRows = [{ month: 3, usedHours: 8 }];
+      const acks = generateImportAcknowledgements(
+        entries,
+        ptoCalcRows,
+        2018,
+        "Test",
+      );
+      // Delta is 0.05, within tolerance
+      const empAcks = acks.filter((a) => a.type === "employee");
+      const admAcks = acks.filter((a) => a.type === "admin");
+      expect(empAcks).toHaveLength(1);
+      expect(admAcks).toHaveLength(1);
+      expect(empAcks[0].status).toBeNull();
+    });
+
+    it("should only count PTO-type entries (COLUMN_S_TRACKED_TYPES)", () => {
+      const entries: ImportedPtoEntry[] = [
+        { date: "2018-06-01", type: "PTO", hours: 8 },
+        { date: "2018-06-04", type: "Sick", hours: 8 }, // Sick not tracked by column S
+        { date: "2018-06-05", type: "Bereavement", hours: 8 }, // Not tracked
+      ];
+      const ptoCalcRows = [{ month: 6, usedHours: 8 }];
+      const acks = generateImportAcknowledgements(
+        entries,
+        ptoCalcRows,
+        2018,
+        "Test",
+      );
+      // Only PTO counted: 8h calendar vs 8h declared = clean
+      const empAcks = acks.filter((a) => a.type === "employee");
+      const admAcks = acks.filter((a) => a.type === "admin");
+      expect(empAcks).toHaveLength(1);
+      expect(admAcks).toHaveLength(1);
+      expect(empAcks[0].status).toBeNull();
+    });
+
+    it("should produce acks for all 12 months", () => {
+      const ptoCalcRows = Array.from({ length: 12 }, (_, i) => ({
+        month: i + 1,
+        usedHours: 0,
+      }));
+      const acks = generateImportAcknowledgements(
+        [],
+        ptoCalcRows,
+        2018,
+        "Test",
+      );
+      expect(acks).toHaveLength(24); // 12 employee + 12 admin (all clean)
+    });
+
+    it("should flag under-reporting (calendar < declared)", () => {
+      // Jackie Guiry May 2018 pattern: calendar=10.5h, declared=12h
+      const entries: ImportedPtoEntry[] = [
+        { date: "2018-05-14", type: "PTO", hours: 8 },
+        { date: "2018-05-16", type: "PTO", hours: 2.5 },
+      ];
+      const ptoCalcRows = [{ month: 5, usedHours: 12 }];
+      const acks = generateImportAcknowledgements(
+        entries,
+        ptoCalcRows,
+        2018,
+        "Jackie Guiry",
+      );
+      const empAcks = acks.filter((a) => a.type === "employee");
+      const admAcks = acks.filter((a) => a.type === "admin");
+      expect(empAcks).toHaveLength(1);
+      expect(admAcks).toHaveLength(0);
+      expect(empAcks[0].status).toBe("warning");
+      expect(empAcks[0].note).toContain("10.5");
+      expect(empAcks[0].note).toContain("12");
+    });
+
+    it("should handle negative PTO (weekend-work credit months)", () => {
+      const entries: ImportedPtoEntry[] = [
+        { date: "2018-10-15", type: "PTO", hours: 4 },
+        { date: "2018-10-14", type: "PTO", hours: -8 }, // weekend work
+      ];
+      const ptoCalcRows = [{ month: 10, usedHours: -4 }];
+      const acks = generateImportAcknowledgements(
+        entries,
+        ptoCalcRows,
+        2018,
+        "Test",
+      );
+      // Calendar total = 4 + (-8) = -4, declared = -4 → clean
+      const empAcks = acks.filter((a) => a.type === "employee");
+      const admAcks = acks.filter((a) => a.type === "admin");
+      expect(empAcks).toHaveLength(1);
+      expect(admAcks).toHaveLength(1);
+      expect(empAcks[0].status).toBeNull();
+    });
+
+    it("should suppress spreadsheet admin acks for warning months in merge logic", () => {
+      // Simulate: import generates a warning employee ack for month 12 (no admin ack).
+      // Spreadsheet has ✓ in both employee and admin columns for month 12.
+      // After merge, admin ack for month 12 should NOT exist.
+      const importAcks: ImportedAcknowledgement[] = [
+        {
+          month: "2018-12",
+          type: "employee",
+          status: "warning",
+          note: "discrepancy",
+        },
+      ];
+      const spreadsheetAcks: ImportedAcknowledgement[] = [
+        { month: "2018-12", type: "employee" }, // should be suppressed (importAckKeys)
+        { month: "2018-12", type: "admin" }, // should be suppressed (warningMonths)
+      ];
+
+      // Reproduce the exact merge logic from parseEmployeeSheet
+      const importAckKeys = new Set(
+        importAcks.map((a) => `${a.month}:${a.type}`),
+      );
+      const warningMonths = new Set(
+        importAcks
+          .filter((a) => a.type === "employee" && a.status === "warning")
+          .map((a) => a.month),
+      );
+      const mergedAcks = [
+        ...importAcks,
+        ...spreadsheetAcks.filter(
+          (a) =>
+            !importAckKeys.has(`${a.month}:${a.type}`) &&
+            !(a.type === "admin" && warningMonths.has(a.month)),
+        ),
+      ];
+
+      const empAcks = mergedAcks.filter((a) => a.type === "employee");
+      const admAcks = mergedAcks.filter((a) => a.type === "admin");
+      expect(empAcks).toHaveLength(1);
+      expect(empAcks[0].status).toBe("warning");
+      expect(admAcks).toHaveLength(0); // No admin ack for warning month
+    });
+
+    it("should allow spreadsheet admin acks for clean months alongside warning months", () => {
+      // Month 6 is clean (import produces both employee+admin acks).
+      // Month 12 is warning (import produces only employee ack).
+      // Spreadsheet has admin ✓ for both months.
+      // Only month 6 admin ack should appear (from import), month 12 admin suppressed.
+      const importAcks: ImportedAcknowledgement[] = [
+        { month: "2018-06", type: "employee", status: null },
+        { month: "2018-06", type: "admin", status: null },
+        { month: "2018-12", type: "employee", status: "warning", note: "disc" },
+      ];
+      const spreadsheetAcks: ImportedAcknowledgement[] = [
+        { month: "2018-06", type: "admin" }, // suppressed by importAckKeys (import already has it)
+        { month: "2018-12", type: "admin" }, // suppressed by warningMonths
+      ];
+
+      const importAckKeys = new Set(
+        importAcks.map((a) => `${a.month}:${a.type}`),
+      );
+      const warningMonths = new Set(
+        importAcks
+          .filter((a) => a.type === "employee" && a.status === "warning")
+          .map((a) => a.month),
+      );
+      const mergedAcks = [
+        ...importAcks,
+        ...spreadsheetAcks.filter(
+          (a) =>
+            !importAckKeys.has(`${a.month}:${a.type}`) &&
+            !(a.type === "admin" && warningMonths.has(a.month)),
+        ),
+      ];
+
+      const admAcks = mergedAcks.filter((a) => a.type === "admin");
+      expect(admAcks).toHaveLength(1);
+      expect(admAcks[0].month).toBe("2018-06");
+
+      const dec12Admin = mergedAcks.filter(
+        (a) => a.type === "admin" && a.month === "2018-12",
+      );
+      expect(dec12Admin).toHaveLength(0);
     });
   });
 });

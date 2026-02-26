@@ -278,6 +278,7 @@ export function getDaysBetween(dateStr1: string, dateStr2: string): number {
 // ── Time-travel override (developer testing only) ────────────────────
 
 let _timeTravelYear: number | null = null;
+let _timeTravelDate: string | null = null;
 
 /**
  * Set a time-travel year override.
@@ -286,6 +287,9 @@ let _timeTravelYear: number | null = null;
  * are kept from the real clock).
  *
  * Pass `null` to disable.
+ *
+ * Note: `setTimeTravelDay()` takes precedence. Setting a year clears any
+ * active day override.
  */
 export function setTimeTravelYear(year: number | null): void {
   if (year !== null && (year < 2000 || year > 2099)) {
@@ -294,22 +298,62 @@ export function setTimeTravelYear(year: number | null): void {
     );
   }
   _timeTravelYear = year;
+  _timeTravelDate = null;
 }
 
 /**
  * Returns the active time-travel year, or `null` if time-travel is inactive.
+ * When a full day override is active, returns its year component.
  */
 export function getTimeTravelYear(): number | null {
+  if (_timeTravelDate) return parseDate(_timeTravelDate).year;
   return _timeTravelYear;
 }
 
 /**
+ * Set a time-travel day override (YYYY-MM-DD).
+ * When set, `today()` returns this exact date, and `getCurrentYear()` /
+ * `getCurrentMonth()` derive their values from it.
+ *
+ * Takes precedence over `setTimeTravelYear()`. Setting a day clears any
+ * active year-only override.
+ *
+ * Pass `null` to disable.
+ */
+export function setTimeTravelDay(dateStr: string | null): void {
+  if (dateStr !== null) {
+    if (!isValidDateString(dateStr)) {
+      throw new Error(
+        `Invalid time-travel date: ${dateStr}. Must be a valid YYYY-MM-DD string.`,
+      );
+    }
+    const { year } = parseDate(dateStr);
+    if (year < 2000 || year > 2099) {
+      throw new Error(
+        `Invalid time-travel date year: ${year}. Must be between 2000 and 2099.`,
+      );
+    }
+  }
+  _timeTravelDate = dateStr;
+  _timeTravelYear = null;
+}
+
+/**
+ * Returns the active time-travel day, or `null` if no day override is active.
+ */
+export function getTimeTravelDay(): string | null {
+  return _timeTravelDate;
+}
+
+/**
  * Gets the current date as YYYY-MM-DD string.
- * When time-travel is active the year is replaced; month/day come from the
- * real clock.  If the resulting date is invalid (e.g. Feb 29 in a non-leap
- * year) the day is clamped to the last valid day of the month.
+ * - When a day override is active (`setTimeTravelDay`), returns that exact date.
+ * - When a year override is active (`setTimeTravelYear`), the year is replaced;
+ *   month/day come from the real clock (day clamped if invalid).
+ * - Otherwise returns the real current date.
  */
 export function today(): string {
+  if (_timeTravelDate) return _timeTravelDate;
   const now = new Date();
   const year = _timeTravelYear ?? now.getFullYear();
   const month = now.getMonth() + 1;
@@ -401,17 +445,24 @@ export function getWeekdaysBetween(
 
 /**
  * Gets the current year.
- * Returns the time-travel year when active.
+ * Returns the time-travel year (from day or year override) when active.
  */
 export function getCurrentYear(): number {
+  if (_timeTravelDate) return parseDate(_timeTravelDate).year;
   return _timeTravelYear ?? new Date().getFullYear();
 }
 
 /**
  * Gets the current month in YYYY-MM format.
- * Uses the time-travel year when active (month from real clock).
+ * - When a day override is active, derives year and month from that date.
+ * - When a year override is active, uses overridden year with real month.
+ * - Otherwise returns the real current year-month.
  */
 export function getCurrentMonth(): string {
+  if (_timeTravelDate) {
+    const { year, month } = parseDate(_timeTravelDate);
+    return `${year.toString().padStart(4, "0")}-${month.toString().padStart(2, "0")}`;
+  }
   const now = new Date();
   const year = _timeTravelYear ?? now.getFullYear();
   const month = now.getMonth() + 1;

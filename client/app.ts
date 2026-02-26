@@ -11,15 +11,35 @@ import { TraceListener } from "./controller/TraceListener.js";
 import { PtoNotificationController } from "./controller/PtoNotificationController.js";
 import { DebugConsoleController } from "./controller/DebugConsoleController.js";
 import { UIManager } from "./UIManager.js";
-import { setTimeTravelYear } from "../shared/dateUtils.js";
+import {
+  setTimeTravelYear,
+  setTimeTravelDay,
+  isValidDateString,
+  parseDate,
+} from "../shared/dateUtils.js";
 
 // ── Time-travel bootstrap ────────────────────────────────────────
-// Read ?current_year=YYYY from the URL and activate the date override
-// before any component renders.
+// Read ?current_day=YYYY-MM-DD or ?current_year=YYYY from the URL and
+// activate the date override before any component renders.
+// current_day takes precedence over current_year.
 initTimeTravel();
 
 function initTimeTravel(): void {
   const params = new URLSearchParams(window.location.search);
+
+  // Full day override: ?current_day=2018-03-15
+  const dayStr = params.get("current_day");
+  if (dayStr && isValidDateString(dayStr)) {
+    const { year } = parseDate(dayStr);
+    if (year >= 2000 && year <= 2099) {
+      setTimeTravelDay(dayStr);
+      // eslint-disable-next-line no-console
+      console.info(`[time-travel] Active — reference day set to ${dayStr}`);
+      return;
+    }
+  }
+
+  // Year-only override: ?current_year=2018
   const yearStr = params.get("current_year");
   if (yearStr) {
     const year = parseInt(yearStr, 10);

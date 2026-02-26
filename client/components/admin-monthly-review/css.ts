@@ -197,6 +197,29 @@ export const styles = `
     transform: scale(1.05);
   }
 
+  .lock-indicator.warning {
+    background: rgb(245 158 11 / 15%);
+    color: var(--color-warning-dark, #92400e);
+  }
+
+  .lock-indicator.resolved {
+    background: rgb(34 197 94 / 12%);
+    color: var(--color-success-dark, #166534);
+  }
+
+  .ack-note {
+    margin-top: var(--space-sm, 8px);
+    padding: var(--space-sm, 8px) var(--space-md, 12px);
+    background: rgb(245 158 11 / 8%);
+    border-left: 3px solid var(--color-warning-dark, #92400e);
+    border-radius: 4px;
+    font-size: var(--font-size-sm, 13px);
+    color: var(--color-text);
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
   .progress-bar {
     font-size: var(--font-size-sm, 14px);
     color: var(--color-text-secondary);

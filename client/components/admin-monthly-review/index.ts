@@ -818,11 +818,20 @@ export class AdminMonthlyReview extends BaseComponent {
       lockIndicatorHtml = `<span class="lock-indicator notified-read" title="Employee saw reminder but hasn't locked — click to re-send" data-notify-employee="${employee.employeeId}">👁 Seen</span>`;
     }
 
+    // Warning/resolved status indicator from employee acknowledgement
+    let warningIndicatorHtml = "";
+    if (employee.employeeAckStatus === "warning") {
+      warningIndicatorHtml = `<span class="lock-indicator warning" title="Import discrepancy — expand calendar for details">⚠ Warning</span>`;
+    } else if (employee.employeeAckStatus === "resolved") {
+      warningIndicatorHtml = `<span class="lock-indicator resolved" title="Import discrepancy reviewed and resolved">✓ Resolved</span>`;
+    }
+
     return `
       <div class="employee-card ${activityClass}" data-employee-id="${employee.employeeId}">
         <div class="employee-header">
           <h3 class="employee-name" title="${employee.employeeName}">${employee.employeeName}</h3>
           ${lockIndicatorHtml}
+          ${warningIndicatorHtml}
           <div class="activity-indicator">
             <div class="activity-dot ${hasActivity ? "active" : "inactive"}"></div>
             <span>${hasActivity ? `${totalActivity}h scheduled` : "No activity"}</span>
@@ -877,6 +886,7 @@ export class AdminMonthlyReview extends BaseComponent {
                 hide-header="true"
                 data-employee-id="${employee.employeeId}"
               ></pto-calendar>
+              ${employee.employeeAckNote ? `<div class="ack-note">${employee.employeeAckNote}</div>` : ""}
             </div>`
             : ""
         }

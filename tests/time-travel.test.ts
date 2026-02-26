@@ -2,6 +2,8 @@ import { describe, it, expect, afterEach } from "vitest";
 import {
   setTimeTravelYear,
   getTimeTravelYear,
+  setTimeTravelDay,
+  getTimeTravelDay,
   today,
   getCurrentYear,
   getCurrentMonth,
@@ -129,6 +131,120 @@ describe("Time Travel", () => {
 
     it("endOfYear uses overridden year", () => {
       setTimeTravelYear(2018);
+      expect(endOfYear()).toBe("2018-12-31");
+    });
+  });
+
+  describe("setTimeTravelDay / getTimeTravelDay", () => {
+    afterEach(() => {
+      setTimeTravelDay(null);
+    });
+
+    it("returns null when no day override is active", () => {
+      expect(getTimeTravelDay()).toBeNull();
+    });
+
+    it("stores and retrieves the override date", () => {
+      setTimeTravelDay("2018-03-15");
+      expect(getTimeTravelDay()).toBe("2018-03-15");
+    });
+
+    it("clears the override when set to null", () => {
+      setTimeTravelDay("2018-03-15");
+      setTimeTravelDay(null);
+      expect(getTimeTravelDay()).toBeNull();
+    });
+
+    it("rejects invalid date strings", () => {
+      expect(() => setTimeTravelDay("not-a-date")).toThrow(
+        "Invalid time-travel date",
+      );
+    });
+
+    it("rejects dates with year below 2000", () => {
+      expect(() => setTimeTravelDay("1999-01-01")).toThrow(
+        "Invalid time-travel date year",
+      );
+    });
+
+    it("rejects dates with year above 2099", () => {
+      expect(() => setTimeTravelDay("2100-06-15")).toThrow(
+        "Invalid time-travel date year",
+      );
+    });
+
+    it("clears year-only override when day is set", () => {
+      setTimeTravelYear(2020);
+      setTimeTravelDay("2018-03-15");
+      expect(getTimeTravelDay()).toBe("2018-03-15");
+      // Year should be derived from the day
+      expect(getTimeTravelYear()).toBe(2018);
+    });
+
+    it("clears day override when year is set", () => {
+      setTimeTravelDay("2018-03-15");
+      setTimeTravelYear(2020);
+      expect(getTimeTravelDay()).toBeNull();
+      expect(getTimeTravelYear()).toBe(2020);
+    });
+  });
+
+  describe("today() with day override", () => {
+    afterEach(() => {
+      setTimeTravelDay(null);
+    });
+
+    it("returns the exact overridden date", () => {
+      setTimeTravelDay("2018-03-15");
+      expect(today()).toBe("2018-03-15");
+    });
+
+    it("day override takes precedence over year override", () => {
+      setTimeTravelYear(2020);
+      setTimeTravelDay("2018-07-04");
+      expect(today()).toBe("2018-07-04");
+    });
+  });
+
+  describe("getCurrentYear() with day override", () => {
+    afterEach(() => {
+      setTimeTravelDay(null);
+    });
+
+    it("returns year from day override", () => {
+      setTimeTravelDay("2018-03-15");
+      expect(getCurrentYear()).toBe(2018);
+    });
+  });
+
+  describe("getCurrentMonth() with day override", () => {
+    afterEach(() => {
+      setTimeTravelDay(null);
+    });
+
+    it("returns year-month from day override", () => {
+      setTimeTravelDay("2018-03-15");
+      expect(getCurrentMonth()).toBe("2018-03");
+    });
+
+    it("returns correct month for different dates", () => {
+      setTimeTravelDay("2019-11-25");
+      expect(getCurrentMonth()).toBe("2019-11");
+    });
+  });
+
+  describe("startOfYear / endOfYear with day override", () => {
+    afterEach(() => {
+      setTimeTravelDay(null);
+    });
+
+    it("startOfYear uses year from day override", () => {
+      setTimeTravelDay("2018-03-15");
+      expect(startOfYear()).toBe("2018-01-01");
+    });
+
+    it("endOfYear uses year from day override", () => {
+      setTimeTravelDay("2018-03-15");
       expect(endOfYear()).toBe("2018-12-31");
     });
   });

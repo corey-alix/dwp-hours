@@ -21,6 +21,12 @@ export class Acknowledgement {
   @Column({ type: "datetime", default: () => "CURRENT_TIMESTAMP" })
   acknowledged_at!: Date;
 
+  @Column({ type: "text", nullable: true })
+  note!: string | null;
+
+  @Column({ type: "text", nullable: true })
+  status!: string | null;
+
   @ManyToOne(() => Employee, (employee) => employee.acknowledgements)
   @JoinColumn({ name: "employee_id" })
   employee!: Employee;

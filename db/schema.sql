@@ -48,6 +48,8 @@ CREATE TABLE IF NOT EXISTS acknowledgements (
   employee_id INTEGER NOT NULL,
   month TEXT NOT NULL,
   acknowledged_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  note TEXT,
+  status TEXT,
   FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
 );
 

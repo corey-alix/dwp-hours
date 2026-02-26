@@ -268,6 +268,10 @@ export interface AdminMonthlyReviewItem {
   notificationSent: boolean;
   /** ISO timestamp when the employee dismissed/read the notification, or null if unread/none. */
   notificationReadAt: string | null;
+  /** The status column from the employee acknowledgement (e.g., "warning", "resolved", or null for clean). */
+  employeeAckStatus?: string | null;
+  /** The note column from the employee acknowledgement describing any import discrepancy. */
+  employeeAckNote?: string | null;
 }
 
 export interface GenericMessageResponse {

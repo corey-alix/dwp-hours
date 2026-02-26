@@ -102,6 +102,19 @@ try {
   const schemaPath = path.join(__dirname, "..", "db", "schema.sql");
   const schema = fs.readFileSync(schemaPath, "utf8");
   db.exec(schema);
+
+  // Safe migrations for existing databases
+  const migrations = [
+    "ALTER TABLE acknowledgements ADD COLUMN note TEXT",
+    "ALTER TABLE acknowledgements ADD COLUMN status TEXT",
+  ];
+  for (const sql of migrations) {
+    try {
+      db.exec(sql);
+    } catch {
+      // Column already exists — ignore
+    }
+  }
 } catch (error) {
   console.error("Failed to load database:", error);
   process.exit(1);
