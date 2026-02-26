@@ -297,11 +297,13 @@ describe("Excel Import", () => {
       );
       const dec19 = adjusted.find((e) => e.date === "2026-12-19");
       expect(dec19!.hours).toBe(4.5);
-      expect(dec19!.notes).toContain("adjusted from 1h to 4.5h");
+      expect(dec19!.notes).toContain("Adjusted from 1h to 4.5h");
       expect(warnings.length).toBe(0);
     });
 
-    it("should not back-calculate when multiple partial entries exist (ambiguous)", () => {
+    it("should distribute hours evenly across multiple partial entries", () => {
+      // Simulates E Aamodt Mar 2018: 2 partial PTO + no full days → only partials
+      // Both are partial, declared=10h → each gets 10/2 = 5h
       const entries = [
         {
           date: "2026-07-25",
@@ -332,11 +334,55 @@ describe("Excel Import", () => {
         entries,
         ptoCalc,
       );
-      // No adjustment — ambiguous
-      expect(adjusted.find((e) => e.date === "2026-07-25")!.hours).toBe(2);
+      // Both partials adjusted to 5h each (10 / 2)
+      expect(adjusted.find((e) => e.date === "2026-07-25")!.hours).toBe(5);
       expect(adjusted.find((e) => e.date === "2026-07-26")!.hours).toBe(5);
-      expect(warnings.length).toBeGreaterThan(0);
-      expect(warnings[0]).toContain("ambiguous");
+      expect(warnings.length).toBe(0);
+    });
+
+    it("should distribute remaining hours after full days across partials", () => {
+      // Simulates E Aamodt Mar 2018: 5 yellow (Full PTO) + 2 orange (Partial PTO)
+      // Calendar total = 5×8 + 2×8 = 56h, declared = 46h
+      // fullTotal = 40h, remaining = 6h, each partial = 3h
+      const entries = [
+        {
+          date: "2026-03-08",
+          type: "PTO" as const,
+          hours: 8,
+          isPartialPtoColor: true,
+        },
+        {
+          date: "2026-03-16",
+          type: "PTO" as const,
+          hours: 8,
+          isPartialPtoColor: true,
+        },
+        { date: "2026-03-19", type: "PTO" as const, hours: 8 },
+        { date: "2026-03-20", type: "PTO" as const, hours: 8 },
+        { date: "2026-03-21", type: "PTO" as const, hours: 8 },
+        { date: "2026-03-22", type: "PTO" as const, hours: 8 },
+        { date: "2026-03-23", type: "PTO" as const, hours: 8 },
+      ];
+      const ptoCalc = [
+        { month: 1, usedHours: 0 },
+        { month: 2, usedHours: 0 },
+        { month: 3, usedHours: 46 },
+        ...Array.from({ length: 9 }, (_, i) => ({
+          month: i + 4,
+          usedHours: 0,
+        })),
+      ];
+
+      const { entries: adjusted, warnings } = adjustPartialDays(
+        entries,
+        ptoCalc,
+      );
+      expect(adjusted.find((e) => e.date === "2026-03-08")!.hours).toBe(3);
+      expect(adjusted.find((e) => e.date === "2026-03-16")!.hours).toBe(3);
+      // Full days unchanged
+      expect(adjusted.find((e) => e.date === "2026-03-19")!.hours).toBe(8);
+      expect(adjusted.find((e) => e.date === "2026-03-23")!.hours).toBe(8);
+      expect(warnings.length).toBe(0);
     });
   });
 
@@ -823,9 +869,10 @@ describe("Excel Import", () => {
     });
 
     it("should prefer strict pattern with unit suffix over bare numbers", () => {
-      // "PTO at 1PM" — strict regex does NOT match (no unit suffix after 1)
-      // fallback bare number still gets 1
-      expect(parseHoursFromNote("PTO at 1PM")).toBe(1);
+      // "PTO at 1PM" — neither strict nor fallback matches (1 is adjacent to PM)
+      expect(parseHoursFromNote("PTO at 1PM")).toBeUndefined();
+      // "MD360" — code, not hours (360 embedded in alphanumeric string)
+      expect(parseHoursFromNote("Deanna Allen:\nMD360")).toBeUndefined();
       // But "4 hrs PTO" matches strict first
       expect(parseHoursFromNote("4 hrs PTO")).toBe(4);
       // "2 HRS" matches strict
@@ -1449,7 +1496,8 @@ describe("Excel Import", () => {
         expect(dec19).toBeDefined();
         expect(dec19!.isPartialPtoColor).toBe(true);
         expect(dec19!.type).toBe("PTO");
-        // Note contains "PTO at 1PM" — bare number fallback extracts 1
+        // Note contains "PTO at 1PM" — bare number fallback no longer
+        // extracts 1 (word boundary prevents matching 1PM)
         expect(dec19!.notes).toContain("PTO at 1PM");
       });
 
@@ -1474,7 +1522,7 @@ describe("Excel Import", () => {
         const dec19 = adjusted.find((e) => e.date === "2018-12-19");
         expect(dec19).toBeDefined();
         expect(dec19!.hours).toBe(4.5);
-        expect(dec19!.notes).toContain("adjusted from 1h to 4.5h");
+        expect(dec19!.notes).toContain("Adjusted from 8h to 4.5h");
       });
 
       it("should produce correct December total of 44.5h via full pipeline", () => {

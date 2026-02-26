@@ -9,6 +9,7 @@
 - LATER: See ./TASKS/excel-import.md for details
 - LATER: See ./TASKS/time-travel-testing.md for details
 - LATER: See ./TASKS/api-access-skill.md for details
+- LATER: See ./TASKS/validate-excel-import.md for details
 
 ## SOME WORK REMAINS
 

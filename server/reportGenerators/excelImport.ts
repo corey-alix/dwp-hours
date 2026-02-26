@@ -256,25 +256,37 @@ export function extractCellNoteText(cell: ExcelJS.Cell): string {
 }
 
 /**
+ * Maximum hours a single PTO entry can represent (sanity cap).
+ * Rejects parsed values above this threshold to prevent false positives
+ * from note text like "MD360" or other non-hours numeric content.
+ */
+const MAX_SINGLE_ENTRY_HOURS = 24;
+
+/**
  * Try to parse hours from a note string.
  *
  * First tries a strict pattern requiring a unit suffix (hrs/hours/h) to
  * avoid false positives from time references like "1PM" or "12:30".
- * Falls back to extracting the first bare number if the strict pattern fails.
+ * Falls back to extracting the first standalone bare number if the strict
+ * pattern fails. The bare-number fallback requires word boundaries to
+ * avoid matching digits embedded in codes like "MD360".
+ *
+ * All parsed values are capped at MAX_SINGLE_ENTRY_HOURS (24) to reject
+ * obviously non-hours numbers.
  */
 export function parseHoursFromNote(note: string): number | undefined {
-  // Strict pattern: number followed by a time-unit suffix
-  const strict = note.match(/(\d+(?:\.\d+)?|\.\d+)\s*(?:hrs?|hours?)\b/i);
+  // Strict pattern: number followed by a time-unit suffix (h, hr, hrs, hour, hours)
+  const strict = note.match(/(\d+(?:\.\d+)?|\.\d+)\s*(?:hours?|hrs?|h)\b/i);
   if (strict) {
     const val = parseFloat(strict[1]);
-    if (!isNaN(val) && val > 0) return val;
+    if (!isNaN(val) && val > 0 && val <= MAX_SINGLE_ENTRY_HOURS) return val;
   }
 
-  // Fallback: first bare number in the text
-  const bare = note.match(/(\d+(?:\.\d+)?|\.\d+)/);
+  // Fallback: first standalone bare number (word boundaries to avoid "MD360")
+  const bare = note.match(/(?<![A-Za-z])(\d+(?:\.\d+)?|\.\d+)(?![A-Za-z\d])/);
   if (bare) {
     const val = parseFloat(bare[1]);
-    if (!isNaN(val) && val > 0) return val;
+    if (!isNaN(val) && val > 0 && val <= MAX_SINGLE_ENTRY_HOURS) return val;
   }
   return undefined;
 }
@@ -708,14 +720,21 @@ export function parseCarryoverHours(ws: ExcelJS.Worksheet): number {
 }
 
 /**
+ * PTO types tracked in the spreadsheet's "PTO hours per Month" column (S).
+ * Bereavement and Jury Duty are tracked separately and excluded from
+ * the column S total.
+ */
+const COLUMN_S_TRACKED_TYPES = new Set<string>(["PTO"]);
+
+/**
  * Adjust PTO entry hours based on declared monthly totals.
  *
  * For each month, the PTO Calculation section declares total used PTO hours.
  * The calendar may have N full-day entries (8h each). If the sum exceeds the
  * declared total, the last entry in that month gets reduced to a partial day.
  *
- * Note: This function groups ALL PTO types together per month (the "PTO hours
- * per Month" column in the export is the aggregate across all types).
+ * Note: Column S only tracks PTO and Sick hours. Bereavement and Jury Duty
+ * are tracked separately and excluded from the adjustment calculation.
  */
 export function adjustPartialDays(
   entries: ImportedPtoEntry[],
@@ -740,80 +759,86 @@ export function adjustPartialDays(
     const monthEntries = byMonth.get(calc.month);
     if (!monthEntries || monthEntries.length === 0) continue;
 
-    const calendarTotal = monthEntries.reduce((sum, e) => sum + e.hours, 0);
+    // Only count PTO+Sick entries (column S excludes Bereavement/Jury Duty)
+    const trackedEntries = monthEntries.filter((e) =>
+      COLUMN_S_TRACKED_TYPES.has(e.type),
+    );
+    const calendarTotal = trackedEntries.reduce((sum, e) => sum + e.hours, 0);
     const declaredTotal = calc.usedHours;
 
     if (declaredTotal <= 0) continue;
 
     const monthStr = pad2(calc.month);
     const monthResultEntries = result.filter(
-      (e) => e.date.substring(5, 7) === monthStr,
+      (e) =>
+        e.date.substring(5, 7) === monthStr &&
+        COLUMN_S_TRACKED_TYPES.has(e.type),
     );
     if (monthResultEntries.length === 0) continue;
 
-    if (calendarTotal > declaredTotal) {
-      // ── Existing logic: reduce last entry ──
-      monthResultEntries.sort((a, b) => a.date.localeCompare(b.date));
-      const lastEntry = monthResultEntries[monthResultEntries.length - 1];
+    if (calendarTotal === declaredTotal) continue;
 
-      const otherTotal = calendarTotal - lastEntry.hours;
+    // ── Distribute hours across partial entries (column S is source of truth) ──
+    monthResultEntries.sort((a, b) => a.date.localeCompare(b.date));
+    const partials = monthResultEntries.filter(
+      (e) => e.isPartialPtoColor === true,
+    );
+
+    if (partials.length > 0) {
+      // Sum hours from non-partial (full-day) entries
+      const fullTotal = monthResultEntries
+        .filter((e) => !e.isPartialPtoColor)
+        .reduce((sum, e) => sum + e.hours, 0);
+      const remainingHours =
+        Math.round((declaredTotal - fullTotal) * 100) / 100;
+      const hoursEach =
+        Math.round((remainingHours / partials.length) * 100) / 100;
+
+      if (hoursEach > 0 && hoursEach <= 8) {
+        for (const partial of partials) {
+          if (partial.hours !== hoursEach) {
+            const originalHours = partial.hours;
+            partial.hours = hoursEach;
+            const adjustNote =
+              `Adjusted from ${originalHours}h to ${hoursEach}h ` +
+              `based on PTO Calc (declared ${declaredTotal}h for month ${calc.month}).`;
+            partial.notes = partial.notes
+              ? `${partial.notes} ${adjustNote}`
+              : adjustNote;
+          }
+        }
+      } else {
+        // Guard failed — hoursEach is out of range
+        warnings.push(
+          `"${sheetName}" month ${calc.month}: ` +
+            `partial distribution produced ${hoursEach}h per entry (out of 0–8 range). ` +
+            `Declared=${declaredTotal}h, fullTotal=${fullTotal}h, ` +
+            `${partials.length} partial entries. No adjustment applied.`,
+        );
+      }
+    } else if (calendarTotal > declaredTotal) {
+      // No partial entries — adjust the last entry as fallback
+      const targetEntry = monthResultEntries[monthResultEntries.length - 1];
+      const otherTotal = calendarTotal - targetEntry.hours;
       const partialHours = declaredTotal - otherTotal;
 
-      if (partialHours > 0 && partialHours < lastEntry.hours) {
-        const originalHours = lastEntry.hours;
-        lastEntry.hours = Math.round(partialHours * 100) / 100;
+      if (partialHours > 0 && partialHours < targetEntry.hours) {
+        const originalHours = targetEntry.hours;
+        targetEntry.hours = Math.round(partialHours * 100) / 100;
         const adjustNote =
-          `Adjusted from ${originalHours}h to ${lastEntry.hours}h ` +
+          `Adjusted from ${originalHours}h to ${targetEntry.hours}h ` +
           `based on PTO Calc (declared ${declaredTotal}h for month ${calc.month}).`;
-        lastEntry.notes = lastEntry.notes
-          ? `${lastEntry.notes} ${adjustNote}`
+        targetEntry.notes = targetEntry.notes
+          ? `${targetEntry.notes} ${adjustNote}`
           : adjustNote;
       }
-    } else if (calendarTotal < declaredTotal) {
-      // ── Phase 10: back-calculate partial-day hours ──
-      const partials = monthResultEntries.filter(
-        (e) => e.isPartialPtoColor === true,
+    } else {
+      // calendarTotal < declaredTotal with no partial entries
+      warnings.push(
+        `"${sheetName}" month ${calc.month}: ` +
+          `calendar total (${calendarTotal}h) < declared (${declaredTotal}h) ` +
+          `but no Partial PTO entries found. Cannot back-calculate.`,
       );
-
-      if (partials.length === 1) {
-        const partial = partials[0];
-        const othersTotal = calendarTotal - partial.hours;
-        const corrected = Math.round((declaredTotal - othersTotal) * 100) / 100;
-
-        if (corrected > 0 && corrected <= 8 && corrected !== partial.hours) {
-          const originalHours = partial.hours;
-          partial.hours = corrected;
-          const adjustNote =
-            `Hours adjusted from ${originalHours}h to ${corrected}h ` +
-            `based on PTO Calc (declared=${declaredTotal}h for month ${calc.month}).`;
-          partial.notes = partial.notes
-            ? `${partial.notes} ${adjustNote}`
-            : adjustNote;
-        } else if (corrected !== partial.hours) {
-          // Guard failed — corrected is out of range
-          warnings.push(
-            `"${sheetName}" month ${calc.month}: ` +
-              `back-calculation produced ${corrected}h (out of 0–8 range). ` +
-              `Declared=${declaredTotal}h, calendar=${calendarTotal}h. ` +
-              `No adjustment applied.`,
-          );
-        }
-      } else if (partials.length === 0) {
-        // No partial PTO entries — can't determine which to adjust
-        warnings.push(
-          `"${sheetName}" month ${calc.month}: ` +
-            `calendar total (${calendarTotal}h) < declared (${declaredTotal}h) ` +
-            `but no Partial PTO entries found. Cannot back-calculate.`,
-        );
-      } else {
-        // Multiple partial PTO entries — ambiguous
-        warnings.push(
-          `"${sheetName}" month ${calc.month}: ` +
-            `calendar total (${calendarTotal}h) < declared (${declaredTotal}h) ` +
-            `with ${partials.length} Partial PTO entries (ambiguous). ` +
-            `Cannot back-calculate.`,
-        );
-      }
     }
   }
 
@@ -843,8 +868,13 @@ export function reconcilePartialPto(
     if (calc.usedHours <= 0) continue;
 
     const monthStr = pad2(calc.month);
+    // Only count PTO+Sick entries (column S excludes Bereavement/Jury Duty)
     const detectedTotal = result
-      .filter((e) => e.date.substring(5, 7) === monthStr)
+      .filter(
+        (e) =>
+          e.date.substring(5, 7) === monthStr &&
+          COLUMN_S_TRACKED_TYPES.has(e.type),
+      )
       .reduce((sum, e) => sum + e.hours, 0);
 
     const gap = Math.round((calc.usedHours - detectedTotal) * 100) / 100;

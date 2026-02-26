@@ -146,6 +146,126 @@ Implement utility methods and scripts for converting between Excel, JSON, and da
 - **Partial PTO cell notes not stored or used for hours**: Calendar cells with Partial PTO color (`FFFFC000`) often have Excel cell notes specifying the actual hours (e.g., "2 HRS PTO", "5 HRS PTO"), but the importer ignored these notes on color-matched cells. For "A Bylenga" in `reports/2018.xlsx`, July 25 (M27), July 26 (N27), and July 27 (O27) all have Partial PTO fill color and notes stating 2h, 5h, and 5h respectively. The importer was creating 8h PTO entries for each (defaulting to full-day), resulting in 24h imported instead of the correct 12h. Additionally, the note text (e.g., "Mandi Davenport:\n5 HRS PTO") was not stored in the `pto_entries.notes` column, losing audit context. **Root cause**: `parseHoursFromNote()` required a unit suffix (hrs/hours/h) and `parseCalendarGrid()` already extracted notes on color-matched cells, but the note-based hours were not used when a cell note's format didn't match the old regex. **Fixed in Phase 8**: simplified `parseHoursFromNote()` to extract the first number (`/(\d+(?:\.\d+)?|\.\d+)/`) from the note text regardless of suffix. Removed the redundant legacy regex fallback. The note text and extracted hours are now correctly stored on all color-matched PTO entries.
 - **Ambiguous cell notes cause wrong partial-day hours**: `parseHoursFromNote()` extracts the first number from the note text regardless of context, which causes false matches on notes containing incidental numbers. "A Campbell" December 19, 2018 (cell U36) has Partial PTO color (`FFFFC000`) and note `"Alex Campbell:\nPTO at 1PM"`. The regex `/^(\d+(?:\.\d+)?)/` matches `1` from "1PM", recording 1h PTO. The PTO Calc section declares 44.5h for December, with 5 full-day entries (40h), so the partial day should be 4.5h — not 1h. The calendar total (41h) is less than the declared total (44.5h), but `adjustPartialDays()` only reduces entries when `calendarTotal > declaredTotal`, so no correction occurs. **Fix planned in Phase 10**: (1) improve `parseHoursFromNote()` to try a strict pattern with unit suffix first before falling back to bare numbers, and (2) extend `adjustPartialDays()` to back-calculate partial-day hours from the PTO Calc declared total when `calendarTotal < declaredTotal` and the month has exactly one Partial PTO entry.
 
+## Lisa Cole By Colors
+
+L Cole's spreadsheet uses **custom theme-tinted colors** instead of the standard ARGB legend colors for several PTO categories. The importer's approximate color matching maps all of these custom colors to "Bereavement" (closest by RGB distance), so they're either miscategorized or unrecognized. This is the root cause of most L Cole discrepancies.
+
+### Color Mapping
+
+| Color Code           | Resolved ARGB | Legend Match        | Actual Meaning (from notes)                         | Distance |
+| -------------------- | ------------- | ------------------- | --------------------------------------------------- | -------- |
+| `FFFFFF00`           | `FFFFFF00`    | Full PTO (exact)    | Full PTO day (8h)                                   | 0        |
+| `FFFFC000`           | `FFFFC000`    | Partial PTO (exact) | Partial PTO (hours in note)                         | 0        |
+| `FF92D050`           | `FF92D050`    | Sick (approx)       | Sick day                                            | ~34      |
+| `theme:9/tint:0.6`   | `FFFCD5B5`    | Bereavement (65.6)  | **Partial PTO** — notes say "X hours PTO"           | 65.6     |
+| `theme:6/tint:0.4`   | `FFC3D69B`    | Bereavement (42.9)  | **Sick** — notes say "X hours sick"                 | 42.9     |
+| `theme:8/tint:0.6`   | `FFB7DEE8`    | Bereavement (52.0)  | **Worked** (weekend offset) — notes say "Worked..." | 52.0     |
+| `theme:0/tint:-0.15` | `FFD9D9D9`    | Bereavement (45.0)  | **Bereavement/Leave** (Oct 14-19)                   | 45.0     |
+
+### Month-by-Month Analysis
+
+Column S values are the declared "PTO hours per Month" (PTO only). The DB column is what the importer produces (PTO type only).
+
+**Feb — Excel: 3h, DB: -12h, Δ: -15h**
+
+- Calendar cells:
+  - Feb 6 (Tue) `FFFFC000` Partial PTO, note "2 hours PTO" → 2h PTO ✓
+  - Feb 7 (Wed) `theme:6/tint:0.4` note "4 hours sick" → resolves to Bereavement, should be Sick (ignored by column S)
+  - Feb 9 (Fri) `theme:6/tint:0.4` note "3 hours Sick" → resolves to Bereavement, should be Sick (ignored)
+  - Feb 11 (Sun) `theme:3/tint:0.6` note "Worked 10 - 12" → **weekend work**, creates -8h PTO (worked credit)
+  - Feb 12 (Mon) `theme:6/tint:0.4` note "8 hours sick" → resolves to Bereavement, should be Sick (ignored)
+  - Feb 28 (Wed) `FFFFC000` Partial PTO, note "3 hours PTO" → probably distributes to match declared
+- Declared: 3h. The importer likely creates 2h (Feb 6) + some adjustment − 8h worked credit = negative total. The worked credit is importing as -8h instead of -2h (note says "Worked 10 - 12" = 2 hours).
+
+**May — Excel: 34h, DB: 24h, Δ: -10h**
+
+- Calendar cells:
+  - May 4 (Fri) `FFFFFF00` Full PTO → 8h PTO ✓
+  - May 10 (Thu) `theme:9/tint:0.6` note "2 hours" → resolves to Bereavement, **should be Partial PTO** (2h PTO missed)
+  - May 11 (Fri) `FFFFFF00` Full PTO → 8h PTO ✓
+  - May 18 (Fri) `theme:9/tint:0.6` note "3 hours PTO" → resolves to Bereavement, **should be Partial PTO** (3h PTO missed)
+  - May 23 (Wed) `theme:6/tint:0.4` note "6 Hours Sick - Used 5 hours PTO" → resolves to Bereavement, should be Sick (but note says 5h PTO portion!)
+  - May 28 (Mon) `FFFFFF00` Full PTO → 8h PTO ✓
+- Declared: 34h. DB sees only 3 Full PTO days = 24h. Missing: 2h (May 10) + 3h (May 18) + 5h PTO portion of May 23 = 10h.
+
+**Jun — Excel: 18.3h, DB: 16h, Δ: -2.3h**
+
+- Calendar cells:
+  - Jun 8 (Fri) `theme:9/tint:0.6` note "1 hour PTO" → resolves to Bereavement, **should be 1h PTO** (missed)
+  - Jun 15 (Fri) `theme:9/tint:0.6` note "1.30 hours PTO" → resolves to Bereavement, **should be 1.3h PTO** (missed)
+  - Jun 18 (Mon) `FFFFFF00` Full PTO → 8h PTO ✓
+  - Jun 27 (Wed) `FFFFFF00` Full PTO → 8h PTO ✓
+- Declared: 18.3h. DB sees 16h (2 full days). Missing: 1h + 1.3h = 2.3h from theme:9 partial days.
+
+**Jul — Excel: 15h, DB: 8h, Δ: -7h**
+
+- Calendar cells:
+  - Jul 10 (Tue) `theme:6/tint:0.4` note "4 Hours PTO" → resolves to Bereavement, should be Sick but note says PTO! **(4h PTO missed)**
+  - Jul 16 (Mon) `theme:6/tint:0.4` note "1.3 hours PTO" → resolves to Bereavement, should be Sick but note says PTO! **(1.3h PTO missed)**
+  - Jul 27 (Fri) `FFFFFF00` Full PTO → 8h PTO ✓
+  - Jul 30 (Mon) `theme:6/tint:0.4` note "1.3 hours PTO" → resolves to Bereavement, should be Sick but note says PTO! **(1.3h PTO missed)**
+- Declared: 15h. DB sees 8h. Missing: 4h + 1.3h + 1.3h = 6.6h ≈ 7h (rounding). Note: L Cole uses the "Sick" color (`theme:6/tint:0.4`) for days where she takes PTO — the notes explicitly say "PTO".
+
+**Sep — Excel: 22h, DB: 16h, Δ: -6h**
+
+- Calendar cells:
+  - Sep 3 (Mon) `FFFFFF00` Full PTO → 8h PTO ✓
+  - Sep 7 (Fri) `theme:9/tint:0.6` note "4 hours" → resolves to Bereavement, **should be 4h PTO** (missed)
+  - Sep 12 (Wed) `theme:9/tint:0.6` note "4 hours" → resolves to Bereavement, **should be 4h PTO** (missed)
+  - Sep 21 (Fri) `FFFFFF00` Full PTO → 8h PTO ✓
+  - Sep 22 (Sat) `theme:8/tint:0.6` note "Worked from 1-3pm" → weekend work, but doesn't contain "worked" word match? Actually it does — creates worked credit.
+- Declared: 22h. DB sees 16h (2 full days). Missing: 4h + 4h = 8h from theme:9 partial days. The -2h worked credit may also be affecting the total.
+
+**Oct — Excel: 1.3h, DB: 16h, Δ: +14.7h**
+
+- Calendar cells:
+  - Oct 11 (Thu) `FFFFFF00` Full PTO → 8h PTO
+  - Oct 12 (Fri) `FFFFFF00` Full PTO → 8h PTO
+  - Oct 14-19 (Sun-Fri) `theme:0/tint:-0.15` → resolves to Bereavement (correctly — these appear to be bereavement leave, no PTO notes)
+  - Oct 20 (Sat) `theme:8/tint:0.6` note "Worked 10:30 to 3:30 (+5 hours)" → weekend work credit
+  - Oct 21 (Sun) `theme:8/tint:0.6` note "Worked 10:00 to 3:30 (+5.30 hours)" → weekend work credit
+  - Oct 25 (Thu) `theme:9/tint:0.6` note "In at 8:30 to 1:30 (3 hours PTO)" → resolves to Bereavement, **should be 3h PTO** (missed)
+  - Oct 26 (Fri) `theme:9/tint:0.6` note "In at 8:20 out at 2 (2.30 Hours PTO)" → resolves to Bereavement, **should be 2.3h PTO** (missed)
+- Declared: 1.3h. DB sees 16h (2 full PTO days Oct 11-12). The Oct 11-12 Full PTO days import as 16h, but the Oct 20-21 worked credits (-10.3h) should bring it close to 1.3h. Importer is likely not creating large enough worked credits, or Oct 25-26 PTO (5.3h) is being missed.
+
+**Nov — Excel: 39.3h, DB: 24h, Δ: -15.3h**
+
+- Calendar cells:
+  - Nov 1 (Thu) `theme:9/tint:0.6` note "Worked 8:30 to 11:30 (5 hours PTO)" → resolves to Bereavement, **should be 5h PTO** (missed)
+  - Nov 2 (Fri) `FFFFFF00` Full PTO → 8h PTO ✓
+  - Nov 4 (Sun) `theme:8/tint:0.6` → weekend work (no note text)
+  - Nov 8 (Thu) `theme:6/tint:0.4` note "Sick but, work 3.30 hours 11/4 and 11/10" → Sick color, complex note
+  - Nov 10 (Sat) `theme:8/tint:0.6` → weekend work (no note text)
+  - Nov 12 (Mon) `theme:9/tint:0.6` note "In at 8:45 out at 2:45 (2 hours PTO)" → resolves to Bereavement, **should be 2h PTO** (missed)
+  - Nov 21 (Wed) `theme:9/tint:0.6` note "3 hours PTO" → resolves to Bereavement, **should be 3h PTO** (missed)
+  - Nov 22 (Thu) `FFFFFF00` Full PTO → 8h PTO ✓
+  - Nov 23 (Fri) `theme:9/tint:0.6` note "6 hours PTO..." → resolves to Bereavement, **should be 6h PTO** (missed)
+  - Nov 24 (Sat) `theme:8/tint:0.6` note "2 hours on Christmas decor" → weekend work
+  - Nov 25 (Sun) `theme:8/tint:0.6` note "3 hours on Christmas decor" → weekend work
+  - Nov 29 (Thu) `FFFFFF00` Full PTO → 8h PTO ✓
+- Declared: 39.3h. DB sees 24h (3 full days). Missing: 5h + 2h + 3h + 6h = 16h from theme:9 partial days, minus worked credits.
+
+**Dec — Excel: 30h, DB: 24h, Δ: -6h**
+
+- Calendar cells:
+  - Dec 18 (Tue) `FFFFFF00` Full PTO → 8h PTO ✓
+  - Dec 24 (Mon) `theme:9/tint:0.6` note "4 hours PTO" → resolves to Bereavement, **should be 4h PTO** (missed)
+  - Dec 25 (Tue) `FFFFFF00` Full PTO → 8h PTO ✓
+  - Dec 26 (Wed) `FFFFFF00` Full PTO → 8h PTO ✓
+  - Dec 27 (Thu) `theme:9/tint:0.6` note "In at 7 out at 1 (2 hours)" → resolves to Bereavement, **should be 2h PTO** (missed)
+- Declared: 30h. DB sees 24h (3 full days). Missing: 4h + 2h = 6h from theme:9 partial days.
+
+### Root Cause Summary
+
+L Cole uses **non-standard theme-based colors** instead of the legend colors:
+
+1. **`theme:9/tint:0.6`** (light orange `FFFCD5B5`) — used for **Partial PTO** days, but resolves to Bereavement (dist 65.6, exceeds MAX_COLOR_DISTANCE=100 threshold but is closest). Notes consistently say "X hours PTO". This is the primary source of missed hours.
+2. **`theme:6/tint:0.4`** (light green `FFC3D69B`) — used for **Sick** days and sometimes PTO (July notes say "PTO" despite Sick color). Resolves to Bereavement.
+3. **`theme:8/tint:0.6`** (light blue `FFB7DEE8`) — used for **weekend work** offsets. Resolves to Bereavement.
+4. **`theme:0/tint:-0.15`** (light grey `FFD9D9D9`) — used for **Bereavement/leave** blocks. Correctly resolves to Bereavement.
+
+The importer cannot distinguish these custom colors from each other because they all resolve closest to Bereavement. Fixing this would require either: (a) per-sheet color overrides, (b) note text analysis to infer PTO type regardless of color, or (c) treating any colored cell with a note containing "PTO" as a PTO entry regardless of color match.
+
 ## Questions and Concerns
 
 1. Figure out the structure by first converting Excel → JSON → Excel; once we have the JSON, we can determine the structure. The formulas should make it obvious.
