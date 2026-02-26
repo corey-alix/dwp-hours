@@ -1220,8 +1220,10 @@ async function materialiseWorksheet(
 
 /**
  * Import an entire Excel workbook.
- * Uses a streaming reader so only one worksheet is in memory at a time,
- * preventing OOM on memory-constrained servers (512 MB).
+ * Uses the non-streaming reader so cell notes/comments are preserved
+ * (the streaming WorkbookReader drops them).  File size is capped at
+ * 10 MB by the upload middleware, so memory usage stays manageable on
+ * the 512 MB production server.
  * Iterates employee tabs, parses data, and upserts into the database.
  * Accepts an optional logger; each sheet is wrapped in try/catch so
  * one bad sheet does not abort the entire import.
@@ -1232,12 +1234,8 @@ export async function importExcelWorkbook(
   adminId?: number,
   log?: (msg: string) => void,
 ): Promise<ImportResult> {
-  const reader = new ExcelJS.stream.xlsx.WorkbookReader(filePath, {
-    worksheets: "emit",
-    sharedStrings: "cache",
-    styles: "cache",
-    hyperlinks: "cache",
-  });
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(filePath);
 
   const result: ImportResult = {
     employeesProcessed: 0,
@@ -1263,35 +1261,29 @@ export async function importExcelWorkbook(
   const sheetNames: string[] = [];
 
   // Extract theme colors for theme-indexed cell color resolution.
-  // The streaming reader may not expose theme XML, so we attempt to
-  // read it from the reader's internal state and fall back to the
-  // standard Office 2010 theme palette.
+  // The non-streaming workbook exposes theme XML in its model, falling
+  // back to the standard Office 2010 theme palette.
   let themeColors: Map<number, string> = DEFAULT_OFFICE_THEME;
   try {
-    const readerAny = reader as any;
+    const wbAny = workbook as any;
     const themeXml: string | undefined =
-      readerAny._themes?.theme1 ??
-      readerAny.themes?.theme1 ??
-      readerAny._model?.themes?.theme1;
+      wbAny._themes?.theme1 ??
+      wbAny.themes?.theme1 ??
+      wbAny._model?.themes?.theme1;
     if (themeXml) {
       themeColors = parseThemeColors(themeXml);
       log?.(`Parsed ${themeColors.size} theme colors from workbook`);
     } else {
-      log?.(
-        "Theme XML not available from streaming reader; using default Office theme",
-      );
+      log?.("Theme XML not available; using default Office theme");
     }
   } catch (themeErr) {
     log?.(`Failed to parse theme colors, using defaults: ${themeErr}`);
   }
 
   try {
-    for await (const wsReader of reader) {
-      const sheetName = (wsReader as any).name || "Sheet";
+    for (const ws of workbook.worksheets) {
+      const sheetName = ws.name || "Sheet";
       sheetNames.push(sheetName);
-
-      // Materialise this single sheet into a regular Worksheet
-      const ws = await materialiseWorksheet(wsReader);
 
       // Skip non-employee sheets (detect by presence of "Hire Date" in header)
       if (!isEmployeeSheet(ws)) {
