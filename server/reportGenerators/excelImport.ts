@@ -291,6 +291,20 @@ export function parseHoursFromNote(note: string): number | undefined {
   return undefined;
 }
 
+/**
+ * Check if a note contains a clear, unambiguous hours specification.
+ * Only matches the strict pattern (number + unit suffix like "2 hours PTO",
+ * "5 hrs", "1.5h"), NOT the bare-number fallback. This is used to determine
+ * whether extracted hours should be treated as authoritative (pinned) during
+ * reconciliation — pinned entries are not overridden by adjustPartialDays.
+ */
+export function isStrictHoursMatch(note: string): boolean {
+  const strict = note.match(/(\d+(?:\.\d+)?|\.\d+)\s*(?:hours?|hrs?|h)\b/i);
+  if (!strict) return false;
+  const val = parseFloat(strict[1]);
+  return !isNaN(val) && val > 0 && val <= MAX_SINGLE_ENTRY_HOURS;
+}
+
 // ── Result types ──
 
 export interface ImportedPtoEntry {
@@ -300,6 +314,8 @@ export interface ImportedPtoEntry {
   notes?: string;
   /** True when the calendar cell matched a "Partial PTO" legend color. */
   isPartialPtoColor?: boolean;
+  /** True when hours were extracted from a cell note (authoritative, should not be overridden by redistribution). */
+  isNoteDerived?: boolean;
 }
 
 export interface ImportedAcknowledgement {
@@ -624,13 +640,20 @@ export function parseCalendarGrid(
       if (ptoType) {
         // Parse hours from note if present
         let hours = 8;
+        let isNoteDerived = false;
         if (noteText) {
           const noteHours = parseHoursFromNote(noteText);
           if (noteHours !== undefined) {
             hours = noteHours;
+            // Only mark as authoritative if the note uses a clear hours pattern
+            // (e.g., "2 hours PTO") — not ambiguous bare numbers (e.g., "PTO at 1PM")
+            isNoteDerived = isStrictHoursMatch(noteText);
           }
         }
         const entry: ImportedPtoEntry = { date: dateStr, type: ptoType, hours };
+        if (isNoteDerived) {
+          entry.isNoteDerived = true;
+        }
         // Tag entries whose cell color matched a "Partial PTO" legend color
         if (matchedArgb && partialPtoColors.has(matchedArgb)) {
           entry.isPartialPtoColor = true;
@@ -845,36 +868,57 @@ export function adjustPartialDays(
     );
 
     if (partials.length > 0) {
+      // Separate partials into pinned (note-derived hours) and unpinned
+      const pinned = partials.filter((e) => e.isNoteDerived === true);
+      const unpinned = partials.filter((e) => e.isNoteDerived !== true);
+
       // Sum hours from non-partial (full-day) entries
       const fullTotal = monthResultEntries
         .filter((e) => !e.isPartialPtoColor)
         .reduce((sum, e) => sum + e.hours, 0);
-      const remainingHours =
-        Math.round((declaredTotal - fullTotal) * 100) / 100;
-      const hoursEach =
-        Math.round((remainingHours / partials.length) * 100) / 100;
+      const pinnedTotal = pinned.reduce((sum, e) => sum + e.hours, 0);
 
-      if (hoursEach > 0 && hoursEach <= 8) {
-        for (const partial of partials) {
-          if (partial.hours !== hoursEach) {
-            const originalHours = partial.hours;
-            partial.hours = hoursEach;
-            const adjustNote =
-              `Adjusted from ${originalHours}h to ${hoursEach}h ` +
-              `based on PTO Calc (declared ${declaredTotal}h for month ${calc.month}).`;
-            partial.notes = partial.notes
-              ? `${partial.notes} ${adjustNote}`
-              : adjustNote;
+      if (unpinned.length > 0) {
+        // Distribute remaining hours across unpinned partials only
+        const remainingForUnpinned =
+          Math.round((declaredTotal - fullTotal - pinnedTotal) * 100) / 100;
+        const hoursEach =
+          Math.round((remainingForUnpinned / unpinned.length) * 100) / 100;
+
+        if (hoursEach > 0 && hoursEach <= 8) {
+          for (const partial of unpinned) {
+            if (partial.hours !== hoursEach) {
+              const originalHours = partial.hours;
+              partial.hours = hoursEach;
+              const adjustNote =
+                `Adjusted from ${originalHours}h to ${hoursEach}h ` +
+                `based on PTO Calc (declared ${declaredTotal}h for month ${calc.month}).`;
+              partial.notes = partial.notes
+                ? `${partial.notes} ${adjustNote}`
+                : adjustNote;
+            }
           }
+        } else {
+          // Guard failed — hoursEach is out of range
+          warnings.push(
+            `"${sheetName}" month ${calc.month}: ` +
+              `partial distribution produced ${hoursEach}h per entry (out of 0–8 range). ` +
+              `Declared=${declaredTotal}h, fullTotal=${fullTotal}h, pinnedTotal=${pinnedTotal}h, ` +
+              `${unpinned.length} unpinned partial entries. No adjustment applied.`,
+          );
         }
       } else {
-        // Guard failed — hoursEach is out of range
-        warnings.push(
-          `"${sheetName}" month ${calc.month}: ` +
-            `partial distribution produced ${hoursEach}h per entry (out of 0–8 range). ` +
-            `Declared=${declaredTotal}h, fullTotal=${fullTotal}h, ` +
-            `${partials.length} partial entries. No adjustment applied.`,
-        );
+        // All partials are pinned — check if totals match
+        const totalWithPinned =
+          Math.round((fullTotal + pinnedTotal) * 100) / 100;
+        if (Math.abs(totalWithPinned - declaredTotal) > 0.1) {
+          warnings.push(
+            `"${sheetName}" month ${calc.month}: ` +
+              `all ${pinned.length} partial entries have note-derived hours (pinned). ` +
+              `Declared=${declaredTotal}h, fullTotal=${fullTotal}h, pinnedTotal=${pinnedTotal}h, ` +
+              `total=${totalWithPinned}h. Not overriding pinned values.`,
+          );
+        }
       }
     } else if (calendarTotal > declaredTotal) {
       // No partial entries — adjust the last entry as fallback
@@ -1020,6 +1064,20 @@ export function parseWorkedHoursFromNote(note: string): number | undefined {
     if (val > 0 && val <= 12) return val;
   }
 
+  // 4. Time-range pattern: "Worked 10 - 12", "Worked from 1-3pm", "Worked 10:30 to 3:30"
+  const rangeMatch = note.match(
+    /worked\s+(?:from\s+)?(\d{1,2})(?::(\d{2}))?\s*(?:am|pm)?\s*[-–]+\s*(\d{1,2})(?::(\d{2}))?\s*(?:am|pm)?/i,
+  );
+  if (rangeMatch) {
+    const startH = parseInt(rangeMatch[1], 10);
+    const startM = rangeMatch[2] ? parseInt(rangeMatch[2], 10) : 0;
+    const endH = parseInt(rangeMatch[3], 10);
+    const endM = rangeMatch[4] ? parseInt(rangeMatch[4], 10) : 0;
+    const diff =
+      Math.round((endH + endM / 60 - (startH + startM / 60)) * 100) / 100;
+    if (diff > 0 && diff <= 12) return diff;
+  }
+
   return undefined;
 }
 
@@ -1059,9 +1117,13 @@ export function processWorkedCells(
     const ptoCalc = ptoCalcRows.find((r) => r.month === month);
     const declaredTotal = ptoCalc?.usedHours ?? 0;
 
-    // Sum of existing (positive) PTO entries for this month
+    // Sum of existing PTO-type entries for this month (column S only tracks PTO)
     const existingTotal = existingEntries
-      .filter((e) => e.date.substring(5, 7) === monthStr)
+      .filter(
+        (e) =>
+          e.date.substring(5, 7) === monthStr &&
+          COLUMN_S_TRACKED_TYPES.has(e.type),
+      )
       .reduce((sum, e) => sum + e.hours, 0);
 
     // Split cells into those with parseable hours and those without
@@ -1222,7 +1284,14 @@ export function inferWeekendPartialHours(
     // Phase 11 only applies when both partials and worked cells exist
     if (partials.length === 0 || worked.length === 0) continue;
 
-    const partialCount = partials.length;
+    // Skip inference when all partials have note-derived hours (pinned)
+    const unpinnedPartials = partials.filter((e) => e.isNoteDerived !== true);
+    if (unpinnedPartials.length === 0) continue;
+
+    const pinnedTotal = partials
+      .filter((e) => e.isNoteDerived === true)
+      .reduce((sum, e) => sum + e.hours, 0);
+    const unpinnedCount = unpinnedPartials.length;
     const workedCount = worked.length;
 
     // Known total: non-partial positive entries + existing negative entries
@@ -1233,9 +1302,9 @@ export function inferWeekendPartialHours(
       .filter((e) => e.hours < 0)
       .reduce((sum, e) => sum + e.hours, 0);
 
-    // Equation: fullTotal + partialCount×p + existingCredits − workedCount×w = declaredTotal
-    // Rearranged: partialCount×p − workedCount×w = declaredTotal − fullTotal − existingCredits
-    const target = declaredTotal - fullTotal - existingCredits;
+    // Equation: fullTotal + pinnedTotal + unpinnedCount×p + existingCredits − workedCount×w = declaredTotal
+    // Rearranged: unpinnedCount×p − workedCount×w = declaredTotal − fullTotal − pinnedTotal − existingCredits
+    const target = declaredTotal - fullTotal - pinnedTotal - existingCredits;
 
     let p: number | undefined;
     let w: number | undefined;
@@ -1243,7 +1312,7 @@ export function inferWeekendPartialHours(
 
     // Step 1: Try w = 8
     const p1 =
-      Math.round(((target + workedCount * 8) / partialCount) * 100) / 100;
+      Math.round(((target + workedCount * 8) / unpinnedCount) * 100) / 100;
     if (p1 > 0 && p1 <= 8) {
       p = p1;
       w = 8;
@@ -1253,7 +1322,7 @@ export function inferWeekendPartialHours(
     // Step 2: Try p = 4
     if (p === undefined) {
       const w2 =
-        Math.round(((partialCount * 4 - target) / workedCount) * 100) / 100;
+        Math.round(((unpinnedCount * 4 - target) / workedCount) * 100) / 100;
       if (w2 > 0 && w2 <= 8) {
         p = 4;
         w = w2;
@@ -1263,10 +1332,10 @@ export function inferWeekendPartialHours(
 
     // Step 3: Fallback — constrained solve
     if (p === undefined) {
-      const midW = (partialCount * 4 - target) / workedCount;
+      const midW = (unpinnedCount * 4 - target) / workedCount;
       const clampedW = Math.round(Math.min(8, Math.max(0.5, midW)) * 100) / 100;
       const derivedP =
-        Math.round(((target + workedCount * clampedW) / partialCount) * 100) /
+        Math.round(((target + workedCount * clampedW) / unpinnedCount) * 100) /
         100;
       if (derivedP > 0 && derivedP <= 8) {
         p = derivedP;
@@ -1276,14 +1345,14 @@ export function inferWeekendPartialHours(
     }
 
     if (p !== undefined && w !== undefined) {
-      // Apply: update partial entries
-      for (const partial of partials) {
+      // Apply: update only unpinned partial entries
+      for (const partial of unpinnedPartials) {
         const originalHours = partial.hours;
         partial.hours = p;
         const note =
           `Inferred p=${p}h (${method}). ` +
-          `Equation: declared(${declaredTotal}) = full(${fullTotal}) + ` +
-          `${partialCount}×p − ${workedCount}×${w}`;
+          `Equation: declared(${declaredTotal}) = full(${fullTotal}) + pinned(${pinnedTotal}) + ` +
+          `${unpinnedCount}×p − ${workedCount}×${w}`;
         partial.notes = partial.notes ? `${partial.notes} ${note}` : note;
       }
 
@@ -1295,15 +1364,19 @@ export function inferWeekendPartialHours(
           hours: -w,
           notes:
             `Inferred w=${w}h (${method}). ` +
-            `Equation: declared(${declaredTotal}) = full(${fullTotal}) + ` +
-            `${partialCount}×${p} − ${workedCount}×w. ` +
+            `Equation: declared(${declaredTotal}) = full(${fullTotal}) + pinned(${pinnedTotal}) + ` +
+            `${unpinnedCount}×${p} − ${workedCount}×w. ` +
             `Cell note: "${wc.note.replace(/\n/g, " ").trim()}"`,
         });
         handledWorkedDates.add(wc.date);
       }
 
       const newTotal =
-        fullTotal + existingCredits + partialCount * p - workedCount * w;
+        fullTotal +
+        pinnedTotal +
+        existingCredits +
+        unpinnedCount * p -
+        workedCount * w;
       warnings.push(
         `"${sheetName}" month ${calc.month}: Phase 11 inference applied. ` +
           `p=${p}h, w=${w}h (${method}). ` +
@@ -1314,7 +1387,7 @@ export function inferWeekendPartialHours(
         `"${sheetName}" month ${calc.month}: Phase 11 inference failed. ` +
           `Could not find valid p and w values. ` +
           `Declared=${declaredTotal}h, fullTotal=${fullTotal}h, ` +
-          `${partialCount} partial(s), ${workedCount} worked cell(s). ` +
+          `${unpinnedCount} unpinned partial(s), ${workedCount} worked cell(s). ` +
           `No adjustment applied.`,
       );
     }

@@ -1266,14 +1266,140 @@ describe("Excel Import", () => {
 
     it("should return undefined when no hours pattern found", () => {
       expect(parseWorkedHoursFromNote("worked")).toBeUndefined();
-      expect(parseWorkedHoursFromNote("Worked from 1-3pm")).toBeUndefined();
-      expect(parseWorkedHoursFromNote("Worked 10 - 12")).toBeUndefined();
+    });
+
+    it("should parse time-range: Worked from 1-3pm", () => {
+      expect(parseWorkedHoursFromNote("Worked from 1-3pm")).toBe(2);
+    });
+
+    it("should parse time-range: Worked 10 - 12", () => {
+      expect(parseWorkedHoursFromNote("Worked 10 - 12")).toBe(2);
     });
 
     it("should return undefined for bare time ranges without hours keyword", () => {
       expect(
         parseWorkedHoursFromNote("Worked 8-430 and took half lunch"),
       ).toBeUndefined();
+    });
+  });
+
+  describe("adjustPartialDays — note-pinned hours", () => {
+    it("should NOT adjust pinned partial entries when all are note-derived", () => {
+      // Two Partial PTO entries with isNoteDerived=true, hours 2h and 3h
+      // declaredTotal=3h — pinned total (5h) exceeds declared (3h)
+      // Should emit warning but preserve note-stated values
+      const entries: ImportedPtoEntry[] = [
+        {
+          date: "2026-02-06",
+          type: "PTO",
+          hours: 2,
+          isPartialPtoColor: true,
+          isNoteDerived: true,
+          notes: 'Cell note: "2 hours PTO"',
+        },
+        {
+          date: "2026-02-28",
+          type: "PTO",
+          hours: 3,
+          isPartialPtoColor: true,
+          isNoteDerived: true,
+          notes: 'Cell note: "3 hours PTO"',
+        },
+      ];
+      const ptoCalc = [
+        { month: 1, usedHours: 0 },
+        { month: 2, usedHours: 3 },
+        ...Array.from({ length: 10 }, (_, i) => ({
+          month: i + 3,
+          usedHours: 0,
+        })),
+      ];
+
+      const { entries: adjusted, warnings } = adjustPartialDays(
+        entries,
+        ptoCalc,
+        "Test",
+      );
+      // Pinned entries should NOT be overridden
+      expect(adjusted.find((e) => e.date === "2026-02-06")!.hours).toBe(2);
+      expect(adjusted.find((e) => e.date === "2026-02-28")!.hours).toBe(3);
+      // Should emit a warning about pinned mismatch
+      expect(warnings.length).toBeGreaterThan(0);
+      expect(warnings[0]).toContain("pinned");
+    });
+
+    it("should adjust only unpinned partials while preserving pinned ones", () => {
+      // One pinned entry (2h, isNoteDerived=true), one unpinned (8h default)
+      // declaredTotal=6h. After: pinned stays 2h, unpinned becomes 6 - 2 = 4h
+      const entries: ImportedPtoEntry[] = [
+        {
+          date: "2026-03-05",
+          type: "PTO",
+          hours: 2,
+          isPartialPtoColor: true,
+          isNoteDerived: true,
+          notes: 'Cell note: "2 hours PTO"',
+        },
+        {
+          date: "2026-03-15",
+          type: "PTO",
+          hours: 8,
+          isPartialPtoColor: true,
+        },
+      ];
+      const ptoCalc = [
+        { month: 1, usedHours: 0 },
+        { month: 2, usedHours: 0 },
+        { month: 3, usedHours: 6 },
+        ...Array.from({ length: 9 }, (_, i) => ({
+          month: i + 4,
+          usedHours: 0,
+        })),
+      ];
+
+      const { entries: adjusted, warnings } = adjustPartialDays(
+        entries,
+        ptoCalc,
+        "Test",
+      );
+      // Pinned entry preserved
+      expect(adjusted.find((e) => e.date === "2026-03-05")!.hours).toBe(2);
+      // Unpinned entry adjusted
+      expect(adjusted.find((e) => e.date === "2026-03-15")!.hours).toBe(4);
+      expect(warnings.length).toBe(0);
+    });
+  });
+
+  describe("processWorkedCells — type filtering", () => {
+    it("should only count PTO entries in existingTotal, not Sick/Bereavement", () => {
+      // Simulates L Cole February: 2 PTO (1.5h each), 3 Sick (4h, 3h, 8h)
+      // One unparsed worked cell. declaredTotal = 3h.
+      // After fix: existingTotal = 3h (PTO only), deficit = 0, no credit assigned.
+      const workedCells = [{ date: "2018-02-11", note: "worked" }];
+      const existingEntries: ImportedPtoEntry[] = [
+        { date: "2018-02-06", type: "PTO", hours: 1.5 },
+        { date: "2018-02-07", type: "Sick", hours: 4 },
+        { date: "2018-02-09", type: "Sick", hours: 3 },
+        { date: "2018-02-12", type: "Sick", hours: 8 },
+        { date: "2018-02-28", type: "PTO", hours: 1.5 },
+      ];
+      const ptoCalcRows = Array.from({ length: 12 }, (_, i) => ({
+        month: i + 1,
+        usedHours: i === 1 ? 3 : 0, // February = 3h
+      }));
+
+      const result = processWorkedCells(
+        workedCells,
+        existingEntries,
+        ptoCalcRows,
+        "L Cole",
+      );
+
+      // With type filtering: existingTotal = 3h (PTO only), deficit = 3 - 0 - 3 = 0
+      // No credit should be assigned
+      expect(result.entries.length).toBe(0);
+      expect(result.warnings.length).toBeGreaterThan(0);
+      expect(result.warnings[0]).toContain("no PTO Calc deficit");
     });
   });
 
@@ -2803,6 +2929,47 @@ describe("Excel Import", () => {
           .reduce((s, e) => s + e.hours, 0);
         // Should match declared 30h
         expect(decPto).toBe(30);
+      });
+
+      it("should import L Cole February 2018 correctly after Phase 17 fixes", () => {
+        const result = parseEmployeeSheet(ws, themeColors);
+        const ptoCalc = parsePtoCalcUsedHours(ws);
+        const febDeclared = ptoCalc.find((c) => c.month === 2)?.usedHours || 0;
+
+        // Column S declares 3h PTO for February
+        expect(febDeclared).toBe(3);
+
+        const febEntries = result.ptoEntries.filter((e) =>
+          e.date.startsWith("2018-02-"),
+        );
+
+        // Feb 6: PTO 2h (note says "2 hours PTO")
+        const feb6 = febEntries.find((e) => e.date === "2018-02-06");
+        expect(feb6).toBeDefined();
+        expect(feb6!.type).toBe("PTO");
+        expect(feb6!.hours).toBe(2);
+
+        // Feb 28: PTO 3h (note says "3 hours PTO")
+        const feb28 = febEntries.find((e) => e.date === "2018-02-28");
+        expect(feb28).toBeDefined();
+        expect(feb28!.type).toBe("PTO");
+        expect(feb28!.hours).toBe(3);
+
+        // Feb 11: Weekend work, should be -2h (note says "Worked 10 - 12")
+        const feb11 = febEntries.find((e) => e.date === "2018-02-11");
+        expect(feb11).toBeDefined();
+        expect(feb11!.type).toBe("PTO");
+        expect(feb11!.hours).toBe(-2);
+
+        // Feb 7: Sick 4h
+        const feb7 = febEntries.find((e) => e.date === "2018-02-07");
+        expect(feb7).toBeDefined();
+
+        // PTO subtotal should be 3h (2 + (-2) + 3 = 3)
+        const ptoSubtotal = febEntries
+          .filter((e) => e.type === "PTO")
+          .reduce((s, e) => s + e.hours, 0);
+        expect(ptoSubtotal).toBe(3);
       });
     },
   );

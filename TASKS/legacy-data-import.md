@@ -233,7 +233,37 @@ Implement utility methods and scripts for converting between Excel, JSON, and da
   - [x] **Test case — J Schwerin December 2018** (unfixable): calendarTotal=56h, declaredTotal=40h. Insert employee acknowledgement with `status="warning"`, `note="Calendar shows 56h but column S declares 40h (Δ=+16h). Weekend work referenced in notes but not color-coded on calendar. Requires manual correction."`. No admin acknowledgement inserted.
   - [x] **Test case — Jackie Guiry May 2018**: calendarTotal=10.5h, declaredTotal=12h. Insert with `status="warning"`, `note="Calendar shows 10.5h but column S declares 12h (Δ=-1.5h). Note-derived partial hour artifacts from May 16 note parsing."`. No admin acknowledgement.
   - [x] **Test case — J Rivers December 2018**: calendarTotal after Phases 12–13 adjustments, declaredTotal=50.03h. If small delta remains (2.03h), insert with `status="warning"` and note describing the fractional discrepancy.
+  - [ ] **Test case — L Cole February 2018** (unfixable): calendarTotal=-12h, declaredTotal=3h. Insert employee acknowledgement with `status="warning"`, `note="Calendar shows -12h but column S declares 3h (Δ=-15h). Requires manual review."`. No admin acknowledgement inserted. See [Lisa Cole February Analysis](#l-cole-february-2018-analysis) for root cause details.
   - [x] **Regression check**: Employees with clean imports (all months matching) should get both employee and admin acknowledgements with no warnings.
+  - [x] Run `pnpm test` — all tests must pass before proceeding
+  - [x] Run `pnpm run build` — must compile without errors
+  - [x] Run `pnpm run lint` — must pass
+  - [x] Never proceed to the next phase if any tests are failing; fix all test failures before advancing
+
+- [x] **Phase 17: Note-Pinned Hours & Weekend-Work Type Filtering**
+  - [x] **Problem**: Three general-logic bugs cause cascading errors when a month has Partial PTO entries, weekend-work cells, AND Sick/Bereavement entries. The bugs are not sheet-specific — they affect any employee whose month has this combination. L Cole February 2018 is the exemplar case (see [L Cole February Analysis](#l-cole-february-2018-analysis)): declared 3h PTO, imported as −12h PTO (Δ=−15h).
+  - [x] **Bug 1 — `processWorkedCells` sums all entry types for deficit calculation**: In `processWorkedCells()` (~line 1064 in `excelImport.ts`), `existingTotal` is computed by filtering entries on month only — no type filter. This means Sick and Bereavement entries are included in the sum. When an unparsed worked cell falls back to deficit inference (`existingTotal - parsedCredit - declaredTotal`), the Sick hours inflate `existingTotal`, producing an enormous negative credit. In L Cole Feb: existingTotal = 1.5 (PTO) + 4 (Sick) + 3 (Sick) + 8 (Sick) + 1.5 (PTO) = 18h. Deficit = 18 − 0 − 3 = 15, so the worked cell gets −15h instead of the correct −2h.
+  - [x] **Fix 1**: Filter `existingTotal` in `processWorkedCells()` by `COLUMN_S_TRACKED_TYPES` (currently only `"PTO"`) to match how column S declares PTO-only hours. Change the filter from `e.date.substring(5, 7) === monthStr` to also require `COLUMN_S_TRACKED_TYPES.has(e.type)`. After fix: existingTotal = 1.5 + 1.5 = 3h, deficit = 3 − 0 − 3 = 0, no deficit to assign.
+  - [x] **Bug 2 — `adjustPartialDays` overrides note-derived hours**: When `calendarTotal > declaredTotal` and partial entries exist, `adjustPartialDays()` redistributes hours evenly across all partial entries regardless of whether their hours were extracted from a cell note. In L Cole Feb: Feb 6 has note "2 hours PTO" → 2h, Feb 28 has note "3 hours PTO" → 3h. Both are Partial PTO color. `calendarTotal` = 5h > `declaredTotal` = 3h. The function computes `hoursEach = 3/2 = 1.5h` and overwrites both to 1.5h, discarding the note-stated values.
+  - [x] **Fix 2**: In `adjustPartialDays()`, before redistributing, separate partial entries into "pinned" (hours derived from a cell note) and "unpinned" (default 8h or no note). Only redistribute across unpinned partials. Detect pinned entries by checking if the entry has a non-empty `notes` field containing extracted hours (i.e., `parseHoursFromNote(entry.notes)` returns a value matching `entry.hours`). Alternatively, add an `isNoteDerived?: boolean` flag to `ImportedPtoEntry` and set it in `parseCalendarGrid()` when hours are extracted from a note.
+  - [x] **Algorithm for Fix 2**: When partial entries exist and `calendarTotal ≠ declaredTotal`:
+    1. Compute `pinnedTotal` = sum of hours from pinned partial entries
+    2. Compute `fullTotal` = sum of non-partial entry hours
+    3. Compute `remainingForUnpinned` = `declaredTotal − fullTotal − pinnedTotal`
+    4. If there are unpinned partials: distribute `remainingForUnpinned` across them
+    5. If no unpinned partials and `pinnedTotal + fullTotal ≠ declaredTotal`: emit a warning but do NOT override pinned values
+  - [x] **Bug 3 — `parseWorkedHoursFromNote` doesn't handle time-range format**: The note "Worked 10 - 12" means "worked from 10am to 12pm" (2 hours). None of the three patterns in `parseWorkedHoursFromNote()` match this format. The function returns `undefined`, sending the cell to the deficit-inference fallback path (Bug 1).
+  - [x] **Fix 3**: Add a time-range pattern to `parseWorkedHoursFromNote()` that handles `"Worked <start> - <end>"` or `"Worked <start> to <end>"` where start/end are plain numbers (hours of day). Pattern: `/worked\s+(\d{1,2}(?::\d{2})?)\s*[-–to]+\s*(\d{1,2}(?::\d{2})?)/i`. Compute the difference: `end − start`. Handle colon-separated times (e.g., "10:30 to 3:30" → 5h). Guard against nonsensical values (negative or > 12h).
+  - [x] **Implementation order**: Fix 2 (pin note-derived hours) must be applied before Fix 1 (filter types in deficit calc), because Fix 1's correctness depends on partial entries retaining their note-stated hours. Fix 3 (time-range parsing) is independent and can be done first.
+  - [x] **Add `isNoteDerived` flag to `ImportedPtoEntry`**: Add optional `isNoteDerived?: boolean` field. In `parseCalendarGrid()`, when `parseHoursFromNote()` returns a value for a cell note, set `isNoteDerived: true` on the entry. This allows downstream functions (`adjustPartialDays`, `processWorkedCells`, `inferWeekendPartialHours`) to distinguish note-derived hours from defaults.
+  - [x] **Test case — `parseWorkedHoursFromNote("Worked 10 - 12")`**: Should return `2` (12 − 10 = 2 hours). Currently returns `undefined` (confirmed in existing test at line 1270 of `excel-import.test.ts`). Update this test expectation from `toBeUndefined()` to `toBe(2)`.
+  - [x] **Test case — `parseWorkedHoursFromNote("Worked from 1-3pm")`**: Should return `2` (3 − 1 = 2 hours). Currently returns `undefined`. Update test expectation.
+  - [x] **Test case — `adjustPartialDays` with pinned entries**: Create entries where two Partial PTO entries have `isNoteDerived: true` with hours 2h and 3h, no full PTO entries, declaredTotal = 3h. The function should NOT adjust pinned entries. Emit a warning that pinned total (5h) exceeds declared (3h) but preserve the note-stated values.
+  - [x] **Test case — `adjustPartialDays` with mixed pinned/unpinned**: One pinned entry (2h, `isNoteDerived: true`), one unpinned entry (8h, default). `declaredTotal` = 6h. After adjustment: pinned stays 2h, unpinned becomes `6 − 2 = 4h`.
+  - [x] **Test case — `processWorkedCells` type filtering**: Create existing entries: 2 PTO (1.5h each), 3 Sick (4h, 3h, 8h). One unparsed worked cell. `declaredTotal` = 3h. After fix: `existingTotal` = 3h (PTO only), deficit = 0, no credit assigned. Before fix: `existingTotal` = 18h, deficit = 15h, credit = −15h.
+  - [x] **Integration test — L Cole February 2018**: After all three fixes applied, L Cole Feb should import as: Feb 6 PTO 2h, Feb 7 Sick 4h, Feb 9 Sick 3h, Feb 11 PTO −2h, Feb 12 Sick 8h, Feb 28 PTO 3h. PTO subtotal = 2 + (−2) + 3 = 3h, matching declared 3h.
+  - [x] **Regression test — A Bylenga October 2018**: Verify weekend-work deficit inference still works correctly when the month has no Sick entries. A Bylenga Oct has 1 worked cell (Sunday, no parseable hours) and 1 Full PTO (8h). Declared = −4.5h. existingTotal (PTO only) = 8h. Deficit = 8 − 0 − (−4.5) = 12.5h → credit = −12.5h. Verify this remains correct after type filtering.
+  - [x] **Regression test — all employees**: Run `pnpm validate:xlsx` and verify no new discrepancies introduced for employees with clean imports.
   - [x] Run `pnpm test` — all tests must pass before proceeding
   - [x] Run `pnpm run build` — must compile without errors
   - [x] Run `pnpm run lint` — must pass
@@ -282,6 +312,47 @@ Column S values are the declared "PTO hours per Month" (PTO only). The DB column
   - Feb 12 (Mon) `theme:6/tint:0.4` note "8 hours sick" → resolves to Bereavement, should be Sick (ignored)
   - Feb 28 (Wed) `FFFFC000` Partial PTO, note "3 hours PTO" → probably distributes to match declared
 - Declared: 3h. The importer likely creates 2h (Feb 6) + some adjustment − 8h worked credit = negative total. The worked credit is importing as -8h instead of -2h (note says "Worked 10 - 12" = 2 hours).
+
+#### L Cole February 2018 Analysis
+
+**Imported records** (from actual DB):
+
+| Date         | Type | Hours   |
+| ------------ | ---- | ------- |
+| 02/06/2018   | PTO  | 1.5     |
+| 02/07/2018   | Sick | 4.0     |
+| 02/09/2018   | Sick | 3.0     |
+| 02/11/2018   | PTO  | -15.0   |
+| 02/12/2018   | Sick | 8.0     |
+| 02/28/2018   | PTO  | 1.5     |
+| **Subtotal** |      | **3.0** |
+
+**Issues identified**:
+
+1. **Feb 6 (cell D16)**: Note says "2 hours PTO" but imported as 1.5h. Should be **2h PTO** — the note is authoritative.
+2. **Feb 28 (cell E19)**: Note says "3 hours PTO" but imported as 1.5h. Should be **3h PTO** — the note is authoritative.
+3. **Feb 11 (cell B17)**: Saturday, note says "Worked 10 - 12" meaning she worked 2 hours on a weekend. Imported as **-15h PTO** — should be **-2h PTO**. The -15h appears to be an erroneous back-calculation: the reconciler likely computed the residual as `declaredTotal − (fullPTO + partialPTO + sick adjustments)` and assigned the entire gap to this single weekend-work entry. The sick hours (4h + 3h + 8h = 15h) may have been incorrectly factored into the PTO balance, inflating the worked credit.
+4. **Feb 6 and Feb 28 half-values**: Both Partial PTO entries show 1.5h instead of their note-stated values (2h and 3h). This suggests `adjustPartialDays()` redistributed hours evenly across the two partial entries to match `declaredTotal − workedCredit`, but the worked credit was already wrong, cascading the error.
+
+**Expected correct import**:
+
+| Date         | Type | Hours   |
+| ------------ | ---- | ------- |
+| 02/06/2018   | PTO  | 2.0     |
+| 02/07/2018   | Sick | 4.0     |
+| 02/09/2018   | Sick | 3.0     |
+| 02/11/2018   | PTO  | -2.0    |
+| 02/12/2018   | Sick | 8.0     |
+| 02/28/2018   | PTO  | 3.0     |
+| **Subtotal** |      | **3.0** |
+
+**Root cause** (three general-logic bugs, not sheet-specific):
+
+1. **Weekend-work back-calculation ignores note-stated hours**: When a worked cell has a note containing extractable hours (e.g., "Worked 10 - 12" = 2h), the reconciler should use those note-derived hours as the negative credit value. Instead, it computes the worked credit as a residual from column S, absorbing the entire gap into a single `-15h` value.
+2. **`adjustPartialDays()` overrides note-derived hours**: When `parseHoursFromNote()` successfully extracts hours from a cell note (e.g., "2 hours PTO" → 2h, "3 hours PTO" → 3h), those values should be treated as authoritative and excluded from redistribution. Currently, reconciliation overrides them (1.5h each instead of 2h and 3h).
+3. **Misclassified sick entries pollute the PTO residual**: The sick-colored cells (theme:6/tint:0.4) resolve to Bereavement, and their hours (4+3+8=15h) are incorrectly included in the PTO residual calculation that drives the worked credit. Column S declares PTO-only hours; non-PTO entries should not factor into PTO back-calculation.
+
+**General fix**: Entries with note-derived hours should be pinned (not adjusted during reconciliation). Only entries without note-derived hours should participate in back-calculation from column S.
 
 **May — Excel: 34h, DB: 24h, Δ: -10h**
 
