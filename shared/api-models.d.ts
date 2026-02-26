@@ -57,6 +57,7 @@ export interface PTOEntry {
   hours: number;
   createdAt: string; // ISO date string
   approved_by?: number | null;
+  notes?: string | null;
   employee?: Employee;
 }
 

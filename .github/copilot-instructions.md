@@ -62,6 +62,22 @@ node scripts/review-screenshot.mjs
 
 The script reads the `PORT` environment variable (defaults to `3003`). The server must be running on that port before executing the script.
 
+### Excel Cell Query Tooling
+
+Use `pnpm query:xlsx` to inspect a specific cell in an Excel workbook. The script dumps the cell's value, text, formula, fill (including theme colors), note/comment, font, number format, and alignment. This is useful for diagnosing import issues (e.g., why a cell color isn't matched by the legend parser).
+
+```bash
+pnpm query:xlsx --file <path-to-xlsx> --sheet <sheet-name> --cell <cell-ref>
+```
+
+Example:
+
+```bash
+pnpm query:xlsx --file reports/2018.xlsx --sheet "A Bylenga" --cell E8
+```
+
+Output includes raw JSON for `cell.fill` and `cell.note` objects, making it easy to see theme-indexed colors, tints, and rich-text comment structures that may differ from ARGB-based legend colors.
+
 ## Task Management System
 
 The project uses a structured task system in the `TASKS/` folder. Always reference and follow these guidelines:

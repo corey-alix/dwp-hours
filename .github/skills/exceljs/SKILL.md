@@ -273,3 +273,38 @@ async function materialiseWorksheet(
 | Styles/fills | Always available        | Requires `styles: "cache"` |
 | Sheet names  | `worksheet.name`        | `(wsReader as any).name`   |
 | Merged cells | Tracked automatically   | May need manual handling   |
+
+## Cell Inspection Tooling
+
+The project includes `scripts/query-xlsx.mts` for ad-hoc cell inspection during development and debugging. Run it via:
+
+```bash
+pnpm query:xlsx --file <path> --sheet <name> --cell <ref>
+```
+
+### What It Reports
+
+- **Value (raw)**: The underlying `cell.value` (number, string, rich text object, formula result)
+- **Text**: The display string via `cell.text` (always a plain string)
+- **Type**: ExcelJS cell type enum value
+- **Formula**: If present, the formula string
+- **Fill**: Pattern type, `fgColor` and `bgColor` — including `theme` index and `tint` when the color is theme-based rather than ARGB
+- **Note/Comment**: Rich text comment structure with author and text segments
+- **Font**: Name, size, bold, italic, color
+- **Number Format / Alignment**: If set on the cell
+
+### Theme Colors vs ARGB
+
+Excel files frequently use **theme-indexed colors** instead of literal ARGB values. When inspecting a cell, you may see:
+
+```json
+{ "fgColor": { "theme": 9 } }
+```
+
+instead of:
+
+```json
+{ "fgColor": { "argb": "FFFFC000" } }
+```
+
+This means the color is resolved at render time from the workbook's theme palette. Code that matches colors by `fgColor.argb` alone will miss these cells. Use the query tool to diagnose such mismatches during import development.

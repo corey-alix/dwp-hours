@@ -17,7 +17,22 @@ describe("AuthService", () => {
     // Clear cookies
     document.cookie =
       "auth_hash=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    localStorage.clear();
+    // Stub localStorage for happy-dom compatibility
+    const store: Record<string, string> = {};
+    vi.stubGlobal("localStorage", {
+      getItem: vi.fn((key: string) => store[key] ?? null),
+      setItem: vi.fn((key: string, val: string) => {
+        store[key] = val;
+      }),
+      removeItem: vi.fn((key: string) => {
+        delete store[key];
+      }),
+      clear: vi.fn(() => {
+        for (const k of Object.keys(store)) delete store[k];
+      }),
+      key: vi.fn(() => null),
+      length: 0,
+    });
   });
 
   afterEach(() => {

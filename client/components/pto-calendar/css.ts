@@ -225,4 +225,36 @@ export const styles = `
 .day.partial-day {
     opacity: 1;
 }
+
+/* Note indicator: small triangle in top-left corner */
+.note-indicator {
+    position: absolute;
+    top: 1px;
+    left: 2px;
+    font-size: var(--font-size-xs);
+    color: var(--color-primary);
+    cursor: pointer;
+    line-height: 1;
+    z-index: 1;
+    opacity: 0.7;
+}
+
+.note-indicator:hover {
+    opacity: 1;
+    transform: scale(1.3);
+}
+
+/* Superscript for partial-day hours */
+.date sup.partial-hours {
+    font-size: 0.65em;
+    vertical-align: super;
+    color: var(--color-text-secondary);
+    font-weight: var(--font-weight-normal);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .note-indicator:hover {
+        transform: none;
+    }
+}
 `;

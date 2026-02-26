@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS pto_entries (
   type TEXT NOT NULL CHECK (type IN ('Sick', 'PTO', 'Bereavement', 'Jury Duty')),
   hours REAL NOT NULL,
   approved_by INTEGER,  -- NULL = pending approval, ID = approved by admin
+  notes TEXT,  -- Optional notes for audit trail (e.g., import reconciliation reasoning)
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
   FOREIGN KEY (approved_by) REFERENCES employees(id) ON DELETE SET NULL

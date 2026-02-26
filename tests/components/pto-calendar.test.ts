@@ -480,3 +480,238 @@ describe("PtoCalendar Component - Keyboard Navigation", () => {
     expect(component.shadowRoot?.activeElement).toBe(secondDay);
   });
 });
+
+describe("PtoCalendar Component - Note Indicators", () => {
+  let component: PtoCalendar;
+  let container: HTMLElement;
+
+  beforeEach(() => {
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    component = new PtoCalendar();
+    container.appendChild(component);
+  });
+
+  afterEach(() => {
+    document.body.removeChild(container);
+  });
+
+  it("should display note indicator when PTO entry has notes", () => {
+    const entries: PTOEntry[] = [
+      {
+        id: 1,
+        employeeId: 1,
+        date: "2024-02-12",
+        type: "PTO",
+        hours: 8,
+        createdAt: "2024-01-01T00:00:00Z",
+        approved_by: null,
+        notes: "red rocks vacation",
+      },
+    ];
+
+    component.setYear(2024);
+    component.setMonth(2);
+    component.setPtoEntries(entries);
+
+    const dayCell = component.shadowRoot?.querySelector(
+      '[data-date="2024-02-12"]',
+    );
+    const noteIndicator = dayCell?.querySelector(".note-indicator");
+
+    expect(noteIndicator).toBeTruthy();
+    expect(noteIndicator?.getAttribute("data-note")).toBe("red rocks vacation");
+    expect(noteIndicator?.getAttribute("title")).toBe("red rocks vacation");
+  });
+
+  it("should not display note indicator when notes is empty", () => {
+    const entries: PTOEntry[] = [
+      {
+        id: 1,
+        employeeId: 1,
+        date: "2024-02-12",
+        type: "PTO",
+        hours: 8,
+        createdAt: "2024-01-01T00:00:00Z",
+        approved_by: null,
+        notes: null,
+      },
+    ];
+
+    component.setYear(2024);
+    component.setMonth(2);
+    component.setPtoEntries(entries);
+
+    const dayCell = component.shadowRoot?.querySelector(
+      '[data-date="2024-02-12"]',
+    );
+    const noteIndicator = dayCell?.querySelector(".note-indicator");
+
+    expect(noteIndicator).toBeNull();
+  });
+
+  it("should not display note indicator when notes is not present", () => {
+    const entries: PTOEntry[] = [
+      {
+        id: 1,
+        employeeId: 1,
+        date: "2024-02-12",
+        type: "PTO",
+        hours: 8,
+        createdAt: "2024-01-01T00:00:00Z",
+        approved_by: null,
+      },
+    ];
+
+    component.setYear(2024);
+    component.setMonth(2);
+    component.setPtoEntries(entries);
+
+    const dayCell = component.shadowRoot?.querySelector(
+      '[data-date="2024-02-12"]',
+    );
+    const noteIndicator = dayCell?.querySelector(".note-indicator");
+
+    expect(noteIndicator).toBeNull();
+  });
+
+  it("should escape HTML in note text for title attribute", () => {
+    const entries: PTOEntry[] = [
+      {
+        id: 1,
+        employeeId: 1,
+        date: "2024-02-12",
+        type: "PTO",
+        hours: 8,
+        createdAt: "2024-01-01T00:00:00Z",
+        approved_by: null,
+        notes: 'note with "quotes" & <tags>',
+      },
+    ];
+
+    component.setYear(2024);
+    component.setMonth(2);
+    component.setPtoEntries(entries);
+
+    const dayCell = component.shadowRoot?.querySelector(
+      '[data-date="2024-02-12"]',
+    );
+    const noteIndicator = dayCell?.querySelector(".note-indicator");
+
+    expect(noteIndicator).toBeTruthy();
+    // Attributes should have escaped values
+    expect(noteIndicator?.getAttribute("data-note")).toBe(
+      'note with "quotes" & <tags>',
+    );
+  });
+});
+
+describe("PtoCalendar Component - Partial-Day Superscript", () => {
+  let component: PtoCalendar;
+  let container: HTMLElement;
+
+  beforeEach(() => {
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    component = new PtoCalendar();
+    container.appendChild(component);
+  });
+
+  afterEach(() => {
+    document.body.removeChild(container);
+  });
+
+  it("should display superscript for partial-day hours (4h)", () => {
+    const entries: PTOEntry[] = [
+      {
+        id: 1,
+        employeeId: 1,
+        date: "2024-02-12",
+        type: "PTO",
+        hours: 4,
+        createdAt: "2024-01-01T00:00:00Z",
+        approved_by: null,
+      },
+    ];
+
+    component.setYear(2024);
+    component.setMonth(2);
+    component.setPtoEntries(entries);
+
+    const dayCell = component.shadowRoot?.querySelector(
+      '[data-date="2024-02-12"]',
+    );
+    const dateEl = dayCell?.querySelector(".date");
+    const superscript = dateEl?.querySelector("sup.partial-hours");
+
+    expect(superscript).toBeTruthy();
+    expect(superscript?.textContent).toBe("\u2074"); // Unicode superscript 4
+  });
+
+  it("should not display superscript for full-day hours (8h)", () => {
+    const entries: PTOEntry[] = [
+      {
+        id: 1,
+        employeeId: 1,
+        date: "2024-02-12",
+        type: "PTO",
+        hours: 8,
+        createdAt: "2024-01-01T00:00:00Z",
+        approved_by: null,
+      },
+    ];
+
+    component.setYear(2024);
+    component.setMonth(2);
+    component.setPtoEntries(entries);
+
+    const dayCell = component.shadowRoot?.querySelector(
+      '[data-date="2024-02-12"]',
+    );
+    const dateEl = dayCell?.querySelector(".date");
+    const superscript = dateEl?.querySelector("sup.partial-hours");
+
+    expect(superscript).toBeNull();
+  });
+
+  it("should display superscript with correct symbol for 2h", () => {
+    const entries: PTOEntry[] = [
+      {
+        id: 1,
+        employeeId: 1,
+        date: "2024-02-12",
+        type: "PTO",
+        hours: 2,
+        createdAt: "2024-01-01T00:00:00Z",
+        approved_by: null,
+      },
+    ];
+
+    component.setYear(2024);
+    component.setMonth(2);
+    component.setPtoEntries(entries);
+
+    const dayCell = component.shadowRoot?.querySelector(
+      '[data-date="2024-02-12"]',
+    );
+    const dateEl = dayCell?.querySelector(".date");
+    const superscript = dateEl?.querySelector("sup.partial-hours");
+
+    expect(superscript).toBeTruthy();
+    expect(superscript?.textContent).toBe("\u00B2"); // Unicode superscript 2
+  });
+
+  it("should not display superscript for days with no PTO", () => {
+    component.setYear(2024);
+    component.setMonth(2);
+    component.setPtoEntries([]);
+
+    const dayCell = component.shadowRoot?.querySelector(
+      '[data-date="2024-02-12"]',
+    );
+    const dateEl = dayCell?.querySelector(".date");
+    const superscript = dateEl?.querySelector("sup.partial-hours");
+
+    expect(superscript).toBeNull();
+  });
+});

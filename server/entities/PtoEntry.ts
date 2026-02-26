@@ -27,6 +27,9 @@ export class PtoEntry {
   @Column({ type: "integer", nullable: true })
   approved_by!: number | null;
 
+  @Column({ type: "text", nullable: true })
+  notes!: string | null;
+
   @Column({ type: "datetime", default: () => "CURRENT_TIMESTAMP" })
   created_at!: Date;
 

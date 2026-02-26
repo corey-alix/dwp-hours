@@ -142,5 +142,12 @@ This skill integrates with the data-migration task and provides foundational kno
   - January: 1 PTO day
   - May: 4 PTO days
   - September: 4 PTO days
-  - Other months: Varies by employee schedule</content>
-    <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/.github/skills/pto-spreadsheet-layout/SKILL.md
+  - Other months: Varies by employee schedule
+
+### Known Layout Anomalies
+
+- **Row offset in legacy spreadsheets**: Some employee sheets have extra blank rows inserted within a single month's calendar area, shifting the date array formula down by 1 (or more) rows. This is a per-sheet, per-month anomaly — other months on the same sheet and other employee sheets are unaffected.
+- **Discovered instance**: In `reports/2018.xlsx`, the "Deanna Allen" sheet has an extra blank row in the July area (colGroup=1, rowGroup=2). The date array formula starts at J25 instead of the expected J24. All other months on the same sheet (and all months on other sheets like "A Bylenga") use the standard `headerRow + 2` offset.
+- **Impact on parsing**: Without detection, the parser reads offset cells — 5 of 6 colored PTO cells are missed (they fall beyond the day loop's reach), and the one detected cell is mapped to the wrong date. For Deanna Allen's July, this produced 8h detected vs 44h declared.
+- **Detection algorithm**: Before iterating each month's days, verify that cell `(headerRow + 2, startCol + firstDow)` contains the numeric value `1` (day 1 of the month). If not, scan ±3 rows at the same column. If day 1 is found at an offset, log a recovery warning and use the corrected start row. If day 1 cannot be located, skip the month with an error warning.</content>
+  <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/.github/skills/pto-spreadsheet-layout/SKILL.md

@@ -18,9 +18,24 @@ import { CALENDAR_SYMBOLS } from "../../../shared/calendar-symbols.js";
 import { BaseComponent } from "../base-component.js";
 import { styles, PTO_TYPE_COLORS } from "./css.js";
 import { MONTH_NAMES } from "../../../shared/businessRules.js";
+import { notifications } from "../../app.js";
 
 /** @deprecated Use `MONTH_NAMES` from `shared/businessRules.js` instead. */
 export const monthNames = MONTH_NAMES;
+
+/** Unicode superscript digits for partial-day hour indicators */
+const SUPERSCRIPTS: Record<number, string> = {
+  0: "\u2070",
+  1: "\u00B9",
+  2: "\u00B2",
+  3: "\u00B3",
+  4: "\u2074",
+  5: "\u2075",
+  6: "\u2076",
+  7: "\u2077",
+  8: "\u2078",
+  9: "\u2079",
+};
 
 export interface CalendarEntry {
   date: string;
@@ -37,6 +52,7 @@ export interface PTOEntry {
   hours: number;
   createdAt: string;
   approved_by?: number | null;
+  notes?: string | null;
 }
 
 export class PtoCalendar extends BaseComponent {
@@ -285,9 +301,21 @@ export class PtoCalendar extends BaseComponent {
 
   // ── Event delegation ──
   protected handleDelegatedClick(e: Event): void {
-    if (this.isReadonly) return;
-
     const target = e.target as HTMLElement;
+
+    // Note indicator clicks (show toast regardless of readonly)
+    const noteIndicator = target.closest(".note-indicator") as HTMLElement;
+    if (noteIndicator) {
+      e.preventDefault();
+      e.stopPropagation();
+      const noteText = noteIndicator.getAttribute("data-note");
+      if (noteText) {
+        notifications.info(noteText, "Note");
+      }
+      return;
+    }
+
+    if (this.isReadonly) return;
 
     // Day cell clicks
     const dayCell = target.closest(".day.clickable") as HTMLElement;
@@ -447,10 +475,23 @@ export class PtoCalendar extends BaseComponent {
       : "";
     const { day } = parseDate(dateStr);
 
+    // Note indicator: show triangle when PTO entry has notes
+    const entryNotes = entry?.notes || "";
+    const noteIndicator = entryNotes
+      ? `<div class="note-indicator" data-note="${this.escapeAttribute(entryNotes)}" title="${this.escapeAttribute(entryNotes)}">&#9662;</div>`
+      : "";
+
+    // Superscript for partial-day hours (mirrors Excel export decorateDay)
+    const dayDisplay =
+      displayHours > 0 && displayHours < 8
+        ? `${day}<sup class="partial-hours">${SUPERSCRIPTS[Math.round(displayHours)] ?? `${displayHours}h`}</sup>`
+        : `${day}`;
+
     return `
       <div class="${dayClass} ${emptyClass} ${selectedClass} ${clickableClass} ${todayClass}${partialDayClass}" data-date="${dateStr}" ${tabindexAttr} role="gridcell">
           ${checkmarkElement}
-          <div class="date">${day}</div>
+          ${noteIndicator}
+          <div class="date">${dayDisplay}</div>
           <div class="${hoursClass}">${hoursDisplay}</div>
       </div>
     `;
@@ -647,6 +688,15 @@ export class PtoCalendar extends BaseComponent {
   // ── Navigation helpers ──
   private isNavigable(dateStr: string): boolean {
     return isInMonth(dateStr, this.year, this.month) && !isWeekend(dateStr);
+  }
+
+  /** Escape text for use in HTML attributes (title, data-*) */
+  private escapeAttribute(text: string): string {
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
   }
 
   private getFirstNavigableDate(): string | null {

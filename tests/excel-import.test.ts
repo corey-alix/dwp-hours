@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import ExcelJS from "exceljs";
+import { existsSync } from "node:fs";
 import {
   parseLegend,
   findLegendHeaderRow,
@@ -14,6 +15,13 @@ import {
   parseAcknowledgements,
   parseEmployeeSheet,
   computePtoRate,
+  resolveColorToARGB,
+  parseThemeColors,
+  colorDistance,
+  findClosestLegendColor,
+  extractCellNoteText,
+  parseHoursFromNote,
+  reconcilePartialPto,
 } from "../server/reportGenerators/excelImport.js";
 import { generateExcelReport } from "../server/reportGenerators/excelReport.js";
 import { smartParseDate } from "../shared/dateUtils.js";
@@ -133,7 +141,7 @@ describe("Excel Import", () => {
       const ws = wb.getWorksheet("Alice Smith")!;
       const legend = parseLegend(ws);
 
-      const entries = parseCalendarGrid(ws, 2026, legend);
+      const { entries } = parseCalendarGrid(ws, 2026, legend);
       expect(entries.length).toBeGreaterThan(0);
 
       // Should find PTO on Jan 15
@@ -153,7 +161,7 @@ describe("Excel Import", () => {
       const ws = wb.getWorksheet("Alice Smith")!;
       const legend = parseLegend(ws);
 
-      const entries = parseCalendarGrid(ws, 2026, legend);
+      const { entries } = parseCalendarGrid(ws, 2026, legend);
 
       // June 11 was 4 hours in the export
       const jun11 = entries.find((e) => e.date === "2026-06-11");
@@ -291,18 +299,30 @@ describe("Excel Import", () => {
   });
 
   describe("generateIdentifier", () => {
-    it("should generate <first-initial><last-name>@example.com", () => {
-      expect(generateIdentifier("Alice Smith")).toBe("asmith@example.com");
-      expect(generateIdentifier("Bob Jones")).toBe("bjones@example.com");
+    it("should generate <firstName>-<lastName>@example.com", () => {
+      expect(generateIdentifier("Alice Smith")).toBe("alice-smith@example.com");
+      expect(generateIdentifier("Bob Jones")).toBe("bob-jones@example.com");
       expect(generateIdentifier("Charlie")).toBe("charlie@example.com");
       expect(generateIdentifier("Mary Jane Watson")).toBe(
-        "mwatson@example.com",
+        "mary-watson@example.com",
       );
     });
 
     it("should handle edge cases", () => {
-      expect(generateIdentifier("  Alice  Smith  ")).toBe("asmith@example.com");
+      expect(generateIdentifier("  Alice  Smith  ")).toBe(
+        "alice-smith@example.com",
+      );
       expect(generateIdentifier("")).toBe("unknown@example.com");
+    });
+
+    it("should produce distinct identifiers for same-last-name employees", () => {
+      expect(generateIdentifier("Dan Allen")).toBe("dan-allen@example.com");
+      expect(generateIdentifier("Deanna Allen")).toBe(
+        "deanna-allen@example.com",
+      );
+      expect(generateIdentifier("Dan Allen")).not.toBe(
+        generateIdentifier("Deanna Allen"),
+      );
     });
   });
 
@@ -618,4 +638,369 @@ describe("Excel Import", () => {
       expect(smartParseDate("13/32/2023")).toBeNull(); // invalid month
     });
   });
+
+  // ── Phase 5: Theme Color & Reconciliation Helpers ──
+
+  describe("resolveColorToARGB", () => {
+    it("should return ARGB from explicit argb property", () => {
+      const result = resolveColorToARGB({ argb: "FFFFC000" } as any, new Map());
+      expect(result).toBe("FFFFC000");
+    });
+
+    it("should resolve theme-indexed color", () => {
+      const themeColors = new Map([[9, "FFF79646"]]);
+      const result = resolveColorToARGB({ theme: 9 } as any, themeColors);
+      expect(result).toBe("FFF79646");
+    });
+
+    it("should return undefined for no color info", () => {
+      expect(resolveColorToARGB(undefined, new Map())).toBeUndefined();
+      expect(resolveColorToARGB({} as any, new Map())).toBeUndefined();
+    });
+  });
+
+  describe("colorDistance", () => {
+    it("should return 0 for identical colors", () => {
+      expect(colorDistance("FFFFC000", "FFFFC000")).toBe(0);
+    });
+
+    it("should measure Euclidean RGB distance", () => {
+      // FFF79646 → R=F7, G=96, B=46 → (247, 150, 70)
+      // FFFFC000 → R=FF, G=C0, B=00 → (255, 192, 0)
+      const dist = colorDistance("FFF79646", "FFFFC000");
+      expect(dist).toBeGreaterThan(50);
+      expect(dist).toBeLessThan(100); // within threshold
+    });
+  });
+
+  describe("findClosestLegendColor", () => {
+    it("should find approximate match within threshold", () => {
+      const legend = new Map([["FFFFC000", "PTO" as const]]);
+      // FFF79646 is close to FFC000
+      const result = findClosestLegendColor("FFF79646", legend);
+      expect(result).toBe("PTO");
+    });
+
+    it("should reject low-chroma (gray/white) colors", () => {
+      const legend = new Map([["FFBFBFBF", "Bereavement" as const]]);
+      // FFF0F0F0 is a light gray — should NOT match via approximate
+      const result = findClosestLegendColor("FFF0F0F0", legend);
+      expect(result).toBeUndefined();
+    });
+
+    it("should return undefined when no color is close enough", () => {
+      const legend = new Map([["FFFF0000", "Jury Duty" as const]]);
+      // Pure green is far from pure red
+      const result = findClosestLegendColor("FF00FF00", legend);
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe("extractCellNoteText", () => {
+    it("should extract text from a string note", () => {
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Test");
+      const cell = ws.getCell("A1");
+      cell.note = "0.5 hrs";
+      expect(extractCellNoteText(cell)).toBe("0.5 hrs");
+    });
+
+    it("should extract text from rich-text note", () => {
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Test");
+      const cell = ws.getCell("A1");
+      cell.note = {
+        texts: [
+          { font: { bold: true, name: "Calibri", size: 9 }, text: "Author:\n" },
+          { font: { name: "Calibri", size: 9 }, text: ".5 hrs" },
+        ],
+      } as any;
+      expect(extractCellNoteText(cell)).toContain(".5 hrs");
+    });
+
+    it("should return empty string when no note", () => {
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Test");
+      const cell = ws.getCell("A1");
+      expect(extractCellNoteText(cell)).toBe("");
+    });
+  });
+
+  describe("parseHoursFromNote", () => {
+    it("should parse decimal hours", () => {
+      expect(parseHoursFromNote(".5 hrs")).toBe(0.5);
+      expect(parseHoursFromNote("0.5 hrs")).toBe(0.5);
+      expect(parseHoursFromNote("4 hours")).toBe(4);
+      expect(parseHoursFromNote("2.5 hr")).toBe(2.5);
+    });
+
+    it("should return undefined for non-hour notes", () => {
+      expect(parseHoursFromNote("some other text")).toBeUndefined();
+      expect(parseHoursFromNote("")).toBeUndefined();
+    });
+  });
+
+  describe("reconcilePartialPto", () => {
+    it("should add missing partial PTO from noted cells when gap exists", () => {
+      // Calendar detected 16h for January, but PTO calc says 16.5h
+      const entries = [
+        { date: "2026-01-15", type: "PTO" as const, hours: 8 },
+        { date: "2026-01-16", type: "PTO" as const, hours: 8 },
+      ];
+      const unmatchedNotedCells = [{ date: "2026-01-17", note: ".5 hrs" }];
+      const ptoCalcRows = [
+        { month: 1, usedHours: 16.5 },
+        ...Array.from({ length: 11 }, (_, i) => ({
+          month: i + 2,
+          usedHours: 0,
+        })),
+      ];
+
+      const result = reconcilePartialPto(
+        entries,
+        unmatchedNotedCells,
+        ptoCalcRows,
+        "Test",
+      );
+      expect(result.entries.length).toBe(3);
+
+      const jan17 = result.entries.find((e) => e.date === "2026-01-17");
+      expect(jan17).toBeDefined();
+      expect(jan17!.hours).toBe(0.5);
+      expect(jan17!.type).toBe("PTO");
+      expect(jan17!.notes).toContain("Reconciled");
+    });
+
+    it("should not add entries when totals match", () => {
+      const entries = [{ date: "2026-01-15", type: "PTO" as const, hours: 8 }];
+      const unmatchedNotedCells = [{ date: "2026-01-17", note: ".5 hrs" }];
+      const ptoCalcRows = [
+        { month: 1, usedHours: 8 },
+        ...Array.from({ length: 11 }, (_, i) => ({
+          month: i + 2,
+          usedHours: 0,
+        })),
+      ];
+
+      const result = reconcilePartialPto(
+        entries,
+        unmatchedNotedCells,
+        ptoCalcRows,
+        "Test",
+      );
+      expect(result.entries.length).toBe(1); // no reconciliation needed
+    });
+  });
+
+  // ── Legacy 2018 Workbook Integration ──
+
+  const LEGACY_2018_PATH =
+    "/home/ca0v/code/corey-alix/dwp-hours/reports/2018.xlsx";
+
+  describe.skipIf(!existsSync(LEGACY_2018_PATH))(
+    "Legacy 2018 workbook - A Bylenga",
+    () => {
+      let ws: ExcelJS.Worksheet;
+      let themeColors: Map<number, string>;
+
+      // Load the workbook once for all tests in this block
+      it("should load worksheet and extract theme colors", async () => {
+        const wb = new ExcelJS.Workbook();
+        await wb.xlsx.readFile(LEGACY_2018_PATH);
+
+        const sheet = wb.getWorksheet("A Bylenga");
+        expect(sheet).toBeDefined();
+        ws = sheet!;
+
+        // Try to extract theme XML from workbook internals
+        const wbAny = wb as any;
+        const themeXml: string | undefined =
+          wbAny._themes?.theme1 ?? wbAny.themes?.theme1;
+        if (themeXml) {
+          themeColors = parseThemeColors(themeXml);
+          expect(themeColors.size).toBeGreaterThanOrEqual(10);
+        } else {
+          // Fall back to default Office theme
+          themeColors = new Map([
+            [0, "FFFFFFFF"],
+            [1, "FF000000"],
+            [2, "FFEEECE1"],
+            [3, "FF1F497D"],
+            [4, "FF4F81BD"],
+            [5, "FFC0504D"],
+            [6, "FF9BBB59"],
+            [7, "FF8064A2"],
+            [8, "FF4BACC6"],
+            [9, "FFF79646"],
+            [10, "FF0000FF"],
+            [11, "FF800080"],
+          ]);
+        }
+      });
+
+      it("should detect cell E8 as theme-indexed orange with a .5h note", () => {
+        const cell = ws.getCell("E8");
+        const fill = cell.fill as ExcelJS.FillPattern | undefined;
+        expect(fill?.type).toBe("pattern");
+
+        // The cell uses theme color index 9 (accent6) instead of explicit ARGB
+        const fgColor = fill?.fgColor as any;
+        expect(fgColor?.theme).toBe(9);
+
+        // It has a ".5 hrs" note
+        const noteText = extractCellNoteText(cell);
+        expect(noteText).toContain(".5");
+      });
+
+      it("should resolve theme 9 color and approximately match Partial PTO", () => {
+        const resolved = resolveColorToARGB({ theme: 9 } as any, themeColors);
+        expect(resolved).toBeDefined();
+
+        // Parse legend with theme-awareness
+        const legend = parseLegend(ws, themeColors);
+        expect(legend.size).toBeGreaterThan(0);
+
+        // The resolved color should match (exactly or approximately) to PTO
+        const exactMatch = legend.get(resolved!);
+        const approxMatch = findClosestLegendColor(resolved!, legend);
+        expect(exactMatch ?? approxMatch).toBe("PTO");
+      });
+
+      it("should include Jan 17 partial PTO (0.5h) in parsed entries", () => {
+        const legend = parseLegend(ws, themeColors);
+        const { entries, unmatchedNotedCells } = parseCalendarGrid(
+          ws,
+          2018,
+          legend,
+          themeColors,
+        );
+
+        // First check if color matching found it directly
+        const jan17Direct = entries.find((e) => e.date === "2018-01-17");
+        if (jan17Direct) {
+          expect(jan17Direct.hours).toBe(0.5);
+          expect(jan17Direct.type).toBe("PTO");
+        } else {
+          // If not matched by color, it should be in unmatched noted cells
+          const jan17Unmatched = unmatchedNotedCells.find(
+            (c) => c.date === "2018-01-17",
+          );
+          expect(jan17Unmatched).toBeDefined();
+          expect(jan17Unmatched!.note).toContain(".5");
+        }
+      });
+
+      it("should produce 0.5h PTO for Jan 17 after full pipeline (parseEmployeeSheet)", () => {
+        const result = parseEmployeeSheet(ws, themeColors);
+
+        // S42 in the spreadsheet = 24.5h for January
+        // Without Phase 5, only 24h was detected (3 × 8h full days)
+        // The .5h from Jan 17 should now be captured
+        const jan17 = result.ptoEntries.find((e) => e.date === "2018-01-17");
+        expect(jan17).toBeDefined();
+        expect(jan17!.hours).toBe(0.5);
+        expect(jan17!.type).toBe("PTO");
+      });
+
+      it("should produce correct January total matching S42=24.5h", () => {
+        const result = parseEmployeeSheet(ws, themeColors);
+
+        const janEntries = result.ptoEntries.filter((e) =>
+          e.date.startsWith("2018-01-"),
+        );
+        const janTotal = janEntries.reduce((sum, e) => sum + e.hours, 0);
+        expect(janTotal).toBe(24.5);
+      });
+    },
+  );
+
+  describe.skipIf(!existsSync(LEGACY_2018_PATH))(
+    "Legacy 2018 workbook - Deanna Allen (row offset anomaly)",
+    () => {
+      let ws: ExcelJS.Worksheet;
+      let themeColors: Map<number, string>;
+
+      it("should load Deanna Allen worksheet", async () => {
+        const wb = new ExcelJS.Workbook();
+        await wb.xlsx.readFile(LEGACY_2018_PATH);
+
+        const sheet = wb.getWorksheet("Deanna Allen");
+        expect(sheet).toBeDefined();
+        ws = sheet!;
+
+        const wbAny = wb as any;
+        const themeXml: string | undefined =
+          wbAny._themes?.theme1 ?? wbAny.themes?.theme1;
+        if (themeXml) {
+          themeColors = parseThemeColors(themeXml);
+        } else {
+          themeColors = new Map([
+            [0, "FFFFFFFF"],
+            [1, "FF000000"],
+            [2, "FFEEECE1"],
+            [3, "FF1F497D"],
+            [4, "FF4F81BD"],
+            [5, "FFC0504D"],
+            [6, "FF9BBB59"],
+            [7, "FF8064A2"],
+            [8, "FF4BACC6"],
+            [9, "FFF79646"],
+            [10, "FF0000FF"],
+            [11, "FF800080"],
+          ]);
+        }
+      });
+
+      it("should detect July row offset anomaly and recover", () => {
+        const legend = parseLegend(ws, themeColors);
+        const { warnings } = parseCalendarGrid(ws, 2018, legend, themeColors);
+
+        // Should have a warning about July anomaly
+        const julyWarnings = warnings.filter((w) => w.includes("July"));
+        expect(julyWarnings.length).toBeGreaterThan(0);
+
+        // Should have a recovery message
+        const recoveryMsg = julyWarnings.find((w) =>
+          w.includes("Recovered successfully"),
+        );
+        expect(recoveryMsg).toBeDefined();
+      });
+
+      it("should find July PTO entries after row offset recovery", () => {
+        const legend = parseLegend(ws, themeColors);
+        const { entries } = parseCalendarGrid(ws, 2018, legend, themeColors);
+
+        const julyEntries = entries.filter((e) =>
+          e.date.startsWith("2018-07-"),
+        );
+
+        // July 4 (orange/Partial PTO), July 25-27 (yellow/Full PTO),
+        // July 30-31 (yellow/Full PTO) = 6 colored cells
+        expect(julyEntries.length).toBe(6);
+
+        // July 4 should be detected
+        const jul4 = julyEntries.find((e) => e.date === "2018-07-04");
+        expect(jul4).toBeDefined();
+        expect(jul4!.type).toBe("PTO");
+
+        // July 25 should have the "red rocks" note
+        const jul25 = julyEntries.find((e) => e.date === "2018-07-25");
+        expect(jul25).toBeDefined();
+        expect(jul25!.notes).toContain("red rocks");
+      });
+
+      it("should produce correct July total via full pipeline", () => {
+        const result = parseEmployeeSheet(ws, themeColors);
+
+        const julyEntries = result.ptoEntries.filter((e) =>
+          e.date.startsWith("2018-07-"),
+        );
+        const julyTotal = julyEntries.reduce((sum, e) => sum + e.hours, 0);
+
+        // S48 declares 44h for July
+        // The pipeline should reconcile to match this
+        expect(julyTotal).toBe(44);
+      });
+    },
+  );
 });

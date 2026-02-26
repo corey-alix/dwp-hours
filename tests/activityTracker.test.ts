@@ -8,11 +8,27 @@ import {
 
 describe("Activity Tracker", () => {
   beforeEach(() => {
-    localStorage.clear();
+    // Stub localStorage for happy-dom compatibility
+    const store: Record<string, string> = {};
+    vi.stubGlobal("localStorage", {
+      getItem: vi.fn((key: string) => store[key] ?? null),
+      setItem: vi.fn((key: string, val: string) => {
+        store[key] = val;
+      }),
+      removeItem: vi.fn((key: string) => {
+        delete store[key];
+      }),
+      clear: vi.fn(() => {
+        for (const k of Object.keys(store)) delete store[k];
+      }),
+      key: vi.fn(() => null),
+      length: 0,
+    });
     vi.useFakeTimers();
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.useRealTimers();
   });
 

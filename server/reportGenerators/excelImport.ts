@@ -75,12 +75,206 @@ const LEGEND_LABEL_TO_PTO_TYPE: Record<string, PTOType> = {
   "Jury Duty": "Jury Duty",
 };
 
+/** Maximum Euclidean RGB distance for approximate color matching. */
+const MAX_COLOR_DISTANCE = 100;
+
+/**
+ * Standard Office 2010 theme palette.
+ * Used as fallback when workbook theme XML is unavailable (e.g., streaming).
+ * Maps theme index → ARGB string.
+ */
+const DEFAULT_OFFICE_THEME: Map<number, string> = new Map([
+  [0, "FFFFFFFF"], // lt1 (window)
+  [1, "FF000000"], // dk1 (windowText)
+  [2, "FFEEECE1"], // lt2
+  [3, "FF1F497D"], // dk2
+  [4, "FF4F81BD"], // accent1
+  [5, "FFC0504D"], // accent2
+  [6, "FF9BBB59"], // accent3
+  [7, "FF8064A2"], // accent4
+  [8, "FF4BACC6"], // accent5
+  [9, "FFF79646"], // accent6
+  [10, "FF0000FF"], // hlink
+  [11, "FF800080"], // folHlink
+]);
+
+// ── Theme Color Resolution ──
+
+/**
+ * Parse theme colors from the workbook's theme1 XML.
+ * Extracts the clrScheme element and maps theme indices to ARGB strings.
+ * The Excel theme index order is:
+ *   0=lt1, 1=dk1, 2=lt2, 3=dk2, 4–9=accent1–6, 10=hlink, 11=folHlink
+ * but the XML element order in <a:clrScheme> is:
+ *   dk1, lt1, dk2, lt2, accent1–6, hlink, folHlink
+ */
+export function parseThemeColors(themeXml: string): Map<number, string> {
+  const map = new Map<number, string>();
+
+  // XML element order → theme index mapping
+  const xmlOrderToThemeIndex = [
+    1, // dk1 → theme 1
+    0, // lt1 → theme 0
+    3, // dk2 → theme 3
+    2, // lt2 → theme 2
+    4,
+    5,
+    6,
+    7,
+    8,
+    9, // accent1–6 → themes 4–9
+    10, // hlink → theme 10
+    11, // folHlink → theme 11
+  ];
+
+  // Extract all srgbClr and sysClr values from the clrScheme
+  const clrSchemeMatch = themeXml.match(
+    /<a:clrScheme[^>]*>(.*?)<\/a:clrScheme>/s,
+  );
+  if (!clrSchemeMatch) return map;
+
+  const colorElements = clrSchemeMatch[1];
+  // Match each color entry: either <a:srgbClr val="RRGGBB"/> or <a:sysClr ... lastClr="RRGGBB"/>
+  const colorRegex =
+    /<a:(?:dk1|lt1|dk2|lt2|accent[1-6]|hlink|folHlink)>.*?(?:<a:srgbClr\s+val="([A-Fa-f0-9]{6})"\s*\/>|<a:sysClr[^>]*lastClr="([A-Fa-f0-9]{6})"[^>]*\/>).*?<\/a:(?:dk1|lt1|dk2|lt2|accent[1-6]|hlink|folHlink)>/gs;
+
+  let match;
+  let idx = 0;
+  while ((match = colorRegex.exec(colorElements)) !== null && idx < 12) {
+    const rgb = (match[1] || match[2] || "").toUpperCase();
+    if (rgb && idx < xmlOrderToThemeIndex.length) {
+      map.set(xmlOrderToThemeIndex[idx], `FF${rgb}`);
+    }
+    idx++;
+  }
+
+  return map;
+}
+
+/**
+ * Apply an Excel tint to an ARGB color string.
+ * Tint > 0 lightens toward white; tint < 0 darkens toward black.
+ */
+function applyTint(argb: string, tint: number): string {
+  if (tint === 0) return argb;
+  const r = parseInt(argb.substring(2, 4), 16);
+  const g = parseInt(argb.substring(4, 6), 16);
+  const b = parseInt(argb.substring(6, 8), 16);
+
+  const apply = (c: number) => {
+    if (tint > 0) return Math.round(c + (255 - c) * tint);
+    return Math.round(c * (1 + tint));
+  };
+
+  const rr = Math.max(0, Math.min(255, apply(r)));
+  const gg = Math.max(0, Math.min(255, apply(g)));
+  const bb = Math.max(0, Math.min(255, apply(b)));
+
+  const hex = (n: number) => n.toString(16).padStart(2, "0").toUpperCase();
+  return `${argb.substring(0, 2)}${hex(rr)}${hex(gg)}${hex(bb)}`;
+}
+
+/**
+ * Resolve an ExcelJS color object to an ARGB string.
+ * Handles explicit ARGB, theme-indexed colors (with optional tint),
+ * and falls back to undefined if unresolvable.
+ */
+export function resolveColorToARGB(
+  color: { argb?: string; theme?: number; tint?: number } | undefined,
+  themeColors: Map<number, string>,
+): string | undefined {
+  if (!color) return undefined;
+  if (color.argb) return color.argb.toUpperCase();
+  if (color.theme !== undefined) {
+    const baseColor = themeColors.get(color.theme);
+    if (baseColor) {
+      return applyTint(baseColor, color.tint || 0);
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Euclidean distance between two ARGB color strings (ignoring alpha).
+ */
+export function colorDistance(argb1: string, argb2: string): number {
+  const r1 = parseInt(argb1.substring(2, 4), 16);
+  const g1 = parseInt(argb1.substring(4, 6), 16);
+  const b1 = parseInt(argb1.substring(6, 8), 16);
+  const r2 = parseInt(argb2.substring(2, 4), 16);
+  const g2 = parseInt(argb2.substring(4, 6), 16);
+  const b2 = parseInt(argb2.substring(6, 8), 16);
+  return Math.sqrt((r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2);
+}
+
+/**
+ * Find the closest legend color within MAX_COLOR_DISTANCE.
+ * Returns the PTOType for the best match, or undefined if none is close enough.
+ *
+ * Skips approximate matching for near-neutral colors (low chroma) to avoid
+ * false positives on weekend/header background cells. Chroma is measured as
+ * the difference between the max and min RGB channels — colors with chroma
+ * below MIN_CHROMA_FOR_APPROX (like #F0F0F0 gray or #EAF2F8 light blue)
+ * are only matched via the exact-match path that runs before this function.
+ */
+const MIN_CHROMA_FOR_APPROX = 40;
+
+export function findClosestLegendColor(
+  argb: string,
+  legend: Map<string, PTOType>,
+): PTOType | undefined {
+  // Extract RGB from the AARRGGBB string
+  const r = parseInt(argb.substring(2, 4), 16);
+  const g = parseInt(argb.substring(4, 6), 16);
+  const b = parseInt(argb.substring(6, 8), 16);
+  const chroma = Math.max(r, g, b) - Math.min(r, g, b);
+  if (chroma < MIN_CHROMA_FOR_APPROX) return undefined;
+
+  let bestType: PTOType | undefined;
+  let bestDist = MAX_COLOR_DISTANCE;
+  for (const [legendArgb, ptoType] of legend) {
+    const dist = colorDistance(argb, legendArgb);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestType = ptoType;
+    }
+  }
+  return bestType;
+}
+
+/**
+ * Extract the plain-text content of a cell's note/comment.
+ * Handles string notes and rich-text note objects.
+ */
+export function extractCellNoteText(cell: ExcelJS.Cell): string {
+  if (!cell.note) return "";
+  if (typeof cell.note === "string") return cell.note;
+  if ((cell.note as any)?.texts) {
+    return (cell.note as any).texts.map((t: any) => t.text).join("");
+  }
+  return "";
+}
+
+/**
+ * Try to parse hours from a note string.
+ * Handles formats like ".5 hrs", "0.5 hrs", "4 hours", "4h", etc.
+ */
+export function parseHoursFromNote(note: string): number | undefined {
+  const match = note.match(/(\d*\.?\d+)\s*(?:hrs?|hours?)\b/i);
+  if (match) {
+    const val = parseFloat(match[1]);
+    if (!isNaN(val) && val > 0) return val;
+  }
+  return undefined;
+}
+
 // ── Result types ──
 
 export interface ImportedPtoEntry {
   date: string;
   type: PTOType;
   hours: number;
+  notes?: string;
 }
 
 export interface ImportedAcknowledgement {
@@ -138,9 +332,13 @@ export function findLegendHeaderRow(ws: ExcelJS.Worksheet): number {
 /**
  * Parse the legend section from column Z to build a color→PTOType map.
  * Dynamically finds the "Legend" header row, then reads up to 10 entry
- * rows below it. Throws if "Legend" header is not found.
+ * rows below it. Resolves theme-indexed colors using the provided theme map.
+ * Throws if "Legend" header is not found.
  */
-export function parseLegend(ws: ExcelJS.Worksheet): Map<string, PTOType> {
+export function parseLegend(
+  ws: ExcelJS.Worksheet,
+  themeColors: Map<number, string> = DEFAULT_OFFICE_THEME,
+): Map<string, PTOType> {
   const colorMap = new Map<string, PTOType>();
 
   const headerRow = findLegendHeaderRow(ws);
@@ -162,8 +360,11 @@ export function parseLegend(ws: ExcelJS.Worksheet): Map<string, PTOType> {
     if (!ptoType) continue;
 
     const fill = cell.fill as ExcelJS.FillPattern | undefined;
-    if (fill?.type === "pattern" && fill.fgColor?.argb) {
-      colorMap.set(fill.fgColor.argb.toUpperCase(), ptoType);
+    if (fill?.type === "pattern") {
+      const argb = resolveColorToARGB(fill.fgColor as any, themeColors);
+      if (argb) {
+        colorMap.set(argb, ptoType);
+      }
     }
   }
 
@@ -174,17 +375,65 @@ function pad2(n: number): string {
   return n < 10 ? `0${n}` : `${n}`;
 }
 
+/** Info about a calendar cell that has a note but no legend color match. */
+export interface UnmatchedNotedCell {
+  date: string;
+  note: string;
+}
+
+/** Result of parsing the calendar grid. */
+export interface CalendarParseResult {
+  entries: ImportedPtoEntry[];
+  unmatchedNotedCells: UnmatchedNotedCell[];
+  warnings: string[];
+}
+
+/**
+ * Extract the numeric value from a cell, handling plain numbers,
+ * formula results, and string representations.
+ */
+function getCellNumericValue(cell: ExcelJS.Cell): number | undefined {
+  const v = cell.value;
+  if (v === null || v === undefined) return undefined;
+  if (typeof v === "number") return v;
+  if (typeof v === "string") {
+    const n = Number(v);
+    return isNaN(n) ? undefined : n;
+  }
+  // Formula result object: { formula: string, result: number|string, ... }
+  if (typeof v === "object" && "result" in v) {
+    const r = (v as { result: unknown }).result;
+    if (typeof r === "number") return r;
+    if (typeof r === "string") {
+      const n = Number(r);
+      return isNaN(n) ? undefined : n;
+    }
+  }
+  return undefined;
+}
+
+/** Maximum rows to scan above/below expected position when searching for day 1. */
+const DAY1_SCAN_RANGE = 3;
+
 /**
  * Parse the 12-month calendar grid from a worksheet.
- * Walks each month block, checks cell fill colors against the legend,
- * and returns all PTO entries found (defaulting to 8 hours each).
+ * Walks each month block, checks cell fill colors against the legend
+ * using exact match, theme-color resolution, and approximate matching.
+ * For each month, verifies day 1 is in the expected cell position. If
+ * not found, scans nearby rows to detect and recover from row offsets
+ * (e.g., extra blank rows in legacy spreadsheets).
+ * Returns PTO entries found (defaulting to 8 hours each), a list
+ * of unmatched cells that have notes (for reconciliation), and warnings.
  */
 export function parseCalendarGrid(
   ws: ExcelJS.Worksheet,
   year: number,
   legend: Map<string, PTOType>,
-): ImportedPtoEntry[] {
+  themeColors: Map<number, string> = DEFAULT_OFFICE_THEME,
+): CalendarParseResult {
   const entries: ImportedPtoEntry[] = [];
+  const unmatchedNotedCells: UnmatchedNotedCell[] = [];
+  const warnings: string[] = [];
 
   for (let month = 1; month <= 12; month++) {
     const m0 = month - 1;
@@ -193,10 +442,57 @@ export function parseCalendarGrid(
 
     const startCol = COL_STARTS[colGroup];
     const headerRow = ROW_GROUP_STARTS[rowGroup];
-    const dateStartRow = headerRow + 2;
+    const expectedDateStartRow = headerRow + 2;
 
     const daysInMonth = getDaysInMonth(year, month);
     const firstDow = new Date(year, month - 1, 1).getDay();
+
+    // ── Day-1 verification ──
+    const expectedDay1Col = startCol + firstDow;
+    const expectedDay1Cell = ws.getCell(expectedDateStartRow, expectedDay1Col);
+    const expectedDay1Value = getCellNumericValue(expectedDay1Cell);
+
+    let dateStartRow = expectedDateStartRow;
+
+    if (expectedDay1Value === 1) {
+      // Day 1 is where we expect it — no adjustment needed
+    } else {
+      // Day 1 not at expected position — scan nearby rows
+      const monthName = MONTH_NAMES[month - 1];
+      warnings.push(
+        `Sheet "${ws.name}" ${monthName}: day 1 not found at expected row ${expectedDateStartRow}, col ${expectedDay1Col}. Scanning nearby rows...`,
+      );
+
+      let foundRow: number | undefined;
+      for (
+        let scanRow = expectedDateStartRow - DAY1_SCAN_RANGE;
+        scanRow <= expectedDateStartRow + DAY1_SCAN_RANGE;
+        scanRow++
+      ) {
+        if (scanRow < 1 || scanRow === expectedDateStartRow) continue;
+        const scanCell = ws.getCell(scanRow, expectedDay1Col);
+        const scanValue = getCellNumericValue(scanCell);
+        if (scanValue === 1) {
+          foundRow = scanRow;
+          break;
+        }
+      }
+
+      if (foundRow !== undefined) {
+        const offset = foundRow - expectedDateStartRow;
+        const direction = offset > 0 ? "below" : "above";
+        warnings.push(
+          `Sheet "${ws.name}" ${monthName}: resolved row anomaly — day 1 found ${Math.abs(offset)} row(s) ${direction} expected position (row ${foundRow} instead of ${expectedDateStartRow}). Recovered successfully.`,
+        );
+        dateStartRow = foundRow;
+      } else {
+        // Cannot find day 1 at all — skip this month
+        warnings.push(
+          `Sheet "${ws.name}" ${monthName}: ERROR — could not locate day 1 within ±${DAY1_SCAN_RANGE} rows of expected position. Skipping month.`,
+        );
+        continue;
+      }
+    }
 
     let row = dateStartRow;
     let col = startCol + firstDow;
@@ -204,29 +500,75 @@ export function parseCalendarGrid(
     for (let day = 1; day <= daysInMonth; day++) {
       const dow = (firstDow + day - 1) % 7;
       const cell = ws.getCell(row, col);
+      const dateStr = `${year}-${pad2(month)}-${pad2(day)}`;
+      const noteText = extractCellNoteText(cell);
 
-      // Check cell fill color
+      // Try to match cell fill color against legend
       const fill = cell.fill as ExcelJS.FillPattern | undefined;
-      if (fill?.type === "pattern" && fill.fgColor?.argb) {
-        const argb = fill.fgColor.argb.toUpperCase();
-        const ptoType = legend.get(argb);
-        if (ptoType) {
-          const dateStr = `${year}-${pad2(month)}-${pad2(day)}`;
-          // Check for partial-day indication in cell note
-          let hours = 8;
-          const note =
-            typeof cell.note === "string"
-              ? cell.note
-              : (cell.note as any)?.texts?.map((t: any) => t.text).join("") ||
-                "";
-          if (note) {
-            const noteMatch = note.match(/:\s*(\d+(?:\.\d+)?)h/);
-            if (noteMatch) {
-              hours = parseFloat(noteMatch[1]);
+      let ptoType: PTOType | undefined;
+      let matchMethod = "";
+
+      if (fill?.type === "pattern") {
+        // 1. Try resolving fgColor (exact ARGB or theme-resolved)
+        const fgArgb = resolveColorToARGB(fill.fgColor as any, themeColors);
+        if (fgArgb) {
+          ptoType = legend.get(fgArgb);
+          if (ptoType) {
+            matchMethod = "exact";
+          } else {
+            // 2. Try approximate color match
+            ptoType = findClosestLegendColor(fgArgb, legend);
+            if (ptoType) {
+              matchMethod = `approximate (resolved=${fgArgb})`;
             }
           }
-          entries.push({ date: dateStr, type: ptoType, hours });
         }
+
+        // 3. Try bgColor as fallback
+        if (!ptoType && fill.bgColor) {
+          const bgArgb = resolveColorToARGB(fill.bgColor as any, themeColors);
+          if (bgArgb) {
+            ptoType = legend.get(bgArgb);
+            if (ptoType) {
+              matchMethod = "bgColor exact";
+            } else {
+              ptoType = findClosestLegendColor(bgArgb, legend);
+              if (ptoType) {
+                matchMethod = `bgColor approximate (resolved=${bgArgb})`;
+              }
+            }
+          }
+        }
+      }
+
+      if (ptoType) {
+        // Parse hours from note if present
+        let hours = 8;
+        if (noteText) {
+          const noteHours = parseHoursFromNote(noteText);
+          if (noteHours !== undefined) {
+            hours = noteHours;
+          } else {
+            // Legacy format: "Author:\nNh" or similar
+            const legacyMatch = noteText.match(/:\s*(\d+(?:\.\d+)?)h/i);
+            if (legacyMatch) {
+              hours = parseFloat(legacyMatch[1]);
+            }
+          }
+        }
+        const entry: ImportedPtoEntry = { date: dateStr, type: ptoType, hours };
+        if (matchMethod !== "exact" && matchMethod) {
+          entry.notes = `Color matched via ${matchMethod}.`;
+        }
+        if (noteText) {
+          entry.notes =
+            (entry.notes ? entry.notes + " " : "") +
+            `Cell note: "${noteText.replace(/\n/g, " ")}"`;
+        }
+        entries.push(entry);
+      } else if (noteText) {
+        // Cell has a note but no color match — save for reconciliation
+        unmatchedNotedCells.push({ date: dateStr, note: noteText });
       }
 
       // Advance to next cell
@@ -238,7 +580,7 @@ export function parseCalendarGrid(
     }
   }
 
-  return entries;
+  return { entries, unmatchedNotedCells, warnings };
 }
 
 // ── Phase 2: Partial-Day Detection ──
@@ -357,11 +699,102 @@ export function adjustPartialDays(
     const partialHours = declaredTotal - otherTotal;
 
     if (partialHours > 0 && partialHours < lastEntry.hours) {
+      const originalHours = lastEntry.hours;
       lastEntry.hours = Math.round(partialHours * 100) / 100;
+      const adjustNote =
+        `Adjusted from ${originalHours}h to ${lastEntry.hours}h ` +
+        `based on PTO Calc (declared ${declaredTotal}h for month ${calc.month}).`;
+      lastEntry.notes = lastEntry.notes
+        ? `${lastEntry.notes} ${adjustNote}`
+        : adjustNote;
     }
   }
 
   return result;
+}
+
+/**
+ * Reconcile partial PTO entries that were missed by calendar color matching.
+ *
+ * When the PTO Calc section (column S) declares more hours than the sum of
+ * calendar-detected entries for a month, this function scans unmatched cells
+ * that have notes (e.g., ".5 hrs") and creates partial PTO entries for them.
+ * The remaining hours are assigned to the noted cell(s).
+ *
+ * Returns updated entries and any warnings for still-unreconciled months.
+ */
+export function reconcilePartialPto(
+  entries: ImportedPtoEntry[],
+  unmatchedNotedCells: UnmatchedNotedCell[],
+  ptoCalcRows: PtoCalcRow[],
+  sheetName: string,
+): { entries: ImportedPtoEntry[]; warnings: string[] } {
+  const result = [...entries];
+  const warnings: string[] = [];
+
+  for (const calc of ptoCalcRows) {
+    if (calc.usedHours <= 0) continue;
+
+    const monthStr = pad2(calc.month);
+    const detectedTotal = result
+      .filter((e) => e.date.substring(5, 7) === monthStr)
+      .reduce((sum, e) => sum + e.hours, 0);
+
+    const gap = Math.round((calc.usedHours - detectedTotal) * 100) / 100;
+    if (gap <= 0) continue;
+
+    // Find unmatched noted cells in this month
+    const monthNoted = unmatchedNotedCells.filter(
+      (c) => c.date.substring(5, 7) === monthStr,
+    );
+
+    if (monthNoted.length > 0) {
+      // Distribute gap across noted cells (typically just one)
+      let remaining = gap;
+      for (const noted of monthNoted) {
+        if (remaining <= 0) break;
+
+        // Try to parse hours from the note
+        const noteHours = parseHoursFromNote(noted.note);
+        const assignedHours =
+          noteHours !== undefined ? Math.min(noteHours, remaining) : remaining;
+
+        const noteExplanation =
+          `Inferred partial PTO from cell note "${noted.note.replace(/\n/g, " ").trim()}". ` +
+          `Calendar color not matched as Partial PTO. ` +
+          `Reconciled against PTO Calc (declared=${calc.usedHours}h, ` +
+          `detected=${detectedTotal}h, gap=${gap}h).`;
+
+        result.push({
+          date: noted.date,
+          type: "PTO",
+          hours: Math.round(assignedHours * 100) / 100,
+          notes: noteExplanation,
+        });
+
+        remaining = Math.round((remaining - assignedHours) * 100) / 100;
+      }
+
+      // If gap still remains after assigning to noted cells
+      if (remaining > 0) {
+        warnings.push(
+          `"${sheetName}" month ${calc.month}: partially reconciled. ` +
+            `Declared=${calc.usedHours}h, detected=${detectedTotal}h, ` +
+            `assigned ${gap - remaining}h from notes, ` +
+            `${remaining}h still unaccounted for.`,
+        );
+      }
+    } else {
+      // No noted cells to assign to — emit warning
+      warnings.push(
+        `"${sheetName}" month ${calc.month}: PTO hours mismatch. ` +
+          `Declared=${calc.usedHours}h, detected=${detectedTotal}h, ` +
+          `gap=${gap}h. No cell notes found for reconciliation.`,
+      );
+    }
+  }
+
+  return { entries: result, warnings };
 }
 
 // ── Phase 3: Employee Info Parsing ──
@@ -442,7 +875,9 @@ export function parseEmployeeInfo(ws: ExcelJS.Worksheet): EmployeeImportInfo {
 
 /**
  * Generate an email identifier from an employee name.
- * "Alice Smith" → "asmith@example.com"
+ * Uses full first name + last name to avoid collisions.
+ * "Alice Smith" → "alice-smith@example.com"
+ * "Dan Allen" / "Deanna Allen" → distinct identifiers
  */
 export function generateIdentifier(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -451,7 +886,7 @@ export function generateIdentifier(name: string): string {
   const lastName =
     parts.length > 1 ? parts[parts.length - 1].toLowerCase() : "";
   const identifier = lastName
-    ? `${firstName[0]}${lastName}@example.com`
+    ? `${firstName}-${lastName}@example.com`
     : `${firstName}@example.com`;
   return identifier;
 }
@@ -604,6 +1039,7 @@ export async function upsertPtoEntries(
     if (existing) {
       existing.type = entry.type;
       existing.hours = entry.hours;
+      existing.notes = entry.notes || null;
       await repo.save(existing);
     } else {
       const newEntry = repo.create({
@@ -611,6 +1047,7 @@ export async function upsertPtoEntries(
         date: entry.date,
         type: entry.type,
         hours: entry.hours,
+        notes: entry.notes || null,
         approved_by: null,
       });
       await repo.save(newEntry);
@@ -706,12 +1143,16 @@ export async function upsertAcknowledgements(
 /**
  * Parse a single employee worksheet and return all extracted data
  * (no DB interaction).
+ * Accepts an optional theme color map for resolving theme-indexed fill colors.
  */
-export function parseEmployeeSheet(ws: ExcelJS.Worksheet): SheetImportResult {
+export function parseEmployeeSheet(
+  ws: ExcelJS.Worksheet,
+  themeColors: Map<number, string> = DEFAULT_OFFICE_THEME,
+): SheetImportResult {
   const warnings: string[] = [];
 
   // Parse legend from this sheet
-  const legend = parseLegend(ws);
+  const legend = parseLegend(ws, themeColors);
   if (legend.size === 0) {
     warnings.push(`No legend found on sheet "${ws.name}"`);
   }
@@ -731,12 +1172,23 @@ export function parseEmployeeSheet(ws: ExcelJS.Worksheet): SheetImportResult {
     warnings.push(rateWarning);
   }
 
-  // Parse calendar (all 8h initially)
-  let ptoEntries = parseCalendarGrid(ws, employee.year, legend);
+  // Parse calendar with theme-aware color matching
+  const {
+    entries: calendarEntries,
+    unmatchedNotedCells,
+    warnings: calendarWarnings,
+  } = parseCalendarGrid(ws, employee.year, legend, themeColors);
+  warnings.push(...calendarWarnings);
 
   // Parse PTO calc section for partial-day adjustment
   const ptoCalcRows = parsePtoCalcUsedHours(ws);
-  ptoEntries = adjustPartialDays(ptoEntries, ptoCalcRows);
+  let ptoEntries = adjustPartialDays(calendarEntries, ptoCalcRows);
+
+  // Reconcile: add missing partial PTO entries from cell notes
+  const { entries: reconciledEntries, warnings: reconWarnings } =
+    reconcilePartialPto(ptoEntries, unmatchedNotedCells, ptoCalcRows, ws.name);
+  ptoEntries = reconciledEntries;
+  warnings.push(...reconWarnings);
 
   // Parse acknowledgements
   const acknowledgements = parseAcknowledgements(ws, employee.year);
@@ -814,6 +1266,29 @@ export async function importExcelWorkbook(
   const importStart = Date.now();
   const sheetNames: string[] = [];
 
+  // Extract theme colors for theme-indexed cell color resolution.
+  // The streaming reader may not expose theme XML, so we attempt to
+  // read it from the reader's internal state and fall back to the
+  // standard Office 2010 theme palette.
+  let themeColors: Map<number, string> = DEFAULT_OFFICE_THEME;
+  try {
+    const readerAny = reader as any;
+    const themeXml: string | undefined =
+      readerAny._themes?.theme1 ??
+      readerAny.themes?.theme1 ??
+      readerAny._model?.themes?.theme1;
+    if (themeXml) {
+      themeColors = parseThemeColors(themeXml);
+      log?.(`Parsed ${themeColors.size} theme colors from workbook`);
+    } else {
+      log?.(
+        "Theme XML not available from streaming reader; using default Office theme",
+      );
+    }
+  } catch (themeErr) {
+    log?.(`Failed to parse theme colors, using defaults: ${themeErr}`);
+  }
+
   try {
     for await (const wsReader of reader) {
       const sheetName = (wsReader as any).name || "Sheet";
@@ -835,7 +1310,7 @@ export async function importExcelWorkbook(
 
         // Parse sheet data
         const parseStart = Date.now();
-        const sheetResult = parseEmployeeSheet(ws);
+        const sheetResult = parseEmployeeSheet(ws, themeColors);
         log?.(`  [profile] parseEmployeeSheet: ${Date.now() - parseStart}ms`);
 
         // Log blank/null value warnings

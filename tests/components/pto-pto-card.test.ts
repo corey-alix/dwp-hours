@@ -345,6 +345,23 @@ describe("PtoPtoCard", () => {
   });
 
   it("should persist expanded state to localStorage", () => {
+    const store: Record<string, string> = {};
+    const mockStorage = {
+      getItem: vi.fn((key: string) => store[key] ?? null),
+      setItem: vi.fn((key: string, val: string) => {
+        store[key] = val;
+      }),
+      removeItem: vi.fn((key: string) => {
+        delete store[key];
+      }),
+      clear: vi.fn(() => {
+        for (const k of Object.keys(store)) delete store[k];
+      }),
+      key: vi.fn(() => null),
+      length: 0,
+    };
+    vi.stubGlobal("localStorage", mockStorage);
+
     const entries: PTOEntry[] = [
       {
         id: 1,
@@ -359,9 +376,11 @@ describe("PtoPtoCard", () => {
     component.fullPtoEntries = entries;
 
     component.isExpanded = true;
-    expect(localStorage.getItem("pto-pto-card-expanded")).toBe("true");
+    expect(mockStorage.getItem("pto-pto-card-expanded")).toBe("true");
 
     component.isExpanded = false;
-    expect(localStorage.getItem("pto-pto-card-expanded")).toBe("false");
+    expect(mockStorage.getItem("pto-pto-card-expanded")).toBe("false");
+
+    vi.unstubAllGlobals();
   });
 });

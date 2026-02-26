@@ -44,6 +44,7 @@ export function serializePTOEntry(entity: EntityPtoEntry): PTOEntry {
         ? dateTimeToISOString(entity.created_at)
         : new Date(entity.created_at).toISOString(),
     approved_by: entity.approved_by,
+    notes: entity.notes || null,
     employee: entity.employee ? serializeEmployee(entity.employee) : undefined,
   };
 }
