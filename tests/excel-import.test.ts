@@ -25,6 +25,7 @@ import {
   parseWorkedHoursFromNote,
   processWorkedCells,
   parsePartialPtoColors,
+  inferWeekendPartialHours,
 } from "../server/reportGenerators/excelImport.js";
 import { generateExcelReport } from "../server/reportGenerators/excelReport.js";
 import { smartParseDate } from "../shared/dateUtils.js";
@@ -1321,6 +1322,241 @@ describe("Excel Import", () => {
       const result = processWorkedCells([], [], [], "Test");
       expect(result.entries.length).toBe(0);
       expect(result.warnings.length).toBe(0);
+    });
+  });
+
+  describe("inferWeekendPartialHours", () => {
+    // Helper to build a full set of ptoCalcRows with zeroes except specified months
+    function makePtoCalcRows(
+      overrides: Record<number, number>,
+    ): { month: number; usedHours: number }[] {
+      return Array.from({ length: 12 }, (_, i) => ({
+        month: i + 1,
+        usedHours: overrides[i + 1] ?? 0,
+      }));
+    }
+
+    it("should infer p=4h w=8h for J Schwerin July pattern (3 Full + 1 Partial + 2 Worked, declared=12)", () => {
+      // 3 Full PTO (24h) + 1 Partial PTO (8h default)
+      const entries: import("../server/reportGenerators/excelImport.js").ImportedPtoEntry[] =
+        [
+          { date: "2018-07-03", type: "PTO", hours: 8 },
+          { date: "2018-07-05", type: "PTO", hours: 8 },
+          { date: "2018-07-06", type: "PTO", hours: 8 },
+          {
+            date: "2018-07-23",
+            type: "PTO",
+            hours: 8,
+            isPartialPtoColor: true,
+          },
+        ];
+      // 2 worked weekend cells (no note-derived hours)
+      const workedCells = [
+        {
+          date: "2018-07-01",
+          note: "(inferred weekend work from cell color FF7030A0)",
+        },
+        {
+          date: "2018-07-07",
+          note: "(inferred weekend work from cell color FF7030A0)",
+        },
+      ];
+      const ptoCalcRows = makePtoCalcRows({ 7: 12 });
+
+      const result = inferWeekendPartialHours(
+        entries,
+        workedCells,
+        ptoCalcRows,
+        "J Schwerin",
+      );
+
+      // Partial should be adjusted to 4h
+      const partial = result.entries.find((e) => e.date === "2018-07-23");
+      expect(partial!.hours).toBe(4);
+      expect(partial!.notes).toContain("Inferred p=4h");
+      expect(partial!.notes).toContain("w assumed 8h");
+
+      // 2 new worked entries at -8h each
+      expect(result.newWorkedEntries.length).toBe(2);
+      expect(result.newWorkedEntries[0].hours).toBe(-8);
+      expect(result.newWorkedEntries[1].hours).toBe(-8);
+      expect(result.newWorkedEntries[0].notes).toContain("Inferred w=8h");
+
+      // Both dates handled
+      expect(result.handledWorkedDates.has("2018-07-01")).toBe(true);
+      expect(result.handledWorkedDates.has("2018-07-07")).toBe(true);
+
+      // Verify total: 24 + 4 - 16 = 12
+      const total =
+        result.entries.reduce((s, e) => s + e.hours, 0) +
+        result.newWorkedEntries.reduce((s, e) => s + e.hours, 0);
+      expect(total).toBe(12);
+    });
+
+    it("should infer p=4h w=8h for J Schwerin October pattern (1 Partial + 1 Worked, declared=-4)", () => {
+      // 1 Partial PTO (8h default), no full days
+      const entries: import("../server/reportGenerators/excelImport.js").ImportedPtoEntry[] =
+        [
+          {
+            date: "2018-10-22",
+            type: "PTO",
+            hours: 8,
+            isPartialPtoColor: true,
+          },
+        ];
+      const workedCells = [
+        {
+          date: "2018-10-14",
+          note: "(inferred weekend work from cell color FF7030A0)",
+        },
+      ];
+      const ptoCalcRows = makePtoCalcRows({ 10: -4 });
+
+      const result = inferWeekendPartialHours(
+        entries,
+        workedCells,
+        ptoCalcRows,
+        "J Schwerin",
+      );
+
+      const partial = result.entries.find((e) => e.date === "2018-10-22");
+      expect(partial!.hours).toBe(4);
+
+      expect(result.newWorkedEntries.length).toBe(1);
+      expect(result.newWorkedEntries[0].hours).toBe(-8);
+
+      // Total: 4 - 8 = -4
+      const total =
+        result.entries.reduce((s, e) => s + e.hours, 0) +
+        result.newWorkedEntries.reduce((s, e) => s + e.hours, 0);
+      expect(total).toBe(-4);
+    });
+
+    it("should skip months where total already matches declared", () => {
+      const entries: import("../server/reportGenerators/excelImport.js").ImportedPtoEntry[] =
+        [{ date: "2018-03-15", type: "PTO", hours: 8 }];
+      const workedCells = [{ date: "2018-03-04", note: "worked" }];
+      const ptoCalcRows = makePtoCalcRows({ 3: 8 });
+
+      const result = inferWeekendPartialHours(
+        entries,
+        workedCells,
+        ptoCalcRows,
+        "Test",
+      );
+
+      // No changes — total (8) matches declared (8)
+      expect(result.entries[0].hours).toBe(8);
+      expect(result.newWorkedEntries.length).toBe(0);
+      expect(result.handledWorkedDates.size).toBe(0);
+    });
+
+    it("should skip months with no partial PTO entries", () => {
+      // Only full days, no partials — Phase 11 should not apply
+      const entries: import("../server/reportGenerators/excelImport.js").ImportedPtoEntry[] =
+        [
+          { date: "2018-12-24", type: "PTO", hours: 8 },
+          { date: "2018-12-25", type: "PTO", hours: 8 },
+        ];
+      const workedCells = [{ date: "2018-12-01", note: "worked" }];
+      const ptoCalcRows = makePtoCalcRows({ 12: 8 });
+
+      const result = inferWeekendPartialHours(
+        entries,
+        workedCells,
+        ptoCalcRows,
+        "Test",
+      );
+
+      expect(result.newWorkedEntries.length).toBe(0);
+      expect(result.handledWorkedDates.size).toBe(0);
+    });
+
+    it("should skip months with no worked cells", () => {
+      const entries: import("../server/reportGenerators/excelImport.js").ImportedPtoEntry[] =
+        [
+          { date: "2018-05-07", type: "PTO", hours: 8 },
+          {
+            date: "2018-05-14",
+            type: "PTO",
+            hours: 8,
+            isPartialPtoColor: true,
+          },
+        ];
+      const ptoCalcRows = makePtoCalcRows({ 5: 18 });
+
+      const result = inferWeekendPartialHours(entries, [], ptoCalcRows, "Test");
+
+      expect(result.newWorkedEntries.length).toBe(0);
+      expect(result.handledWorkedDates.size).toBe(0);
+    });
+
+    it("should not re-process worked cells that already have negative entries", () => {
+      const entries: import("../server/reportGenerators/excelImport.js").ImportedPtoEntry[] =
+        [
+          {
+            date: "2018-09-10",
+            type: "PTO",
+            hours: 8,
+            isPartialPtoColor: true,
+          },
+          { date: "2018-09-15", type: "PTO", hours: -8 }, // Already processed worked entry
+        ];
+      const workedCells = [
+        { date: "2018-09-15", note: "worked" }, // Same date as existing negative entry
+      ];
+      const ptoCalcRows = makePtoCalcRows({ 9: 0 });
+
+      const result = inferWeekendPartialHours(
+        entries,
+        workedCells,
+        ptoCalcRows,
+        "Test",
+      );
+
+      // Total = 8 + (-8) = 0, matches declared 0 → skip
+      expect(result.newWorkedEntries.length).toBe(0);
+    });
+
+    it("should fall back to p=4 when w=8 produces invalid p", () => {
+      // Construct: 1 partial + 1 worked, declared such that w=8 → p>8
+      // fullTotal=0, target = declared - 0 = declared
+      // w=8: p = (declared + 8) / 1. For p>8, need declared > 0.
+      // w=8: p = (1 + 8) / 1 = 9 → invalid
+      // p=4: w = (4 - 1) / 1 = 3 → valid
+      const entries: import("../server/reportGenerators/excelImport.js").ImportedPtoEntry[] =
+        [
+          {
+            date: "2018-06-15",
+            type: "PTO",
+            hours: 8,
+            isPartialPtoColor: true,
+          },
+        ];
+      const workedCells = [
+        { date: "2018-06-03", note: "(inferred weekend work)" },
+      ];
+      const ptoCalcRows = makePtoCalcRows({ 6: 1 });
+
+      const result = inferWeekendPartialHours(
+        entries,
+        workedCells,
+        ptoCalcRows,
+        "Test",
+      );
+
+      const partial = result.entries.find((e) => e.date === "2018-06-15");
+      expect(partial!.hours).toBe(4);
+
+      expect(result.newWorkedEntries.length).toBe(1);
+      expect(result.newWorkedEntries[0].hours).toBe(-3);
+      expect(result.newWorkedEntries[0].notes).toContain("p assumed 4h");
+
+      // Total: 4 - 3 = 1 ✓
+      const total =
+        result.entries.reduce((s, e) => s + e.hours, 0) +
+        result.newWorkedEntries.reduce((s, e) => s + e.hours, 0);
+      expect(total).toBe(1);
     });
   });
 

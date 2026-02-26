@@ -641,6 +641,22 @@ export function parseCalendarGrid(
           // Cell has a note but no color match — save for reconciliation
           unmatchedNotedCells.push({ date: dateStr, note: noteText });
         }
+      } else if (fill?.type === "pattern" && (dow === 0 || dow === 6)) {
+        // Non-legend-colored weekend cell without notes — potential worked day
+        const cellArgb =
+          resolveColorToARGB(fill.fgColor as any, themeColors) ||
+          resolveColorToARGB(fill.bgColor as any, themeColors);
+        if (cellArgb && cellArgb !== "FFFFFFFF" && cellArgb !== "FF000000") {
+          workedCells.push({
+            date: dateStr,
+            note: `(inferred weekend work from cell color ${cellArgb})`,
+          });
+          const monthName = MONTH_NAMES[month - 1];
+          warnings.push(
+            `Sheet "${ws.name}" ${monthName}: non-legend colored weekend cell ` +
+              `on ${dateStr} (color=${cellArgb}). Treating as potential weekend work.`,
+          );
+        }
       }
 
       // Advance to next cell
@@ -657,7 +673,7 @@ export function parseCalendarGrid(
 
 // ── Phase 2: Partial-Day Detection ──
 
-interface PtoCalcRow {
+export interface PtoCalcRow {
   month: number;
   usedHours: number;
 }
@@ -1087,6 +1103,182 @@ export function processWorkedCells(
   return { entries, warnings };
 }
 
+// ── Phase 2c: Weekend-Work + Partial-PTO Joint Inference ──
+
+/**
+ * Phase 11: Joint inference for months with both Partial PTO and unprocessed
+ * weekend work entries where individual hours cannot be determined from notes.
+ *
+ * When the monthly total doesn't match the declared column S total and the
+ * month has both partial PTO entries and unprocessed worked cells, this
+ * function solves the system of equations using priority-ordered heuristics:
+ *   1. Try w=8 (full-day weekend work), solve for p
+ *   2. Try p=4 (half-day PTO), solve for w
+ *   3. Fallback: constrained solve keeping both p and w in (0, 8]
+ *
+ * Returns modified entries with corrected partial hours, new worked credit
+ * entries, the set of handled worked cell dates, and warnings.
+ */
+export function inferWeekendPartialHours(
+  entries: ImportedPtoEntry[],
+  workedCells: WorkedCell[],
+  ptoCalcRows: PtoCalcRow[],
+  sheetName: string,
+): {
+  entries: ImportedPtoEntry[];
+  newWorkedEntries: ImportedPtoEntry[];
+  handledWorkedDates: Set<string>;
+  warnings: string[];
+} {
+  const result = entries.map((e) => ({ ...e }));
+  const newWorkedEntries: ImportedPtoEntry[] = [];
+  const handledWorkedDates = new Set<string>();
+  const warnings: string[] = [];
+
+  // Find unprocessed worked cells: dates with no existing negative entry
+  const negativeEntryDates = new Set(
+    entries.filter((e) => e.hours < 0).map((e) => e.date),
+  );
+  const unprocessedWorked = workedCells.filter(
+    (wc) => !negativeEntryDates.has(wc.date),
+  );
+
+  // Group unprocessed worked cells by month
+  const workedByMonth = new Map<number, WorkedCell[]>();
+  for (const wc of unprocessedWorked) {
+    const month = parseInt(wc.date.substring(5, 7), 10);
+    if (!workedByMonth.has(month)) workedByMonth.set(month, []);
+    workedByMonth.get(month)!.push(wc);
+  }
+
+  for (const calc of ptoCalcRows) {
+    const monthStr = pad2(calc.month);
+    const declaredTotal = calc.usedHours;
+
+    // Get current tracked entries for this month
+    const monthResultEntries = result.filter(
+      (e) =>
+        e.date.substring(5, 7) === monthStr &&
+        COLUMN_S_TRACKED_TYPES.has(e.type),
+    );
+    const currentTotal = monthResultEntries.reduce(
+      (sum, e) => sum + e.hours,
+      0,
+    );
+
+    // Skip if already matching
+    if (Math.abs(currentTotal - declaredTotal) < 0.01) continue;
+
+    // Find partial PTO entries and unprocessed worked cells for this month
+    const partials = monthResultEntries.filter(
+      (e) => e.isPartialPtoColor === true,
+    );
+    const worked = workedByMonth.get(calc.month) || [];
+
+    // Phase 11 only applies when both partials and worked cells exist
+    if (partials.length === 0 || worked.length === 0) continue;
+
+    const partialCount = partials.length;
+    const workedCount = worked.length;
+
+    // Known total: non-partial positive entries + existing negative entries
+    const fullTotal = monthResultEntries
+      .filter((e) => !e.isPartialPtoColor && e.hours > 0)
+      .reduce((sum, e) => sum + e.hours, 0);
+    const existingCredits = monthResultEntries
+      .filter((e) => e.hours < 0)
+      .reduce((sum, e) => sum + e.hours, 0);
+
+    // Equation: fullTotal + partialCount×p + existingCredits − workedCount×w = declaredTotal
+    // Rearranged: partialCount×p − workedCount×w = declaredTotal − fullTotal − existingCredits
+    const target = declaredTotal - fullTotal - existingCredits;
+
+    let p: number | undefined;
+    let w: number | undefined;
+    let method = "";
+
+    // Step 1: Try w = 8
+    const p1 =
+      Math.round(((target + workedCount * 8) / partialCount) * 100) / 100;
+    if (p1 > 0 && p1 <= 8) {
+      p = p1;
+      w = 8;
+      method = "w assumed 8h";
+    }
+
+    // Step 2: Try p = 4
+    if (p === undefined) {
+      const w2 =
+        Math.round(((partialCount * 4 - target) / workedCount) * 100) / 100;
+      if (w2 > 0 && w2 <= 8) {
+        p = 4;
+        w = w2;
+        method = "p assumed 4h";
+      }
+    }
+
+    // Step 3: Fallback — constrained solve
+    if (p === undefined) {
+      const midW = (partialCount * 4 - target) / workedCount;
+      const clampedW = Math.round(Math.min(8, Math.max(0.5, midW)) * 100) / 100;
+      const derivedP =
+        Math.round(((target + workedCount * clampedW) / partialCount) * 100) /
+        100;
+      if (derivedP > 0 && derivedP <= 8) {
+        p = derivedP;
+        w = clampedW;
+        method = "constrained solve";
+      }
+    }
+
+    if (p !== undefined && w !== undefined) {
+      // Apply: update partial entries
+      for (const partial of partials) {
+        const originalHours = partial.hours;
+        partial.hours = p;
+        const note =
+          `Inferred p=${p}h (${method}). ` +
+          `Equation: declared(${declaredTotal}) = full(${fullTotal}) + ` +
+          `${partialCount}×p − ${workedCount}×${w}`;
+        partial.notes = partial.notes ? `${partial.notes} ${note}` : note;
+      }
+
+      // Create worked entries
+      for (const wc of worked) {
+        newWorkedEntries.push({
+          date: wc.date,
+          type: "PTO",
+          hours: -w,
+          notes:
+            `Inferred w=${w}h (${method}). ` +
+            `Equation: declared(${declaredTotal}) = full(${fullTotal}) + ` +
+            `${partialCount}×${p} − ${workedCount}×w. ` +
+            `Cell note: "${wc.note.replace(/\n/g, " ").trim()}"`,
+        });
+        handledWorkedDates.add(wc.date);
+      }
+
+      const newTotal =
+        fullTotal + existingCredits + partialCount * p - workedCount * w;
+      warnings.push(
+        `"${sheetName}" month ${calc.month}: Phase 11 inference applied. ` +
+          `p=${p}h, w=${w}h (${method}). ` +
+          `Declared=${declaredTotal}h, computed=${Math.round(newTotal * 100) / 100}h.`,
+      );
+    } else {
+      warnings.push(
+        `"${sheetName}" month ${calc.month}: Phase 11 inference failed. ` +
+          `Could not find valid p and w values. ` +
+          `Declared=${declaredTotal}h, fullTotal=${fullTotal}h, ` +
+          `${partialCount} partial(s), ${workedCount} worked cell(s). ` +
+          `No adjustment applied.`,
+      );
+    }
+  }
+
+  return { entries: result, newWorkedEntries, handledWorkedDates, warnings };
+}
+
 // ── Phase 3: Employee Info Parsing ──
 
 /**
@@ -1493,9 +1685,22 @@ export function parseEmployeeSheet(
   ptoEntries = reconciledEntries;
   warnings.push(...reconWarnings);
 
-  // Process "worked" weekend/off-day cells for negative PTO credit
+  // Phase 11: Joint inference for weekend-work + partial-PTO months
+  const {
+    entries: phase11Entries,
+    newWorkedEntries: phase11WorkedEntries,
+    handledWorkedDates,
+    warnings: phase11Warnings,
+  } = inferWeekendPartialHours(ptoEntries, workedCells, ptoCalcRows, ws.name);
+  ptoEntries = [...phase11Entries, ...phase11WorkedEntries];
+  warnings.push(...phase11Warnings);
+
+  // Process remaining "worked" weekend/off-day cells for negative PTO credit
+  const remainingWorkedCells = workedCells.filter(
+    (wc) => !handledWorkedDates.has(wc.date),
+  );
   const { entries: workedEntries, warnings: workedWarnings } =
-    processWorkedCells(workedCells, ptoEntries, ptoCalcRows, ws.name);
+    processWorkedCells(remainingWorkedCells, ptoEntries, ptoCalcRows, ws.name);
   ptoEntries = [...ptoEntries, ...workedEntries];
   warnings.push(...workedWarnings);
 

@@ -133,6 +133,36 @@ Implement utility methods and scripts for converting between Excel, JSON, and da
   - [ ] Run `pnpm test` after completing this phase to ensure no regressions occur
   - [ ] Never proceed to the next phase if any tests are failing; fix all test failures before advancing
 
+- [x] **Phase 11: Weekend-Work + Partial-PTO Joint Inference**
+  - [x] **Problem**: When an employee works weekends (negative PTO credit) AND takes Partial PTO in the same month, but provides no note-based hours for either, the importer cannot determine the individual values. It knows the **net declared total** from column S, the **full PTO total** from Full PTO cells, the **number of Partial PTO cells** (`partialCount`), and the **number of weekend-worked cells** (`workedCount`), but not the per-entry hours `p` (partial PTO) or `w` (weekend work). The relationship is:
+    ```
+    declared = fullTotal + partialCount × p − workedCount × w
+    ```
+  - [x] **Precondition**: This inference only applies when `adjustPartialDays()` encounters a month where:
+    - There are one or more Partial PTO entries with no note-derived hours (defaulted to 8h)
+    - There are one or more weekend "worked" entries with no note-derived hours (defaulted to −8h)
+    - The current calendar total (using defaults) disagrees with the declared column S total
+  - [x] **Algorithm — priority-ordered guessing**:
+    1. **Try `w = 8`**: Assume each weekend work day is a full 8h credit. Solve for `p = (declared − fullTotal + workedCount × 8) / partialCount`. If `0 < p ≤ 8`, accept `w = 8` and the computed `p`.
+    2. **Try `p = 4`**: Assume each partial PTO day is 4h (half day). Solve for `w = (fullTotal + partialCount × 4 − declared) / workedCount`. If `0 < w ≤ 8`, accept `p = 4` and the computed `w`.
+    3. **Fallback — constrained solve**: If neither heuristic produces valid values, solve the equation for the midpoint that keeps both `p` and `w` within `(0, 8]`. One approach: set `w = min(8, max(0.5, (fullTotal + partialCount × 4 − declared) / workedCount))` and then compute `p` from the equation. If the result is still out of range, emit a warning and skip inference.
+  - [x] **Guard conditions**: Only apply when:
+    - `partialCount ≥ 1` and `workedCount ≥ 1` (both unknowns must be present)
+    - The Partial PTO entries have no note-derived hours (i.e., hours were defaulted, not extracted from notes)
+    - The weekend work entries have no note-derived hours (same condition)
+    - If any entry already has note-derived hours, use those values as known and solve for the remaining unknown(s) instead
+  - [x] **Annotation**: When inference is applied, annotate the affected entries' `notes` field:
+    - Partial PTO: `"Inferred p=<X>h (w assumed 8h). Equation: declared(<D>) = full(<F>) + <partialCount>×p − <workedCount>×<w>"`
+    - Weekend work: `"Inferred w=<X>h (p assumed 4h). Equation: declared(<D>) = full(<F>) + <partialCount>×<p> − <workedCount>×w"`
+  - [x] **Integration point**: This logic runs inside `adjustPartialDays()` (or a new helper called from it) AFTER note-based hours extraction and AFTER the existing partial-day distribution algorithm. It is a last-resort reconciliation step for months that still don't match column S.
+  - [x] **Test case — J Schwerin July 2018**: 3 Full PTO days (24h) + 1 Partial PTO (no note hours) + 2 weekend worked days (no note hours). Declared = 12h. Step 1: try w=8 → p = (12 − 24 + 2×8) / 1 = 4h. Valid (0 < 4 ≤ 8). Result: p=4h, w=8h. Total = 24 + 4 − 16 = 12h ✓.
+  - [x] **Test case — J Schwerin October 2018**: 0 Full PTO + 1 Partial PTO + 1 weekend worked day. Declared = −4h. Step 1: try w=8 → p = (−4 − 0 + 1×8) / 1 = 4h. Valid. Result: p=4h, w=8h. Total = 0 + 4 − 8 = −4h ✓.
+  - [x] **Test case — J Schwerin May 2018**: This month's discrepancy is due to sick-time exhaustion, not the weekend-work pattern (no worked cells in May). This phase should NOT apply; existing reconciliation handles it separately.
+  - [x] **Test case — J Schwerin December 2018**: 7 Full PTO (56h), 0 Partial PTO, 0 weekend worked cells (work days mentioned in side note only, not color-coded). Declared = 40h. This phase does NOT apply (no partial or worked entries to infer). Remains flagged for manual correction.
+  - [x] **Regression check**: Ensure existing employees with note-derived hours (A Bylenga, A Campbell, etc.) are unaffected — their notes provide explicit values, so the inference step is skipped.
+  - [x] Run `pnpm test` after completing this phase to ensure no regressions occur
+  - [x] Never proceed to the next phase if any tests are failing; fix all test failures before advancing
+
 ## Known Issues
 
 - **OOM on 512MB server**: The original implementation used `multer.memoryStorage()` and loaded all 68 worksheets into memory simultaneously via `ExcelJS.Workbook.xlsx.load(buffer)`. This caused SIGKILL (OOM) on the 512MB DigitalOcean droplet. Fixed by switching to `multer.diskStorage()`, reading the workbook from disk via `workbook.xlsx.readFile()`, and releasing each worksheet with `workbook.removeWorksheet()` after processing.
@@ -265,6 +295,55 @@ L Cole uses **non-standard theme-based colors** instead of the legend colors:
 4. **`theme:0/tint:-0.15`** (light grey `FFD9D9D9`) — used for **Bereavement/leave** blocks. Correctly resolves to Bereavement.
 
 The importer cannot distinguish these custom colors from each other because they all resolve closest to Bereavement. Fixing this would require either: (a) per-sheet color overrides, (b) note text analysis to infer PTO type regardless of color, or (c) treating any colored cell with a note containing "PTO" as a PTO entry regardless of color match.
+
+## John Schwerin Weekend Warrior
+
+J Schwerin's discrepancies are driven by **weekend work offsets** and **sick-time exhaustion**. He regularly worked weekends to offset PTO and reported net hours in column S, but the importer does not always reconstruct the correct net total.
+
+### Discrepancy Summary
+
+| Month | Excel (Col S) | DB  | Δ       |
+| ----- | ------------- | --- | ------- |
+| May   | 18h           | 16h | -2.00h  |
+| Jul   | 12h           | 32h | +20.00h |
+| Oct   | -4h           | 8h  | +12.00h |
+| Dec   | 40h           | 56h | +16.00h |
+
+### Month-by-Month Analysis
+
+**May — Excel: 18h, DB: 16h, Δ: -2h**
+
+John had exhausted his sick time earlier in the year (confirmed by January 2018 where he took three sick days on Jan 18, 19, 22). By May, when he was sick again, he had no sick time remaining. He color-coded a day as Sick but correctly claimed it as PTO in column S. The declared 18h should break down as: 8h Sick (color-coded but charged to PTO), 8h Full PTO, and 2h Partial PTO. The importer sees 16h (2 Full PTO days) and misses the 2h Partial PTO. A warning should note: "All sick time has been used so although John color-coded this day as Sick, he did correctly claim it as PTO."
+
+**Jul — Excel: 12h, DB: 32h, Δ: +20h**
+
+John worked on July 1 (Sunday) and July 7 (Saturday), took 3 Full PTO days (24h) and 1 Partial PTO on July 23. He reported only 12h because weekend work offsets the PTO:
+
+```
+24 (Full PTO) + p (Partial PTO) - 2w (weekend work credits) = 12
+```
+
+Assuming `w = 8` (standard full-day weekend work): `p = 2(8) - 12 = 4h`. The Partial PTO on July 23 should be 4h. The importer sees the 3 Full PTO days (24h) + the Partial PTO (8h default) = 32h but does not account for the two weekend work days that should subtract 16h.
+
+**Oct — Excel: -4h, DB: 8h, Δ: +12h**
+
+John worked on October 14 (Sunday) and took Partial PTO on the 22nd. He claimed -4h total:
+
+```
+p (Partial PTO) - w (weekend work credit) = -4
+```
+
+Assuming `w = 8`: `p = 8 - 4 = 4h`. The Partial PTO on Oct 22 should be 4h. The importer sees 8h (one Full PTO day default) but does not detect or subtract the weekend work credit.
+
+**Dec — Excel: 40h, DB: 56h, Δ: +16h**
+
+John took 7 Full PTO days = 56h. In a side note he mentioned working two weekend days, which should subtract 16h (2 × 8h), bringing the net to 40h as declared. However, he **never colored the weekend work days on the calendar map**, so the importer has no cells to detect. This is an **unfixable data issue** — the weekend work is only mentioned in a note, not represented in the calendar grid. This discrepancy must be flagged for manual correction.
+
+### Root Cause Summary
+
+1. **Weekend work not always visible**: J Schwerin worked weekends to offset PTO but did not always color-code the weekend days on the calendar (December). The importer can only detect weekend work from colored cells with "worked" notes.
+2. **Sick time exhaustion**: By May, his sick time was depleted (used in January). He correctly charged sick days as PTO in column S but color-coded them as Sick, causing a mismatch between detected color type and declared hours.
+3. **Net reporting in column S**: Column S reflects net PTO after weekend offsets, but the importer sums gross calendar entries without subtracting work credits.
 
 ## Questions and Concerns
 
