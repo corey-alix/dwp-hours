@@ -136,4 +136,16 @@ export const styles = `<style>
     margin-bottom: var(--space-xs, 4px);
     color: var(--color-text-secondary, #666);
   }
+
+  .import-progress {
+    margin-top: var(--space-sm, 8px);
+    color: var(--color-primary, #1a5276);
+    font-size: 0.85rem;
+    font-style: italic;
+  }
+
+  .import-mode {
+    color: var(--color-primary, #1a5276);
+    font-style: italic;
+  }
 </style>`;

@@ -355,3 +355,56 @@ export interface NotificationReadResponse {
   message: string;
   notification: NotificationItem;
 }
+
+// ── Browser-Side Excel Import Payload Types ──
+
+/** A single PTO entry parsed from the Excel workbook (browser-side). */
+export interface BulkImportPtoEntry {
+  date: string; // YYYY-MM-DD
+  hours: number;
+  type: "PTO" | "Sick" | "Bereavement" | "Jury Duty";
+  notes?: string | null;
+  isNoteDerived?: boolean;
+}
+
+/** A single acknowledgement record parsed from the Excel workbook. */
+export interface BulkImportAcknowledgement {
+  month: string; // YYYY-MM
+  type: "employee" | "admin";
+  note?: string | null;
+  status?: "warning" | null;
+}
+
+/** Employee data + their PTO entries/acknowledgements from a single sheet. */
+export interface BulkImportEmployee {
+  name: string;
+  identifier: string; // e.g. "alice-smith@example.com"
+  hireDate: string; // YYYY-MM-DD or ""
+  carryoverHours: number;
+  ptoRate: number;
+  ptoEntries: BulkImportPtoEntry[];
+  acknowledgements: BulkImportAcknowledgement[];
+  warnings: string[];
+}
+
+/** Top-level request body for POST /api/admin/import-bulk. */
+export interface BulkImportPayload {
+  employees: BulkImportEmployee[];
+}
+
+/** Response from the bulk-import endpoint, compatible with existing UI. */
+export interface BulkImportResponse {
+  message: string;
+  employeesProcessed: number;
+  employeesCreated: number;
+  ptoEntriesUpserted: number;
+  acknowledgementsSynced: number;
+  warnings: string[];
+  perEmployee: {
+    name: string;
+    employeeId: number;
+    ptoEntries: number;
+    acknowledgements: number;
+    created: boolean;
+  }[];
+}

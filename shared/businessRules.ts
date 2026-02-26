@@ -45,6 +45,19 @@ export interface MonthLockInfo {
   acknowledgedAt: string;
 }
 
+// ── Feature Flags ──
+
+/**
+ * When `true`, the admin Excel import runs entirely in the browser
+ * (ExcelJS parses the `.xlsx` client-side, then submits structured JSON
+ * to a lightweight bulk-upsert API). When `false`, the `.xlsx` is
+ * uploaded to the server for processing (original behaviour).
+ *
+ * Motivation: the server-side import causes OOM on the 512 MB production
+ * droplet after cell-note parsing increased ExcelJS memory usage.
+ */
+export const ENABLE_BROWSER_IMPORT = true;
+
 // ── Auto-Provision Allow-List ──
 
 /** Email domains allowed for automatic user provisioning on first login. */

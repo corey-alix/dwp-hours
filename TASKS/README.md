@@ -12,6 +12,7 @@
 - LATER: See ./TASKS/validate-excel-import.md for details
 - LATER: See ./TASKS/ai-assisted-pto-reconciliation.md for details
 - LATER: See ./TASKS/acknowledgement-warning-review.md for details
+- LATER: See ./TASKS/browser-side-excel-import.md for details
 
 ## SOME WORK REMAINS
 

@@ -68,7 +68,7 @@ import { seedEmployees, seedPTOEntries } from "../shared/seedData.js";
 import { assembleReportData } from "./reportService.js";
 import { generateHtmlReport } from "./reportGenerators/htmlReport.js";
 import { generateExcelReport } from "./reportGenerators/excelReport.js";
-import { importExcelWorkbook } from "./reportGenerators/excelImport.js";
+import { importExcelWorkbook, upsertEmployee, upsertPtoEntries, upsertAcknowledgements } from "./reportGenerators/excelImport.js";
 import multer from "multer";
 import type {
   PTOCreateResponse,
@@ -2890,6 +2890,151 @@ initDatabase()
     );
 
     // ── Notification routes ──
+
+    // ── Bulk JSON Import (browser-side parsed) ──
+    // POST /api/admin/import-bulk
+    // Accepts a BulkImportPayload (JSON) with pre-parsed employee data.
+    // This avoids server-side ExcelJS processing (which causes OOM on 512MB).
+    app.post(
+      "/api/admin/import-bulk",
+      authenticateAdmin(() => dataSource, log),
+      async (req: Request, res: Response) => {
+        logger.info(
+          `API access: ${req.method} ${req.path} by employee ${req.employee!.id}`,
+        );
+        try {
+          const { employees } = req.body;
+          if (!Array.isArray(employees) || employees.length === 0) {
+            return res.status(400).json({
+              error:
+                "Invalid payload. Expected { employees: [...] } with at least one employee.",
+            });
+          }
+
+          const adminId = req.employee!.id;
+          const result = {
+            employeesProcessed: 0,
+            employeesCreated: 0,
+            ptoEntriesUpserted: 0,
+            acknowledgementsSynced: 0,
+            warnings: [] as string[],
+            perEmployee: [] as {
+              name: string;
+              employeeId: number;
+              ptoEntries: number;
+              acknowledgements: number;
+              created: boolean;
+            }[],
+          };
+
+          // Disable autoSave for bulk operations (sql.js performance)
+          const driver = dataSource.driver as any;
+          const originalAutoSave = driver.options?.autoSave;
+          if (driver.options) {
+            driver.options.autoSave = false;
+            logger.info("[Bulk Import] autoSave disabled");
+          }
+
+          try {
+            for (const emp of employees) {
+              try {
+                result.employeesProcessed++;
+
+                // Validate required employee fields
+                if (!emp.name || typeof emp.name !== "string") {
+                  result.warnings.push(
+                    `Skipped employee with missing/invalid name`,
+                  );
+                  continue;
+                }
+
+                // Upsert employee
+                const { employeeId, created } = await upsertEmployee(
+                  dataSource,
+                  {
+                    name: emp.name,
+                    hireDate: emp.hireDate || "",
+                    year: emp.ptoEntries?.[0]
+                      ? parseInt(emp.ptoEntries[0].date?.substring(0, 4), 10) ||
+                        0
+                      : 0,
+                    carryoverHours: emp.carryoverHours || 0,
+                    spreadsheetPtoRate: emp.ptoRate || 0,
+                  },
+                  (msg: string) => logger.info(`[Bulk Import] ${msg}`),
+                );
+                if (created) result.employeesCreated++;
+
+                // Upsert PTO entries
+                const ptoEntries = Array.isArray(emp.ptoEntries)
+                  ? emp.ptoEntries
+                  : [];
+                const { upserted, warnings: ptoWarnings } =
+                  await upsertPtoEntries(dataSource, employeeId, ptoEntries);
+                result.ptoEntriesUpserted += upserted;
+                result.warnings.push(...ptoWarnings);
+
+                // Upsert acknowledgements
+                const acknowledgements = Array.isArray(emp.acknowledgements)
+                  ? emp.acknowledgements
+                  : [];
+                const acksSynced = await upsertAcknowledgements(
+                  dataSource,
+                  employeeId,
+                  acknowledgements,
+                  adminId,
+                );
+                result.acknowledgementsSynced += acksSynced;
+
+                // Collect per-sheet warnings
+                if (Array.isArray(emp.warnings)) {
+                  result.warnings.push(...emp.warnings);
+                }
+
+                result.perEmployee.push({
+                  name: emp.name,
+                  employeeId,
+                  ptoEntries: upserted,
+                  acknowledgements: acksSynced,
+                  created,
+                });
+
+                logger.info(
+                  `[Bulk Import] ${created ? "Created" : "Updated"} "${emp.name}" id=${employeeId}, ` +
+                    `${upserted} PTO entries, ${acksSynced} acknowledgements`,
+                );
+              } catch (empError) {
+                const msg = `Failed to process employee "${emp.name || "unknown"}": ${empError}`;
+                logger.error(`[Bulk Import] ${msg}`);
+                result.warnings.push(msg);
+              }
+            }
+          } finally {
+            // Restore autoSave and persist once
+            if (driver.options) {
+              driver.options.autoSave = originalAutoSave;
+              logger.info("[Bulk Import] autoSave restored");
+            }
+            if (typeof driver.save === "function") {
+              await driver.save();
+              logger.info("[Bulk Import] database saved");
+            }
+          }
+
+          logger.info(
+            `Bulk import completed: ${result.employeesProcessed} employees, ${result.ptoEntriesUpserted} PTO entries`,
+          );
+
+          res.json({
+            message: `Import complete: ${result.employeesProcessed} employees processed (${result.employeesCreated} created), ${result.ptoEntriesUpserted} PTO entries upserted, ${result.acknowledgementsSynced} acknowledgements synced.`,
+            ...result,
+          });
+        } catch (error) {
+          logger.error(`Error in bulk import: ${error}`);
+          res.status(500).json({ error: "Failed to process bulk import" });
+        }
+      },
+    );
 
     // Create a notification for a specific employee (admin-only)
     app.post(

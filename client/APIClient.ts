@@ -329,4 +329,10 @@ export class APIClient {
     }
     return response.json();
   }
+
+  async importBulk(
+    payload: ApiTypes.BulkImportPayload,
+  ): Promise<ApiTypes.BulkImportResponse> {
+    return this.post("/admin/import-bulk", payload);
+  }
 }

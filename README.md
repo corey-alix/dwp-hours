@@ -133,6 +133,24 @@ _Displays employee information and PTO rate details._
 
 **📋 Notification System**: For detailed information about the toast notification system and user feedback patterns, see [`.github/skills/notification-system-assistant/SKILL.md`](.github/skills/notification-system-assistant/SKILL.md).
 
+## Browser-Side Excel Import
+
+Legacy PTO data is imported from multi-sheet `.xlsx` workbooks (68+ worksheets, ~4MB). To avoid OOM on the 512MB production server, Excel parsing runs entirely in the browser:
+
+```
+Browser: File input → ExcelJS.load(ArrayBuffer) → shared parsing logic → JSON payload
+  → POST /api/admin/import-bulk (JSON ~50-100KB) → Server validates & upserts → 200 OK
+```
+
+**Key files:**
+
+- `shared/excelParsing.ts` — Pure parsing functions (no server deps), shared between server and browser builds
+- `client/import/excelImportClient.ts` — Browser orchestrator; lazy-loaded as `public/excel-import.js` (307KB gzipped) only when admin triggers import
+- `server/reportGenerators/excelImport.ts` — Server persistence layer; re-exports shared parsing + TypeORM upserts
+- `POST /api/admin/import-bulk` — Accepts `BulkImportPayload` JSON, admin-only
+
+**Feature flag:** `ENABLE_BROWSER_IMPORT` in `shared/businessRules.ts`. When `false`, falls back to server-side upload via `/api/admin/import-excel`.
+
 ## Routing Architecture
 
 The application uses a lightweight client-side router built on the History API (no hash routing). Key components:
