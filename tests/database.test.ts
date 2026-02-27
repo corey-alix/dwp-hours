@@ -150,8 +150,10 @@ describe("Database Schema and Persistence", () => {
       ('Jane Smith', 'JS002', '2021-01-01');
     `);
 
-    // Query data
-    const employees = db.exec("SELECT * FROM employees ORDER BY id");
+    // Query data (schema.sql inserts sys-admin at id=0, plus our 2 employees = 3 total)
+    const employees = db.exec(
+      "SELECT * FROM employees WHERE id > 0 ORDER BY id",
+    );
     expect(employees[0].values.length).toBe(2);
     expect(employees[0].values[0][1]).toBe("John Doe"); // name
     expect(employees[0].values[1][1]).toBe("Jane Smith");
@@ -175,8 +177,8 @@ describe("Database Schema and Persistence", () => {
 
     // Query again to confirm persistence
     const reloadedEmployees = db.exec("SELECT * FROM employees ORDER BY id");
-    expect(reloadedEmployees[0].values.length).toBe(2);
-    expect(reloadedEmployees[0].values[0][1]).toBe("John Doe");
+    expect(reloadedEmployees[0].values.length).toBe(3);
+    expect(reloadedEmployees[0].values[1][1]).toBe("John Doe");
 
     const reloadedPto = db.exec("SELECT * FROM pto_entries");
     expect(reloadedPto[0].values.length).toBe(1);

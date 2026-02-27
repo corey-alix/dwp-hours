@@ -24,6 +24,7 @@ import {
   type PTOType,
   type AutoApproveEmployeeLimits,
   type AutoApprovePolicyContext,
+  type AutoApproveImportContext,
 } from "../../shared/businessRules.js";
 import { Employee } from "../entities/Employee.js";
 import { PtoEntry } from "../entities/PtoEntry.js";
@@ -178,19 +179,6 @@ export async function upsertEmployee(
 }
 
 /**
- * Context needed for auto-approve evaluation during import.
- * Passed from the import endpoint when `ENABLE_IMPORT_AUTO_APPROVE` is true.
- */
-export interface AutoApproveImportContext {
-  /** Employee's hire date (YYYY-MM-DD). */
-  hireDate: string;
-  /** Carryover hours from the prior year (from spreadsheet cell L42). */
-  carryoverHours: number;
-  /** Set of YYYY-MM month strings with "warning" acknowledgement status. */
-  warningMonths: ReadonlySet<string>;
-}
-
-/**
  * Upsert PTO entries for an employee.
  * Per-date: update type + hours for existing entries, insert new ones.
  * Entries not in the import are left untouched.
@@ -205,9 +193,15 @@ export async function upsertPtoEntries(
   employeeId: number,
   entries: ImportedPtoEntry[],
   autoApproveCtx?: AutoApproveImportContext,
-): Promise<{ upserted: number; autoApproved: number; warnings: string[] }> {
+): Promise<{
+  upserted: number;
+  autoApproved: number;
+  warnings: string[];
+  violationNotes: Map<string, string>;
+}> {
   const repo = dataSource.getRepository(PtoEntry);
   const warnings: string[] = [];
+  const violationNotes = new Map<string, string>();
   let upserted = 0;
   let autoApproved = 0;
 
@@ -348,6 +342,14 @@ export async function upsertPtoEntries(
           warnings.push(
             `${entry.date} ${entry.type} ${entry.hours}h not auto-approved: ${violationText}`,
           );
+
+          // Record violations in acknowledgement notes
+          const month = entry.date.substring(0, 7);
+          const existingViolationNote = violationNotes.get(month) || "";
+          const newViolationNote = existingViolationNote
+            ? `${existingViolationNote}; ${violationText}`
+            : violationText;
+          violationNotes.set(month, newViolationNote);
         }
 
         // Update running totals for subsequent entries
@@ -370,18 +372,20 @@ export async function upsertPtoEntries(
     upserted++;
   }
 
-  return { upserted, autoApproved, warnings };
+  return { upserted, autoApproved, warnings, violationNotes };
 }
 
 /**
  * Upsert acknowledgements for an employee.
  * Checks for existing acknowledgements before inserting.
+ * If violationNotes are provided, appends them to the acknowledgement notes for the corresponding months.
  */
 export async function upsertAcknowledgements(
   dataSource: DataSource,
   employeeId: number,
   acks: ImportedAcknowledgement[],
   adminId?: number,
+  violationNotes?: Map<string, string>,
 ): Promise<number> {
   const ackRepo = dataSource.getRepository(Acknowledgement);
   const admAckRepo = dataSource.getRepository(AdminAcknowledgement);
@@ -389,17 +393,36 @@ export async function upsertAcknowledgements(
 
   for (const ack of acks) {
     if (ack.type === "employee") {
-      const existing = await ackRepo.findOne({
+      let existing = await ackRepo.findOne({
         where: { employee_id: employeeId, month: ack.month },
       });
+
+      const violationNote = violationNotes?.get(ack.month);
+      const baseNote = ack.note ?? "";
+      const fullNote = violationNote
+        ? baseNote
+          ? `${baseNote} | Import violations: ${violationNote}`
+          : `Import violations: ${violationNote}`
+        : baseNote;
+
       if (!existing) {
         const newAck = ackRepo.create({
           employee_id: employeeId,
           month: ack.month,
-          note: ack.note ?? null,
+          note: fullNote || null,
           status: ack.status ?? null,
         });
         await ackRepo.save(newAck);
+        synced++;
+      } else {
+        // Update existing note with violations if any
+        if (violationNote) {
+          const existingNote = existing.note ?? "";
+          existing.note = existingNote
+            ? `${existingNote} | Import violations: ${violationNote}`
+            : `Import violations: ${violationNote}`;
+          await ackRepo.save(existing);
+        }
         synced++;
       }
     } else {
@@ -470,6 +493,7 @@ export async function importExcelWorkbook(
     employeesProcessed: 0,
     employeesCreated: 0,
     ptoEntriesUpserted: 0,
+    ptoEntriesAutoApproved: 0,
     acknowledgementsSynced: 0,
     warnings: [],
     perEmployee: [],
@@ -557,26 +581,73 @@ export async function importExcelWorkbook(
         if (created) result.employeesCreated++;
         log?.(`  [profile] upsertEmployee: ${Date.now() - empStart}ms`);
 
+        // Build auto-approve context
+        const warningMonths = new Set<string>();
+        for (const ack of sheetResult.acknowledgements) {
+          if (ack.status === "warning") {
+            warningMonths.add(ack.month);
+          }
+        }
+        const autoApproveCtx: AutoApproveImportContext = {
+          hireDate: sheetResult.employee.hireDate!,
+          carryoverHours: sheetResult.employee.carryoverHours,
+          warningMonths,
+        };
+
         // Upsert PTO entries
         const ptoStart = Date.now();
-        const { upserted, warnings: ptoWarnings } = await upsertPtoEntries(
+        const {
+          upserted,
+          autoApproved,
+          warnings: ptoWarnings,
+          violationNotes,
+        } = await upsertPtoEntries(
           dataSource,
           employeeId,
           sheetResult.ptoEntries,
+          autoApproveCtx,
         );
         result.ptoEntriesUpserted += upserted;
+        result.ptoEntriesAutoApproved += autoApproved;
         result.warnings.push(...ptoWarnings);
         log?.(
-          `  [profile] upsertPtoEntries (${sheetResult.ptoEntries.length} entries, ${upserted} upserted): ${Date.now() - ptoStart}ms`,
+          `  [profile] upsertPtoEntries (${sheetResult.ptoEntries.length} entries, ${upserted} upserted, ${autoApproved} auto-approved): ${Date.now() - ptoStart}ms`,
         );
+
+        // Filter acknowledgements: months with unapproved PTO entries
+        // should NOT be auto-acknowledged — they need manual admin review.
+        // Convert employee acks to "warning" and remove admin acks for those months.
+        let acksToSync = sheetResult.acknowledgements;
+        if (violationNotes.size > 0) {
+          acksToSync = sheetResult.acknowledgements
+            .filter((ack) => {
+              // Remove admin acks for months with violations
+              if (ack.type === "admin" && violationNotes.has(ack.month)) {
+                return false;
+              }
+              return true;
+            })
+            .map((ack) => {
+              // Mark employee acks as "warning" for months with violations
+              if (
+                ack.type === "employee" &&
+                violationNotes.has(ack.month) &&
+                ack.status !== "warning"
+              ) {
+                return { ...ack, status: "warning" as const };
+              }
+              return ack;
+            });
+        }
 
         // Upsert acknowledgements
         const ackStart = Date.now();
         const acksSynced = await upsertAcknowledgements(
           dataSource,
           employeeId,
-          sheetResult.acknowledgements,
+          acksToSync,
           adminId,
+          violationNotes,
         );
         result.acknowledgementsSynced += acksSynced;
         log?.(
@@ -587,6 +658,7 @@ export async function importExcelWorkbook(
           name: sheetResult.employee.name,
           employeeId,
           ptoEntries: upserted,
+          ptoEntriesAutoApproved: autoApproved,
           acknowledgements: acksSynced,
           created,
         });

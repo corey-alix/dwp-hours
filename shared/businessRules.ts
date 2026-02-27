@@ -820,6 +820,16 @@ export interface AutoApproveResult {
   violations: string[];
 }
 
+/** Context needed to perform auto-approve evaluation during Excel import. */
+export interface AutoApproveImportContext {
+  /** Employee's hire date (YYYY-MM-DD). */
+  hireDate: string;
+  /** Hours carried over from the prior year. */
+  carryoverHours: number;
+  /** Set of YYYY-MM month strings that have "warning" acknowledgement status. */
+  warningMonths: ReadonlySet<string>;
+}
+
 /**
  * Pure function that determines whether a single imported PTO entry should
  * be auto-approved based on annual limits and POLICY.md rules.

@@ -75,7 +75,8 @@ import { seedEmployees, seedPTOEntries } from "../shared/seedData.js";
 import { assembleReportData } from "./reportService.js";
 import { generateHtmlReport } from "./reportGenerators/htmlReport.js";
 import { generateExcelReport } from "./reportGenerators/excelReport.js";
-import { importExcelWorkbook, upsertEmployee, upsertPtoEntries, upsertAcknowledgements, type AutoApproveImportContext } from "./reportGenerators/excelImport.js";
+import { importExcelWorkbook, upsertEmployee, upsertPtoEntries, upsertAcknowledgements } from "./reportGenerators/excelImport.js";
+import { type AutoApproveImportContext } from "../shared/businessRules.js";
 import multer from "multer";
 import type {
   PTOCreateResponse,
@@ -2893,11 +2894,11 @@ initDatabase()
             );
 
             logger.info(
-              `Excel import completed: ${result.employeesProcessed} employees, ${result.ptoEntriesUpserted} PTO entries`,
+              `Excel import completed: ${result.employeesProcessed} employees, ${result.ptoEntriesUpserted} PTO entries (${result.ptoEntriesAutoApproved} auto-approved)`,
             );
 
             res.json({
-              message: `Import complete: ${result.employeesProcessed} employees processed (${result.employeesCreated} created), ${result.ptoEntriesUpserted} PTO entries upserted, ${result.acknowledgementsSynced} acknowledgements synced.`,
+              message: `Import complete: ${result.employeesProcessed} employees processed (${result.employeesCreated} created), ${result.ptoEntriesUpserted} PTO entries upserted (${result.ptoEntriesAutoApproved} auto-approved), ${result.acknowledgementsSynced} acknowledgements synced.`,
               ...result,
             });
           } finally {

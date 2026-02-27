@@ -18,54 +18,54 @@ This enhances the admin import workflow and reduces manual approval burden for c
 
 ### Phase 0: Reserve Sys-Admin Account (`employee_id=0`)
 
-- [ ] Reserve `employee_id=0` for the internal sys-admin account in the database seed/schema
-- [ ] Ensure `employee_id=0` is excluded from employee listings, PTO dashboards, and admin employee management
-- [ ] Add a constant `SYS_ADMIN_EMPLOYEE_ID = 0` to `shared/businessRules.ts`
-- [ ] Use `SYS_ADMIN_EMPLOYEE_ID` as the `approved_by` value for auto-approved import entries (distinct from human admin approvals)
-- [ ] **Validation**: `pnpm run build` passes, verify sys-admin account does not appear in employee UIs
+- [x] Reserve `employee_id=0` for the internal sys-admin account in the database seed/schema
+- [x] Ensure `employee_id=0` is excluded from employee listings, PTO dashboards, and admin employee management
+- [x] Add a constant `SYS_ADMIN_EMPLOYEE_ID = 0` to `shared/businessRules.ts`
+- [x] Use `SYS_ADMIN_EMPLOYEE_ID` as the `approved_by` value for auto-approved import entries (distinct from human admin approvals)
+- [x] **Validation**: `pnpm run build` passes, verify sys-admin account does not appear in employee UIs
 
 ### Phase 1: Feature Flag & Business Rules
 
-- [ ] Add `ENABLE_IMPORT_AUTO_APPROVE` feature flag to `shared/businessRules.ts` (default: `true`)
-- [ ] Add JSDoc explaining the flag's purpose and scope (Excel import only, not app-submitted PTO)
-- [ ] Add a pure function `shouldAutoApproveImportEntry(entry, employeeLimits, policyContext)` to `shared/businessRules.ts` that returns `{ approved: boolean; violations: string[] }` — checks all annual limits **and** POLICY.md rules (e.g., no PTO borrowing after first year of service)
-- [ ] **Validation**: `pnpm run build` passes, unit tests for `shouldAutoApproveImportEntry`
+- [x] Add `ENABLE_IMPORT_AUTO_APPROVE` feature flag to `shared/businessRules.ts` (default: `true`)
+- [x] Add JSDoc explaining the flag's purpose and scope (Excel import only, not app-submitted PTO)
+- [x] Add a pure function `shouldAutoApproveImportEntry(entry, employeeLimits, policyContext)` to `shared/businessRules.ts` that returns `{ approved: boolean; violations: string[] }` — checks all annual limits **and** POLICY.md rules (e.g., no PTO borrowing after first year of service)
+- [x] **Validation**: `pnpm run build` passes, unit tests for `shouldAutoApproveImportEntry`
 
 ### Phase 2: Server — Enhance `upsertPtoEntries` to Support Auto-Approve
 
-- [ ] Modify `upsertPtoEntries` in `server/reportGenerators/excelImport.ts` to accept an optional `adminId` parameter
-- [ ] When `ENABLE_IMPORT_AUTO_APPROVE` is `true`:
+- [x] Modify `upsertPtoEntries` in `server/reportGenerators/excelImport.ts` to accept an optional `autoApproveCtx` parameter
+- [x] When `ENABLE_IMPORT_AUTO_APPROVE` is `true`:
   - Compute per-employee annual usage totals (PTO, Sick, Bereavement, Jury Duty) from existing + newly inserted entries
   - Compute policy context (hire date, years of service, available PTO balance including carryover from L42)
   - For each new entry, call `shouldAutoApproveImportEntry` with the running totals and policy context
   - If the entry passes, set `approved_by = SYS_ADMIN_EMPLOYEE_ID` (0) on insert
   - If the entry fails, leave `approved_by = null`, add a warning, and **record policy violations as notes** on the PTO entry (`notes` field)
-- [ ] When `ENABLE_IMPORT_AUTO_APPROVE` is `false`, preserve current behaviour (`approved_by = null`)
-- [ ] For entries that fail auto-approve, also annotate the corresponding month's acknowledgement with policy violation details
-- [ ] **Validation**: `pnpm run build` passes, unit tests for the enhanced upsert logic
+- [x] When `ENABLE_IMPORT_AUTO_APPROVE` is `false`, preserve current behaviour (`approved_by = null`)
+- [x] For entries that fail auto-approve, also annotate the corresponding month's acknowledgement with policy violation details
+- [x] **Validation**: `pnpm run build` passes, unit tests for the enhanced upsert logic
 
 ### Phase 3: Server — Pass `adminId` Through the Import Endpoint
 
-- [ ] In the `POST /api/admin/import-bulk` handler (`server/server.mts`), pass auto-approve context to `upsertPtoEntries` (uses `SYS_ADMIN_EMPLOYEE_ID`, not the human admin's ID)
-- [ ] Include auto-approve counts in the response (e.g., `ptoEntriesAutoApproved` alongside `ptoEntriesUpserted`)
+- [x] In the `POST /api/admin/import-bulk` handler (`server/server.mts`), pass auto-approve context to `upsertPtoEntries` (uses `SYS_ADMIN_EMPLOYEE_ID`, not the human admin's ID)
+- [x] Include auto-approve counts in the response (e.g., `ptoEntriesAutoApproved` alongside `ptoEntriesUpserted`)
 - [ ] **Validation**: `pnpm run build` passes, manual test with import showing auto-approved vs. pending entries
 
 ### Phase 4: Consider Acknowledgement Warning Status
 
-- [ ] During import, check each employee's `acknowledgements` array for months with `status: "warning"`
-- [ ] Entries falling in a "warning" month should **not** be auto-approved regardless of limit checks
-- [ ] Add this condition to `shouldAutoApproveImportEntry` or as a separate month-level check in the upsert loop
-- [ ] **Validation**: Unit test confirming warning-month entries remain unapproved
+- [x] During import, check each employee's `acknowledgements` array for months with `status: "warning"`
+- [x] Entries falling in a "warning" month should **not** be auto-approved regardless of limit checks
+- [x] Add this condition to `shouldAutoApproveImportEntry` or as a separate month-level check in the upsert loop
+- [x] **Validation**: Unit test confirming warning-month entries remain unapproved
 
 ### Phase 5: Client — Display Auto-Approve Results
 
-- [ ] Update the import result rendering in `admin-settings-page/index.ts` to show auto-approved count
-- [ ] Per-employee detail should indicate how many entries were auto-approved vs. pending review
+- [x] Update the import result rendering in `admin-settings-page/index.ts` to show auto-approved count
+- [x] Per-employee detail should indicate how many entries were auto-approved vs. pending review
 - [ ] **Validation**: Manual testing of import result display
 
 ### Phase 6: Testing & Quality Gates
 
-- [ ] Write Vitest unit tests for `shouldAutoApproveImportEntry` covering:
+- [x] Write Vitest unit tests for `shouldAutoApproveImportEntry` covering:
   - Entry within all limits → auto-approved (approved_by = 0)
   - Sick hours exceeding 24-hour annual limit → not auto-approved, violation note recorded
   - Bereavement exceeding 16-hour limit → not auto-approved, violation note recorded
@@ -74,9 +74,9 @@ This enhances the admin import workflow and reduces manual approval burden for c
   - PTO borrowing after first year of service → not auto-approved, violation note recorded
   - Entry in a "warning" acknowledgement month → not auto-approved
   - Feature flag disabled → nothing auto-approved (all approved_by = null)
-- [ ] Write Vitest unit tests for modified `upsertPtoEntries` with mock DataSource
-- [ ] `pnpm run build` passes
-- [ ] `pnpm run lint` passes
+- [x] Write Vitest unit tests for modified `upsertPtoEntries` with mock DataSource
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
 - [ ] Manual testing: import a clean spreadsheet, verify entries appear approved in monthly review calendar (checkmarks)
 - [ ] Manual testing: import a spreadsheet with limit-exceeding entries, verify those appear in PTO Request Queue
 - [ ] Documentation updated (README import section)
@@ -125,3 +125,121 @@ This enhances the admin import workflow and reduces manual approval burden for c
 1. **Resolved**: Auto-approved import entries use a reserved **sys-admin account (`employee_id=0`)** as the `approved_by` value, which is distinct from human admin IDs. The existing checkmark indicator is sufficient visually — the distinction is in the data (`approved_by=0` vs. a human admin ID).
 2. **Resolved**: Auto-approve must respect **all** POLICY.md rules, not just annual limits. In particular, "PTO should not be borrowed typically after the first year of service" — any entry that would cause negative balance (borrowing) after the employee's first year must **not** be auto-approved. Policy violations must be recorded as notes on the imported `pto_entries` and `acknowledgements`.
 3. **Resolved**: Not a valid scenario. The prior-year carryover is always available from the spreadsheet at cell **L42** (January row of the PTO Calculation section). The `parseCarryoverHours()` function in `shared/excelParsing.ts` already reads this value. Hire date is also extracted from cell R2. Both fields are populated before PTO entries are processed.
+
+## Implementation Status (2026-02-27)
+
+### Completed
+
+All core implementation and automated testing is complete. Phases 0–6 are code-complete — `pnpm run build`, `pnpm run lint`, and all 1127 tests pass. The feature is ready for manual testing and documentation updates.
+
+**Files changed:**
+
+| File                                        | Change                                                                                                                                                                                                                                                        |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `shared/businessRules.ts`                   | Added `SYS_ADMIN_EMPLOYEE_ID`, `ENABLE_IMPORT_AUTO_APPROVE`, interfaces (`ImportEntryForAutoApprove`, `AutoApproveEmployeeLimits`, `AutoApprovePolicyContext`, `AutoApproveResult`), and `shouldAutoApproveImportEntry()` pure function                       |
+| `shared/api-models.d.ts`                    | Added `ptoEntriesAutoApproved` to `BulkImportResponse` and per-employee detail                                                                                                                                                                                |
+| `db/schema.sql`                             | Added `INSERT OR IGNORE` for sys-admin account (id=0, name='System', role='System')                                                                                                                                                                           |
+| `scripts/seed.ts`                           | Added explicit sys-admin insert for seed path                                                                                                                                                                                                                 |
+| `server/server.mts`                         | Ensured sys-admin exists on startup; excluded id=0 from `/api/employees` and `/api/admin/monthly-review`; wired auto-approve context into `POST /api/admin/import-bulk`; added auto-approve counts to response                                                |
+| `server/reportService.ts`                   | Excluded id=0 from report employee listings                                                                                                                                                                                                                   |
+| `server/reportGenerators/excelImport.ts`    | Added `AutoApproveImportContext` interface; enhanced `upsertPtoEntries` to accept optional auto-approve context, query existing annual usage, maintain running totals, call `shouldAutoApproveImportEntry`, set `approved_by`, and record violations in notes |
+| `client/pages/admin-settings-page/index.ts` | Updated import result rendering to show auto-approved counts per-employee and in summary                                                                                                                                                                      |
+| `tests/auto-approve-import.test.ts`         | New: 17 unit tests covering all `shouldAutoApproveImportEntry` scenarios + 4 integration tests for `upsertPtoEntries`                                                                                                                                         |
+| `tests/database.test.ts`                    | Fixed employee count assertion to exclude sys-admin row                                                                                                                                                                                                       |
+
+### Remaining Work
+
+1. **Phase 3/5 — Manual testing**: Import a real spreadsheet with the dev server running to verify auto-approved entries show checkmarks in the monthly review calendar, and that limit-exceeding entries appear in the PTO Request Queue.
+2. **Phase 6 — Documentation**: Update README import section to describe auto-approve behavior.
+
+### Bug: N Rosenberger (employee_id=54) — Missing Acknowledgements / Shows "Unlocked" (2026-02-27)
+
+**Symptom**: N Rosenberger's Monthly Employee Review card shows "Unlocked" (no acknowledgement) even though the employee was imported from the spreadsheet successfully (employee record exists, PTO limits display correctly). 65 of 69 employees have acknowledgements for 2018-02; employee 54 is the only imported employee that does not.
+
+**Root Cause**: The import of the "N Rosenberger" sheet **crashes** partway through processing due to a missing hire date. The error chain is:
+
+1. `parseEmployeeInfo(ws)` returns `hireDate: undefined` because the hire date cell (R2) is blank/unparseable on that sheet.
+2. The employee record **is** upserted successfully (with a fallback hire date of `new Date()`), incrementing `employeesProcessed`.
+3. The auto-approve context is built with `hireDate: sheetResult.employee.hireDate!` — which is `undefined` cast to `string` via the non-null assertion.
+4. `upsertPtoEntries` calls `computeAnnualAllocation(undefined, year)` → `parseDate(undefined)` → throws `Error: Invalid date string:`.
+5. The outer `catch (sheetError)` block in `importExcelWorkbook` catches the error, emits a warning `"Failed to process sheet 'N Rosenberger': Error: Invalid date string:"`, and **skips the rest of the processing** for that sheet — including `upsertAcknowledgements`.
+6. Result: the employee exists in the DB, but has **zero acknowledgements** and **zero PTO entries** (the entries parsed before the crash were never persisted). The monthly review query finds the employee but no `AdminAcknowledgement` row → `acknowledgedByAdmin: false`, no `Acknowledgement` row → `calendarLocked: false`.
+
+**Two distinct bugs**:
+
+1. **Crash on missing hire date**: The auto-approve context passes `undefined` as `hireDate` without guarding for the case where `parseEmployeeInfo` couldn't extract a hire date. This causes a downstream `parseDate` failure that aborts the entire sheet.
+   - **Fix**: Guard `autoApproveCtx.hireDate` — if hire date is missing/unparseable, either skip auto-approve for that employee (set `autoApproveCtx = undefined`) or use a sensible fallback. The employee record already uses `new Date()` as a fallback in `upsertEmployee`, so the auto-approve context should too, or simply disable auto-approve when hire date is unknown.
+
+2. **No acknowledgements for zero-activity employees when import crashes**: Even though the employee was created, the crash prevents acknowledgement creation. Employees with no PTO activity should still get acknowledgements synced (all 12 months with status=null indicating clean months).
+   - **Fix**: Move the acknowledgement upsert before the PTO upsert, or restructure the try/catch so that `upsertAcknowledgements` runs even if PTO upsert fails, or handle the hire date issue upstream so the crash doesn't happen.
+
+**Affected code locations**:
+| File | Line | Issue |
+| --- | --- | --- |
+| `server/reportGenerators/excelImport.ts` | ~587 | `hireDate: sheetResult.employee.hireDate!` — non-null assertion on potentially undefined value |
+| `server/reportGenerators/excelImport.ts` | ~300 | `computeAnnualAllocation(autoApproveCtx.hireDate, year)` — crashes when hireDate is undefined |
+| `server/reportGenerators/excelImport.ts` | ~657-660 | `catch (sheetError)` — skips acknowledgement upsert entirely |
+
+**Recommended fix approach**: Guard the `autoApproveCtx` construction: if `hireDate` is falsy, set `autoApproveCtx` to `undefined` (disabling auto-approve for that employee but allowing the rest of the import — PTO upserts and acknowledgement syncing — to proceed normally).
+
+### Phase 7: Import Result Severity Tiers (Errors / Warnings / Resolved)
+
+The import result display currently has a single flat list of "warnings" (orange). This is insufficient — fatal issues like a missing hire date that causes a sheet to abort should be visually distinct from benign reconciliation notes. **Three tiers** are needed:
+
+#### Requirements
+
+1. **Errors (red)** — Fatal issues that prevented part of the import from completing. These require admin attention.
+   - Example: `"N Rosenberger: hire date not found — sheet processing aborted (no PTO entries or acknowledgements imported)"`
+   - Displayed as `"1 error"` in red in the import result summary
+   - Stored in a new `errors: string[]` array on `ImportResult` and `BulkImportResponse`
+
+2. **Warnings (orange)** — Non-fatal issues that may need review but did not prevent import. Current behavior, kept as-is.
+   - Example: `"N Rosenberger month 9: PTO hours mismatch. Declared=32.5h, detected=32h, gap=0.5h."`
+   - Displayed as `"438 warnings"` in orange (existing behavior)
+
+3. **Resolved (green)** — Issues that were automatically corrected by the import logic. Currently these are mixed into warnings unnecessarily.
+   - Example: `"N Rosenberger: hire date parsed as '2006-03-15' after stripping suffix '(FT)' from cell value '3/15/06 (FT)'"`
+   - Displayed as `"300 resolved"` in green in the import result summary
+   - Stored in a new `resolved: string[]` array on `ImportResult` and `BulkImportResponse`
+
+#### Checklist
+
+- [ ] Add `errors: string[]` and `resolved: string[]` to `ImportResult` in `shared/excelParsing.ts`
+- [ ] Add `errors: string[]` and `resolved: string[]` to `BulkImportResponse` in `shared/api-models.d.ts`
+- [ ] Classify existing warnings: move auto-corrected items to `resolved`, move fatal aborts to `errors`
+- [ ] Update `importExcelWorkbook` catch block to push to `errors` instead of `warnings` when a sheet fails fatally
+- [ ] Update import result rendering in `client/pages/admin-settings-page/index.ts`:
+  - Show `"N errors"` in red if errors > 0
+  - Show `"N warnings"` in orange (existing)
+  - Show `"N resolved"` in green if resolved > 0
+- [ ] Update the `POST /api/admin/import-excel` and `POST /api/admin/import-bulk` response handlers to pass through all three arrays
+- [ ] **Validation**: `pnpm run build` passes, `pnpm run lint` passes
+- [ ] **Validation**: Manual test — import spreadsheet, verify red/orange/green severity display
+
+### Phase 8: Fix Hire Date Parsing — Strip Parenthetical Suffixes
+
+The N Rosenberger sheet has hire date cell text like `"Hire Date: 3/15/06 (FT)"`. The current code extracts `"3/15/06 (FT)"` via regex, then passes it to `smartParseDate()`, which fails because `(FT)` doesn't match any date pattern.
+
+#### Requirements
+
+1. **Strip parenthetical suffixes** before passing to `smartParseDate()`. The regex capture from `hire\s*date:\s*(.+)` should have trailing parenthetical content removed (e.g., `(FT)`, `(PT)`, `(Part Time)`, etc.).
+2. **Report as resolved** — when stripping changes the input and parsing succeeds, add a `resolved` message: `"Sheet 'N Rosenberger': hire date parsed as '2006-03-15' after stripping suffix '(FT)' from cell value '3/15/06 (FT)'"`
+3. **Report as error if still unparseable** — if after stripping the date still can't be parsed, push to `errors` (not warnings): `"Sheet 'N Rosenberger': hire date not found — cell R2 text: 'Hire Date: ???'"`
+
+#### Checklist
+
+- [ ] In `parseEmployeeInfo` (`shared/excelParsing.ts`), after extracting `datePart` from the regex, strip trailing parenthetical content: `datePart.replace(/\s*\(.*\)\s*$/, '').trim()`
+- [ ] If stripping was needed and `smartParseDate` succeeds, emit a `resolved` message (requires `parseEmployeeInfo` or `parseEmployeeSheet` to return resolved messages — extend `SheetImportResult` accordingly)
+- [ ] If `smartParseDate` still fails after stripping, emit an `error` message instead of a warning
+- [ ] Add unit tests for hire date parsing with `(FT)`, `(PT)`, and other suffixes
+- [ ] **Validation**: `pnpm run build` passes, existing tests pass, N Rosenberger imports fully with hire date `2006-03-15`
+
+#### Affected Files
+
+| File                                        | Change                                                                                                     |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `shared/excelParsing.ts`                    | `parseEmployeeInfo` — strip parenthetical suffix; `SheetImportResult` — add `resolved` and `errors` arrays |
+| `shared/excelParsing.ts`                    | `ImportResult` — add `errors` and `resolved` arrays                                                        |
+| `shared/api-models.d.ts`                    | `BulkImportResponse` — add `errors` and `resolved` arrays                                                  |
+| `server/reportGenerators/excelImport.ts`    | `importExcelWorkbook` — classify fatal catch as `error`; propagate `resolved` from sheet results           |
+| `client/pages/admin-settings-page/index.ts` | Render three severity tiers with appropriate colors                                                        |

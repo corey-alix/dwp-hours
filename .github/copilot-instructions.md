@@ -78,6 +78,153 @@ pnpm query:xlsx --file reports/2018.xlsx --sheet "A Bylenga" --cell E8
 
 Output includes raw JSON for `cell.fill` and `cell.note` objects, making it easy to see theme-indexed colors, tints, and rich-text comment structures that may differ from ARGB-based legend colors.
 
+### API Authentication via curl
+
+The server uses JWT-based authentication with an `auth_hash` cookie. To authenticate as admin from the command line:
+
+**Step 1 — Request a magic link** (returns a one-time JWT token):
+
+```bash
+MAGIC_TOKEN=$(curl -s -X POST http://localhost:${PORT:-3003}/api/auth/request-link \
+  -H "Content-Type: application/json" -H "X-Test-Mode: true" \
+  -d '{"identifier":"admin@example.com"}' \
+  | python3 -c "import json,sys; print(json.load(sys.stdin)['magicLink'].split('token=')[1])")
+```
+
+**Step 2 — Exchange the magic token for a session token**:
+
+```bash
+AUTH_TOKEN=$(curl -s "http://localhost:${PORT:-3003}/api/auth/validate?token=$MAGIC_TOKEN" \
+  | python3 -c "import json,sys; print(json.load(sys.stdin)['authToken'])")
+```
+
+**Step 3 — Use `AUTH_TOKEN` as the `auth_hash` cookie** on all subsequent requests:
+
+```bash
+curl -s http://localhost:${PORT:-3003}/api/employees \
+  -H "Cookie: auth_hash=$AUTH_TOKEN"
+```
+
+> **Note**: The magic link token expires in 1 hour. The session token (`authToken`) expires in 10 years. Save the session token to a file (e.g., `/tmp/admin_token.txt`) for reuse across commands in the same session.
+
+### Excel Import via API
+
+The server exposes two import endpoints. Use the **file upload** endpoint for importing `.xlsx` files directly:
+
+**Upload endpoint** — `POST /api/admin/import-excel` (server-side ExcelJS parsing):
+
+```bash
+AUTH_TOKEN=$(cat /tmp/admin_token.txt)
+curl -s -X POST http://localhost:${PORT:-3003}/api/admin/import-excel \
+  -H "Cookie: auth_hash=$AUTH_TOKEN" \
+  -F "file=@reports/2018.xlsx"
+```
+
+The response JSON includes:
+
+- `employeesProcessed`, `employeesCreated` — employee counts
+- `ptoEntriesUpserted`, `ptoEntriesAutoApproved` — PTO entry counts
+- `acknowledgementsSynced` — acknowledgement counts
+- `warnings[]` — per-entry parsing/reconciliation warnings
+- `perEmployee[]` — per-employee breakdown with `name`, `employeeId`, `ptoEntries`, `ptoEntriesAutoApproved`, `acknowledgements`, `created`
+
+To filter import results for a specific employee:
+
+```bash
+curl -s -X POST ... | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+for emp in data.get('perEmployee', []):
+    if 'Cole' in emp.get('name', ''):
+        print(json.dumps(emp, indent=2))
+for w in data.get('warnings', []):
+    if 'Cole' in w:
+        print('WARNING:', w)
+"
+```
+
+There is also a **JSON bulk import** endpoint — `POST /api/admin/import-bulk` — which accepts `{ employees: [...] }` with browser-side-parsed data (used by the client UI). This avoids server-side ExcelJS processing on memory-constrained deployments.
+
+### Verifying Import Results via API
+
+After importing, verify specific employee data by querying these endpoints (all require `auth_hash` cookie):
+
+| Endpoint                                  | Purpose                                                                                                 |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `GET /api/employees`                      | List all employees (find employee IDs)                                                                  |
+| `GET /api/admin/pto`                      | All PTO entries (check `approved_by` field: `0` = sys-admin auto-approved, `null` = unapproved/pending) |
+| `GET /api/admin/monthly-review/{YYYY-MM}` | Monthly review cards per employee (check `acknowledgedByAdmin`, `employeeAckStatus`, `employeeAckNote`) |
+
+**Example — Check if an employee's PTO entry is approved**:
+
+```bash
+curl -s "http://localhost:${PORT:-3003}/api/admin/pto" \
+  -H "Cookie: auth_hash=$AUTH_TOKEN" \
+  | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+for e in data:
+    if e.get('employeeId') == 17 and '2018-02' in e.get('date',''):
+        print(json.dumps(e, indent=2))
+"
+```
+
+**Example — Check if a month is admin-acknowledged**:
+
+```bash
+curl -s "http://localhost:${PORT:-3003}/api/admin/monthly-review/2018-02" \
+  -H "Cookie: auth_hash=$AUTH_TOKEN" \
+  | python3 -c "
+import json, sys
+for item in json.load(sys.stdin):
+    if item.get('employeeId') == 17:
+        print(json.dumps(item, indent=2))
+"
+```
+
+Key response fields for monthly review:
+
+- `acknowledgedByAdmin` — `true`/`false` — whether the admin has acknowledged this month
+- `employeeAckStatus` — `"warning"` if the month has import discrepancies, `null` if clean
+- `employeeAckNote` — description of import violations or discrepancies
+
+### Complete Import Verification Workflow
+
+To seed the database, import a spreadsheet, and verify a specific employee in one session:
+
+```bash
+# 1. Seed fresh database and restart server
+pnpm seed
+# (restart the server process to pick up the new database)
+
+# 2. Authenticate
+# (steps 1-2 from "API Authentication via curl" above, save to /tmp/admin_token.txt)
+
+# 3. Import
+AUTH_TOKEN=$(cat /tmp/admin_token.txt)
+curl -s -X POST http://localhost:3003/api/admin/import-excel \
+  -H "Cookie: auth_hash=$AUTH_TOKEN" \
+  -F "file=@reports/2018.xlsx" | python3 -m json.tool | head -20
+
+# 4. Verify monthly review status
+curl -s "http://localhost:3003/api/admin/monthly-review/2018-02" \
+  -H "Cookie: auth_hash=$AUTH_TOKEN" | python3 -c "
+import json, sys
+for item in json.load(sys.stdin):
+    if 'Cole' in item.get('employeeName',''):
+        print(json.dumps(item, indent=2))
+"
+
+# 5. Verify PTO entry approval
+curl -s "http://localhost:3003/api/admin/pto" \
+  -H "Cookie: auth_hash=$AUTH_TOKEN" | python3 -c "
+import json, sys
+for e in json.load(sys.stdin):
+    if e.get('employeeId') == 17 and '2018-02-11' in e.get('date',''):
+        print(json.dumps(e, indent=2))
+"
+```
+
 ## Task Management System
 
 The project uses a structured task system in the `TASKS/` folder. Always reference and follow these guidelines:

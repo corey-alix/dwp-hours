@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import {
   shouldAutoApproveImportEntry,
   ENABLE_IMPORT_AUTO_APPROVE,
@@ -10,6 +10,77 @@ import {
   type AutoApproveResult,
   type PTOType,
 } from "../shared/businessRules.js";
+import {
+  upsertPtoEntries,
+  upsertAcknowledgements,
+} from "../server/reportGenerators/excelImport.js";
+import { type ImportedAcknowledgement } from "../shared/excelParsing.js";
+import { DataSource } from "typeorm";
+import initSqlJs from "sql.js";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import {
+  Employee,
+  PtoEntry,
+  MonthlyHours,
+  Acknowledgement,
+  AdminAcknowledgement,
+} from "../server/entities/index.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// ── Test DataSource Setup ──
+
+let testDataSource: DataSource;
+
+beforeAll(async () => {
+  const SQL = await initSqlJs();
+  const testDb = new SQL.Database();
+
+  // Load schema
+  const schemaPath = path.join(__dirname, "..", "db", "schema.sql");
+  const schema = fs.readFileSync(schemaPath, "utf8");
+  testDb.exec(schema);
+
+  // Create test employee
+  testDb.exec(`
+    INSERT INTO employees (id, name, identifier, hire_date, carryover_hours)
+    VALUES (1, 'Test Employee', 'TE001', '2020-01-01', 40);
+  `);
+
+  // Create TypeORM data source
+  testDataSource = new DataSource({
+    type: "sqljs",
+    database: new Uint8Array(testDb.export()),
+    entities: [
+      Employee,
+      PtoEntry,
+      MonthlyHours,
+      Acknowledgement,
+      AdminAcknowledgement,
+    ],
+    synchronize: false,
+    logging: false,
+    autoSave: false,
+  });
+
+  await testDataSource.initialize();
+});
+
+afterAll(async () => {
+  if (testDataSource) {
+    await testDataSource.destroy();
+  }
+});
+
+beforeEach(async () => {
+  // Clear PTO entries, acknowledgements, and admin acknowledgements before each test
+  await testDataSource.getRepository(PtoEntry).clear();
+  await testDataSource.getRepository(Acknowledgement).clear();
+  await testDataSource.getRepository(AdminAcknowledgement).clear();
+});
 
 // ── Helpers ──
 
@@ -275,6 +346,313 @@ describe("Import Auto-Approve", () => {
       // Different violation messages
       expect(firstYear.violations[0]).toContain("exceeds available balance");
       expect(secondYear.violations[0]).toContain("borrowing not permitted");
+    });
+  });
+
+  describe("upsertPtoEntries Integration", () => {
+    it("auto-approves entries within limits", async () => {
+      const entries: ImportEntryForAutoApprove[] = [
+        { date: "2025-06-01", type: "PTO", hours: 8 },
+        { date: "2025-06-02", type: "Sick", hours: 8 },
+      ];
+
+      const autoApproveCtx = {
+        hireDate: "2020-01-01",
+        carryoverHours: 40,
+        warningMonths: new Set<string>(),
+      };
+
+      const result = await upsertPtoEntries(
+        testDataSource,
+        1,
+        entries,
+        autoApproveCtx,
+      );
+
+      expect(result.upserted).toBe(2);
+      expect(result.autoApproved).toBe(2);
+      expect(result.warnings).toHaveLength(0);
+
+      // Check database
+      const ptoEntries = await testDataSource
+        .getRepository(PtoEntry)
+        .find({ where: { employee_id: 1 } });
+      expect(ptoEntries).toHaveLength(2);
+      expect(ptoEntries[0].approved_by).toBe(SYS_ADMIN_EMPLOYEE_ID);
+      expect(ptoEntries[1].approved_by).toBe(SYS_ADMIN_EMPLOYEE_ID);
+    });
+
+    it("does not auto-approve entries exceeding limits", async () => {
+      const entries: ImportEntryForAutoApprove[] = [
+        { date: "2025-06-01", type: "Sick", hours: 32 }, // Exceeds 24h limit
+      ];
+
+      const autoApproveCtx = {
+        hireDate: "2020-01-01",
+        carryoverHours: 40,
+        warningMonths: new Set<string>(),
+      };
+
+      const result = await upsertPtoEntries(
+        testDataSource,
+        1,
+        entries,
+        autoApproveCtx,
+      );
+
+      expect(result.upserted).toBe(1);
+      expect(result.autoApproved).toBe(0);
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]).toContain("not auto-approved");
+
+      // Check database
+      const ptoEntries = await testDataSource
+        .getRepository(PtoEntry)
+        .find({ where: { employee_id: 1, date: "2025-06-01" } });
+      expect(ptoEntries).toHaveLength(1);
+      expect(ptoEntries[0].approved_by).toBeNull();
+      expect(ptoEntries[0].notes).toContain("Auto-approve denied");
+    });
+
+    it("respects running totals across entries", async () => {
+      const entries: ImportEntryForAutoApprove[] = [
+        { date: "2025-06-01", type: "Sick", hours: 16 }, // Within limit
+        { date: "2025-06-02", type: "Sick", hours: 16 }, // Pushes over 24h limit
+      ];
+
+      const autoApproveCtx = {
+        hireDate: "2020-01-01",
+        carryoverHours: 40,
+        warningMonths: new Set<string>(),
+      };
+
+      const result = await upsertPtoEntries(
+        testDataSource,
+        1,
+        entries,
+        autoApproveCtx,
+      );
+
+      expect(result.upserted).toBe(2);
+      expect(result.autoApproved).toBe(1); // Only first entry approved
+      expect(result.warnings).toHaveLength(1);
+
+      // Check database
+      const ptoEntries = await testDataSource
+        .getRepository(PtoEntry)
+        .find({ where: { employee_id: 1 }, order: { date: "ASC" } });
+      expect(ptoEntries).toHaveLength(2);
+      expect(ptoEntries[0].approved_by).toBe(SYS_ADMIN_EMPLOYEE_ID);
+      expect(ptoEntries[1].approved_by).toBeNull();
+    });
+
+    it("returns violation notes for acknowledgements", async () => {
+      const entries: ImportEntryForAutoApprove[] = [
+        { date: "2025-06-01", type: "Sick", hours: 32 }, // Exceeds limit
+      ];
+
+      const autoApproveCtx = {
+        hireDate: "2020-01-01",
+        carryoverHours: 40,
+        warningMonths: new Set<string>(),
+      };
+
+      const result = await upsertPtoEntries(
+        testDataSource,
+        1,
+        entries,
+        autoApproveCtx,
+      );
+
+      expect(result.violationNotes.has("2025-06")).toBe(true);
+      expect(result.violationNotes.get("2025-06")).toContain(
+        "Sick hours would reach",
+      );
+    });
+  });
+
+  describe("Acknowledgement filtering for unapproved entries", () => {
+    it("should NOT auto-acknowledge months that contain unapproved entries", async () => {
+      // Insert a PTO entry that will fail auto-approve (exceeds sick limit)
+      const entries: ImportEntryForAutoApprove[] = [
+        { date: "2025-06-01", type: "Sick", hours: 32 }, // Exceeds 24h limit
+      ];
+
+      const autoApproveCtx = {
+        hireDate: "2020-01-01",
+        carryoverHours: 40,
+        warningMonths: new Set<string>(),
+      };
+
+      const { violationNotes } = await upsertPtoEntries(
+        testDataSource,
+        1,
+        entries,
+        autoApproveCtx,
+      );
+
+      // Simulate the acknowledgements that would come from parsing
+      const acks: ImportedAcknowledgement[] = [
+        { month: "2025-06", type: "employee" },
+        { month: "2025-06", type: "admin" },
+      ];
+
+      // Apply the same filtering logic as importExcelWorkbook
+      const filteredAcks = acks
+        .filter(
+          (ack) => !(ack.type === "admin" && violationNotes.has(ack.month)),
+        )
+        .map((ack) => {
+          if (
+            ack.type === "employee" &&
+            violationNotes.has(ack.month) &&
+            ack.status !== "warning"
+          ) {
+            return { ...ack, status: "warning" as const };
+          }
+          return ack;
+        });
+
+      await upsertAcknowledgements(
+        testDataSource,
+        1,
+        filteredAcks,
+        undefined,
+        violationNotes,
+      );
+
+      // Admin acknowledgement should NOT exist for month with violations
+      const admAcks = await testDataSource
+        .getRepository(AdminAcknowledgement)
+        .find({ where: { employee_id: 1, month: "2025-06" } });
+      expect(admAcks).toHaveLength(0);
+
+      // Employee acknowledgement should exist but with "warning" status
+      const empAcks = await testDataSource
+        .getRepository(Acknowledgement)
+        .find({ where: { employee_id: 1, month: "2025-06" } });
+      expect(empAcks).toHaveLength(1);
+      expect(empAcks[0].status).toBe("warning");
+    });
+
+    it("should auto-acknowledge months where all entries are approved", async () => {
+      // Insert a PTO entry that will pass auto-approve
+      const entries: ImportEntryForAutoApprove[] = [
+        { date: "2025-07-01", type: "PTO", hours: 8 },
+      ];
+
+      const autoApproveCtx = {
+        hireDate: "2020-01-01",
+        carryoverHours: 40,
+        warningMonths: new Set<string>(),
+      };
+
+      const { violationNotes } = await upsertPtoEntries(
+        testDataSource,
+        1,
+        entries,
+        autoApproveCtx,
+      );
+
+      // No violations — month should be acknowledged normally
+      expect(violationNotes.size).toBe(0);
+
+      const acks: ImportedAcknowledgement[] = [
+        { month: "2025-07", type: "employee" },
+        { month: "2025-07", type: "admin" },
+      ];
+
+      await upsertAcknowledgements(testDataSource, 1, acks);
+
+      // Both acknowledgements should exist
+      const admAcks = await testDataSource
+        .getRepository(AdminAcknowledgement)
+        .find({ where: { employee_id: 1, month: "2025-07" } });
+      expect(admAcks).toHaveLength(1);
+
+      const empAcks = await testDataSource
+        .getRepository(Acknowledgement)
+        .find({ where: { employee_id: 1, month: "2025-07" } });
+      expect(empAcks).toHaveLength(1);
+      expect(empAcks[0].status).toBeNull();
+    });
+
+    it("should only filter months with violations, not clean months", async () => {
+      // Mix of clean and violation entries across months
+      const entries: ImportEntryForAutoApprove[] = [
+        { date: "2025-06-01", type: "PTO", hours: 8 }, // Clean
+        { date: "2025-07-01", type: "Sick", hours: 32 }, // Exceeds limit
+      ];
+
+      const autoApproveCtx = {
+        hireDate: "2020-01-01",
+        carryoverHours: 40,
+        warningMonths: new Set<string>(),
+      };
+
+      const { violationNotes } = await upsertPtoEntries(
+        testDataSource,
+        1,
+        entries,
+        autoApproveCtx,
+      );
+
+      // Only July should have violations
+      expect(violationNotes.has("2025-06")).toBe(false);
+      expect(violationNotes.has("2025-07")).toBe(true);
+
+      const acks: ImportedAcknowledgement[] = [
+        { month: "2025-06", type: "employee" },
+        { month: "2025-06", type: "admin" },
+        { month: "2025-07", type: "employee" },
+        { month: "2025-07", type: "admin" },
+      ];
+
+      // Apply filtering
+      const filteredAcks = acks
+        .filter(
+          (ack) => !(ack.type === "admin" && violationNotes.has(ack.month)),
+        )
+        .map((ack) => {
+          if (
+            ack.type === "employee" &&
+            violationNotes.has(ack.month) &&
+            ack.status !== "warning"
+          ) {
+            return { ...ack, status: "warning" as const };
+          }
+          return ack;
+        });
+
+      await upsertAcknowledgements(
+        testDataSource,
+        1,
+        filteredAcks,
+        undefined,
+        violationNotes,
+      );
+
+      // June: both acks should exist (clean month)
+      const juneAdm = await testDataSource
+        .getRepository(AdminAcknowledgement)
+        .find({ where: { employee_id: 1, month: "2025-06" } });
+      expect(juneAdm).toHaveLength(1);
+      const juneEmp = await testDataSource
+        .getRepository(Acknowledgement)
+        .find({ where: { employee_id: 1, month: "2025-06" } });
+      expect(juneEmp).toHaveLength(1);
+      expect(juneEmp[0].status).toBeNull();
+
+      // July: only employee ack with warning, no admin ack
+      const julyAdm = await testDataSource
+        .getRepository(AdminAcknowledgement)
+        .find({ where: { employee_id: 1, month: "2025-07" } });
+      expect(julyAdm).toHaveLength(0);
+      const julyEmp = await testDataSource
+        .getRepository(Acknowledgement)
+        .find({ where: { employee_id: 1, month: "2025-07" } });
+      expect(julyEmp).toHaveLength(1);
+      expect(julyEmp[0].status).toBe("warning");
     });
   });
 });

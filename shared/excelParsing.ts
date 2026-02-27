@@ -146,12 +146,14 @@ export interface ImportResult {
   employeesProcessed: number;
   employeesCreated: number;
   ptoEntriesUpserted: number;
+  ptoEntriesAutoApproved: number;
   acknowledgementsSynced: number;
   warnings: string[];
   perEmployee: {
     name: string;
     employeeId: number;
     ptoEntries: number;
+    ptoEntriesAutoApproved: number;
     acknowledgements: number;
     created: boolean;
   }[];
