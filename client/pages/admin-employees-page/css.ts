@@ -4,6 +4,11 @@ export const styles = `<style>
     padding: var(--space-md);
   }
 
+  .toolbar {
+    position: sticky;
+    bottom: 0;
+  }
+
   .page-heading {
     text-align: center;
     font-size: var(--font-size-xl);

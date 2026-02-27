@@ -132,8 +132,8 @@ col = startCol + dow
   - **D-E (Work Days in Month)**: Number of work days in each month
   - **F-G (Daily Rate)**: Daily PTO accrual rate (e.g., 0.68, 0.71 hours per day)
   - **J (Accrued PTO)**: Accrued PTO hours (single column)
-  - **L-M (Previous Month's Carryover)**: PTO hours carried over from previous month
-  - **O-P (Subtotal PTO hours)**: Subtotal of accrued + carryover hours
+  - **L-M (Previous Month's Carryover)**: PTO hours carried over from previous month. **Cell L42 (January row) specifically contains the prior year's carryover hours** — this is the value used by `parseCarryoverHours()` in `shared/excelParsing.ts` to set `employee.carryover_hours` during import. For subsequent months (rows 43–53), columns L-M contain the running balance carried forward from the previous month within the same year.
+  - **O-P (Subtotal PTO hours)**: Subtotal of accrued + carryover hours. Formula: `J42+(IF(L42="", 0, L42))` for the January row.
   - **S-T (PTO hours per Month)**: PTO hours used/taken during the month
   - **V-W (Total Available PTO)**: Final available PTO balance after usage
 - **Data Pattern**: Each row represents one month (January through December)
