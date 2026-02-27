@@ -6,7 +6,7 @@
  * and computes PTO calculation rows using existing business logic.
  */
 
-import { DataSource } from "typeorm";
+import { DataSource, Not } from "typeorm";
 import { Employee } from "./entities/Employee.js";
 import { PtoEntry } from "./entities/PtoEntry.js";
 import { MonthlyHours } from "./entities/MonthlyHours.js";
@@ -19,6 +19,7 @@ import {
   computeAnnualAllocation,
   MONTH_NAMES,
   BUSINESS_RULES_CONSTANTS,
+  SYS_ADMIN_EMPLOYEE_ID,
 } from "../shared/businessRules.js";
 import { calculateUsedPTO } from "./ptoCalculations.js";
 
@@ -150,8 +151,11 @@ export async function assembleReportData(
   const ackRepo = dataSource.getRepository(Acknowledgement);
   const adminAckRepo = dataSource.getRepository(AdminAcknowledgement);
 
-  // Fetch all employees sorted by name
-  const employees = await employeeRepo.find({ order: { name: "ASC" } });
+  // Fetch all employees sorted by name (exclude sys-admin)
+  const employees = await employeeRepo.find({
+    where: { id: Not(SYS_ADMIN_EMPLOYEE_ID) },
+    order: { name: "ASC" },
+  });
 
   const yearStart = `${year}-01-01`;
   const yearEnd = `${year}-12-31`;

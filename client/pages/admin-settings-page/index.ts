@@ -201,12 +201,22 @@ export class AdminSettingsPage extends BaseComponent implements PageComponent {
 
   /** Render the import result into the status area. */
   private renderImportResult(result: any): void {
+    const autoApprovedInfo = result.ptoEntriesAutoApproved
+      ? ` (${result.ptoEntriesAutoApproved} auto-approved)`
+      : "";
     this.importStatus = `
       <p class="success">${result.message}</p>
       <details>
         <summary>Details (${result.perEmployee?.length || 0} employees)</summary>
         <ul>
-          ${(result.perEmployee || []).map((e: any) => `<li>${e.name}: ${e.ptoEntries} PTO entries, ${e.acknowledgements} acks${e.created ? " (new)" : ""}</li>`).join("")}
+          ${(result.perEmployee || [])
+            .map((e: any) => {
+              const autoApproved = e.ptoEntriesAutoApproved
+                ? ` (${e.ptoEntriesAutoApproved} auto-approved)`
+                : "";
+              return `<li>${e.name}: ${e.ptoEntries} PTO entries${autoApproved}, ${e.acknowledgements} acks${e.created ? " (new)" : ""}</li>`;
+            })
+            .join("")}
         </ul>
         ${
           result.warnings?.length

@@ -53,6 +53,13 @@ import {
   computeAccrualWithHireDate,
   checkSickDayThreshold,
   isAllowedEmailDomain,
+  SYS_ADMIN_EMPLOYEE_ID,
+  ENABLE_IMPORT_AUTO_APPROVE,
+  shouldAutoApproveImportEntry,
+  computeEmployeeBalanceData,
+  type PTOType,
+  type AutoApproveEmployeeLimits,
+  type AutoApprovePolicyContext,
 } from "../shared/businessRules.js";
 import { BACKUP_CONFIG } from "../shared/backupConfig.js";
 import {
@@ -68,7 +75,7 @@ import { seedEmployees, seedPTOEntries } from "../shared/seedData.js";
 import { assembleReportData } from "./reportService.js";
 import { generateHtmlReport } from "./reportGenerators/htmlReport.js";
 import { generateExcelReport } from "./reportGenerators/excelReport.js";
-import { importExcelWorkbook, upsertEmployee, upsertPtoEntries, upsertAcknowledgements } from "./reportGenerators/excelImport.js";
+import { importExcelWorkbook, upsertEmployee, upsertPtoEntries, upsertAcknowledgements, type AutoApproveImportContext } from "./reportGenerators/excelImport.js";
 import multer from "multer";
 import type {
   PTOCreateResponse,
@@ -448,6 +455,17 @@ async function initDatabase() {
     logger.info("Connecting to database with TypeORM...");
     await dataSource.initialize();
     logger.info("Connected to SQLite database with TypeORM.");
+
+    // Ensure sys-admin account (employee_id=0) exists for auto-approve
+    const employeeRepoInit = dataSource.getRepository(Employee);
+    const sysAdmin = await employeeRepoInit.findOne({ where: { id: 0 } });
+    if (!sysAdmin) {
+      await dataSource.query(
+        `INSERT OR IGNORE INTO employees (id, name, identifier, pto_rate, carryover_hours, hire_date, role)
+         VALUES (0, 'System', 'system', 0, 0, '2000-01-01', 'System')`,
+      );
+      logger.info("Sys-admin account (id=0) created.");
+    }
 
     // Initialize DAL
     ptoEntryDAL = new PtoEntryDAL(dataSource);
@@ -1577,8 +1595,9 @@ initDatabase()
           const ackRepo = dataSource.getRepository(Acknowledgement);
           const notificationRepo = dataSource.getRepository(Notification);
 
-          // Get all employees
+          // Get all employees (exclude sys-admin)
           const employees = await employeeRepo.find({
+            where: { id: Not(SYS_ADMIN_EMPLOYEE_ID) },
             order: { name: "ASC" },
           });
 
@@ -1680,6 +1699,9 @@ initDatabase()
           const employeeRepo = dataSource.getRepository(Employee);
 
           let whereCondition: any = {};
+
+          // Exclude sys-admin account from employee listings
+          whereCondition.id = Not(SYS_ADMIN_EMPLOYEE_ID);
 
           if (search) {
             whereCondition.name = Like(`%${search}%`);
@@ -2916,12 +2938,14 @@ initDatabase()
             employeesProcessed: 0,
             employeesCreated: 0,
             ptoEntriesUpserted: 0,
+            ptoEntriesAutoApproved: 0,
             acknowledgementsSynced: 0,
             warnings: [] as string[],
             perEmployee: [] as {
               name: string;
               employeeId: number;
               ptoEntries: number;
+              ptoEntriesAutoApproved: number;
               acknowledgements: number;
               created: boolean;
             }[],
@@ -2965,19 +2989,38 @@ initDatabase()
                 );
                 if (created) result.employeesCreated++;
 
-                // Upsert PTO entries
+                // Upsert PTO entries (with auto-approve context when enabled)
                 const ptoEntries = Array.isArray(emp.ptoEntries)
                   ? emp.ptoEntries
                   : [];
-                const { upserted, warnings: ptoWarnings } =
-                  await upsertPtoEntries(dataSource, employeeId, ptoEntries);
-                result.ptoEntriesUpserted += upserted;
-                result.warnings.push(...ptoWarnings);
 
-                // Upsert acknowledgements
+                // Build auto-approve context from import payload
+                const warningMonths = new Set<string>();
                 const acknowledgements = Array.isArray(emp.acknowledgements)
                   ? emp.acknowledgements
                   : [];
+                for (const ack of acknowledgements) {
+                  if (ack.type === "employee" && ack.status === "warning") {
+                    warningMonths.add(ack.month);
+                  }
+                }
+
+                const autoApproveCtx: AutoApproveImportContext | undefined =
+                  ENABLE_IMPORT_AUTO_APPROVE && emp.hireDate
+                    ? {
+                        hireDate: emp.hireDate,
+                        carryoverHours: emp.carryoverHours || 0,
+                        warningMonths,
+                      }
+                    : undefined;
+
+                const { upserted, autoApproved: empAutoApproved, warnings: ptoWarnings } =
+                  await upsertPtoEntries(dataSource, employeeId, ptoEntries, autoApproveCtx);
+                result.ptoEntriesUpserted += upserted;
+                result.ptoEntriesAutoApproved += empAutoApproved;
+                result.warnings.push(...ptoWarnings);
+
+                // Upsert acknowledgements
                 const acksSynced = await upsertAcknowledgements(
                   dataSource,
                   employeeId,
@@ -2995,13 +3038,14 @@ initDatabase()
                   name: emp.name,
                   employeeId,
                   ptoEntries: upserted,
+                  ptoEntriesAutoApproved: empAutoApproved,
                   acknowledgements: acksSynced,
                   created,
                 });
 
                 logger.info(
                   `[Bulk Import] ${created ? "Created" : "Updated"} "${emp.name}" id=${employeeId}, ` +
-                    `${upserted} PTO entries, ${acksSynced} acknowledgements`,
+                    `${upserted} PTO entries (${empAutoApproved} auto-approved), ${acksSynced} acknowledgements`,
                 );
               } catch (empError) {
                 const msg = `Failed to process employee "${emp.name || "unknown"}": ${empError}`;
@@ -3022,11 +3066,11 @@ initDatabase()
           }
 
           logger.info(
-            `Bulk import completed: ${result.employeesProcessed} employees, ${result.ptoEntriesUpserted} PTO entries`,
+            `Bulk import completed: ${result.employeesProcessed} employees, ${result.ptoEntriesUpserted} PTO entries (${result.ptoEntriesAutoApproved} auto-approved)`,
           );
 
           res.json({
-            message: `Import complete: ${result.employeesProcessed} employees processed (${result.employeesCreated} created), ${result.ptoEntriesUpserted} PTO entries upserted, ${result.acknowledgementsSynced} acknowledgements synced.`,
+            message: `Import complete: ${result.employeesProcessed} employees processed (${result.employeesCreated} created), ${result.ptoEntriesUpserted} PTO entries upserted (${result.ptoEntriesAutoApproved} auto-approved), ${result.acknowledgementsSynced} acknowledgements synced.`,
             ...result,
           });
         } catch (error) {

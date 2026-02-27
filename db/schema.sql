@@ -107,3 +107,8 @@ CREATE TABLE IF NOT EXISTS notifications (
 CREATE INDEX IF NOT EXISTS idx_notifications_employee_id ON notifications(employee_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_read_at ON notifications(read_at);
 CREATE INDEX IF NOT EXISTS idx_notifications_expires_at ON notifications(expires_at);
+
+-- Reserve sys-admin account (employee_id=0) for auto-approved import entries.
+-- This account is excluded from employee listings and dashboards.
+INSERT OR IGNORE INTO employees (id, name, identifier, pto_rate, carryover_hours, hire_date, role)
+VALUES (0, 'System', 'system', 0, 0, '2000-01-01', 'System');

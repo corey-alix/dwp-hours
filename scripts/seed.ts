@@ -42,6 +42,13 @@ try {
 }
 
 try {
+  // Ensure sys-admin account exists (schema.sql INSERT OR IGNORE handles this,
+  // but be explicit for clarity)
+  db.exec(`
+    INSERT OR IGNORE INTO employees (id, name, identifier, pto_rate, carryover_hours, hire_date, role)
+    VALUES (0, 'System', 'system', 0, 0, '2000-01-01', 'System')
+  `);
+
   // Insert seed employees
   const stmt = db.prepare(`
         INSERT INTO employees (name, identifier, pto_rate, carryover_hours, hire_date, role, hash)

@@ -45,7 +45,32 @@ export interface MonthLockInfo {
   acknowledgedAt: string;
 }
 
+// ── System Constants ──
+
+/**
+ * Reserved employee ID for the internal sys-admin account.
+ * Used as `approved_by` for auto-approved import entries, keeping them
+ * distinct from manual approvals by human administrators.
+ */
+export const SYS_ADMIN_EMPLOYEE_ID = 0;
+
 // ── Feature Flags ──
+
+/**
+ * When `true`, PTO entries imported via the Excel import flow
+ * (`POST /api/admin/import-bulk`) that pass all validation checks and
+ * fall within annual PTO limits are automatically approved
+ * (`approved_by` set to `SYS_ADMIN_EMPLOYEE_ID`).
+ *
+ * Entries that have warnings — such as exceeding annual sick/bereavement/
+ * jury-duty limits, belonging to a "warning" acknowledgement month, or
+ * causing PTO borrowing after the first year of service — remain
+ * unapproved and appear in the admin PTO Request Queue for manual review.
+ *
+ * This flag applies **only** to the Excel import path, not to
+ * employee-initiated PTO requests submitted via the app/API.
+ */
+export const ENABLE_IMPORT_AUTO_APPROVE = true;
 
 /**
  * When `true`, the admin Excel import runs entirely in the browser
@@ -762,4 +787,119 @@ export function computeTerminationPayout(
   );
   const payout = cappedCarryover + currentYearAccrued - currentYearUsed;
   return Math.max(0, payout);
+}
+
+// ── Import Auto-Approve ────────────────────────────────────────────────
+
+/** A single PTO entry to evaluate for auto-approval during import. */
+export interface ImportEntryForAutoApprove {
+  date: string;
+  type: PTOType;
+  hours: number;
+}
+
+/** Running annual usage totals and available PTO balance for an employee. */
+export interface AutoApproveEmployeeLimits {
+  /** Running annual usage totals by PTO type (updated as entries are processed). */
+  annualUsage: Record<PTOType, number>;
+  /** Available PTO balance before this entry (carryover + annual allocation − used PTO hours). */
+  availablePtoBalance: number;
+}
+
+/** Policy context needed for auto-approve decisions. */
+export interface AutoApprovePolicyContext {
+  /** Completed years of service (0 = first year). */
+  yearsOfService: number;
+  /** Set of YYYY-MM month strings that have "warning" acknowledgement status. */
+  warningMonths: ReadonlySet<string>;
+}
+
+/** Result of an auto-approve evaluation for a single import entry. */
+export interface AutoApproveResult {
+  approved: boolean;
+  violations: string[];
+}
+
+/**
+ * Pure function that determines whether a single imported PTO entry should
+ * be auto-approved based on annual limits and POLICY.md rules.
+ *
+ * Checks performed:
+ * 1. **Warning month** — entries in a month with `status: "warning"` acknowledgement are not auto-approved.
+ * 2. **Sick annual limit** — sick hours cannot exceed 24 hours annually.
+ * 3. **Bereavement annual limit** — bereavement hours cannot exceed 16 hours annually.
+ * 4. **Jury Duty annual limit** — jury duty hours cannot exceed 24 hours annually.
+ * 5. **PTO balance** — PTO hours cannot exceed the available balance
+ *    (carryover + annual allocation − used-to-date).
+ * 6. **PTO borrowing** — after the first year of service, PTO that would
+ *    cause a negative balance is not permitted.
+ *
+ * @param entry - The PTO entry to evaluate
+ * @param employeeLimits - Running annual usage totals and available PTO balance
+ * @param policyContext - Years of service and warning month information
+ * @returns `{ approved, violations }` — if `approved` is false, `violations`
+ *   contains human-readable descriptions of each failed check
+ */
+export function shouldAutoApproveImportEntry(
+  entry: ImportEntryForAutoApprove,
+  employeeLimits: AutoApproveEmployeeLimits,
+  policyContext: AutoApprovePolicyContext,
+): AutoApproveResult {
+  const violations: string[] = [];
+
+  // Extract YYYY-MM from entry date for warning-month check
+  const entryMonth = entry.date.substring(0, 7);
+
+  // 1. Warning month check
+  if (policyContext.warningMonths.has(entryMonth)) {
+    violations.push(`Month ${entryMonth} has warning acknowledgement status`);
+  }
+
+  // 2–4. Annual limit checks for non-PTO types
+  if (entry.type === "Sick") {
+    const projected = employeeLimits.annualUsage.Sick + entry.hours;
+    if (projected > BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.SICK) {
+      violations.push(
+        `Sick hours would reach ${projected}h, exceeding ${BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.SICK}h annual limit`,
+      );
+    }
+  }
+
+  if (entry.type === "Bereavement") {
+    const projected = employeeLimits.annualUsage.Bereavement + entry.hours;
+    if (projected > BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.BEREAVEMENT) {
+      violations.push(
+        `Bereavement hours would reach ${projected}h, exceeding ${BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.BEREAVEMENT}h annual limit`,
+      );
+    }
+  }
+
+  if (entry.type === "Jury Duty") {
+    const projected = employeeLimits.annualUsage["Jury Duty"] + entry.hours;
+    if (projected > BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.JURY_DUTY) {
+      violations.push(
+        `Jury Duty hours would reach ${projected}h, exceeding ${BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.JURY_DUTY}h annual limit`,
+      );
+    }
+  }
+
+  // 5–6. PTO balance and borrowing checks
+  if (entry.type === "PTO") {
+    if (entry.hours > employeeLimits.availablePtoBalance) {
+      if (policyContext.yearsOfService >= 1) {
+        violations.push(
+          `PTO borrowing not permitted after first year of service (requested ${entry.hours}h, available ${employeeLimits.availablePtoBalance}h)`,
+        );
+      } else {
+        violations.push(
+          `PTO request exceeds available balance (requested ${entry.hours}h, available ${employeeLimits.availablePtoBalance}h)`,
+        );
+      }
+    }
+  }
+
+  return {
+    approved: violations.length === 0,
+    violations,
+  };
 }

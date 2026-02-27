@@ -10,10 +10,20 @@
 
 import ExcelJS from "exceljs";
 import type { DataSource } from "typeorm";
+import { Between } from "typeorm";
 import {
   validateDateString,
   validatePTOType,
   VALIDATION_MESSAGES,
+  ENABLE_IMPORT_AUTO_APPROVE,
+  SYS_ADMIN_EMPLOYEE_ID,
+  shouldAutoApproveImportEntry,
+  getYearsOfService,
+  computeAnnualAllocation,
+  BUSINESS_RULES_CONSTANTS,
+  type PTOType,
+  type AutoApproveEmployeeLimits,
+  type AutoApprovePolicyContext,
 } from "../../shared/businessRules.js";
 import { Employee } from "../entities/Employee.js";
 import { PtoEntry } from "../entities/PtoEntry.js";
@@ -168,18 +178,82 @@ export async function upsertEmployee(
 }
 
 /**
+ * Context needed for auto-approve evaluation during import.
+ * Passed from the import endpoint when `ENABLE_IMPORT_AUTO_APPROVE` is true.
+ */
+export interface AutoApproveImportContext {
+  /** Employee's hire date (YYYY-MM-DD). */
+  hireDate: string;
+  /** Carryover hours from the prior year (from spreadsheet cell L42). */
+  carryoverHours: number;
+  /** Set of YYYY-MM month strings with "warning" acknowledgement status. */
+  warningMonths: ReadonlySet<string>;
+}
+
+/**
  * Upsert PTO entries for an employee.
  * Per-date: update type + hours for existing entries, insert new ones.
  * Entries not in the import are left untouched.
+ *
+ * When `autoApproveCtx` is provided and `ENABLE_IMPORT_AUTO_APPROVE` is true,
+ * new entries that pass all validation checks and annual limits are automatically
+ * approved (`approved_by = SYS_ADMIN_EMPLOYEE_ID`). Entries that fail checks
+ * remain unapproved (`approved_by = null`) with violations recorded in notes.
  */
 export async function upsertPtoEntries(
   dataSource: DataSource,
   employeeId: number,
   entries: ImportedPtoEntry[],
-): Promise<{ upserted: number; warnings: string[] }> {
+  autoApproveCtx?: AutoApproveImportContext,
+): Promise<{ upserted: number; autoApproved: number; warnings: string[] }> {
   const repo = dataSource.getRepository(PtoEntry);
   const warnings: string[] = [];
   let upserted = 0;
+  let autoApproved = 0;
+
+  // ── Auto-approve setup ──
+  const doAutoApprove =
+    ENABLE_IMPORT_AUTO_APPROVE && autoApproveCtx !== undefined;
+
+  // Per-year running totals for auto-approve checks
+  const annualUsage: Record<number, Record<PTOType, number>> = {};
+  const annualPtoUsed: Record<number, number> = {};
+
+  if (doAutoApprove) {
+    // Determine years present in the import entries
+    const years = new Set<number>();
+    for (const entry of entries) {
+      const y = parseInt(entry.date.substring(0, 4), 10);
+      if (!isNaN(y)) years.add(y);
+    }
+
+    // Query existing annual usage from DB for each year
+    for (const year of years) {
+      const yearStart = `${year}-01-01`;
+      const yearEnd = `${year}-12-31`;
+
+      const existingEntries = await repo.find({
+        where: {
+          employee_id: employeeId,
+          date: Between(yearStart, yearEnd),
+        },
+      });
+
+      const usage: Record<PTOType, number> = {
+        PTO: 0,
+        Sick: 0,
+        Bereavement: 0,
+        "Jury Duty": 0,
+      };
+      for (const e of existingEntries) {
+        if (e.type in usage) {
+          usage[e.type as PTOType] += e.hours;
+        }
+      }
+      annualUsage[year] = usage;
+      annualPtoUsed[year] = usage.PTO;
+    }
+  }
 
   for (const entry of entries) {
     // Validate
@@ -209,25 +283,94 @@ export async function upsertPtoEntries(
     });
 
     if (existing) {
+      // Update path — do NOT change approved_by per design
       existing.type = entry.type;
       existing.hours = entry.hours;
       existing.notes = entry.notes || null;
       await repo.save(existing);
     } else {
+      // New entry — evaluate auto-approve if enabled
+      let approvedBy: number | null = null;
+
+      if (doAutoApprove && autoApproveCtx) {
+        const year = parseInt(entry.date.substring(0, 4), 10);
+
+        // Ensure we have usage tracking for this year
+        if (!annualUsage[year]) {
+          annualUsage[year] = {
+            PTO: 0,
+            Sick: 0,
+            Bereavement: 0,
+            "Jury Duty": 0,
+          };
+          annualPtoUsed[year] = 0;
+        }
+
+        // Compute available PTO balance for this year
+        const allocation = computeAnnualAllocation(
+          autoApproveCtx.hireDate,
+          year,
+        );
+        const carryover = autoApproveCtx.carryoverHours;
+        const availableBalance = carryover + allocation - annualPtoUsed[year];
+
+        const employeeLimits: AutoApproveEmployeeLimits = {
+          annualUsage: annualUsage[year],
+          availablePtoBalance: availableBalance,
+        };
+
+        const yearsOfService = getYearsOfService(
+          autoApproveCtx.hireDate,
+          entry.date,
+        );
+
+        const policyContext: AutoApprovePolicyContext = {
+          yearsOfService,
+          warningMonths: autoApproveCtx.warningMonths,
+        };
+
+        const result = shouldAutoApproveImportEntry(
+          entry,
+          employeeLimits,
+          policyContext,
+        );
+
+        if (result.approved) {
+          approvedBy = SYS_ADMIN_EMPLOYEE_ID;
+          autoApproved++;
+        } else {
+          // Record violations in the entry notes
+          const violationText = result.violations.join("; ");
+          const existingNotes = entry.notes || "";
+          entry.notes = existingNotes
+            ? `${existingNotes} | Auto-approve denied: ${violationText}`
+            : `Auto-approve denied: ${violationText}`;
+          warnings.push(
+            `${entry.date} ${entry.type} ${entry.hours}h not auto-approved: ${violationText}`,
+          );
+        }
+
+        // Update running totals for subsequent entries
+        annualUsage[year][entry.type as PTOType] += entry.hours;
+        if (entry.type === "PTO") {
+          annualPtoUsed[year] += entry.hours;
+        }
+      }
+
       const newEntry = repo.create({
         employee_id: employeeId,
         date: entry.date,
         type: entry.type,
         hours: entry.hours,
         notes: entry.notes || null,
-        approved_by: null,
+        approved_by: approvedBy,
       });
       await repo.save(newEntry);
     }
     upserted++;
   }
 
-  return { upserted, warnings };
+  return { upserted, autoApproved, warnings };
 }
 
 /**
