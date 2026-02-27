@@ -385,6 +385,10 @@ export interface BulkImportEmployee {
   ptoEntries: BulkImportPtoEntry[];
   acknowledgements: BulkImportAcknowledgement[];
   warnings: string[];
+  /** Fatal or blocking issues from parsing this employee's sheet. */
+  errors?: string[];
+  /** Auto-corrected issues resolved during parsing. */
+  resolved?: string[];
 }
 
 /** Top-level request body for POST /api/admin/import-bulk. */
@@ -401,6 +405,10 @@ export interface BulkImportResponse {
   ptoEntriesAutoApproved: number;
   acknowledgementsSynced: number;
   warnings: string[];
+  /** Fatal or blocking issues that prevented full processing. */
+  errors: string[];
+  /** Auto-corrected issues that were resolved during parsing. */
+  resolved: string[];
   perEmployee: {
     name: string;
     employeeId: number;

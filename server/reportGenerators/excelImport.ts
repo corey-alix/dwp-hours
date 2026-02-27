@@ -496,6 +496,8 @@ export async function importExcelWorkbook(
     ptoEntriesAutoApproved: 0,
     acknowledgementsSynced: 0,
     warnings: [],
+    errors: [],
+    resolved: [],
     perEmployee: [],
   };
 
@@ -570,6 +572,8 @@ export async function importExcelWorkbook(
           result.warnings.push(msg);
         }
         result.warnings.push(...sheetResult.warnings);
+        result.errors.push(...sheetResult.errors);
+        result.resolved.push(...sheetResult.resolved);
 
         // Upsert employee
         const empStart = Date.now();
@@ -581,18 +585,22 @@ export async function importExcelWorkbook(
         if (created) result.employeesCreated++;
         log?.(`  [profile] upsertEmployee: ${Date.now() - empStart}ms`);
 
-        // Build auto-approve context
+        // Build auto-approve context — skip if hire date is missing to avoid
+        // downstream crashes (auto-approve disabled for this employee)
         const warningMonths = new Set<string>();
         for (const ack of sheetResult.acknowledgements) {
           if (ack.status === "warning") {
             warningMonths.add(ack.month);
           }
         }
-        const autoApproveCtx: AutoApproveImportContext = {
-          hireDate: sheetResult.employee.hireDate!,
-          carryoverHours: sheetResult.employee.carryoverHours,
-          warningMonths,
-        };
+        const autoApproveCtx: AutoApproveImportContext | undefined = sheetResult
+          .employee.hireDate
+          ? {
+              hireDate: sheetResult.employee.hireDate,
+              carryoverHours: sheetResult.employee.carryoverHours,
+              warningMonths,
+            }
+          : undefined;
 
         // Upsert PTO entries
         const ptoStart = Date.now();
@@ -671,7 +679,7 @@ export async function importExcelWorkbook(
       } catch (sheetError) {
         const msg = `Failed to process sheet "${ws.name}": ${sheetError}`;
         log?.(msg);
-        result.warnings.push(msg);
+        result.errors.push(msg);
       }
     }
   } finally {
@@ -698,7 +706,9 @@ export async function importExcelWorkbook(
       `${result.employeesCreated} created, ` +
       `${result.ptoEntriesUpserted} PTO entries, ` +
       `${result.acknowledgementsSynced} acknowledgements, ` +
-      `${result.warnings.length} warnings ` +
+      `${result.errors.length} errors, ` +
+      `${result.warnings.length} warnings, ` +
+      `${result.resolved.length} resolved ` +
       `(${Date.now() - importStart}ms total)`,
   );
 

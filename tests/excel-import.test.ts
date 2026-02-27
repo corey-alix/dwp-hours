@@ -402,7 +402,7 @@ describe("Excel Import", () => {
       const wb = await loadWorkbook(buffer);
       const ws = wb.getWorksheet("Alice Smith")!;
 
-      const info = parseEmployeeInfo(ws);
+      const { info } = parseEmployeeInfo(ws);
       expect(info.name).toBe("Alice Smith");
       expect(info.year).toBe(2026);
       expect(info.hireDate).toBe("2023-02-13");
@@ -424,8 +424,46 @@ describe("Excel Import", () => {
         ],
       };
 
-      const info = parseEmployeeInfo(ws);
+      const { info } = parseEmployeeInfo(ws);
       expect(info.hireDate).toBe("2014-08-19");
+    });
+
+    it("should strip parenthetical suffix (FT) from hire date and emit resolved message", async () => {
+      const buffer = await generateTestBuffer();
+      const wb = await loadWorkbook(buffer);
+      const ws = wb.getWorksheet("Alice Smith")!;
+
+      // Overwrite R2 with a hire date containing a parenthetical suffix
+      const hireDateCell = ws.getCell("R2");
+      hireDateCell.value = "Hire Date: 3/15/06 (FT)";
+
+      const { info, resolved } = parseEmployeeInfo(ws);
+      expect(info.hireDate).toBe("2006-03-15");
+      expect(resolved.length).toBe(1);
+      expect(resolved[0]).toContain("parenthetical suffix");
+      expect(resolved[0]).toContain("2006-03-15");
+    });
+
+    it("should strip parenthetical suffix (PT) from hire date", async () => {
+      const buffer = await generateTestBuffer();
+      const wb = await loadWorkbook(buffer);
+      const ws = wb.getWorksheet("Alice Smith")!;
+
+      const hireDateCell = ws.getCell("R2");
+      hireDateCell.value = "Hire Date: 8/19/14 (PT)";
+
+      const { info, resolved } = parseEmployeeInfo(ws);
+      expect(info.hireDate).toBe("2014-08-19");
+      expect(resolved.length).toBe(1);
+    });
+
+    it("should return empty resolved when hire date has no parenthetical suffix", async () => {
+      const buffer = await generateTestBuffer();
+      const wb = await loadWorkbook(buffer);
+      const ws = wb.getWorksheet("Alice Smith")!;
+
+      const { resolved } = parseEmployeeInfo(ws);
+      expect(resolved.length).toBe(0);
     });
   });
 
@@ -609,7 +647,7 @@ describe("Excel Import", () => {
       const wb = await loadWorkbook(buffer);
       const ws = wb.getWorksheet("Alice Smith")!;
 
-      const info = parseEmployeeInfo(ws);
+      const { info } = parseEmployeeInfo(ws);
       expect(info.carryoverHours).toBe(16);
     });
   });
@@ -1174,15 +1212,20 @@ describe("Excel Import", () => {
 
       it("should detect July row offset anomaly and recover", () => {
         const legend = parseLegend(ws, themeColors);
-        const { warnings } = parseCalendarGrid(ws, 2018, legend, themeColors);
+        const { warnings, resolved } = parseCalendarGrid(
+          ws,
+          2018,
+          legend,
+          themeColors,
+        );
 
         // Should have a warning about July anomaly
         const julyWarnings = warnings.filter((w) => w.includes("July"));
         expect(julyWarnings.length).toBeGreaterThan(0);
 
-        // Should have a recovery message
-        const recoveryMsg = julyWarnings.find((w) =>
-          w.includes("Recovered successfully"),
+        // Recovery message should appear in resolved (Phase 7b)
+        const recoveryMsg = resolved.find((r) =>
+          r.includes("Recovered successfully"),
         );
         expect(recoveryMsg).toBeDefined();
       });
@@ -1428,7 +1471,8 @@ describe("Excel Import", () => {
       expect(result.entries[0].hours).toBe(-5);
       expect(result.entries[0].type).toBe("PTO");
       expect(result.entries[0].notes).toContain("work credit");
-      expect(result.warnings.length).toBeGreaterThan(0);
+      // Phase 7b: resolved messages about assigned credit go to resolved array
+      expect(result.resolved.length).toBeGreaterThan(0);
     });
 
     it("should infer hours from PTO Calc deficit for single unparsed cell", () => {
@@ -1826,13 +1870,15 @@ describe("Excel Import", () => {
         expect(octTotal).toBe(-4.5);
       });
 
-      it("should emit a warning for the detected worked day", () => {
+      it("should emit a resolved message for the detected worked day", () => {
         const result = parseEmployeeSheet(ws, themeColors);
 
-        const workedWarning = result.warnings.find(
-          (w) => w.includes("2018-10-14") && w.includes("worked"),
+        // Phase 7b: worked-day messages that are successfully handled
+        // are reported in resolved, not warnings
+        const workedResolved = result.resolved.find(
+          (r) => r.includes("2018-10-14") && r.includes("worked"),
         );
-        expect(workedWarning).toBeDefined();
+        expect(workedResolved).toBeDefined();
       });
     },
   );
@@ -2036,7 +2082,8 @@ describe("Excel Import", () => {
       expect(result.entries[3].hours).toBe(8);
       expect(result.entries[3].notes).toContain("reclassified as PTO");
       expect(result.entries[3].notes).toContain("24h");
-      expect(result.warnings.length).toBe(1);
+      // Phase 7b: reclassification messages go to resolved
+      expect(result.resolved.length).toBe(1);
     });
 
     it("should reclassify multiple subsequent Sick entries after exhaustion (J Rivers pattern)", () => {
@@ -2061,7 +2108,8 @@ describe("Excel Import", () => {
       expect(result.entries[4].type).toBe("PTO");
       expect(result.entries[5].type).toBe("PTO");
       expect(result.entries[6].type).toBe("PTO");
-      expect(result.warnings.length).toBe(4);
+      // Phase 7b: reclassification messages go to resolved
+      expect(result.resolved.length).toBe(4);
     });
 
     it("should preserve existing PTO entries unmodified", () => {
@@ -2101,7 +2149,8 @@ describe("Excel Import", () => {
       expect(result.entries[2].type).toBe("Sick"); // cumulative after: 20
       expect(result.entries[3].type).toBe("Sick"); // cumulative after: 28 (but cumulative BEFORE was 20 < 24)
       expect(result.entries[4].type).toBe("PTO"); // cumulative BEFORE = 28 >= 24
-      expect(result.warnings.length).toBe(1);
+      // Phase 7b: reclassification messages go to resolved
+      expect(result.resolved.length).toBe(1);
     });
   });
 
@@ -2381,7 +2430,8 @@ describe("Excel Import", () => {
       expect(augPto.length).toBe(1);
       expect(augPto[0].notes).toContain("column S gap");
       expect(augPto[0].notes).toContain("sick allowance");
-      expect(result.warnings.length).toBe(1);
+      // Phase 7b: reclassification messages go to resolved
+      expect(result.resolved.length).toBe(1);
     });
 
     it("should not reclassify when Sick hours would overshoot declared", () => {
@@ -2442,7 +2492,8 @@ describe("Excel Import", () => {
         (e) => e.date.startsWith("2018-07") && e.type === "PTO",
       );
       expect(julPto.length).toBe(2);
-      expect(result.warnings.length).toBe(2);
+      // Phase 7b: reclassification messages go to resolved
+      expect(result.resolved.length).toBe(2);
     });
   });
 
@@ -2626,14 +2677,14 @@ describe("Excel Import", () => {
       it("should reclassify post-exhaustion Sick entries as PTO (Aug-Nov)", () => {
         const result = parseEmployeeSheet(ws, themeColors);
 
-        // J Rivers should have sick-reclassification warnings
+        // J Rivers should have sick-reclassification resolved messages (Phase 7b)
         // Phase 12 reclassifies Oct, Nov, Dec; Phase 12b reclassifies Aug, Sep
-        const sickReclassWarnings = result.warnings.filter(
-          (w) =>
-            w.includes("reclassified as PTO") ||
-            w.includes("Sick reclassified as PTO"),
+        const sickReclassResolved = result.resolved.filter(
+          (r) =>
+            r.includes("reclassified as PTO") ||
+            r.includes("Sick reclassified as PTO"),
         );
-        expect(sickReclassWarnings.length).toBeGreaterThanOrEqual(3);
+        expect(sickReclassResolved.length).toBeGreaterThanOrEqual(3);
 
         // Verify Aug and Sep PTO totals now match declared
         for (const m of [8, 9]) {
@@ -2999,7 +3050,8 @@ describe("Excel Import", () => {
       expect(result.entries[1].notes).toContain(
         "Bereavement reclassified as PTO",
       );
-      expect(result.warnings).toHaveLength(1);
+      // Phase 7b: reclassification messages go to resolved
+      expect(result.resolved).toHaveLength(1);
     });
 
     it("should not reclassify exact-matched Bereavement entries", () => {
@@ -3074,7 +3126,8 @@ describe("Excel Import", () => {
       // Gap is 8h, two 4h entries → both should be reclassified
       expect(result.entries[1].type).toBe("PTO");
       expect(result.entries[2].type).toBe("PTO");
-      expect(result.warnings).toHaveLength(2);
+      // Phase 7b: reclassification messages go to resolved
+      expect(result.resolved).toHaveLength(2);
     });
   });
 

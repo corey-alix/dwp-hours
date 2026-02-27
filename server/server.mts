@@ -2942,6 +2942,8 @@ initDatabase()
             ptoEntriesAutoApproved: 0,
             acknowledgementsSynced: 0,
             warnings: [] as string[],
+            errors: [] as string[],
+            resolved: [] as string[],
             perEmployee: [] as {
               name: string;
               employeeId: number;
@@ -3030,9 +3032,15 @@ initDatabase()
                 );
                 result.acknowledgementsSynced += acksSynced;
 
-                // Collect per-sheet warnings
+                // Collect per-sheet warnings, errors, and resolved
                 if (Array.isArray(emp.warnings)) {
                   result.warnings.push(...emp.warnings);
+                }
+                if (Array.isArray(emp.errors)) {
+                  result.errors.push(...emp.errors);
+                }
+                if (Array.isArray(emp.resolved)) {
+                  result.resolved.push(...emp.resolved);
                 }
 
                 result.perEmployee.push({
@@ -3051,7 +3059,7 @@ initDatabase()
               } catch (empError) {
                 const msg = `Failed to process employee "${emp.name || "unknown"}": ${empError}`;
                 logger.error(`[Bulk Import] ${msg}`);
-                result.warnings.push(msg);
+                result.errors.push(msg);
               }
             }
           } finally {

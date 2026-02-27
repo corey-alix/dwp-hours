@@ -47,8 +47,15 @@ export type ProgressCallback = (progress: ParseProgress) => void;
 export async function parseExcelInBrowser(
   file: File,
   onProgress?: ProgressCallback,
-): Promise<{ payload: BulkImportPayload; warnings: string[] }> {
+): Promise<{
+  payload: BulkImportPayload;
+  warnings: string[];
+  errors: string[];
+  resolved: string[];
+}> {
   const allWarnings: string[] = [];
+  const allErrors: string[] = [];
+  const allResolved: string[] = [];
 
   // Phase 1: Load file into ExcelJS
   onProgress?.({
@@ -120,13 +127,17 @@ export async function parseExcelInBrowser(
           status: a.status || null,
         })),
         warnings: result.warnings,
+        errors: result.errors,
+        resolved: result.resolved,
       };
 
       employees.push(employee);
       allWarnings.push(...result.warnings);
+      allErrors.push(...result.errors);
+      allResolved.push(...result.resolved);
     } catch (sheetError) {
       const msg = `Failed to parse sheet "${ws.name}": ${sheetError}`;
-      allWarnings.push(msg);
+      allErrors.push(msg);
     }
   }
 
@@ -140,5 +151,7 @@ export async function parseExcelInBrowser(
   return {
     payload: { employees },
     warnings: allWarnings,
+    errors: allErrors,
+    resolved: allResolved,
   };
 }

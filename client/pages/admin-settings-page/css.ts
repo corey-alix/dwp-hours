@@ -118,6 +118,51 @@ export const styles = `<style>
     margin-bottom: 2px;
   }
 
+  .errors-details {
+    margin-top: var(--space-xs, 4px);
+  }
+
+  .errors-list {
+    max-height: 200px;
+    overflow-y: auto;
+    padding-left: var(--space-md, 16px);
+    font-size: 0.8rem;
+    color: var(--color-error, #e74c3c);
+  }
+
+  .errors-list li {
+    color: var(--color-error, #e74c3c);
+    margin-bottom: 2px;
+  }
+
+  .resolved {
+    color: var(--color-success, #27ae60);
+    font-size: 0.85rem;
+  }
+
+  .resolved-details {
+    margin-top: var(--space-xs, 4px);
+  }
+
+  .resolved-list {
+    max-height: 200px;
+    overflow-y: auto;
+    padding-left: var(--space-md, 16px);
+    font-size: 0.8rem;
+    color: var(--color-success, #27ae60);
+  }
+
+  .resolved-list li {
+    color: var(--color-success, #27ae60);
+    margin-bottom: 2px;
+  }
+
+  .severity-summary {
+    font-size: 0.9rem;
+    margin-top: var(--space-xs, 4px);
+    margin-bottom: var(--space-xs, 4px);
+  }
+
   details {
     margin-top: var(--space-xs, 4px);
   }

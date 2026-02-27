@@ -95,6 +95,24 @@ This enhances the admin import workflow and reduces manual approval burden for c
 - [ ] **Validation**: `pnpm run build` passes, `pnpm run lint` passes
 - [ ] **Validation**: Manual test — import spreadsheet, verify red/orange/green severity display
 
+#### Phase 7b: There are some warnings that should be appearing under "Resolved":
+
+~39 warnings appear resolved (or at least actively handled/mitigated by the script).
+
+Key categories of resolution signals:
+
+Row position anomaly fixed ("resolved row anomaly … Recovered successfully") → 1
+Category/type overrides ("reclassified as …") → ~14 (mostly L. Cole + a few others like sick→PTO)
+Negative/credit PTO assigned from notes → 8 ("Assigned -…h PTO credit from note")
+Inferred weekend-work credits → 2 ("Inferred -…h PTO credit from PTO Calc deficit")
+PTO accrual rate corrected ("Using computed value") → 10
+Special reconciliation phases → 1 ("Phase 13 reconciled …")
+Inference rules applied → 2 ("Phase 11 inference applied")
+Partial success on hard case → 1 ("partially reconciled")
+Many other warnings (mismatches, over-coloring, no-notes gaps, invalid partial distributions, not auto-approved, etc.) remain unresolved / flagged only — no evidence the script corrected them.
+
+Roughly 20–25% of the log shows active correction; the rest are detections or failures to reconcile.
+
 ### Phase 8: Fix Hire Date Parsing — Strip Parenthetical Suffixes
 
 - [ ] In `parseEmployeeInfo` (`shared/excelParsing.ts`), after extracting `datePart` from the regex, strip trailing parenthetical content: `datePart.replace(/\s*\(.*\)\s*$/, '').trim()`

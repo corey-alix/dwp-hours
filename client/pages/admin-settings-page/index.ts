@@ -150,7 +150,7 @@ export class AdminSettingsPage extends BaseComponent implements PageComponent {
 
       // Parse the file in the browser
       const file = input.files[0];
-      const { payload, warnings } = await parseExcelInBrowser(
+      const { payload, warnings, errors, resolved } = await parseExcelInBrowser(
         file,
         (progress: {
           phase: string;
@@ -188,6 +188,12 @@ export class AdminSettingsPage extends BaseComponent implements PageComponent {
       if (warnings.length > 0) {
         result.warnings = [...warnings, ...(result.warnings || [])];
       }
+      if (errors.length > 0) {
+        result.errors = [...errors, ...(result.errors || [])];
+      }
+      if (resolved.length > 0) {
+        result.resolved = [...resolved, ...(result.resolved || [])];
+      }
 
       this.renderImportResult(result);
     } catch (err: any) {
@@ -204,8 +210,36 @@ export class AdminSettingsPage extends BaseComponent implements PageComponent {
     const autoApprovedInfo = result.ptoEntriesAutoApproved
       ? ` (${result.ptoEntriesAutoApproved} auto-approved)`
       : "";
+
+    const errorsArr: string[] = result.errors || [];
+    const warningsArr: string[] = result.warnings || [];
+    const resolvedArr: string[] = result.resolved || [];
+
+    // Build severity summary line
+    const severityParts: string[] = [];
+    if (errorsArr.length > 0) {
+      severityParts.push(
+        `<span class="error">${errorsArr.length} error${errorsArr.length === 1 ? "" : "s"}</span>`,
+      );
+    }
+    if (warningsArr.length > 0) {
+      severityParts.push(
+        `<span class="warning">${warningsArr.length} warning${warningsArr.length === 1 ? "" : "s"}</span>`,
+      );
+    }
+    if (resolvedArr.length > 0) {
+      severityParts.push(
+        `<span class="resolved">${resolvedArr.length} resolved</span>`,
+      );
+    }
+    const severitySummary =
+      severityParts.length > 0
+        ? `<p class="severity-summary">${severityParts.join(" · ")}</p>`
+        : "";
+
     this.importStatus = `
       <p class="success">${result.message}</p>
+      ${severitySummary}
       <details>
         <summary>Details (${result.perEmployee?.length || 0} employees)</summary>
         <ul>
@@ -219,12 +253,36 @@ export class AdminSettingsPage extends BaseComponent implements PageComponent {
             .join("")}
         </ul>
         ${
-          result.warnings?.length
+          errorsArr.length
+            ? `
+          <details class="errors-details">
+            <summary class="error">${errorsArr.length} error${errorsArr.length === 1 ? "" : "s"}</summary>
+            <ul class="errors-list">
+              ${errorsArr.map((e: string) => `<li>${e}</li>`).join("")}
+            </ul>
+          </details>
+        `
+            : ""
+        }
+        ${
+          warningsArr.length
             ? `
           <details class="warnings-details">
-            <summary class="warning">${result.warnings.length} warning${result.warnings.length === 1 ? "" : "s"}</summary>
+            <summary class="warning">${warningsArr.length} warning${warningsArr.length === 1 ? "" : "s"}</summary>
             <ul class="warnings-list">
-              ${result.warnings.map((w: string) => `<li>${w}</li>`).join("")}
+              ${warningsArr.map((w: string) => `<li>${w}</li>`).join("")}
+            </ul>
+          </details>
+        `
+            : ""
+        }
+        ${
+          resolvedArr.length
+            ? `
+          <details class="resolved-details">
+            <summary class="resolved">${resolvedArr.length} resolved</summary>
+            <ul class="resolved-list">
+              ${resolvedArr.map((r: string) => `<li>${r}</li>`).join("")}
             </ul>
           </details>
         `
