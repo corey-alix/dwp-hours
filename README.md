@@ -151,6 +151,30 @@ Browser: File input → ExcelJS.load(ArrayBuffer) → shared parsing logic → J
 
 **Feature flag:** `ENABLE_BROWSER_IMPORT` in `shared/businessRules.ts`. When `false`, falls back to server-side upload via `/api/admin/import-excel`.
 
+### Import Auto-Approve
+
+When PTO data is imported via the Excel import flow, entries that pass all validation checks are automatically approved (`approved_by` set to the reserved sys-admin account, `employee_id=0`). This eliminates the need for admins to manually approve hundreds of clean imported entries.
+
+**Auto-approve criteria** — an entry is approved only if all of the following hold:
+
+- The `ENABLE_IMPORT_AUTO_APPROVE` feature flag is `true` (default)
+- The entry's PTO category has not exceeded its annual limit:
+  - Sick: 24 hours/year
+  - Bereavement: 16 hours/year
+  - Jury Duty: 24 hours/year
+  - PTO: computed per-employee (annual allocation + carryover)
+- The entry does not cause a negative PTO balance after the employee's first year of service (no borrowing)
+- The entry's month does not have a `"warning"` acknowledgement status from reconciliation
+
+**Entries that fail auto-approve** remain unapproved (`approved_by = null`) and appear in the admin PTO Request Queue for manual review. Policy violations are recorded in the entry's `notes` field and on the month's acknowledgement for admin visibility.
+
+**Sys-admin account (`employee_id=0`)**: A reserved internal account used exclusively as the `approved_by` value for auto-approved imports. It is excluded from all employee listings, dashboards, and reports. This distinguishes auto-approved entries from those manually approved by a human admin.
+
+**Key files:**
+
+- `shared/businessRules.ts` — `ENABLE_IMPORT_AUTO_APPROVE` flag, `SYS_ADMIN_EMPLOYEE_ID` constant, `shouldAutoApproveImportEntry()` pure function
+- `server/reportGenerators/excelImport.ts` — `upsertPtoEntries` applies auto-approve logic during import
+
 ## Routing Architecture
 
 The application uses a lightweight client-side router built on the History API (no hash routing). Key components:

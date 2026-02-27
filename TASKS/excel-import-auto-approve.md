@@ -48,7 +48,7 @@ This enhances the admin import workflow and reduces manual approval burden for c
 
 - [x] In the `POST /api/admin/import-bulk` handler (`server/server.mts`), pass auto-approve context to `upsertPtoEntries` (uses `SYS_ADMIN_EMPLOYEE_ID`, not the human admin's ID)
 - [x] Include auto-approve counts in the response (e.g., `ptoEntriesAutoApproved` alongside `ptoEntriesUpserted`)
-- [ ] **Validation**: `pnpm run build` passes, manual test with import showing auto-approved vs. pending entries
+- [x] **Validation**: `pnpm run build` passes, manual test with import showing auto-approved vs. pending entries
 
 ### Phase 4: Consider Acknowledgement Warning Status
 
@@ -61,7 +61,7 @@ This enhances the admin import workflow and reduces manual approval burden for c
 
 - [x] Update the import result rendering in `admin-settings-page/index.ts` to show auto-approved count
 - [x] Per-employee detail should indicate how many entries were auto-approved vs. pending review
-- [ ] **Validation**: Manual testing of import result display
+- [x] **Validation**: Manual testing of import result display
 
 ### Phase 6: Testing & Quality Gates
 
@@ -77,9 +77,31 @@ This enhances the admin import workflow and reduces manual approval burden for c
 - [x] Write Vitest unit tests for modified `upsertPtoEntries` with mock DataSource
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
-- [ ] Manual testing: import a clean spreadsheet, verify entries appear approved in monthly review calendar (checkmarks)
-- [ ] Manual testing: import a spreadsheet with limit-exceeding entries, verify those appear in PTO Request Queue
-- [ ] Documentation updated (README import section)
+- [x] Manual testing: import a clean spreadsheet, verify entries appear approved in monthly review calendar (checkmarks)
+- [x] Manual testing: import a spreadsheet with limit-exceeding entries, verify those appear in PTO Request Queue
+- [x] Documentation updated (README import section)
+
+### Phase 7: Import Result Severity Tiers (Errors / Warnings / Resolved)
+
+- [ ] Add `errors: string[]` and `resolved: string[]` to `ImportResult` in `shared/excelParsing.ts`
+- [ ] Add `errors: string[]` and `resolved: string[]` to `BulkImportResponse` in `shared/api-models.d.ts`
+- [ ] Classify existing warnings: move auto-corrected items to `resolved`, move fatal aborts to `errors`
+- [ ] Update `importExcelWorkbook` catch block to push to `errors` instead of `warnings` when a sheet fails fatally
+- [ ] Update import result rendering in `client/pages/admin-settings-page/index.ts`:
+  - Show `"N errors"` in red if errors > 0
+  - Show `"N warnings"` in orange (existing)
+  - Show `"N resolved"` in green if resolved > 0
+- [ ] Update the `POST /api/admin/import-excel` and `POST /api/admin/import-bulk` response handlers to pass through all three arrays
+- [ ] **Validation**: `pnpm run build` passes, `pnpm run lint` passes
+- [ ] **Validation**: Manual test — import spreadsheet, verify red/orange/green severity display
+
+### Phase 8: Fix Hire Date Parsing — Strip Parenthetical Suffixes
+
+- [ ] In `parseEmployeeInfo` (`shared/excelParsing.ts`), after extracting `datePart` from the regex, strip trailing parenthetical content: `datePart.replace(/\s*\(.*\)\s*$/, '').trim()`
+- [ ] If stripping was needed and `smartParseDate` succeeds, emit a `resolved` message (requires `parseEmployeeInfo` or `parseEmployeeSheet` to return resolved messages — extend `SheetImportResult` accordingly)
+- [ ] If `smartParseDate` still fails after stripping, emit an `error` message instead of a warning
+- [ ] Add unit tests for hire date parsing with `(FT)`, `(PT)`, and other suffixes
+- [ ] **Validation**: `pnpm run build` passes, existing tests pass, N Rosenberger imports fully with hire date `2006-03-15`
 
 ## Implementation Notes
 
@@ -120,15 +142,7 @@ This enhances the admin import workflow and reduces manual approval burden for c
 - The existing `upsertPtoEntries` update path (entry already exists for that date) does **not** change `approved_by` — only new inserts are candidates for auto-approve
 - Carryover hours are always available from the spreadsheet (cell L42 of the PTO Calculation section), so the "unknown carryover" scenario does not apply
 
-## Questions and Concerns (Resolved)
-
-1. **Resolved**: Auto-approved import entries use a reserved **sys-admin account (`employee_id=0`)** as the `approved_by` value, which is distinct from human admin IDs. The existing checkmark indicator is sufficient visually — the distinction is in the data (`approved_by=0` vs. a human admin ID).
-2. **Resolved**: Auto-approve must respect **all** POLICY.md rules, not just annual limits. In particular, "PTO should not be borrowed typically after the first year of service" — any entry that would cause negative balance (borrowing) after the employee's first year must **not** be auto-approved. Policy violations must be recorded as notes on the imported `pto_entries` and `acknowledgements`.
-3. **Resolved**: Not a valid scenario. The prior-year carryover is always available from the spreadsheet at cell **L42** (January row of the PTO Calculation section). The `parseCarryoverHours()` function in `shared/excelParsing.ts` already reads this value. Hire date is also extracted from cell R2. Both fields are populated before PTO entries are processed.
-
-## Implementation Status (2026-02-27)
-
-### Completed
+### Implementation Status
 
 All core implementation and automated testing is complete. Phases 0–6 are code-complete — `pnpm run build`, `pnpm run lint`, and all 1127 tests pass. The feature is ready for manual testing and documentation updates.
 
@@ -147,99 +161,30 @@ All core implementation and automated testing is complete. Phases 0–6 are code
 | `tests/auto-approve-import.test.ts`         | New: 17 unit tests covering all `shouldAutoApproveImportEntry` scenarios + 4 integration tests for `upsertPtoEntries`                                                                                                                                         |
 | `tests/database.test.ts`                    | Fixed employee count assertion to exclude sys-admin row                                                                                                                                                                                                       |
 
-### Remaining Work
+### Manual Testing Results (2026-02-27)
 
-1. **Phase 3/5 — Manual testing**: Import a real spreadsheet with the dev server running to verify auto-approved entries show checkmarks in the monthly review calendar, and that limit-exceeding entries appear in the PTO Request Queue.
-2. **Phase 6 — Documentation**: Update README import section to describe auto-approve behavior.
+Imported `reports/2018.xlsx` against a freshly seeded database on port 3003:
 
-### Bug: N Rosenberger (employee_id=54) — Missing Acknowledgements / Shows "Unlocked" (2026-02-27)
+| Metric                                      | Value |
+| ------------------------------------------- | ----- |
+| Employees processed                         | 66    |
+| PTO entries upserted                        | 2377  |
+| PTO entries auto-approved (`approved_by=0`) | 2201  |
+| PTO entries pending (`approved_by=null`)    | 181   |
+| Acknowledgements synced                     | 1517  |
+| Warnings                                    | 309   |
 
-**Symptom**: N Rosenberger's Monthly Employee Review card shows "Unlocked" (no acknowledgement) even though the employee was imported from the spreadsheet successfully (employee record exists, PTO limits display correctly). 65 of 69 employees have acknowledgements for 2018-02; employee 54 is the only imported employee that does not.
+**Verified:**
 
-**Root Cause**: The import of the "N Rosenberger" sheet **crashes** partway through processing due to a missing hire date. The error chain is:
+- Clean months show `acknowledgedByAdmin=true` in monthly review (67/69 employees for 2018-03)
+- Warning months show `acknowledgedByAdmin=false` with explanatory notes
+- 181 pending entries across 21 employees appear in the PTO Request Queue
+- Violation reasons include: warning month status, PTO borrowing after first year, limit exceedances
+- README updated with auto-approve documentation under "Browser-Side Excel Import" section
 
-1. `parseEmployeeInfo(ws)` returns `hireDate: undefined` because the hire date cell (R2) is blank/unparseable on that sheet.
-2. The employee record **is** upserted successfully (with a fallback hire date of `new Date()`), incrementing `employeesProcessed`.
-3. The auto-approve context is built with `hireDate: sheetResult.employee.hireDate!` — which is `undefined` cast to `string` via the non-null assertion.
-4. `upsertPtoEntries` calls `computeAnnualAllocation(undefined, year)` → `parseDate(undefined)` → throws `Error: Invalid date string:`.
-5. The outer `catch (sheetError)` block in `importExcelWorkbook` catches the error, emits a warning `"Failed to process sheet 'N Rosenberger': Error: Invalid date string:"`, and **skips the rest of the processing** for that sheet — including `upsertAcknowledgements`.
-6. Result: the employee exists in the DB, but has **zero acknowledgements** and **zero PTO entries** (the entries parsed before the crash were never persisted). The monthly review query finds the employee but no `AdminAcknowledgement` row → `acknowledgedByAdmin: false`, no `Acknowledgement` row → `calendarLocked: false`.
+## Questions and Concerns
 
-**Two distinct bugs**:
-
-1. **Crash on missing hire date**: The auto-approve context passes `undefined` as `hireDate` without guarding for the case where `parseEmployeeInfo` couldn't extract a hire date. This causes a downstream `parseDate` failure that aborts the entire sheet.
-   - **Fix**: Guard `autoApproveCtx.hireDate` — if hire date is missing/unparseable, either skip auto-approve for that employee (set `autoApproveCtx = undefined`) or use a sensible fallback. The employee record already uses `new Date()` as a fallback in `upsertEmployee`, so the auto-approve context should too, or simply disable auto-approve when hire date is unknown.
-
-2. **No acknowledgements for zero-activity employees when import crashes**: Even though the employee was created, the crash prevents acknowledgement creation. Employees with no PTO activity should still get acknowledgements synced (all 12 months with status=null indicating clean months).
-   - **Fix**: Move the acknowledgement upsert before the PTO upsert, or restructure the try/catch so that `upsertAcknowledgements` runs even if PTO upsert fails, or handle the hire date issue upstream so the crash doesn't happen.
-
-**Affected code locations**:
-| File | Line | Issue |
-| --- | --- | --- |
-| `server/reportGenerators/excelImport.ts` | ~587 | `hireDate: sheetResult.employee.hireDate!` — non-null assertion on potentially undefined value |
-| `server/reportGenerators/excelImport.ts` | ~300 | `computeAnnualAllocation(autoApproveCtx.hireDate, year)` — crashes when hireDate is undefined |
-| `server/reportGenerators/excelImport.ts` | ~657-660 | `catch (sheetError)` — skips acknowledgement upsert entirely |
-
-**Recommended fix approach**: Guard the `autoApproveCtx` construction: if `hireDate` is falsy, set `autoApproveCtx` to `undefined` (disabling auto-approve for that employee but allowing the rest of the import — PTO upserts and acknowledgement syncing — to proceed normally).
-
-### Phase 7: Import Result Severity Tiers (Errors / Warnings / Resolved)
-
-The import result display currently has a single flat list of "warnings" (orange). This is insufficient — fatal issues like a missing hire date that causes a sheet to abort should be visually distinct from benign reconciliation notes. **Three tiers** are needed:
-
-#### Requirements
-
-1. **Errors (red)** — Fatal issues that prevented part of the import from completing. These require admin attention.
-   - Example: `"N Rosenberger: hire date not found — sheet processing aborted (no PTO entries or acknowledgements imported)"`
-   - Displayed as `"1 error"` in red in the import result summary
-   - Stored in a new `errors: string[]` array on `ImportResult` and `BulkImportResponse`
-
-2. **Warnings (orange)** — Non-fatal issues that may need review but did not prevent import. Current behavior, kept as-is.
-   - Example: `"N Rosenberger month 9: PTO hours mismatch. Declared=32.5h, detected=32h, gap=0.5h."`
-   - Displayed as `"438 warnings"` in orange (existing behavior)
-
-3. **Resolved (green)** — Issues that were automatically corrected by the import logic. Currently these are mixed into warnings unnecessarily.
-   - Example: `"N Rosenberger: hire date parsed as '2006-03-15' after stripping suffix '(FT)' from cell value '3/15/06 (FT)'"`
-   - Displayed as `"300 resolved"` in green in the import result summary
-   - Stored in a new `resolved: string[]` array on `ImportResult` and `BulkImportResponse`
-
-#### Checklist
-
-- [ ] Add `errors: string[]` and `resolved: string[]` to `ImportResult` in `shared/excelParsing.ts`
-- [ ] Add `errors: string[]` and `resolved: string[]` to `BulkImportResponse` in `shared/api-models.d.ts`
-- [ ] Classify existing warnings: move auto-corrected items to `resolved`, move fatal aborts to `errors`
-- [ ] Update `importExcelWorkbook` catch block to push to `errors` instead of `warnings` when a sheet fails fatally
-- [ ] Update import result rendering in `client/pages/admin-settings-page/index.ts`:
-  - Show `"N errors"` in red if errors > 0
-  - Show `"N warnings"` in orange (existing)
-  - Show `"N resolved"` in green if resolved > 0
-- [ ] Update the `POST /api/admin/import-excel` and `POST /api/admin/import-bulk` response handlers to pass through all three arrays
-- [ ] **Validation**: `pnpm run build` passes, `pnpm run lint` passes
-- [ ] **Validation**: Manual test — import spreadsheet, verify red/orange/green severity display
-
-### Phase 8: Fix Hire Date Parsing — Strip Parenthetical Suffixes
-
-The N Rosenberger sheet has hire date cell text like `"Hire Date: 3/15/06 (FT)"`. The current code extracts `"3/15/06 (FT)"` via regex, then passes it to `smartParseDate()`, which fails because `(FT)` doesn't match any date pattern.
-
-#### Requirements
-
-1. **Strip parenthetical suffixes** before passing to `smartParseDate()`. The regex capture from `hire\s*date:\s*(.+)` should have trailing parenthetical content removed (e.g., `(FT)`, `(PT)`, `(Part Time)`, etc.).
-2. **Report as resolved** — when stripping changes the input and parsing succeeds, add a `resolved` message: `"Sheet 'N Rosenberger': hire date parsed as '2006-03-15' after stripping suffix '(FT)' from cell value '3/15/06 (FT)'"`
-3. **Report as error if still unparseable** — if after stripping the date still can't be parsed, push to `errors` (not warnings): `"Sheet 'N Rosenberger': hire date not found — cell R2 text: 'Hire Date: ???'"`
-
-#### Checklist
-
-- [ ] In `parseEmployeeInfo` (`shared/excelParsing.ts`), after extracting `datePart` from the regex, strip trailing parenthetical content: `datePart.replace(/\s*\(.*\)\s*$/, '').trim()`
-- [ ] If stripping was needed and `smartParseDate` succeeds, emit a `resolved` message (requires `parseEmployeeInfo` or `parseEmployeeSheet` to return resolved messages — extend `SheetImportResult` accordingly)
-- [ ] If `smartParseDate` still fails after stripping, emit an `error` message instead of a warning
-- [ ] Add unit tests for hire date parsing with `(FT)`, `(PT)`, and other suffixes
-- [ ] **Validation**: `pnpm run build` passes, existing tests pass, N Rosenberger imports fully with hire date `2006-03-15`
-
-#### Affected Files
-
-| File                                        | Change                                                                                                     |
-| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `shared/excelParsing.ts`                    | `parseEmployeeInfo` — strip parenthetical suffix; `SheetImportResult` — add `resolved` and `errors` arrays |
-| `shared/excelParsing.ts`                    | `ImportResult` — add `errors` and `resolved` arrays                                                        |
-| `shared/api-models.d.ts`                    | `BulkImportResponse` — add `errors` and `resolved` arrays                                                  |
-| `server/reportGenerators/excelImport.ts`    | `importExcelWorkbook` — classify fatal catch as `error`; propagate `resolved` from sheet results           |
-| `client/pages/admin-settings-page/index.ts` | Render three severity tiers with appropriate colors                                                        |
+1. **Resolved**: Auto-approved import entries use a reserved **sys-admin account (`employee_id=0`)** as the `approved_by` value, which is distinct from human admin IDs. The existing checkmark indicator is sufficient visually — the distinction is in the data (`approved_by=0` vs. a human admin ID).
+2. **Resolved**: Auto-approve must respect **all** POLICY.md rules, not just annual limits. In particular, "PTO should not be borrowed typically after the first year of service" — any entry that would cause negative balance (borrowing) after the employee's first year must **not** be auto-approved. Policy violations must be recorded as notes on the imported `pto_entries` and `acknowledgements`.
+3. **Resolved**: Not a valid scenario. The prior-year carryover is always available from the spreadsheet at cell **L42** (January row of the PTO Calculation section). The `parseCarryoverHours()` function in `shared/excelParsing.ts` already reads this value. Hire date is also extracted from cell R2. Both fields are populated before PTO entries are processed.
+4. **Bug: N Rosenberger (employee_id=54) — Missing Acknowledgements / Shows "Unlocked" (2026-02-27)**: N Rosenberger's Monthly Employee Review card shows "Unlocked" (no acknowledgement) even though the employee was imported from the spreadsheet successfully (employee record exists, PTO limits display correctly). 65 of 69 employees have acknowledgements for 2018-02; employee 54 is the only imported employee that does not. **Root Cause**: The import of the "N Rosenberger" sheet **crashes** partway through processing due to a missing hire date. The error chain is: 1. `parseEmployeeInfo(ws)` returns `hireDate: undefined` because the hire date cell (R2) is blank/unparseable on that sheet. 2. The employee record **is** upserted successfully (with a fallback hire date of `new Date()`), incrementing `employeesProcessed`. 3. The auto-approve context is built with `hireDate: sheetResult.employee.hireDate!` — which is `undefined` cast to `string` via the non-null assertion. 4. `upsertPtoEntries` calls `computeAnnualAllocation(undefined, year)` → `parseDate(undefined)` → throws `Error: Invalid date string:`. 5. The outer `catch (sheetError)` block in `importExcelWorkbook` catches the error, emits a warning `"Failed to process sheet 'N Rosenberger': Error: Invalid date string:"`, and **skips the rest of the processing** for that sheet — including `upsertAcknowledgements`. 6. Result: the employee exists in the DB, but has **zero acknowledgements** and **zero PTO entries** (the entries parsed before the crash were never persisted). The monthly review query finds the employee but no `AdminAcknowledgement` row → `acknowledgedByAdmin: false`, no `Acknowledgement` row → `calendarLocked: false`. **Two distinct bugs**: 1. **Crash on missing hire date**: The auto-approve context passes `undefined` as `hireDate` without guarding for the case where `parseEmployeeInfo` couldn't extract a hire date. This causes a downstream `parseDate` failure that aborts the entire sheet. **Fix**: Guard `autoApproveCtx.hireDate` — if hire date is missing/unparseable, either skip auto-approve for that employee (set `autoApproveCtx = undefined`) or use a sensible fallback. The employee record already uses `new Date()` as a fallback in `upsertEmployee`, so the auto-approve context should too, or simply disable auto-approve when hire date is unknown. 2. **No acknowledgements for zero-activity employees when import crashes**: Even though the employee was created, the crash prevents acknowledgement creation. Employees with no PTO activity should still get acknowledgements synced (all 12 months with status=null indicating clean months). **Fix**: Move the acknowledgement upsert before the PTO upsert, or restructure the try/catch so that `upsertAcknowledgements` runs even if PTO upsert fails, or handle the hire date issue upstream so the crash doesn't happen. **Affected code locations**: | File | Line | Issue | | --- | --- | --- | | `server/reportGenerators/excelImport.ts` | ~587 | `hireDate: sheetResult.employee.hireDate!` — non-null assertion on potentially undefined value | | `server/reportGenerators/excelImport.ts` | ~300 | `computeAnnualAllocation(autoApproveCtx.hireDate, year)` — crashes when hireDate is undefined | | `server/reportGenerators/excelImport.ts` | ~657-660 | `catch (sheetError)` — skips acknowledgement upsert entirely | **Recommended fix approach**: Guard the `autoApproveCtx` construction: if `hireDate` is falsy, set `autoApproveCtx` to `undefined` (disabling auto-approve for that employee but allowing the rest of the import — PTO upserts and acknowledgement syncing — to proceed normally).
