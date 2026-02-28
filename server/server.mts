@@ -721,7 +721,7 @@ initDatabase()
               const newEmployee = employeeRepo.create({
                 name: identifier,
                 identifier,
-                hire_date: today() as unknown as Date,
+                hire_date: today(),
                 pto_rate: PTO_EARNING_SCHEDULE[0].dailyRate,
                 carryover_hours: 0,
                 role: "Employee",
@@ -900,6 +900,7 @@ initDatabase()
               id: req.employee!.id,
               name: req.employee!.name,
               role: req.employee!.role,
+              hireDate: req.employee!.hire_date || "",
             },
           });
         } catch (error) {
@@ -942,18 +943,13 @@ initDatabase()
           });
 
           // Convert to PTO calculation format
-          const hireDate =
-            employee.hire_date instanceof Date
-              ? employee.hire_date
-              : new Date(employee.hire_date as any);
-
           const employeeData = {
             id: employee.id,
             name: employee.name,
             identifier: employee.identifier,
             pto_rate: employee.pto_rate,
             carryover_hours: employee.carryover_hours,
-            hire_date: dateToString(hireDate),
+            hire_date: employee.hire_date,
             role: employee.role,
           };
 
@@ -1811,9 +1807,7 @@ initDatabase()
                 ? parseFloat(carryoverHours)
                 : carryoverHours
               : 0;
-          employee.hire_date = hireDate
-            ? new Date(hireDate)
-            : new Date(today());
+          employee.hire_date = hireDate || today();
           employee.role = role || "Employee";
 
           await employeeRepo.save(employee);
@@ -1904,7 +1898,7 @@ initDatabase()
               typeof carryoverHours === "string"
                 ? parseFloat(carryoverHours)
                 : carryoverHours;
-          if (hireDate !== undefined) employee.hire_date = new Date(hireDate);
+          if (hireDate !== undefined) employee.hire_date = hireDate;
           if (role !== undefined) employee.role = role;
 
           await employeeRepo.save(employee);
@@ -1979,10 +1973,7 @@ initDatabase()
             return res.status(404).json({ error: "Employee not found" });
           }
 
-          const hireDate =
-            employee.hire_date instanceof Date
-              ? dateToString(employee.hire_date)
-              : (employee.hire_date as string);
+          const hireDate = employee.hire_date;
 
           // Accept optional ?current_date=YYYY-MM-DD for time-travel testing
           const currentDateParam = req.query.current_date as
@@ -3148,9 +3139,7 @@ initDatabase()
           }
 
           // Normalize hire date — db format is YYYY-MM-DD, sheet may be M/D/YY etc.
-          const dbHireDate = dbEmployee.hire_date
-            ? dateToString(dbEmployee.hire_date)
-            : "";
+          const dbHireDate = dbEmployee.hire_date || "";
           if (dbHireDate && hireDate && dbHireDate !== hireDate) {
             return res.status(403).json({
               error: `Spreadsheet hire date "${hireDate}" does not match your account hire date "${dbHireDate}".`,

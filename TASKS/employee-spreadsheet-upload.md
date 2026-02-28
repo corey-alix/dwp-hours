@@ -30,77 +30,77 @@ This feature depends on the existing authentication system, employee database, P
 
 ### Phase 1: API Endpoint & Identity Verification
 
-- [ ] Create `POST /api/employee/import-bulk` endpoint (authenticated, employee-only) accepting browser-parsed JSON
-- [ ] Create client-side identity verification: extract Employee Name from J2 and Hire Date from R2 using ExcelJS in the browser
-- [ ] Compare J2/R2 against the authenticated employee's `name` and `hire_date` (exact match, case-insensitive, whitespace-normalized)
-- [ ] Block submission client-side with descriptive error if name or hire date does not match; also validate server-side (return 403)
-- [ ] Write Vitest unit tests for identity verification logic
-- [ ] **Validate**: `pnpm run build && pnpm run lint` pass; unit tests pass
+- [x] Create `POST /api/employee/import-bulk` endpoint (authenticated, employee-only) accepting browser-parsed JSON
+- [x] Create client-side identity verification: extract Employee Name from J2 and Hire Date from R2 using ExcelJS in the browser
+- [x] Compare J2/R2 against the authenticated employee's `name` and `hire_date` (exact match, case-insensitive, whitespace-normalized)
+- [x] Block submission client-side with descriptive error if name or hire date does not match; also validate server-side (return 403)
+- [x] Write Vitest unit tests for identity verification logic
+- [x] **Validate**: `pnpm run build && pnpm run lint` pass; unit tests pass
 
 ### Phase 2: Calendar Parsing & Column S Reconciliation (Browser-Side)
 
-- [ ] Reuse/refactor calendar parsing from `shared/excelParsing.ts` to extract colored PTO cells per month (runs in browser via ExcelJS)
-- [ ] Sum PTO hours from calendar cells (8h for full-day, note-hours for partial) per month
-- [ ] Read column S (rows 42–53) for declared PTO hours per month
-- [ ] Compare calendar sums against column S values for each month
-- [ ] If any month has a mismatch, block submission client-side with a detailed error listing every discrepant month, the calendar sum, and the declared value
+- [x] Reuse/refactor calendar parsing from `shared/excelParsing.ts` to extract colored PTO cells per month (runs in browser via ExcelJS)
+- [x] Sum PTO hours from calendar cells (8h for full-day, note-hours for partial) per month
+- [x] Read column S (rows 42–53) for declared PTO hours per month
+- [x] Compare calendar sums against column S values for each month
+- [x] If any month has a mismatch, block submission client-side with a detailed error listing every discrepant month, the calendar sum, and the declared value
 - [ ] Write Vitest unit tests for calendar-vs-column-S reconciliation
-- [ ] **Validate**: `pnpm run build && pnpm run lint` pass; unit tests pass
+- [x] **Validate**: `pnpm run build && pnpm run lint` pass; unit tests pass
 
 ### Phase 3: Admin-Lock Detection & Overwrite Logic
 
-- [ ] Query admin acknowledgement status for each month of the uploaded year
-- [ ] Skip (do not overwrite) any month that has been admin-acknowledged
-- [ ] If **all** months are admin-locked, return 409 Conflict with a message listing the locked months
-- [ ] For unlocked months, delete **all** existing PTO entries for the employee/month (including approved entries), then insert spreadsheet entries
-- [ ] Parse Employee Initials from column X (rows 42–53) and write employee acknowledgements for imported months
-- [ ] Return per-month breakdown response: `perMonth[]` array with `{ month, status, entriesImported, entriesDeleted, warnings }` for each month (status: `"imported"` | `"skipped-locked"`)
-- [ ] Write Vitest unit tests for lock-detection, overwrite behavior, and all-locked 409 response
-- [ ] **Validate**: `pnpm run build && pnpm run lint` pass; unit tests pass
+- [x] Query admin acknowledgement status for each month of the uploaded year
+- [x] Skip (do not overwrite) any month that has been admin-acknowledged
+- [x] If **all** months are admin-locked, return 409 Conflict with a message listing the locked months
+- [x] For unlocked months, delete **all** existing PTO entries for the employee/month (including approved entries), then insert spreadsheet entries
+- [x] Parse Employee Initials from column X (rows 42–53) and write employee acknowledgements for imported months
+- [x] Return per-month breakdown response: `perMonth[]` array with `{ month, status, entriesImported, entriesDeleted, warnings }` for each month (status: `"imported"` | `"skipped-locked"`)
+- [x] Write Vitest unit tests for lock-detection, overwrite behavior, and all-locked 409 response
+- [x] **Validate**: `pnpm run build && pnpm run lint` pass; unit tests pass
 
 ### Phase 4: Business Rule Warnings & Approval Flow
 
-- [ ] Run standard business rule validations on the imported entries (annual PTO cap, sick-hour limit, bereavement limit, borrowing checks)
-- [ ] Collect warnings for any violations but do NOT reject the upload
-- [ ] Ensure all imported entries are created with `approved_by = NULL` (unapproved, entering the admin queue)
-- [ ] Include warnings in the JSON response body, associated with the relevant month in the `perMonth[]` breakdown
-- [ ] Write Vitest unit tests for warning generation and approval status
-- [ ] **Validate**: `pnpm run build && pnpm run lint` pass; unit tests pass
+- [x] Run standard business rule validations on the imported entries (annual PTO cap, sick-hour limit, bereavement limit, borrowing checks)
+- [x] Collect warnings for any violations but do NOT reject the upload
+- [x] Ensure all imported entries are created with `approved_by = NULL` (unapproved, entering the admin queue)
+- [x] Include warnings in the JSON response body, associated with the relevant month in the `perMonth[]` breakdown
+- [x] Write Vitest unit tests for warning generation and approval status
+- [x] **Validate**: `pnpm run build && pnpm run lint` pass; unit tests pass
 
 ### Phase 5: `<timesheet-upload-form>` Web Component & Navigation
 
 #### 5a: Component scaffold (BaseComponent)
 
-- [ ] Create `client/components/timesheet-upload-form/index.ts` extending `BaseComponent`
-- [ ] Create `client/components/timesheet-upload-form/css.ts` with exported `styles` template string using design tokens from `tokens.css`
+- [x] Create `client/components/timesheet-upload-form/index.ts` extending `BaseComponent`
+- [x] Create `client/components/timesheet-upload-form/css.ts` with exported `styles` template string using design tokens from `tokens.css`
 - [ ] Define `static get observedAttributes()` — no external attributes needed (component is self-contained)
-- [ ] Implement `render()` returning declarative template: file input, submit button, status/results area
-- [ ] Use `handleDelegatedClick` / `handleDelegatedSubmit` for event handling (no inline handlers)
-- [ ] Register element: `customElements.define("timesheet-upload-form", TimesheetUploadForm)`
-- [ ] Export from `client/components/index.ts`
+- [x] Implement `render()` returning declarative template: file input, submit button, status/results area
+- [x] Use `handleDelegatedClick` / `handleDelegatedSubmit` for event handling (no inline handlers)
+- [x] Register element: `customElements.define("timesheet-upload-form", TimesheetUploadForm)`
+- [x] Export from `client/components/index.ts`
 
 #### 5b: Upload logic (browser-side ExcelJS parsing)
 
-- [ ] On file select: parse `.xlsx` with ExcelJS in the browser
-- [ ] Extract J2 (Employee Name) and R2 (Hire Date); compare against current user's profile (fetched via API or passed as complex property)
-- [ ] Run calendar-vs-column-S reconciliation; display mismatches as inline errors (no submission)
-- [ ] On valid parse: submit structured JSON to `POST /api/employee/import-bulk`
-- [ ] Display per-month results (`perMonth[]`): imported months, skipped (locked) months, warnings, and errors
-- [ ] Show clear error messages for identity verification failures and column S discrepancies
+- [x] On file select: parse `.xlsx` with ExcelJS in the browser
+- [x] Extract J2 (Employee Name) and R2 (Hire Date); compare against current user's profile (fetched via API or passed as complex property)
+- [x] Run calendar-vs-column-S reconciliation; display mismatches as inline errors (no submission)
+- [x] On valid parse: submit structured JSON to `POST /api/employee/import-bulk`
+- [x] Display per-month results (`perMonth[]`): imported months, skipped (locked) months, warnings, and errors
+- [x] Show clear error messages for identity verification failures and column S discrepancies
 
 #### 5c: Route & navigation integration
 
-- [ ] Add route `{ path: "/upload-timesheet", component: "upload-timesheet-page", name: "Upload Timesheet", meta: { title: "Upload Timesheet", requiresAuth: true } }` to `client/router/routes.ts` (no `roles` restriction — available to all authenticated users)
-- [ ] Create `client/pages/upload-timesheet-page/index.ts` page component that hosts `<timesheet-upload-form>`
-- [ ] Add `"upload-timesheet"` to the `Page` type union in `client/components/dashboard-navigation-menu/index.ts`
-- [ ] Add `{ id: "upload-timesheet", label: "Upload Timesheet" }` to `menuItems` array in `DashboardNavigationMenu.render()` — placed after "Prior Year Summary" and before admin-only items
+- [x] Add route `{ path: "/upload-timesheet", component: "upload-timesheet-page", name: "Upload Timesheet", meta: { title: "Upload Timesheet", requiresAuth: true } }` to `client/router/routes.ts` (no `roles` restriction — available to all authenticated users)
+- [x] Create `client/pages/upload-timesheet-page/index.ts` page component that hosts `<timesheet-upload-form>`
+- [x] Add `"upload-timesheet"` to the `Page` type union in `client/components/dashboard-navigation-menu/index.ts`
+- [x] Add `{ id: "upload-timesheet", label: "Upload Timesheet" }` to `menuItems` array in `DashboardNavigationMenu.render()` — placed after "Prior Year Summary" and before admin-only items
 
 #### 5d: Test harness
 
-- [ ] Create `client/components/timesheet-upload-form/test.html` following the project test.html pattern
-- [ ] Create `client/components/timesheet-upload-form/test.ts` with `playground()` function
-- [ ] Add playground import/export to `client/components/test.ts`
-- [ ] **Validate**: `pnpm run build && pnpm run lint` pass; manual testing of upload flow
+- [x] Create `client/components/timesheet-upload-form/test.html` following the project test.html pattern
+- [x] Create `client/components/timesheet-upload-form/test.ts` with `playground()` function
+- [x] Add playground import/export to `client/components/test.ts`
+- [x] **Validate**: `pnpm run build && pnpm run lint` pass; manual testing of upload flow
 
 ### Phase 6: E2E & Integration Testing
 
@@ -114,10 +114,10 @@ This feature depends on the existing authentication system, employee database, P
 
 ### Phase 7: Documentation & Final Quality Gates
 
-- [ ] Update API documentation with the new endpoint
-- [ ] Update README.md with employee upload instructions
+- [x] Update API documentation with the new endpoint
+- [x] Update README.md with employee upload instructions
 - [ ] Manual testing of the full upload flow (happy path + error cases)
-- [ ] Code review and final linting
+- [x] Code review and final linting
 
 ## Implementation Notes
 

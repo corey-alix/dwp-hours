@@ -388,6 +388,7 @@ export class EmployeeList extends BaseComponent {
 
     // Forward employee-submit from inline editor
     this.shadowRoot.addEventListener("employee-submit", (e) => {
+      e.stopPropagation();
       this.dispatchEvent(
         new CustomEvent("employee-submit", {
           detail: (e as CustomEvent).detail,
@@ -399,6 +400,7 @@ export class EmployeeList extends BaseComponent {
 
     // Forward form-cancel from inline editor
     this.shadowRoot.addEventListener("form-cancel", (e) => {
+      e.stopPropagation();
       this.dispatchEvent(
         new CustomEvent("form-cancel", {
           detail: (e as CustomEvent).detail,

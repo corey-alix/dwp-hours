@@ -16,6 +16,7 @@ import { playground as priorYearReview } from "./prior-year-review/test.js";
 import { playground as ptoBalanceSummary } from "./pto-balance-summary/test.js";
 import { playground as dashboardNavigationMenu } from "./dashboard-navigation-menu/test.js";
 import { playground as monthSummary } from "./month-summary/test.js";
+import { playground as timesheetUploadForm } from "./timesheet-upload-form/test.js";
 
 // Export for module import
 export {
@@ -35,4 +36,5 @@ export {
   ptoBalanceSummary,
   dashboardNavigationMenu,
   monthSummary,
+  timesheetUploadForm,
 };

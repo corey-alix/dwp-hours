@@ -97,10 +97,7 @@ export class PtoEntryDAL {
           identifier: employee.identifier,
           pto_rate: employee.pto_rate,
           carryover_hours: employee.carryover_hours,
-          hire_date:
-            employee.hire_date instanceof Date
-              ? dateToString(employee.hire_date)
-              : employee.hire_date,
+          hire_date: employee.hire_date,
           role: employee.role,
         };
 

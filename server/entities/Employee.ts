@@ -25,8 +25,8 @@ export class Employee {
   @Column({ type: "real", default: 0 })
   carryover_hours!: number;
 
-  @Column({ type: "date" })
-  hire_date!: Date;
+  @Column({ type: "text" })
+  hire_date!: string;
 
   @Column({ type: "text", default: "Employee" })
   role!: string;

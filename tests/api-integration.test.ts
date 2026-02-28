@@ -299,7 +299,7 @@ describe("API Integration Tests", () => {
       identifier: "integration@example.com",
       pto_rate: 0.71,
       carryover_hours: 10,
-      hire_date: new Date("2024-01-01"),
+      hire_date: "2024-01-01",
       role: "Employee",
     });
     await dataSource.getRepository(Employee).save(employee);
@@ -331,7 +331,7 @@ describe("API Integration Tests", () => {
       identifier: "lifecycle@example.com",
       pto_rate: 0.71,
       carryover_hours: 10,
-      hire_date: new Date("2024-01-01"),
+      hire_date: "2024-01-01",
       role: "Employee",
     });
     await dataSource.getRepository(Employee).save(employee);
@@ -350,7 +350,7 @@ describe("API Integration Tests", () => {
       identifier: "validation@example.com",
       pto_rate: 0.71,
       carryover_hours: 10,
-      hire_date: new Date("2024-01-01"),
+      hire_date: "2024-01-01",
       role: "Employee",
     });
     await dataSource.getRepository(Employee).save(employee);
@@ -385,7 +385,7 @@ describe("API Integration Tests", () => {
         identifier: "pto-year@example.com",
         pto_rate: 0.71,
         carryover_hours: 10,
-        hire_date: new Date("2024-01-01"),
+        hire_date: "2024-01-01",
         role: "Employee",
       });
       await dataSource.getRepository(Employee).save(testEmployee);

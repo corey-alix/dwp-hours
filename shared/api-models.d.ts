@@ -305,6 +305,7 @@ export interface AuthValidateSessionResponse {
     id: number;
     name: string;
     role: string;
+    hireDate: string;
   };
 }
 

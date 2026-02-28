@@ -148,6 +148,7 @@ Browser: File input → ExcelJS.load(ArrayBuffer) → shared parsing logic → J
 - `client/import/excelImportClient.ts` — Browser orchestrator; lazy-loaded as `public/excel-import.js` (307KB gzipped) only when admin triggers import
 - `server/reportGenerators/excelImport.ts` — Server persistence layer; re-exports shared parsing + TypeORM upserts
 - `POST /api/admin/import-bulk` — Accepts `BulkImportPayload` JSON, admin-only
+- `POST /api/employee/import-bulk` — Accepts single-employee PTO JSON, authenticated employees upload their own timesheet
 
 **Feature flag:** `ENABLE_BROWSER_IMPORT` in `shared/businessRules.ts`. When `false`, falls back to server-side upload via `/api/admin/import-excel`.
 
@@ -854,6 +855,10 @@ Most API endpoints require authentication. Authentication is handled via cookie-
 - `POST /api/employees` _(admin)_: Add a new employee
 - `PUT /api/employees/:id` _(admin)_: Update employee information (name, PTO rate, carryover, etc.)
 - `DELETE /api/employees/:id` _(admin)_: Remove an employee from the system
+
+### Employee Timesheet Upload
+
+- `POST /api/employee/import-bulk` _(authenticated)_: Upload personal PTO spreadsheet data. Accepts browser-parsed JSON with `employeeName`, `hireDate`, `year`, `ptoEntries[]`, and `acknowledgements[]`. Server verifies identity (name + hire date must match authenticated user), checks admin-locked months (skipped), and overwrites unlocked months with full overwrite semantics. Returns per-month breakdown with `perMonth[]` array. Returns 403 on identity mismatch, 409 if all months are admin-locked. All imported entries are unapproved (`approved_by = null`).
 
 ## TypeORM Entities
 

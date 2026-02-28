@@ -68,7 +68,7 @@ beforeEach(async () => {
     identifier: "TEST001",
     pto_rate: 0.71,
     carryover_hours: 0,
-    hire_date: new Date("2023-01-01"),
+    hire_date: "2023-01-01",
     role: "Employee",
   });
 });
@@ -182,7 +182,7 @@ describe("PtoEntryDAL", () => {
         identifier: "LIMITED001",
         pto_rate: 0.65, // Tier-0 daily rate from PTO_EARNING_SCHEDULE
         carryover_hours: 0,
-        hire_date: new Date("2024-01-01"),
+        hire_date: "2024-01-01",
         role: "Employee",
       });
 
@@ -218,7 +218,7 @@ describe("PtoEntryDAL", () => {
         identifier: "SUFFICIENT001",
         pto_rate: 0.71, // Standard accrual rate (~186h/year)
         carryover_hours: 0,
-        hire_date: new Date("2024-01-01"),
+        hire_date: "2024-01-01",
         role: "Employee",
       });
 
@@ -255,7 +255,7 @@ describe("PtoEntryDAL", () => {
         identifier: "EXACT001",
         pto_rate: 0.5,
         carryover_hours: 1,
-        hire_date: new Date("2024-01-01"),
+        hire_date: "2024-01-01",
         role: "Employee",
       });
 
@@ -288,7 +288,7 @@ describe("PtoEntryDAL", () => {
         identifier: "NOPTO001",
         pto_rate: 0.65, // Tier-0 daily rate from PTO_EARNING_SCHEDULE
         carryover_hours: 0,
-        hire_date: new Date("2024-01-01"),
+        hire_date: "2024-01-01",
         role: "Employee",
       });
 
@@ -357,7 +357,7 @@ describe("PtoEntryDAL", () => {
         identifier: "BLOCKED001",
         pto_rate: 0.65, // Tier-0 daily rate from PTO_EARNING_SCHEDULE
         carryover_hours: 0,
-        hire_date: new Date("2024-01-01"),
+        hire_date: "2024-01-01",
         role: "Employee",
       });
 
@@ -395,7 +395,7 @@ describe("PtoEntryDAL", () => {
         identifier: "ALLOWED001",
         pto_rate: 0.71, // Standard accrual rate (~186h/year)
         carryover_hours: 0,
-        hire_date: new Date("2024-01-01"),
+        hire_date: "2024-01-01",
         role: "Employee",
       });
 

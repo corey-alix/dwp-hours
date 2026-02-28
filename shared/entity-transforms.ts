@@ -23,10 +23,7 @@ export function serializeEmployee(entity: EntityEmployee): Employee {
     identifier: entity.identifier,
     ptoRate: entity.pto_rate,
     carryoverHours: entity.carryover_hours,
-    hireDate:
-      entity.hire_date instanceof Date
-        ? dateToString(entity.hire_date)
-        : entity.hire_date,
+    hireDate: entity.hire_date,
     role: entity.role,
     hash: entity.hash || undefined,
   };

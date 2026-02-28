@@ -67,7 +67,7 @@ async function seedEmployee(
     identifier: `${overrides.name.toLowerCase().replace(/\s/g, ".")}@example.com`,
     pto_rate: 0.71,
     carryover_hours: 0,
-    hire_date: new Date("2023-01-01"),
+    hire_date: "2023-01-01",
     role: "Employee",
     ...overrides,
   });

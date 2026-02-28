@@ -10,6 +10,7 @@ type Page =
   | "current-year-summary"
   | "prior-year-summary"
   | "submit-time-off"
+  | "upload-timesheet"
   | "admin/employees"
   | "admin/pto-requests"
   | "admin/monthly-review"
@@ -72,6 +73,7 @@ export class DashboardNavigationMenu extends BaseComponent {
       { id: "submit-time-off", label: "Submit Time Off" },
       { id: "current-year-summary", label: "Current Year Summary" },
       { id: "prior-year-summary", label: "Prior Year Summary" },
+      { id: "upload-timesheet", label: "Upload Timesheet" },
     ];
 
     if (this.userRole === "Admin") {
