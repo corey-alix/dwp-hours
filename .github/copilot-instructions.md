@@ -323,6 +323,33 @@ const input = querySingle<HTMLInputElement>("#input-id", ptoForm.shadowRoot); //
 - Generate scripts in TypeScript with ESM modules (.mts extension), not plain JavaScript or CommonJS modules.
 - Use import/export syntax for ESM.
 
+## Code Patterns and Conventions
+
+### DOM Element Handling
+
+- Always use strongly typed DOM elements - avoid `as any` or type casting
+- Use `querySingle` from `test-utils.ts` instead of `getElementById` for error-throwing behavior
+- Web components have specific class types (e.g., `PtoEntryForm` for `<pto-entry-form>`) - leverage them for type safety
+
+### Error Handling
+
+- Always use try/catch blocks
+- Log errors with the `log()` function
+- Return appropriate HTTP status codes
+- Provide meaningful error messages
+
+### Database Operations
+
+- Use prepared statements with `stmt.bind()` and `stmt.run()`
+- Get last insert ID with `db.exec('SELECT last_insert_rowid()')`
+- Always call `saveDatabase()` after writes
+- Handle SQL constraints gracefully
+
+### Script Generation
+
+- Generate scripts in TypeScript with ESM modules (.mts extension), not plain JavaScript or CommonJS modules.
+- Use import/export syntax for ESM.
+
 ### Business Rules
 
 - **Never implement business logic directly in client files** - all validation rules, calculations, and business constraints must be imported from `shared/businessRules.ts`
@@ -336,6 +363,19 @@ const input = querySingle<HTMLInputElement>("#input-id", ptoForm.shadowRoot); //
 - All date manipulation must go through `shared/dateUtils.ts` - do not use Date.UTC, new Date(), or Date methods outside this library
 - Extend `shared/dateUtils.ts` with new utility functions as needed rather than using native Date APIs
 - Use string comparisons and manipulations for date logic to ensure consistency and avoid timezone problems
+
+### Using project-types.d.ts for Architecture Analysis
+
+The `project-types.d.ts` file serves as a comprehensive type declaration file that provides valuable insights during architecture analysis and refactoring discovery:
+
+- **API Structure Discovery**: Contains type definitions for all exported classes, interfaces, and functions, making it easy to understand component relationships and APIClient usage patterns
+- **Component Type Information**: Provides specific class types for web components (e.g., `PtoEntryForm`, `AdminMonthlyReview`) which are essential for understanding the component hierarchy
+- **Global Exports Visibility**: Shows all globally exported symbols including singletons like `notifications` and constants like `ENABLE_BROWSER_IMPORT`
+- **Business Logic Structure**: Reveals the structure of `businessRules.ts` exports including `VALIDATION_MESSAGES` and validation functions
+- **Search and Navigation Aid**: Serves as an index for finding specific patterns, usage locations, and dependencies across the codebase
+- **Type-Safe Analysis**: Enables type-aware analysis of code patterns without needing to load full source files
+
+When performing architecture analysis or refactoring discovery, `project-types.d.ts` should be consulted first to understand the exported API surface and then cross-referenced with actual implementation files for detailed analysis.
 
 ### CSS Formatting Rules
 

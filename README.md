@@ -483,6 +483,7 @@ The project uses AI-assisted development with specialized skill documents that p
 - **CSS Subgrid Assistant**: Advanced CSS layout techniques - [`.github/skills/css-subgrid-assistant/SKILL.md`](.github/skills/css-subgrid-assistant/SKILL.md)
 - **ExcelJS Integration**: Excel file processing and generation - [`.github/skills/exceljs/SKILL.md`](.github/skills/exceljs/SKILL.md)
 - **Package.json Commenter**: Package configuration and dependency management - [`.github/skills/package-json-commenter/SKILL.md`](.github/skills/package-json-commenter/SKILL.md)
+- **Project Types Generator**: Generate comprehensive type definitions for architecture analysis - `pnpm run generate:types`
 - **Staged Action Plan**: Development planning and execution strategies - [`.github/skills/staged-action-plan/SKILL.md`](.github/skills/staged-action-plan/SKILL.md)
 
 ### Development Prompts
@@ -598,6 +599,7 @@ pnpm --version
 - **Start Development Server**: `pnpm run start` - Start development server with auto-restart on server file changes
 - **Start Frontend Dev Server**: `pnpm run dev:external` - Start frontend development server (static file server) on PORT
 - **Build**: `pnpm run build` - Compile TypeScript to JavaScript for both client and server
+- **Generate Types**: `pnpm run generate:types` - Generate comprehensive project-types.d.ts file for architecture analysis
 - **Lint**: `pnpm run lint` - Check TypeScript, CSS, and markdown for errors across all code
 - **Format**: `pnpm run format` - Format code with Prettier
 
@@ -1215,6 +1217,7 @@ These projects demonstrate various approaches to time off tracking, from simple 
 ## Up Next
 
 LATER: See ./TASKS/debug-console-component.md for details
+LATER: See ./TASKS/project-types-generator.md for details
 
 ## Contributing
 

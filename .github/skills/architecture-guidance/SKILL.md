@@ -158,36 +158,77 @@ const entries = await ptoEntryRepo.find({
 });
 ```
 
-### Component Communication Patterns
+### Service Layer Architecture
 
-#### Event-Driven Data Flow
+To maintain separation of concerns and improve testability, components must not directly instantiate or use APIClient. Instead, implement a service layer with dependency injection:
 
-Web components should not make direct API calls. Instead, use custom events for data requests:
+#### Service Layer Pattern
 
 ```typescript
-// Component dispatches data request event
-this.dispatchEvent(
-  new CustomEvent("pto-data-request", {
-    bubbles: true,
-    detail: { employeeId: this.employeeId },
-  }),
-);
+// Service interface
+interface IEmployeeService {
+  getEmployees(): Promise<Employee[]>;
+  updateEmployee(id: number, data: Partial<Employee>): Promise<Employee>;
+}
 
-// Parent app listens and handles data fetching
-addEventListener("pto-data-request", (e: CustomEvent) => {
-  this.handlePtoDataRequest(e.detail);
-});
+// Service implementation
+class EmployeeService implements IEmployeeService {
+  constructor(private apiClient: APIClient) {}
 
-// Parent injects data via component method
-component.setPtoData(fetchedData);
+  async getEmployees(): Promise<Employee[]> {
+    return this.apiClient.get("/api/employees");
+  }
+}
+
+// Component with injected service
+class AdminEmployeesPage extends BaseComponent {
+  constructor(private employeeService: IEmployeeService) {
+    super();
+  }
+
+  async loadData() {
+    const employees = await this.employeeService.getEmployees();
+    // render employees
+  }
+}
 ```
 
-#### Communication Patterns
+#### Dependency Injection
 
-- **Parent-to-Child**: Attributes for configuration, method calls for data injection
-- **Child-to-Parent**: Custom events with detail objects for requests and state changes
-- **Sibling Communication**: Route through parent using event bubbling
-- **Benefits**: Maintains component isolation, improves testability, clear data flow
+- **Container**: Use a simple DI container for service registration and resolution
+- **Injection**: Services injected into components via constructors
+- **Mocking**: Services easily mockable for unit testing
+- **Benefits**: Loose coupling, improved testability, clear dependencies
+
+#### Prohibited Patterns
+
+- ❌ Direct APIClient instantiation in components
+- ❌ HTTP logic mixed with UI logic
+- ❌ Components making API calls directly
+- ❌ Imperative DOM manipulation for responsive layouts
+- ❌ JavaScript-based media query handling
+- ❌ Global singletons and side effects
+- ❌ Implicit state sharing through localStorage/globals
+- ❌ Overuse of event delegation creating "event soup"
+- ❌ UI messages mixed with business logic
+- ❌ Hardcoded feature flags in code
+
+#### Recommended Patterns
+
+- ✅ Service interfaces for abstraction
+- ✅ Dependency injection for loose coupling
+- ✅ CSS-driven responsive layouts with grid/flexbox
+- ✅ Declarative templates with attribute-based mode switching
+- ✅ Context providers for scoped state management
+- ✅ Component-level state with explicit dependencies
+- ✅ Targeted event listeners with proper cleanup
+- ✅ Custom events for component communication
+- ✅ Pure business rules returning structured data
+- ✅ Localization layer for UI messages
+- ✅ Runtime configuration for feature flags
+- ✅ Build-time flag elimination
+- ✅ Event-driven data flow with service injection
+- ✅ Pure business logic in services
 
 ### Automated Systems
 
@@ -199,7 +240,8 @@ component.setPtoData(fetchedData);
 - **Vanilla Approach**: No heavy frameworks, keeping the codebase lightweight and maintainable
 - **WSL Compatibility**: Database and development setup work seamlessly in Windows Subsystem for Linux
 - **Separation of Concerns**: Clear boundaries between frontend components, API endpoints, and business logic
+- **Service Layer**: Components must use injected services instead of direct APIClient usage
 - **Event-Driven Architecture**: Components dispatch custom events for data requests, parent components handle API calls and data injection
 - **Component Isolation**: Web components should be data-agnostic and testable without direct API dependencies
 - **Type Safety**: Full TypeScript coverage for reliability and developer experience
-- **Testability**: Architecture designed to support comprehensive unit and E2E testing
+- **Testability**: Architecture designed to support comprehensive unit and E2E testing with mockable services

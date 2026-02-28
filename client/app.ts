@@ -22,9 +22,7 @@ import {
 // Read ?current_day=YYYY-MM-DD or ?current_year=YYYY from the URL and
 // activate the date override before any component renders.
 // current_day takes precedence over current_year.
-initTimeTravel();
-
-function initTimeTravel(): void {
+(function initTimeTravel(): void {
   const params = new URLSearchParams(window.location.search);
 
   // Full day override: ?current_day=2018-03-15
@@ -49,7 +47,7 @@ function initTimeTravel(): void {
       console.info(`[time-travel] Active — reference year set to ${year}`);
     }
   }
-}
+})();
 
 // Notification system — TraceListener replaces the old NotificationManager.
 // The variable name `notifications` is retained for call-site compatibility.

@@ -4,6 +4,12 @@
 
 - Email Magic Link.md
 - markdown-rendering.md
+- api-service-layer-refactor.md
+- responsive-dom-refactor.md
+- global-state-refactor.md
+- event-delegation-refactor.md
+- business-rules-separation.md
+- feature-flags-refactor.md
 - LATER: See ./TASKS/login-page-redirect-and-policy.md for details
 - LATER: See ./TASKS/auto-provision-new-users.md for details
 - LATER: See ./TASKS/excel-import.md for details
@@ -122,3 +128,7 @@
 - current-year-summary-design-improvements.md
 - prior-year-summary-design-improvements.md
 - submit-time-off-design-improvements.md
+
+## DESIGN ISSUES TO RESOLVE
+
+All identified design issues have been converted to actionable tasks. See the NOT STARTED section above for the new refactoring tasks.
