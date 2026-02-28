@@ -320,7 +320,6 @@ export async function upsertPtoEntries(
 
         const policyContext: AutoApprovePolicyContext = {
           yearsOfService,
-          warningMonths: autoApproveCtx.warningMonths,
         };
 
         const result = shouldAutoApproveImportEntry(
@@ -587,18 +586,11 @@ export async function importExcelWorkbook(
 
         // Build auto-approve context — skip if hire date is missing to avoid
         // downstream crashes (auto-approve disabled for this employee)
-        const warningMonths = new Set<string>();
-        for (const ack of sheetResult.acknowledgements) {
-          if (ack.status === "warning") {
-            warningMonths.add(ack.month);
-          }
-        }
         const autoApproveCtx: AutoApproveImportContext | undefined = sheetResult
           .employee.hireDate
           ? {
               hireDate: sheetResult.employee.hireDate,
               carryoverHours: sheetResult.employee.carryoverHours,
-              warningMonths,
             }
           : undefined;
 

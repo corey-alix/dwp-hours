@@ -810,8 +810,6 @@ export interface AutoApproveEmployeeLimits {
 export interface AutoApprovePolicyContext {
   /** Completed years of service (0 = first year). */
   yearsOfService: number;
-  /** Set of YYYY-MM month strings that have "warning" acknowledgement status. */
-  warningMonths: ReadonlySet<string>;
 }
 
 /** Result of an auto-approve evaluation for a single import entry. */
@@ -826,8 +824,6 @@ export interface AutoApproveImportContext {
   hireDate: string;
   /** Hours carried over from the prior year. */
   carryoverHours: number;
-  /** Set of YYYY-MM month strings that have "warning" acknowledgement status. */
-  warningMonths: ReadonlySet<string>;
 }
 
 /**
@@ -835,18 +831,21 @@ export interface AutoApproveImportContext {
  * be auto-approved based on annual limits and POLICY.md rules.
  *
  * Checks performed:
- * 1. **Warning month** — entries in a month with `status: "warning"` acknowledgement are not auto-approved.
- * 2. **Sick annual limit** — sick hours cannot exceed 24 hours annually.
- * 3. **Bereavement annual limit** — bereavement hours cannot exceed 16 hours annually.
- * 4. **Jury Duty annual limit** — jury duty hours cannot exceed 24 hours annually.
- * 5. **PTO balance** — PTO hours cannot exceed the available balance
+ * 1. **Sick annual limit** — sick hours cannot exceed 24 hours annually.
+ * 2. **Bereavement annual limit** — bereavement hours cannot exceed 16 hours annually.
+ * 3. **Jury Duty annual limit** — jury duty hours cannot exceed 24 hours annually.
+ * 4. **PTO balance** — PTO hours cannot exceed the available balance
  *    (carryover + annual allocation − used-to-date).
- * 6. **PTO borrowing** — after the first year of service, PTO that would
+ * 5. **PTO borrowing** — after the first year of service, PTO that would
  *    cause a negative balance is not permitted.
+ *
+ * Note: Month-level reconciliation warnings (e.g., calendar/column-S hour
+ * mismatches) are handled separately at the acknowledgement layer.
+ * Individual entries are evaluated solely on their own merits.
  *
  * @param entry - The PTO entry to evaluate
  * @param employeeLimits - Running annual usage totals and available PTO balance
- * @param policyContext - Years of service and warning month information
+ * @param policyContext - Years of service information
  * @returns `{ approved, violations }` — if `approved` is false, `violations`
  *   contains human-readable descriptions of each failed check
  */
@@ -857,15 +856,7 @@ export function shouldAutoApproveImportEntry(
 ): AutoApproveResult {
   const violations: string[] = [];
 
-  // Extract YYYY-MM from entry date for warning-month check
-  const entryMonth = entry.date.substring(0, 7);
-
-  // 1. Warning month check
-  if (policyContext.warningMonths.has(entryMonth)) {
-    violations.push(`Month ${entryMonth} has warning acknowledgement status`);
-  }
-
-  // 2–4. Annual limit checks for non-PTO types
+  // 1–3. Annual limit checks for non-PTO types
   if (entry.type === "Sick") {
     const projected = employeeLimits.annualUsage.Sick + entry.hours;
     if (projected > BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.SICK) {
@@ -893,7 +884,7 @@ export function shouldAutoApproveImportEntry(
     }
   }
 
-  // 5–6. PTO balance and borrowing checks
+  // 4–5. PTO balance and borrowing checks
   if (entry.type === "PTO") {
     if (entry.hours > employeeLimits.availablePtoBalance) {
       if (policyContext.yearsOfService >= 1) {

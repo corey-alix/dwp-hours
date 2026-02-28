@@ -1613,4 +1613,52 @@ describe("AdminMonthlyReview Component", () => {
       expect(card.style.opacity).toBe("");
     });
   });
+
+  describe("Notes Passthrough to Calendar", () => {
+    it("should pass notes through to pto-calendar entries", () => {
+      const testData = generateMonthlyData("2026-02");
+      // Set PTO entries with notes included
+      component.setPtoEntries([
+        {
+          employee_id: 1,
+          type: "PTO",
+          hours: 8,
+          date: "2026-02-09",
+          approved_by: null,
+          notes: "Doctor appointment",
+        },
+        {
+          employee_id: 1,
+          type: "Sick",
+          hours: 4,
+          date: "2026-02-10",
+          approved_by: null,
+          notes: null,
+        },
+      ]);
+      component.setEmployeeData(testData);
+
+      // Expand calendar for first employee (id=1)
+      const firstBtn = component.shadowRoot?.querySelector(
+        ".view-calendar-btn",
+      ) as HTMLElement;
+      firstBtn.click();
+
+      const calendar = component.shadowRoot?.querySelector(
+        "pto-calendar",
+      ) as any;
+      expect(calendar).toBeTruthy();
+
+      const entries = calendar?.ptoEntries || [];
+      const entryWithNote = entries.find((e: any) => e.date === "2026-02-09");
+      expect(entryWithNote).toBeTruthy();
+      expect(entryWithNote.notes).toBe("Doctor appointment");
+
+      const entryWithoutNote = entries.find(
+        (e: any) => e.date === "2026-02-10",
+      );
+      expect(entryWithoutNote).toBeTruthy();
+      expect(entryWithoutNote.notes).toBeNull();
+    });
+  });
 });

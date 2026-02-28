@@ -110,7 +110,6 @@ function makePolicy(
 ): AutoApprovePolicyContext {
   return {
     yearsOfService: 3,
-    warningMonths: new Set(),
     ...overrides,
   };
 }
@@ -232,35 +231,43 @@ describe("Import Auto-Approve", () => {
       expect(result.violations[0]).toContain("first year of service");
     });
 
-    it("rejects entry in a warning acknowledgement month", () => {
+    it("approves entry in a month with warning acknowledgement status", () => {
+      // Warning months no longer block per-day auto-approval;
+      // month-level reconciliation warnings are handled at the acknowledgement layer.
       const entry = makeEntry({ date: "2025-03-15", type: "PTO", hours: 8 });
       const limits = makeLimits({ availablePtoBalance: 160 });
-      const policy = makePolicy({
-        yearsOfService: 3,
-        warningMonths: new Set(["2025-03"]),
+      const policy = makePolicy({ yearsOfService: 3 });
+
+      const result = shouldAutoApproveImportEntry(entry, limits, policy);
+
+      expect(result.approved).toBe(true);
+      expect(result.violations).toHaveLength(0);
+    });
+
+    it("rejects entry in a warning month when it exceeds annual limit on its own merits", () => {
+      const entry = makeEntry({ date: "2025-03-15", type: "Sick", hours: 32 });
+      const limits = makeLimits({
+        annualUsage: { PTO: 0, Sick: 0, Bereavement: 0, "Jury Duty": 0 },
       });
+      const policy = makePolicy({ yearsOfService: 3 });
 
       const result = shouldAutoApproveImportEntry(entry, limits, policy);
 
       expect(result.approved).toBe(false);
       expect(result.violations).toHaveLength(1);
-      expect(result.violations[0]).toContain("2025-03");
-      expect(result.violations[0]).toContain("warning");
+      expect(result.violations[0]).toContain("Sick hours");
     });
 
     it("accumulates multiple violations", () => {
-      // Entry is in a warning month AND exceeds PTO balance
+      // Entry exceeds PTO balance
       const entry = makeEntry({ date: "2025-03-15", type: "PTO", hours: 200 });
       const limits = makeLimits({ availablePtoBalance: 8 });
-      const policy = makePolicy({
-        yearsOfService: 5,
-        warningMonths: new Set(["2025-03"]),
-      });
+      const policy = makePolicy({ yearsOfService: 5 });
 
       const result = shouldAutoApproveImportEntry(entry, limits, policy);
 
       expect(result.approved).toBe(false);
-      expect(result.violations.length).toBeGreaterThanOrEqual(2);
+      expect(result.violations.length).toBeGreaterThanOrEqual(1);
     });
 
     it("approves entry at exact limit boundary", () => {
@@ -312,12 +319,11 @@ describe("Import Auto-Approve", () => {
       expect(result.approved).toBe(true);
     });
 
-    it("approves entries not in warning months", () => {
+    it("approves entries regardless of warning months", () => {
+      // Warning months no longer affect per-day approval
       const entry = makeEntry({ date: "2025-04-15", type: "PTO", hours: 8 });
       const limits = makeLimits({ availablePtoBalance: 160 });
-      const policy = makePolicy({
-        warningMonths: new Set(["2025-03"]), // Warning is March, entry is April
-      });
+      const policy = makePolicy();
 
       const result = shouldAutoApproveImportEntry(entry, limits, policy);
 
@@ -359,7 +365,6 @@ describe("Import Auto-Approve", () => {
       const autoApproveCtx = {
         hireDate: "2020-01-01",
         carryoverHours: 40,
-        warningMonths: new Set<string>(),
       };
 
       const result = await upsertPtoEntries(
@@ -390,7 +395,6 @@ describe("Import Auto-Approve", () => {
       const autoApproveCtx = {
         hireDate: "2020-01-01",
         carryoverHours: 40,
-        warningMonths: new Set<string>(),
       };
 
       const result = await upsertPtoEntries(
@@ -423,7 +427,6 @@ describe("Import Auto-Approve", () => {
       const autoApproveCtx = {
         hireDate: "2020-01-01",
         carryoverHours: 40,
-        warningMonths: new Set<string>(),
       };
 
       const result = await upsertPtoEntries(
@@ -454,7 +457,6 @@ describe("Import Auto-Approve", () => {
       const autoApproveCtx = {
         hireDate: "2020-01-01",
         carryoverHours: 40,
-        warningMonths: new Set<string>(),
       };
 
       const result = await upsertPtoEntries(
@@ -481,7 +483,6 @@ describe("Import Auto-Approve", () => {
       const autoApproveCtx = {
         hireDate: "2020-01-01",
         carryoverHours: 40,
-        warningMonths: new Set<string>(),
       };
 
       const { violationNotes } = await upsertPtoEntries(
@@ -544,7 +545,6 @@ describe("Import Auto-Approve", () => {
       const autoApproveCtx = {
         hireDate: "2020-01-01",
         carryoverHours: 40,
-        warningMonths: new Set<string>(),
       };
 
       const { violationNotes } = await upsertPtoEntries(
@@ -587,7 +587,6 @@ describe("Import Auto-Approve", () => {
       const autoApproveCtx = {
         hireDate: "2020-01-01",
         carryoverHours: 40,
-        warningMonths: new Set<string>(),
       };
 
       const { violationNotes } = await upsertPtoEntries(

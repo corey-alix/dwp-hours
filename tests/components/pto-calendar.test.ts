@@ -715,3 +715,96 @@ describe("PtoCalendar Component - Partial-Day Superscript", () => {
     expect(superscript).toBeNull();
   });
 });
+
+describe("PtoCalendar Component - Note Indicator", () => {
+  let component: PtoCalendar;
+  let container: HTMLElement;
+
+  beforeEach(async () => {
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    component = new PtoCalendar();
+    container.appendChild(component);
+  });
+
+  afterEach(() => {
+    document.body.removeChild(container);
+  });
+
+  it("should render note indicator when PTO entry has notes", () => {
+    const entries: PTOEntry[] = [
+      {
+        id: 1,
+        employeeId: 1,
+        date: "2024-02-12",
+        type: "PTO",
+        hours: 8,
+        createdAt: "2024-01-01T00:00:00Z",
+        approved_by: null,
+        notes: "Doctor appointment",
+      },
+    ];
+
+    component.setYear(2024);
+    component.setMonth(2);
+    component.setPtoEntries(entries);
+
+    const dayCell = component.shadowRoot?.querySelector(
+      '[data-date="2024-02-12"]',
+    );
+    const noteIndicator = dayCell?.querySelector(".note-indicator");
+    expect(noteIndicator).toBeTruthy();
+    expect(noteIndicator?.getAttribute("data-note")).toBe("Doctor appointment");
+    expect(noteIndicator?.getAttribute("title")).toBe("Doctor appointment");
+  });
+
+  it("should not render note indicator when notes is null", () => {
+    const entries: PTOEntry[] = [
+      {
+        id: 1,
+        employeeId: 1,
+        date: "2024-02-12",
+        type: "PTO",
+        hours: 8,
+        createdAt: "2024-01-01T00:00:00Z",
+        approved_by: null,
+        notes: null,
+      },
+    ];
+
+    component.setYear(2024);
+    component.setMonth(2);
+    component.setPtoEntries(entries);
+
+    const dayCell = component.shadowRoot?.querySelector(
+      '[data-date="2024-02-12"]',
+    );
+    const noteIndicator = dayCell?.querySelector(".note-indicator");
+    expect(noteIndicator).toBeNull();
+  });
+
+  it("should not render note indicator when notes is empty string", () => {
+    const entries: PTOEntry[] = [
+      {
+        id: 1,
+        employeeId: 1,
+        date: "2024-02-12",
+        type: "PTO",
+        hours: 8,
+        createdAt: "2024-01-01T00:00:00Z",
+        approved_by: null,
+        notes: "",
+      },
+    ];
+
+    component.setYear(2024);
+    component.setMonth(2);
+    component.setPtoEntries(entries);
+
+    const dayCell = component.shadowRoot?.querySelector(
+      '[data-date="2024-02-12"]',
+    );
+    const noteIndicator = dayCell?.querySelector(".note-indicator");
+    expect(noteIndicator).toBeNull();
+  });
+});

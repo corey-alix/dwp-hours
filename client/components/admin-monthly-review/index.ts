@@ -56,6 +56,7 @@ export class AdminMonthlyReview extends BaseComponent {
     hours: number;
     date: string;
     approved_by?: number | null;
+    notes?: string | null;
   }> = [];
   /** Track buttons awaiting confirmation. Maps button element to reset timer. */
   private _pendingConfirmations = new Map<HTMLButtonElement, number>();
@@ -84,6 +85,7 @@ export class AdminMonthlyReview extends BaseComponent {
       hours: number;
       date: string;
       approved_by?: number | null;
+      notes?: string | null;
     }>
   > = new Map();
 
@@ -184,6 +186,7 @@ export class AdminMonthlyReview extends BaseComponent {
       hours: number;
       date: string;
       approved_by?: number | null;
+      notes?: string | null;
     }>,
   ): void {
     this._ptoEntries = data;
@@ -199,6 +202,7 @@ export class AdminMonthlyReview extends BaseComponent {
       hours: number;
       date: string;
       approved_by?: number | null;
+      notes?: string | null;
     }>,
   ): void {
     this._monthPtoCache.set(month, data);
@@ -369,6 +373,7 @@ export class AdminMonthlyReview extends BaseComponent {
             hours: e.hours,
             createdAt: "",
             approved_by: e.approved_by ?? null,
+            notes: e.notes ?? null,
           }));
         cal.setPtoEntries(empEntries);
       });

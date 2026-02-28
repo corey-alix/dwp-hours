@@ -55,11 +55,8 @@ import {
   isAllowedEmailDomain,
   SYS_ADMIN_EMPLOYEE_ID,
   ENABLE_IMPORT_AUTO_APPROVE,
-  shouldAutoApproveImportEntry,
   computeEmployeeBalanceData,
   type PTOType,
-  type AutoApproveEmployeeLimits,
-  type AutoApprovePolicyContext,
 } from "../shared/businessRules.js";
 import { BACKUP_CONFIG } from "../shared/backupConfig.js";
 import {
@@ -2998,22 +2995,15 @@ initDatabase()
                   : [];
 
                 // Build auto-approve context from import payload
-                const warningMonths = new Set<string>();
                 const acknowledgements = Array.isArray(emp.acknowledgements)
                   ? emp.acknowledgements
                   : [];
-                for (const ack of acknowledgements) {
-                  if (ack.type === "employee" && ack.status === "warning") {
-                    warningMonths.add(ack.month);
-                  }
-                }
 
                 const autoApproveCtx: AutoApproveImportContext | undefined =
                   ENABLE_IMPORT_AUTO_APPROVE && emp.hireDate
                     ? {
                         hireDate: emp.hireDate,
                         carryoverHours: emp.carryoverHours || 0,
-                        warningMonths,
                       }
                     : undefined;
 
