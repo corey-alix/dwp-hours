@@ -239,4 +239,30 @@ export const styles = `<style>
     border: var(--border-width) solid var(--color-border);
     grid-column: 1 / -1;
   }
+
+  .view-calendar-btn {
+    background: transparent;
+    color: var(--color-secondary, #6c757d);
+    border-color: var(--color-secondary, #6c757d);
+  }
+
+  .view-calendar-btn:hover {
+    background: var(--color-secondary, #6c757d);
+    color: white;
+  }
+
+  .inline-calendar-container {
+    margin-top: var(--space-sm);
+    overflow: hidden;
+    border-top: var(--border-width) solid var(--color-border);
+    padding-top: var(--space-sm);
+    --slide-offset: 16px;
+    --duration-normal: 200ms;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .view-calendar-btn {
+      transition: none;
+    }
+  }
 </style>`;

@@ -15,6 +15,7 @@
 - LATER: See ./TASKS/browser-side-excel-import.md for details
 - LATER: See ./TASKS/excel-import-auto-approve.md for details
 - LATER: See ./TASKS/admin-review-calendar-notes.md for details
+- LATER: See ./TASKS/admin-employees-view-calendar.md for details
 
 ## SOME WORK REMAINS
 

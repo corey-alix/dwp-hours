@@ -39,6 +39,7 @@ export class AdminPtoRequestsPage
     type: PTOType;
     hours: number;
     date: string;
+    approved_by?: number | null;
   }> = [];
   private _authService: AuthService | null = null;
 
@@ -64,6 +65,7 @@ export class AdminPtoRequestsPage
           type: p.type,
           hours: p.hours,
           date: p.date,
+          approved_by: p.approved_by ?? null,
         }));
     } catch (error) {
       console.error(
@@ -110,6 +112,7 @@ export class AdminPtoRequestsPage
     const queue = this.shadowRoot.querySelector("pto-request-queue") as any;
     if (queue) {
       queue.requests = this._requests;
+      queue.ptoEntries = this._ptoEntries;
     }
   }
 
@@ -290,6 +293,7 @@ export class AdminPtoRequestsPage
           type: p.type,
           hours: p.hours,
           date: p.date,
+          approved_by: p.approved_by ?? null,
         }));
 
       this.requestUpdate();

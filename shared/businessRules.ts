@@ -889,11 +889,11 @@ export function shouldAutoApproveImportEntry(
     if (entry.hours > employeeLimits.availablePtoBalance) {
       if (policyContext.yearsOfService >= 1) {
         violations.push(
-          `PTO borrowing not permitted after first year of service (requested ${entry.hours}h, available ${employeeLimits.availablePtoBalance}h)`,
+          `PTO borrowing not permitted after first year of service (requested ${entry.hours}h, available ${employeeLimits.availablePtoBalance.toFixed(1)}h)`,
         );
       } else {
         violations.push(
-          `PTO request exceeds available balance (requested ${entry.hours}h, available ${employeeLimits.availablePtoBalance}h)`,
+          `PTO request exceeds available balance (requested ${entry.hours}h, available ${employeeLimits.availablePtoBalance.toFixed(1)}h)`,
         );
       }
     }

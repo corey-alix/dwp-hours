@@ -11,16 +11,40 @@ export interface Employee {
 
 import { BaseComponent } from "../base-component.js";
 import { adoptAnimations } from "../../css-extensions/animations/index.js";
+import {
+  adoptNavigation,
+  NAV_SYMBOLS,
+  animateSlide,
+} from "../../css-extensions/index.js";
 import { styles } from "./css.js";
+import { addMonths, getCurrentMonth } from "../../../shared/dateUtils.js";
+import { MONTH_NAMES, type PTOType } from "../../../shared/businessRules.js";
+// Side-effect import: ensure <pto-calendar> custom element is registered
+import "../pto-calendar/index.js";
+import type { PtoCalendar } from "../pto-calendar/index.js";
+
+export interface EmployeePtoEntry {
+  employee_id: number;
+  type: PTOType;
+  hours: number;
+  date: string;
+  approved_by?: number | null;
+}
 
 export class EmployeeList extends BaseComponent {
   private _employees: Employee[] = [];
   private _searchTerm = "";
   private _editingEmployeeId: number | null = null;
+  private _ptoEntries: EmployeePtoEntry[] = [];
+  /** Track which employee IDs have their inline calendar expanded */
+  private _expandedCalendars: Set<number> = new Set();
+  /** Per-card navigated month (employee ID → YYYY-MM). Reset on collapse. */
+  private _calendarMonths: Map<number, string> = new Map();
 
   connectedCallback() {
     super.connectedCallback();
     adoptAnimations(this.shadowRoot);
+    adoptNavigation(this.shadowRoot);
   }
 
   static get observedAttributes() {
@@ -36,6 +60,12 @@ export class EmployeeList extends BaseComponent {
     if (name === "editing-employee-id") {
       const prevId = this._editingEmployeeId;
       this._editingEmployeeId = newValue ? parseInt(newValue) : null;
+
+      // Collapse any open calendar when entering edit mode
+      if (this._editingEmployeeId !== null) {
+        this._expandedCalendars.delete(this._editingEmployeeId);
+        this._calendarMonths.delete(this._editingEmployeeId);
+      }
 
       // Animate card → editor transition when entering edit mode
       if (this._editingEmployeeId !== null && prevId === null) {
@@ -68,6 +98,15 @@ export class EmployeeList extends BaseComponent {
 
   get editingEmployeeId(): number | null {
     return this._editingEmployeeId;
+  }
+
+  /** Set PTO entries for inline calendar rendering. */
+  set ptoEntries(value: EmployeePtoEntry[]) {
+    this._ptoEntries = value;
+  }
+
+  get ptoEntries(): EmployeePtoEntry[] {
+    return this._ptoEntries;
   }
 
   private getFilteredEmployees(): Employee[] {
@@ -143,12 +182,71 @@ export class EmployeeList extends BaseComponent {
                 </div>
 
                 <div class="employee-actions">
+                    <button class="action-btn view-calendar-btn" data-action="view-calendar" data-employee-id="${employee.id}">${this._expandedCalendars.has(employee.id) ? "Hide Calendar" : "View Calendar"}</button>
                     <button class="action-btn edit" data-action="edit" data-employee-id="${employee.id}">Edit</button>
                     <button class="action-btn delete" data-action="delete" data-employee-id="${employee.id}" title="Hold to delete">Delete</button>
                 </div>
 
+                ${this.renderInlineCalendar(employee)}
+
             </div>
         `;
+  }
+
+  /** Render the inline calendar section for an employee card (if expanded). */
+  private renderInlineCalendar(employee: Employee): string {
+    if (!this._expandedCalendars.has(employee.id)) return "";
+
+    const calMonthStr =
+      this._calendarMonths.get(employee.id) || getCurrentMonth();
+    const [yearStr, monthStr] = calMonthStr.split("-");
+    const calYear = parseInt(yearStr, 10);
+    const calMonth = parseInt(monthStr, 10);
+    const monthLabel = `${MONTH_NAMES[calMonth - 1]} ${calYear}`;
+
+    return `
+      <div class="inline-calendar-container" data-employee-id="${employee.id}">
+        <div class="nav-header">
+          <button class="nav-arrow cal-nav-prev" data-employee-id="${employee.id}" aria-label="Previous month">${NAV_SYMBOLS.PREV}</button>
+          <span class="nav-label">${monthLabel}</span>
+          <button class="nav-arrow cal-nav-next" data-employee-id="${employee.id}" aria-label="Next month">${NAV_SYMBOLS.NEXT}</button>
+        </div>
+        <pto-calendar
+          month="${calMonth}"
+          year="${calYear}"
+          readonly="true"
+          hide-legend="true"
+          hide-header="true"
+          data-employee-id="${employee.id}">
+        </pto-calendar>
+      </div>
+    `;
+  }
+
+  /** Inject PTO entry data into all expanded inline calendars after render. */
+  private injectCalendarData(): void {
+    this.shadowRoot
+      .querySelectorAll<PtoCalendar>("pto-calendar")
+      .forEach((cal) => {
+        const empId = parseInt(cal.dataset.employeeId || "0");
+        if (!empId) return;
+        const calMonthStr =
+          this._calendarMonths.get(empId) || getCurrentMonth();
+        const empEntries = this._ptoEntries
+          .filter(
+            (e) => e.employee_id === empId && e.date.startsWith(calMonthStr),
+          )
+          .map((e, idx) => ({
+            id: idx + 1,
+            employeeId: empId,
+            date: e.date,
+            type: e.type,
+            hours: e.hours,
+            createdAt: "",
+            approved_by: e.approved_by ?? null,
+          }));
+        cal.setPtoEntries(empEntries);
+      });
   }
 
   private renderInlineEditor(employee: Employee): string {
@@ -376,12 +474,36 @@ export class EmployeeList extends BaseComponent {
 
   protected handleDelegatedClick(e: Event): void {
     const target = e.target as HTMLElement;
+
+    // Handle calendar month navigation arrows
+    if (
+      target.classList.contains("cal-nav-prev") ||
+      target.classList.contains("cal-nav-next")
+    ) {
+      const employeeId = parseInt(
+        target.getAttribute("data-employee-id") || "0",
+      );
+      if (employeeId) {
+        const direction: -1 | 1 = target.classList.contains("cal-nav-prev")
+          ? -1
+          : 1;
+        this.navigateCalendarMonth(employeeId, direction);
+      }
+      return;
+    }
+
     if (target.classList.contains("action-btn")) {
       const action = target.getAttribute("data-action");
       const employeeId = target.getAttribute("data-employee-id");
 
       // Delete is handled by long-press, not single click
       if (action === "delete") return;
+
+      // Handle view-calendar toggle internally
+      if (action === "view-calendar" && employeeId) {
+        this.toggleCalendar(parseInt(employeeId));
+        return;
+      }
 
       if (action && employeeId) {
         this.dispatchEvent(
@@ -393,6 +515,67 @@ export class EmployeeList extends BaseComponent {
         );
       }
     }
+  }
+
+  /** Toggle the inline calendar for a given employee card. */
+  private toggleCalendar(employeeId: number): void {
+    const expanding = !this._expandedCalendars.has(employeeId);
+
+    if (expanding) {
+      // Initialize displayed month to current month on every open
+      this._calendarMonths.set(employeeId, getCurrentMonth());
+      this._expandedCalendars.add(employeeId);
+
+      this.requestUpdate();
+      this.injectCalendarData();
+
+      // Animate the calendar sliding into view
+      requestAnimationFrame(() => {
+        const card = this.shadowRoot.querySelector(
+          `.employee-card[data-employee-id="${employeeId}"]`,
+        );
+        const container = card?.querySelector(
+          ".inline-calendar-container",
+        ) as HTMLElement | null;
+        if (container) {
+          animateSlide(container, true);
+          container.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+      });
+    } else {
+      // Animate collapse before removing from DOM
+      const card = this.shadowRoot.querySelector(
+        `.employee-card[data-employee-id="${employeeId}"]`,
+      );
+      const container = card?.querySelector(
+        ".inline-calendar-container",
+      ) as HTMLElement | null;
+
+      const finishCollapse = () => {
+        this._expandedCalendars.delete(employeeId);
+        this._calendarMonths.delete(employeeId);
+        this.requestUpdate();
+      };
+
+      if (container) {
+        const anim = animateSlide(container, false);
+        anim.promise.then(finishCollapse);
+      } else {
+        finishCollapse();
+      }
+    }
+  }
+
+  /** Navigate the inline calendar for an employee to a different month. */
+  private navigateCalendarMonth(employeeId: number, direction: -1 | 1): void {
+    const currentMonth =
+      this._calendarMonths.get(employeeId) || getCurrentMonth();
+    // addMonths expects a full date string; use first day of month
+    const newMonthDate = addMonths(`${currentMonth}-01`, direction);
+    const newMonth = newMonthDate.slice(0, 7); // YYYY-MM
+    this._calendarMonths.set(employeeId, newMonth);
+    this.requestUpdate();
+    this.injectCalendarData();
   }
 }
 

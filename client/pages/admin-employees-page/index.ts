@@ -25,6 +25,7 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
     type: PTOType;
     hours: number;
     date: string;
+    approved_by?: number | null;
   }> = [];
   private _currentYear = String(getCurrentYear());
   private _showForm = false;
@@ -56,6 +57,7 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
           type: p.type,
           hours: p.hours,
           date: p.date,
+          approved_by: p.approved_by ?? null,
         }));
     } catch (error) {
       console.error(
@@ -104,6 +106,7 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
     const list = this.shadowRoot.querySelector("employee-list") as any;
     if (list && this._employees.length) {
       list.employees = this._employees;
+      list.ptoEntries = this._ptoEntries;
       // If an inline editor is active, tell the list which employee is being edited
       list.editingEmployeeId = this._editEmployee
         ? this._editEmployee.id
@@ -309,6 +312,7 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
         type: p.type,
         hours: p.hours,
         date: p.date,
+        approved_by: p.approved_by ?? null,
       }));
     this.requestUpdate();
     await new Promise((r) => setTimeout(r, 0));
