@@ -41,6 +41,14 @@ export class AdminPtoRequestsPage
     date: string;
     approved_by?: number | null;
   }> = [];
+  /** All PTO entries (unfiltered) for calendar rendering across years. */
+  private _allPtoEntries: Array<{
+    employee_id: number;
+    type: PTOType;
+    hours: number;
+    date: string;
+    approved_by?: number | null;
+  }> = [];
   private _authService: AuthService | null = null;
 
   set authService(svc: AuthService) {
@@ -54,25 +62,28 @@ export class AdminPtoRequestsPage
   ): Promise<void> {
     this._requests = (loaderData as { requests: PTORequest[] })?.requests ?? [];
 
-    // Fetch PTO entries for balance calculations
+    // Fetch PTO entries for balance calculations and calendar display
     try {
       const ptoEntries = await this.api.getAdminPTOEntries();
       const currentYear = today().slice(0, 4);
-      this._ptoEntries = (ptoEntries || [])
-        .filter((p: any) => p.date?.startsWith(currentYear))
-        .map((p: any) => ({
-          employee_id: p.employeeId,
-          type: p.type,
-          hours: p.hours,
-          date: p.date,
-          approved_by: p.approved_by ?? null,
-        }));
+      const mapped = (ptoEntries || []).map((p: any) => ({
+        employee_id: p.employeeId,
+        type: p.type,
+        hours: p.hours,
+        date: p.date,
+        approved_by: p.approved_by ?? null,
+      }));
+      // All entries for calendar rendering across years
+      this._allPtoEntries = mapped;
+      // Current-year entries only for balance calculations
+      this._ptoEntries = mapped.filter((p) => p.date?.startsWith(currentYear));
     } catch (error) {
       console.error(
         "Failed to fetch PTO entries for balance summaries:",
         error,
       );
       this._ptoEntries = [];
+      this._allPtoEntries = [];
     }
 
     this.requestUpdate();
@@ -112,7 +123,8 @@ export class AdminPtoRequestsPage
     const queue = this.shadowRoot.querySelector("pto-request-queue") as any;
     if (queue) {
       queue.requests = this._requests;
-      queue.ptoEntries = this._ptoEntries;
+      // Pass all entries (not just current year) so calendar can show any month
+      queue.ptoEntries = this._allPtoEntries;
     }
   }
 

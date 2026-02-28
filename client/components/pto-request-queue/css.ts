@@ -332,5 +332,14 @@ export const styles = `<style>
     padding-bottom: var(--space-sm);
     --slide-offset: 16px;
     --duration-normal: 200ms;
+    display: block;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  .inline-calendar-container pto-calendar {
+    display: block;
+    max-width: 36rem;
+    margin: 0 auto;
   }
 </style>`;
