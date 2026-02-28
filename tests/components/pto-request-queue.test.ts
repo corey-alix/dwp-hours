@@ -532,7 +532,7 @@ describe("PtoRequestQueue - Inline Calendar", () => {
     expect(cal.getAttribute("hide-header")).toBe("true");
   });
 
-  it("should filter PTO entries by employee and month for calendar", () => {
+  it("should dispatch calendar-data-request on Show Calendar click", () => {
     const currentMonth = getCurrentMonth();
     component.requests = [
       makePendingRequest({
@@ -550,29 +550,11 @@ describe("PtoRequestQueue - Inline Calendar", () => {
         endDate: `${currentMonth}-06`,
       }),
     ];
-    component.ptoEntries = [
-      {
-        employee_id: 10,
-        type: "PTO",
-        hours: 8,
-        date: `${currentMonth}-10`,
-        approved_by: null,
-      },
-      {
-        employee_id: 20,
-        type: "Sick",
-        hours: 4,
-        date: `${currentMonth}-15`,
-        approved_by: 1,
-      },
-      {
-        employee_id: 10,
-        type: "PTO",
-        hours: 8,
-        date: "2020-01-05",
-        approved_by: null,
-      },
-    ];
+
+    let firedEvent: CustomEvent | null = null;
+    component.addEventListener("calendar-data-request", (e: Event) => {
+      firedEvent = e as CustomEvent;
+    });
 
     // Open calendar for employee 10
     const btn = component.shadowRoot?.querySelector(
@@ -580,10 +562,136 @@ describe("PtoRequestQueue - Inline Calendar", () => {
     ) as HTMLElement;
     btn.click();
 
+    expect(firedEvent).toBeTruthy();
+    expect(firedEvent!.detail.employeeId).toBe(10);
+    expect(firedEvent!.detail.month).toBe(currentMonth);
+
     const cal = component.shadowRoot?.querySelector(
       "pto-calendar",
     ) as HTMLElement;
     expect(cal).toBeTruthy();
     expect(cal.getAttribute("data-employee-id")).toBe("10");
+  });
+
+  it("should dispatch calendar-data-request on month navigation", () => {
+    component.requests = [
+      makePendingRequest({
+        id: 1,
+        employeeId: 10,
+        startDate: "2026-03-10",
+        endDate: "2026-03-10",
+      }),
+    ];
+
+    // Open calendar
+    const showBtn = component.shadowRoot?.querySelector(
+      ".show-calendar-btn",
+    ) as HTMLElement;
+    showBtn.click();
+
+    // Capture events on next navigation
+    const events: CustomEvent[] = [];
+    component.addEventListener("calendar-data-request", (e: Event) => {
+      events.push(e as CustomEvent);
+    });
+
+    const nextArrow = component.shadowRoot?.querySelector(
+      ".cal-nav-next",
+    ) as HTMLElement;
+    nextArrow.click();
+
+    expect(events.length).toBe(1);
+    expect(events[0].detail.employeeId).toBe(10);
+    expect(events[0].detail.month).toBe("2026-04");
+  });
+
+  it("should inject PTO entries into calendar via setCalendarEntries", () => {
+    const currentMonth = getCurrentMonth();
+    component.requests = [
+      makePendingRequest({
+        id: 1,
+        employeeId: 10,
+        startDate: `${currentMonth}-05`,
+        endDate: `${currentMonth}-05`,
+      }),
+    ];
+
+    // Open calendar for employee 10
+    const btn = component.shadowRoot?.querySelector(
+      ".show-calendar-btn",
+    ) as HTMLElement;
+    btn.click();
+
+    // Inject entries via the new method
+    component.setCalendarEntries(10, currentMonth, [
+      {
+        id: 1,
+        employeeId: 10,
+        date: `${currentMonth}-10`,
+        type: "PTO",
+        hours: 8,
+        createdAt: "",
+        approved_by: null,
+      },
+    ]);
+
+    const cal = component.shadowRoot?.querySelector("pto-calendar") as any;
+    expect(cal).toBeTruthy();
+    // PtoCalendar stores entries in _ptoEntries
+    expect(cal.ptoEntries?.length).toBe(1);
+    expect(cal.ptoEntries[0].date).toBe(`${currentMonth}-10`);
+  });
+
+  it("should preserve expanded calendar state across requests re-render", () => {
+    component.requests = [
+      makePendingRequest({ id: 1, employeeId: 10, employeeName: "Alice" }),
+    ];
+
+    // Expand calendar
+    const showBtn = component.shadowRoot?.querySelector(
+      ".show-calendar-btn",
+    ) as HTMLElement;
+    showBtn.click();
+
+    let cal = component.shadowRoot?.querySelector("pto-calendar");
+    expect(cal).toBeTruthy();
+
+    // Update requests (simulating refresh)
+    component.requests = [
+      makePendingRequest({ id: 1, employeeId: 10, employeeName: "Alice" }),
+      makePendingRequest({ id: 3, employeeId: 10, employeeName: "Alice" }),
+    ];
+
+    // Calendar should still be expanded
+    cal = component.shadowRoot?.querySelector("pto-calendar");
+    expect(cal).toBeTruthy();
+    expect(
+      component.shadowRoot
+        ?.querySelector(".show-calendar-btn")
+        ?.textContent?.trim(),
+    ).toBe("Hide Calendar");
+  });
+
+  it("should expose expanded calendar state via expandedCalendars getter", () => {
+    component.requests = [
+      makePendingRequest({
+        id: 1,
+        employeeId: 10,
+        startDate: "2026-03-10",
+        endDate: "2026-03-10",
+      }),
+    ];
+
+    expect(component.expandedCalendars.size).toBe(0);
+
+    // Expand calendar
+    const btn = component.shadowRoot?.querySelector(
+      ".show-calendar-btn",
+    ) as HTMLElement;
+    btn.click();
+
+    const expanded = component.expandedCalendars;
+    expect(expanded.size).toBe(1);
+    expect(expanded.get(10)).toBe("2026-03");
   });
 });

@@ -29,7 +29,7 @@ The queue currently receives all PTO entries eagerly via `queue.ptoEntries`. Ins
 - [ ] In `pto-request-queue/index.ts`, dispatch a `calendar-data-request` event (bubbles, composed) from `toggleCalendar()` (on expand) and `navigateCalendarMonth()`, with `detail: { employeeId, month }` — instead of reading from the local `_ptoEntries` array
 - [ ] Remove the `_ptoEntries` field from `PtoRequestQueue` (and its setter/getter) — calendar data is no longer stored on the queue
 - [ ] Remove `injectCalendarData()` private method — replaced by the event-driven flow
-- [ ] Add a public `setCalendarEntries(employeeId: number, month: string, entries: CalendarEntry[])` method that finds the matching `<pto-calendar>` element and calls `cal.setPtoEntries(entries)` on it
+- [ ] Add a public `setCalendarEntries(employeeId: number, month: string, entries: PTOEntry[])` method that finds the matching `<pto-calendar>` element and calls `cal.setPtoEntries(entries)` on it (uses `PTOEntry` from `pto-calendar/index.ts` since that is the type `setPtoEntries()` accepts)
 - [ ] **Validate**: `pnpm run build` passes; clicking "Show Calendar" dispatches the event (visible in DevTools)
 
 ### Phase 2: Page handles calendar data requests

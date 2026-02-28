@@ -4,7 +4,7 @@ import {
   addMonths,
   getCurrentMonth,
 } from "../../../shared/dateUtils.js";
-import { MONTH_NAMES, type PTOType } from "../../../shared/businessRules.js";
+import { MONTH_NAMES } from "../../../shared/businessRules.js";
 import { BaseComponent } from "../base-component.js";
 import {
   adoptAnimations,
@@ -21,15 +21,7 @@ import {
 import { styles } from "./css.js";
 // Side-effect import: ensure <pto-calendar> custom element is registered
 import "../pto-calendar/index.js";
-import type { PtoCalendar } from "../pto-calendar/index.js";
-
-export interface QueuePtoEntry {
-  employee_id: number;
-  type: PTOType;
-  hours: number;
-  date: string;
-  approved_by?: number | null;
-}
+import type { PtoCalendar, PTOEntry } from "../pto-calendar/index.js";
 
 export type { PTORequest };
 export { type AggregatedPTORequest };
@@ -40,12 +32,19 @@ export class PtoRequestQueue extends BaseComponent {
   private _negativeBalanceEmployeeIds = new Set<number>();
   /** Track buttons awaiting confirmation. Maps button element to reset timer. */
   private _pendingConfirmations = new Map<HTMLButtonElement, number>();
-  /** PTO entries for inline calendar rendering. */
-  private _ptoEntries: QueuePtoEntry[] = [];
   /** Track which employee groups have their inline calendar expanded. */
   private _calendarExpandedEmployees: Set<number> = new Set();
   /** Per-employee navigated month (employee ID → YYYY-MM). */
   private _calendarMonths: Map<number, string> = new Map();
+
+  /** Get the set of employee IDs with expanded calendars and their current months. */
+  get expandedCalendars(): Map<number, string> {
+    const result = new Map<number, string>();
+    for (const empId of this._calendarExpandedEmployees) {
+      result.set(empId, this._calendarMonths.get(empId) || getCurrentMonth());
+    }
+    return result;
+  }
 
   connectedCallback() {
     super.connectedCallback();
@@ -67,13 +66,22 @@ export class PtoRequestQueue extends BaseComponent {
     this._negativeBalanceEmployeeIds = ids;
   }
 
-  /** Set PTO entries for inline calendar rendering. */
-  set ptoEntries(value: QueuePtoEntry[]) {
-    this._ptoEntries = value;
-  }
-
-  get ptoEntries(): QueuePtoEntry[] {
-    return this._ptoEntries;
+  /**
+   * Inject PTO entries into a specific expanded calendar.
+   * Called by the parent page after fetching calendar data in response
+   * to a `calendar-data-request` event.
+   */
+  setCalendarEntries(
+    employeeId: number,
+    _month: string,
+    entries: PTOEntry[],
+  ): void {
+    const cal = this.shadowRoot.querySelector(
+      `pto-calendar[data-employee-id="${employeeId}"]`,
+    ) as PtoCalendar | null;
+    if (cal) {
+      cal.setPtoEntries(entries);
+    }
   }
 
   protected render(): string {
@@ -253,30 +261,19 @@ export class PtoRequestQueue extends BaseComponent {
     `;
   }
 
-  /** Inject PTO entry data into all expanded inline calendars after render. */
-  private injectCalendarData(): void {
-    this.shadowRoot
-      .querySelectorAll<PtoCalendar>("pto-calendar")
-      .forEach((cal) => {
-        const empId = parseInt(cal.dataset.employeeId || "0");
-        if (!empId) return;
-        const calMonthStr =
-          this._calendarMonths.get(empId) || getCurrentMonth();
-        const empEntries = this._ptoEntries
-          .filter(
-            (e) => e.employee_id === empId && e.date.startsWith(calMonthStr),
-          )
-          .map((e, idx) => ({
-            id: idx + 1,
-            employeeId: empId,
-            date: e.date,
-            type: e.type,
-            hours: e.hours,
-            createdAt: "",
-            approved_by: e.approved_by ?? null,
-          }));
-        cal.setPtoEntries(empEntries);
-      });
+  /**
+   * Dispatch a `calendar-data-request` event so the parent page fetches
+   * PTO entries for the given employee + month and injects them back
+   * via `setCalendarEntries()`.
+   */
+  private requestCalendarData(empId: number, month: string): void {
+    this.dispatchEvent(
+      new CustomEvent("calendar-data-request", {
+        bubbles: true,
+        composed: true,
+        detail: { employeeId: empId, month },
+      }),
+    );
   }
 
   /** Toggle the inline calendar for an employee group. */
@@ -296,7 +293,10 @@ export class PtoRequestQueue extends BaseComponent {
       this._calendarExpandedEmployees.add(empId);
 
       this.requestUpdate();
-      this.injectCalendarData();
+
+      // Request calendar data from the parent page (on-demand fetch)
+      const month = this._calendarMonths.get(empId) || getCurrentMonth();
+      this.requestCalendarData(empId, month);
 
       // Animate the calendar sliding into view
       requestAnimationFrame(() => {
@@ -342,7 +342,9 @@ export class PtoRequestQueue extends BaseComponent {
     const newMonth = newMonthDate.slice(0, 7);
     this._calendarMonths.set(empId, newMonth);
     this.requestUpdate();
-    this.injectCalendarData();
+
+    // Request calendar data for the new month from the parent page
+    this.requestCalendarData(empId, newMonth);
   }
 
   protected handleDelegatedClick(e: Event): void {

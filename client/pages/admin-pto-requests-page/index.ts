@@ -3,12 +3,13 @@ import type { PageComponent } from "../../router/types.js";
 import type { AuthService } from "../../auth/auth-service.js";
 import { APIClient } from "../../APIClient.js";
 import { notifications } from "../../app.js";
-import { today } from "../../../shared/dateUtils.js";
+import { today, getLastDayOfMonth } from "../../../shared/dateUtils.js";
 import {
   BUSINESS_RULES_CONSTANTS,
   type PTOType,
 } from "../../../shared/businessRules.js";
 import type { MonthSummary } from "../../components/month-summary/index.js";
+import type { PtoRequestQueue } from "../../components/pto-request-queue/index.js";
 import { styles } from "./css.js";
 
 interface PTORequest {
@@ -41,14 +42,6 @@ export class AdminPtoRequestsPage
     date: string;
     approved_by?: number | null;
   }> = [];
-  /** All PTO entries (unfiltered) for calendar rendering across years. */
-  private _allPtoEntries: Array<{
-    employee_id: number;
-    type: PTOType;
-    hours: number;
-    date: string;
-    approved_by?: number | null;
-  }> = [];
   private _authService: AuthService | null = null;
 
   set authService(svc: AuthService) {
@@ -62,28 +55,25 @@ export class AdminPtoRequestsPage
   ): Promise<void> {
     this._requests = (loaderData as { requests: PTORequest[] })?.requests ?? [];
 
-    // Fetch PTO entries for balance calculations and calendar display
+    // Fetch PTO entries for balance calculations
     try {
       const ptoEntries = await this.api.getAdminPTOEntries();
       const currentYear = today().slice(0, 4);
-      const mapped = (ptoEntries || []).map((p: any) => ({
-        employee_id: p.employeeId,
-        type: p.type,
-        hours: p.hours,
-        date: p.date,
-        approved_by: p.approved_by ?? null,
-      }));
-      // All entries for calendar rendering across years
-      this._allPtoEntries = mapped;
-      // Current-year entries only for balance calculations
-      this._ptoEntries = mapped.filter((p) => p.date?.startsWith(currentYear));
+      this._ptoEntries = (ptoEntries || [])
+        .filter((p: any) => p.date?.startsWith(currentYear))
+        .map((p: any) => ({
+          employee_id: p.employeeId,
+          type: p.type,
+          hours: p.hours,
+          date: p.date,
+          approved_by: p.approved_by ?? null,
+        }));
     } catch (error) {
       console.error(
         "Failed to fetch PTO entries for balance summaries:",
         error,
       );
       this._ptoEntries = [];
-      this._allPtoEntries = [];
     }
 
     this.requestUpdate();
@@ -120,11 +110,11 @@ export class AdminPtoRequestsPage
   }
 
   private populateQueue(): void {
-    const queue = this.shadowRoot.querySelector("pto-request-queue") as any;
+    const queue = this.shadowRoot.querySelector(
+      "pto-request-queue",
+    ) as PtoRequestQueue | null;
     if (queue) {
       queue.requests = this._requests;
-      // Pass all entries (not just current year) so calendar can show any month
-      queue.ptoEntries = this._allPtoEntries;
     }
   }
 
@@ -210,6 +200,49 @@ export class AdminPtoRequestsPage
       const ids: number[] = e.detail.requestIds ?? [e.detail.requestId];
       this.handleRejectAll(ids);
     }) as EventListener);
+
+    // Handle on-demand calendar data requests from the queue component
+    this.shadowRoot.addEventListener("calendar-data-request", (evt: Event) => {
+      const e = evt as CustomEvent;
+      e.stopPropagation();
+      (async () => {
+        const { employeeId, month } = e.detail as {
+          employeeId: number;
+          month: string;
+        };
+        if (!employeeId || !month) return;
+        try {
+          const startDate = `${month}-01`;
+          const [y, m] = month.split("-").map(Number);
+          const endDate = getLastDayOfMonth(y, m);
+
+          const ptoEntries = await this.api.get(
+            `/admin/pto?employeeId=${employeeId}&startDate=${startDate}&endDate=${endDate}`,
+          );
+
+          const queue = this.shadowRoot?.querySelector(
+            "pto-request-queue",
+          ) as PtoRequestQueue | null;
+          if (!queue) return;
+
+          const normalized = (ptoEntries || []).map((p: any, idx: number) => ({
+            id: p.id ?? idx + 1,
+            employeeId: p.employeeId,
+            date: p.date,
+            type: p.type,
+            hours: p.hours,
+            createdAt: p.createdAt ?? "",
+            approved_by: p.approved_by ?? null,
+          }));
+          queue.setCalendarEntries(employeeId, month, normalized);
+        } catch (error: any) {
+          console.error(
+            `Failed to load calendar data for employee ${employeeId}, month ${month}:`,
+            error,
+          );
+        }
+      })().catch((err) => console.error(err));
+    });
   }
 
   private async dismissQueueCard(requestId: number): Promise<void> {
@@ -308,9 +341,28 @@ export class AdminPtoRequestsPage
           approved_by: p.approved_by ?? null,
         }));
 
-      this.requestUpdate();
-      await new Promise((r) => setTimeout(r, 0));
-      this.populateQueue();
+      // Targeted refresh: push data to existing child components
+      // without re-rendering the page's own shadow DOM.
+      const queue = this.shadowRoot?.querySelector(
+        "pto-request-queue",
+      ) as PtoRequestQueue | null;
+      if (queue) {
+        // The queue's `requests` setter triggers its own requestUpdate()
+        queue.requests = this._requests;
+
+        // Re-fetch calendar data for any expanded calendars so approved
+        // entries show updated status (e.g., green check marks)
+        for (const [empId, month] of queue.expandedCalendars) {
+          queue.dispatchEvent(
+            new CustomEvent("calendar-data-request", {
+              bubbles: true,
+              composed: true,
+              detail: { employeeId: empId, month },
+            }),
+          );
+        }
+      }
+
       this.hydrateBalanceSummaries();
     } catch (error) {
       notifications.error(

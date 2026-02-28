@@ -611,6 +611,52 @@ Many existing components extend `HTMLElement` directly and define `render()` as 
 
 **Migrated PTO cards** (now extending `BaseComponent` with declarative `render()`): `pto-employee-info-card`, `pto-summary-card`, `pto-pto-card`, `pto-bereavement-card`, `pto-sick-card`, `pto-jury-duty-card`, `pto-accrual-card`. Shared CSS lives in `utils/pto-card-css.ts` (`CARD_CSS`), shared template helpers in `utils/pto-card-helpers.ts` (`renderCardShell`, `renderRow`, `renderBucketBody`, etc.). The old `PtoSectionCard` and `SimplePtoBucketCard` base classes in `utils/pto-card-base.ts` are deprecated.
 
+## Page-as-Controller Data Flow
+
+Page components that wrap child web components should act as **data controllers**: they define the structural template (which child elements exist) in `render()`, and push data into those children via **property setters and method calls** — never by re-rendering the page's own shadow DOM.
+
+### Key Rules
+
+1. **`requestUpdate()` on a page** should only be called when the page's own template structure changes (e.g., initial render in `onRouteEnter()`, or adding/removing child elements). It must **not** be called after data mutations (approve, reject, save) that only change the data flowing into existing children.
+
+2. **After data mutations**, fetch fresh data and push it directly to child components:
+
+   ```typescript
+   // CORRECT: targeted injection — child state preserved
+   const queue = this.shadowRoot.querySelector(
+     "pto-request-queue",
+   ) as PtoRequestQueue;
+   queue.requests = freshRequests; // queue's own setter triggers its internal re-render
+
+   // WRONG: page re-render — destroys all child state
+   this.requestUpdate(); // calendar expanded state, scroll position, animations lost
+   ```
+
+3. **Child components that need data** should dispatch custom events (bubbles + composed); the parent page listens, fetches, and injects results via methods:
+
+   ```typescript
+   // Child dispatches request
+   this.dispatchEvent(
+     new CustomEvent("calendar-data-request", {
+       bubbles: true,
+       composed: true,
+       detail: { employeeId, month },
+     }),
+   );
+
+   // Page handles in setupEventDelegation()
+   this.shadowRoot.addEventListener("calendar-data-request", (evt) => {
+     const { employeeId, month } = (evt as CustomEvent).detail;
+     // fetch data, then inject:
+     queue.setCalendarEntries(employeeId, month, normalized);
+   });
+   ```
+
+### Reference Implementations
+
+- **`AdminMonthlyReviewPage`** — listens for `admin-monthly-review-request` and `calendar-month-data-request`, fetches data, injects via `setEmployeeData()` / `setPtoEntries()` / `setMonthPtoEntries()`
+- **`AdminPtoRequestsPage`** — listens for `calendar-data-request`, fetches scoped PTO entries, injects via `queue.setCalendarEntries()`; after approve/reject, sets `queue.requests` directly without calling `this.requestUpdate()`
+
 ## Examples
 
 Common queries that should trigger this skill:

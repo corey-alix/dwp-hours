@@ -2125,10 +2125,14 @@ initDatabase()
       authenticateAdmin(() => dataSource, log),
       async (req, res) => {
         try {
-          const { type, startDate, endDate } = req.query;
+          const { type, startDate, endDate, employeeId } = req.query;
           const ptoEntryRepo = dataSource.getRepository(PtoEntry);
 
           let whereCondition: any = {};
+
+          if (employeeId) {
+            whereCondition.employee_id = parseInt(employeeId as string, 10);
+          }
 
           if (type) {
             whereCondition.type = type;
