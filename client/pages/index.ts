@@ -8,3 +8,4 @@ export { AdminEmployeesPage } from "./admin-employees-page/index.js";
 export { AdminPtoRequestsPage } from "./admin-pto-requests-page/index.js";
 export { AdminMonthlyReviewPage } from "./admin-monthly-review-page/index.js";
 export { AdminSettingsPage } from "./admin-settings-page/index.js";
+export { UploadTimesheetPage } from "./upload-timesheet-page/index.js";

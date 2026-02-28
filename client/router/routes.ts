@@ -47,6 +47,12 @@ export const appRoutes: AppRoutes = [
       return api.getPTOYearReview(priorYear);
     },
   },
+  {
+    path: "/upload-timesheet",
+    component: "upload-timesheet-page",
+    name: "Upload Timesheet",
+    meta: { title: "Upload Timesheet", requiresAuth: true },
+  },
   // ── Admin routes ──────────────────────────────────────────────
   {
     path: "/admin/employees",

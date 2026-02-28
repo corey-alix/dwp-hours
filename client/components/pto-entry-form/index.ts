@@ -3,15 +3,19 @@ import { today, parseDate, getCurrentYear } from "../../../shared/dateUtils.js";
 import {
   validateHours,
   validatePTOType,
-  validateWeekday,
   validatePTOBalance,
   VALIDATION_MESSAGES,
 } from "../../../shared/businessRules.js";
-import type { MessageKey } from "../../../shared/businessRules.js";
+import type {
+  MessageKey,
+  PTOType,
+  BalanceLimits,
+} from "../../../shared/businessRules.js";
 import {
   PtoCalendar,
   monthNames,
   type CalendarEntry,
+  type PTOEntry,
 } from "../pto-calendar/index.js";
 import type { MonthSummary } from "../month-summary/index.js";
 import { computeSelectionDeltas } from "../utils/compute-selection-deltas.js";
@@ -24,12 +28,24 @@ import {
   type SwipeNavigationHandle,
   type ListenerHost,
 } from "../../css-extensions/index.js";
+import {
+  PtoBalanceModel,
+  type MonthlyAccrual,
+  type PendingSelection,
+} from "./balance-model.js";
 
 /** Breakpoint at which all 12 months are shown in a grid */
 const MULTI_CALENDAR_BREAKPOINT = 1024;
 
 /** localStorage key for persisting the selected month in single-calendar mode */
 const SELECTED_MONTH_STORAGE_KEY = "dwp-pto-form-selected-month";
+
+/** Configuration for seeding the PtoBalanceModel. */
+export interface BalanceModelConfig {
+  limits: BalanceLimits;
+  beginningBalance: number;
+  monthlyAccruals: ReadonlyArray<MonthlyAccrual>;
+}
 
 export class PtoEntryForm extends BaseComponent {
   /** MediaQueryList used to detect multi-calendar mode */
@@ -41,6 +57,11 @@ export class PtoEntryForm extends BaseComponent {
 
   /** Currently active PTO type, persisted across calendar rebuilds */
   private _activePtoType: string = "PTO";
+
+  /** Centralised balance model — single source of truth for overuse dates */
+  private _model: PtoBalanceModel | null = null;
+  /** Unsubscribe handle for the model subscription */
+  private _unsubscribeModel: (() => void) | null = null;
 
   /** Swipe navigation handle for the calendar container */
   private _swipeHandle: SwipeNavigationHandle | null = null;
@@ -81,6 +102,15 @@ export class PtoEntryForm extends BaseComponent {
   }
 
   disconnectedCallback() {
+    // Dispose the balance model to prevent memory leaks
+    if (this._unsubscribeModel) {
+      this._unsubscribeModel();
+      this._unsubscribeModel = null;
+    }
+    if (this._model) {
+      this._model.dispose();
+      this._model = null;
+    }
     super.disconnectedCallback();
   }
 
@@ -292,12 +322,12 @@ export class PtoEntryForm extends BaseComponent {
    * Collect PTO entries from all currently rendered calendars.
    * Used to preserve data when switching between single/multi-calendar modes.
    */
-  private collectPtoEntries(): any[] {
+  private collectPtoEntries(): PTOEntry[] {
     const container = this.shadowRoot.querySelector("#calendar-container");
     if (!container) return [];
 
     const calendars = container.querySelectorAll("pto-calendar");
-    const entries: any[] = [];
+    const entries: PTOEntry[] = [];
     calendars.forEach((cal) => {
       entries.push(...(cal as PtoCalendar).ptoEntries);
     });
@@ -320,6 +350,20 @@ export class PtoEntryForm extends BaseComponent {
       }
     });
     return merged;
+  }
+
+  /**
+   * Push current pending selections (all calendars' selectedCells + active
+   * PTO type) into the balance model so it can recompute overuse dates.
+   */
+  private updateModelPendingSelections(): void {
+    if (!this._model) return;
+    const merged = this.collectSelectedCells();
+    const selections = new Map<string, PendingSelection>();
+    for (const [date, hours] of merged) {
+      selections.set(date, { hours, type: this._activePtoType as PTOType });
+    }
+    this._model.setPendingSelections(selections);
   }
 
   /**
@@ -400,6 +444,10 @@ export class PtoEntryForm extends BaseComponent {
         );
       }
     }
+
+    // The PTO type changed — re-push pending selections so the model
+    // recomputes overuse with the new type classification.
+    this.updateModelPendingSelections();
   }
 
   /**
@@ -449,6 +497,8 @@ export class PtoEntryForm extends BaseComponent {
       } else {
         this.handleSingleCalendarSelectionChanged(e);
       }
+      // Update the balance model with merged pending selections
+      this.updateModelPendingSelections();
     });
 
     // PTO type changes from interactive month-summary components
@@ -612,17 +662,6 @@ export class PtoEntryForm extends BaseComponent {
         }
       }
 
-      try {
-        const weekdayError = validateWeekday(request.date);
-        if (weekdayError) {
-          errors.push(
-            `${request.date}: ${VALIDATION_MESSAGES[weekdayError.messageKey as MessageKey]}`,
-          );
-        }
-      } catch (error) {
-        errors.push(`${request.date}: ${VALIDATION_MESSAGES["date.invalid"]}`);
-      }
-
       const typeError = validatePTOType(request.type);
       if (typeError) {
         errors.push(
@@ -697,7 +736,7 @@ export class PtoEntryForm extends BaseComponent {
     return this.collectPtoEntries();
   }
 
-  setPtoData(ptoEntries: any[]) {
+  setPtoData(ptoEntries: PTOEntry[]) {
     if (this.isMultiCalendar) {
       // Distribute entries to their respective month calendars
       for (const cal of this.getAllCalendars()) {
@@ -724,10 +763,74 @@ export class PtoEntryForm extends BaseComponent {
         this.updateSingleCalendarSummaryHours(calendar);
       }
     }
+
+    // Seed persisted entries into the balance model (current year only —
+    // the API returns all years but the model's budget is per-year).
+    if (this._model) {
+      const year = getCurrentYear();
+      this._model.setPersistedEntries(
+        ptoEntries
+          .filter((e) => parseDate(e.date).year === year)
+          .map((e) => ({
+            date: e.date,
+            hours: e.hours,
+            type: e.type,
+          })),
+      );
+    }
   }
 
-  setPtoStatus(status: any) {
+  setPtoStatus(status: { availablePTO?: number }) {
     this.availablePtoBalance = status.availablePTO || 0;
+  }
+
+  /**
+   * Create or replace the PtoBalanceModel with the given configuration.
+   * Subscribes once to distribute overuse dates to all calendars.
+   * Called by submit-time-off-page after receiving PTO status from the API.
+   */
+  setBalanceLimits(config: BalanceModelConfig): void {
+    // Dispose previous model if any
+    if (this._unsubscribeModel) {
+      this._unsubscribeModel();
+      this._unsubscribeModel = null;
+    }
+    if (this._model) {
+      this._model.dispose();
+    }
+
+    // Create the new model
+    this._model = new PtoBalanceModel(
+      config.beginningBalance,
+      config.monthlyAccruals,
+      config.limits,
+    );
+
+    // Subscribe to distribute overuse dates and tooltips to all calendars
+    this._unsubscribeModel = this._model.subscribe((overuseDates) => {
+      const tooltips = this._model!.overuseTooltips;
+      for (const cal of this.getAllCalendars()) {
+        cal.overuseTooltips = tooltips;
+        cal.overuseDates = overuseDates;
+      }
+    });
+
+    // Seed persisted entries from current calendars into the model
+    // (current year only — the API returns all years but the model's
+    // budget is per-year).
+    const entries = this.collectPtoEntries();
+    if (entries.length > 0) {
+      const year = getCurrentYear();
+      this._model.setPersistedEntries(
+        entries
+          .filter((e) => parseDate(e.date).year === year)
+          .map((e) => ({
+            date: e.date,
+            hours: e.hours,
+            type: e.type,
+          })),
+      );
+    }
   }
 
   /**

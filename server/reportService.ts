@@ -203,11 +203,7 @@ export async function assembleReportData(
       a.month.startsWith(`${year}-`),
     );
 
-    // Normalize hire_date (entity stores it as Date object)
-    const hireDate =
-      emp.hire_date instanceof Date
-        ? emp.hire_date.toISOString().split("T")[0]
-        : String(emp.hire_date);
+    const hireDate = emp.hire_date;
 
     // Build PTO calculation rows
     const ptoCalcEntries = ptoEntries.map((e) => ({

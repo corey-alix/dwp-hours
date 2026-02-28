@@ -7,7 +7,7 @@ import {
   type SeedPtoEntry,
 } from "../shared/seedData.js";
 import { PtoRequestQueue } from "../client/components/pto-request-queue/index.js";
-import { validateWeekday, validateHours } from "../shared/businessRules.js";
+import { validateHours } from "../shared/businessRules.js";
 
 /**
  * Filter logic that mirrors the route loader and refreshQueue in
@@ -44,16 +44,6 @@ function buildRequestsFromSeed(pendingEntries: SeedPtoEntry[]) {
 
 describe("PTO Request Queue — seed data filtering", () => {
   describe("Seed data validity (all entries pass business rules)", () => {
-    it("all seed entry dates should be weekdays", () => {
-      for (const entry of seedPTOEntries) {
-        const error = validateWeekday(entry.date);
-        expect(
-          error,
-          `Seed entry on ${entry.date} (employee ${entry.employee_id}) falls on a weekend`,
-        ).toBeNull();
-      }
-    });
-
     it("all seed entry hours should be valid", () => {
       for (const entry of seedPTOEntries) {
         const error = validateHours(entry.hours);

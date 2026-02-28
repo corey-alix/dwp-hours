@@ -7,6 +7,7 @@ import { playground as adminEmployeesPage } from "./admin-employees-page/test.js
 import { playground as adminPtoRequestsPage } from "./admin-pto-requests-page/test.js";
 import { playground as adminMonthlyReviewPage } from "./admin-monthly-review-page/test.js";
 import { playground as adminSettingsPage } from "./admin-settings-page/test.js";
+import { playground as uploadTimesheetPage } from "./upload-timesheet-page/test.js";
 
 export {
   loginPage,
@@ -17,4 +18,5 @@ export {
   adminPtoRequestsPage,
   adminMonthlyReviewPage,
   adminSettingsPage,
+  uploadTimesheetPage,
 };

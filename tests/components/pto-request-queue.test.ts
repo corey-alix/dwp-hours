@@ -2,6 +2,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { PtoRequestQueue } from "../../client/components/pto-request-queue/index.js";
+import { getCurrentMonth } from "../../shared/dateUtils.js";
 
 function makePendingRequest(overrides = {}) {
   return {
@@ -365,5 +366,332 @@ describe("PtoRequestQueue Component", () => {
       expect(firedEvent).toBeTruthy();
       expect(firedEvent!.detail.requestId).toBe(42);
     });
+  });
+});
+
+describe("PtoRequestQueue - Inline Calendar", () => {
+  let component: PtoRequestQueue;
+  let container: HTMLElement;
+
+  beforeEach(() => {
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    component = new PtoRequestQueue();
+    container.appendChild(component);
+  });
+
+  afterEach(() => {
+    if (container?.parentNode) {
+      document.body.removeChild(container);
+    }
+  });
+
+  it("should render Show Calendar button on every employee group", () => {
+    component.requests = [
+      makePendingRequest({ id: 1, employeeId: 10, employeeName: "Alice" }),
+      makePendingRequest({ id: 2, employeeId: 20, employeeName: "Bob" }),
+    ];
+
+    const buttons =
+      component.shadowRoot?.querySelectorAll(".show-calendar-btn");
+    expect(buttons?.length).toBe(2);
+    buttons?.forEach((btn) => {
+      expect(btn.textContent?.trim()).toBe("Show Calendar");
+    });
+  });
+
+  it("should toggle inline calendar on Show Calendar button click", () => {
+    component.requests = [
+      makePendingRequest({ id: 1, employeeId: 10, employeeName: "Alice" }),
+    ];
+
+    // No calendars initially
+    let calendars = component.shadowRoot?.querySelectorAll("pto-calendar");
+    expect(calendars?.length).toBe(0);
+
+    // Click Show Calendar
+    const btn = component.shadowRoot?.querySelector(
+      ".show-calendar-btn",
+    ) as HTMLElement;
+    expect(btn).toBeTruthy();
+    btn.click();
+
+    // Calendar should be visible
+    calendars = component.shadowRoot?.querySelectorAll("pto-calendar");
+    expect(calendars?.length).toBe(1);
+
+    // Button text should change
+    const updatedBtn = component.shadowRoot?.querySelector(
+      ".show-calendar-btn",
+    ) as HTMLElement;
+    expect(updatedBtn?.textContent?.trim()).toBe("Hide Calendar");
+  });
+
+  it("should show correct navigation header with month label", () => {
+    component.requests = [
+      makePendingRequest({ id: 1, employeeId: 10, employeeName: "Alice" }),
+    ];
+
+    const btn = component.shadowRoot?.querySelector(
+      ".show-calendar-btn",
+    ) as HTMLElement;
+    btn.click();
+
+    const navLabel = component.shadowRoot?.querySelector(
+      ".nav-label",
+    ) as HTMLElement;
+    expect(navLabel).toBeTruthy();
+    // Should contain a month name and year
+    expect(navLabel.textContent).toMatch(/\w+ \d{4}/);
+  });
+
+  it("should default calendar month to request's month", () => {
+    component.requests = [
+      makePendingRequest({
+        id: 1,
+        employeeId: 10,
+        startDate: "2026-05-10",
+        endDate: "2026-05-10",
+      }),
+    ];
+
+    const btn = component.shadowRoot?.querySelector(
+      ".show-calendar-btn",
+    ) as HTMLElement;
+    btn.click();
+
+    const navLabel = component.shadowRoot?.querySelector(
+      ".nav-label",
+    ) as HTMLElement;
+    expect(navLabel?.textContent).toContain("May");
+    expect(navLabel?.textContent).toContain("2026");
+  });
+
+  it("should navigate to previous month on prev arrow click", () => {
+    component.requests = [makePendingRequest({ id: 1, employeeId: 10 })];
+
+    const showBtn = component.shadowRoot?.querySelector(
+      ".show-calendar-btn",
+    ) as HTMLElement;
+    showBtn.click();
+
+    const initialLabel = component.shadowRoot
+      ?.querySelector(".nav-label")
+      ?.textContent?.trim();
+
+    const prevArrow = component.shadowRoot?.querySelector(
+      ".cal-nav-prev",
+    ) as HTMLElement;
+    expect(prevArrow).toBeTruthy();
+    prevArrow.click();
+
+    const newLabel = component.shadowRoot
+      ?.querySelector(".nav-label")
+      ?.textContent?.trim();
+    expect(newLabel).not.toBe(initialLabel);
+  });
+
+  it("should navigate to next month on next arrow click", () => {
+    component.requests = [makePendingRequest({ id: 1, employeeId: 10 })];
+
+    const showBtn = component.shadowRoot?.querySelector(
+      ".show-calendar-btn",
+    ) as HTMLElement;
+    showBtn.click();
+
+    const initialLabel = component.shadowRoot
+      ?.querySelector(".nav-label")
+      ?.textContent?.trim();
+
+    const nextArrow = component.shadowRoot?.querySelector(
+      ".cal-nav-next",
+    ) as HTMLElement;
+    expect(nextArrow).toBeTruthy();
+    nextArrow.click();
+
+    const newLabel = component.shadowRoot
+      ?.querySelector(".nav-label")
+      ?.textContent?.trim();
+    expect(newLabel).not.toBe(initialLabel);
+  });
+
+  it("should render calendar with readonly attributes", () => {
+    component.requests = [makePendingRequest({ id: 1, employeeId: 10 })];
+
+    const btn = component.shadowRoot?.querySelector(
+      ".show-calendar-btn",
+    ) as HTMLElement;
+    btn.click();
+
+    const cal = component.shadowRoot?.querySelector(
+      "pto-calendar",
+    ) as HTMLElement;
+    expect(cal).toBeTruthy();
+    expect(cal.getAttribute("readonly")).toBe("true");
+    expect(cal.getAttribute("hide-legend")).toBe("true");
+    expect(cal.getAttribute("hide-header")).toBe("true");
+  });
+
+  it("should dispatch calendar-data-request on Show Calendar click", () => {
+    const currentMonth = getCurrentMonth();
+    component.requests = [
+      makePendingRequest({
+        id: 1,
+        employeeId: 10,
+        employeeName: "Alice",
+        startDate: `${currentMonth}-05`,
+        endDate: `${currentMonth}-05`,
+      }),
+      makePendingRequest({
+        id: 2,
+        employeeId: 20,
+        employeeName: "Bob",
+        startDate: `${currentMonth}-06`,
+        endDate: `${currentMonth}-06`,
+      }),
+    ];
+
+    let firedEvent: CustomEvent | null = null;
+    component.addEventListener("calendar-data-request", (e: Event) => {
+      firedEvent = e as CustomEvent;
+    });
+
+    // Open calendar for employee 10
+    const btn = component.shadowRoot?.querySelector(
+      '.show-calendar-btn[data-employee-id="10"]',
+    ) as HTMLElement;
+    btn.click();
+
+    expect(firedEvent).toBeTruthy();
+    expect(firedEvent!.detail.employeeId).toBe(10);
+    expect(firedEvent!.detail.month).toBe(currentMonth);
+
+    const cal = component.shadowRoot?.querySelector(
+      "pto-calendar",
+    ) as HTMLElement;
+    expect(cal).toBeTruthy();
+    expect(cal.getAttribute("data-employee-id")).toBe("10");
+  });
+
+  it("should dispatch calendar-data-request on month navigation", () => {
+    component.requests = [
+      makePendingRequest({
+        id: 1,
+        employeeId: 10,
+        startDate: "2026-03-10",
+        endDate: "2026-03-10",
+      }),
+    ];
+
+    // Open calendar
+    const showBtn = component.shadowRoot?.querySelector(
+      ".show-calendar-btn",
+    ) as HTMLElement;
+    showBtn.click();
+
+    // Capture events on next navigation
+    const events: CustomEvent[] = [];
+    component.addEventListener("calendar-data-request", (e: Event) => {
+      events.push(e as CustomEvent);
+    });
+
+    const nextArrow = component.shadowRoot?.querySelector(
+      ".cal-nav-next",
+    ) as HTMLElement;
+    nextArrow.click();
+
+    expect(events.length).toBe(1);
+    expect(events[0].detail.employeeId).toBe(10);
+    expect(events[0].detail.month).toBe("2026-04");
+  });
+
+  it("should inject PTO entries into calendar via setCalendarEntries", () => {
+    const currentMonth = getCurrentMonth();
+    component.requests = [
+      makePendingRequest({
+        id: 1,
+        employeeId: 10,
+        startDate: `${currentMonth}-05`,
+        endDate: `${currentMonth}-05`,
+      }),
+    ];
+
+    // Open calendar for employee 10
+    const btn = component.shadowRoot?.querySelector(
+      ".show-calendar-btn",
+    ) as HTMLElement;
+    btn.click();
+
+    // Inject entries via the new method
+    component.setCalendarEntries(10, currentMonth, [
+      {
+        id: 1,
+        employeeId: 10,
+        date: `${currentMonth}-10`,
+        type: "PTO",
+        hours: 8,
+        createdAt: "",
+        approved_by: null,
+      },
+    ]);
+
+    const cal = component.shadowRoot?.querySelector("pto-calendar") as any;
+    expect(cal).toBeTruthy();
+    // PtoCalendar stores entries in _ptoEntries
+    expect(cal.ptoEntries?.length).toBe(1);
+    expect(cal.ptoEntries[0].date).toBe(`${currentMonth}-10`);
+  });
+
+  it("should preserve expanded calendar state across requests re-render", () => {
+    component.requests = [
+      makePendingRequest({ id: 1, employeeId: 10, employeeName: "Alice" }),
+    ];
+
+    // Expand calendar
+    const showBtn = component.shadowRoot?.querySelector(
+      ".show-calendar-btn",
+    ) as HTMLElement;
+    showBtn.click();
+
+    let cal = component.shadowRoot?.querySelector("pto-calendar");
+    expect(cal).toBeTruthy();
+
+    // Update requests (simulating refresh)
+    component.requests = [
+      makePendingRequest({ id: 1, employeeId: 10, employeeName: "Alice" }),
+      makePendingRequest({ id: 3, employeeId: 10, employeeName: "Alice" }),
+    ];
+
+    // Calendar should still be expanded
+    cal = component.shadowRoot?.querySelector("pto-calendar");
+    expect(cal).toBeTruthy();
+    expect(
+      component.shadowRoot
+        ?.querySelector(".show-calendar-btn")
+        ?.textContent?.trim(),
+    ).toBe("Hide Calendar");
+  });
+
+  it("should expose expanded calendar state via expandedCalendars getter", () => {
+    component.requests = [
+      makePendingRequest({
+        id: 1,
+        employeeId: 10,
+        startDate: "2026-03-10",
+        endDate: "2026-03-10",
+      }),
+    ];
+
+    expect(component.expandedCalendars.size).toBe(0);
+
+    // Expand calendar
+    const btn = component.shadowRoot?.querySelector(
+      ".show-calendar-btn",
+    ) as HTMLElement;
+    btn.click();
+
+    const expanded = component.expandedCalendars;
+    expect(expanded.size).toBe(1);
+    expect(expanded.get(10)).toBe("2026-03");
   });
 });

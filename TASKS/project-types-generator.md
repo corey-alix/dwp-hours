@@ -2,7 +2,7 @@
 
 ## Description
 
-Create a utility to generate a single `project-types.d.ts` file containing all TypeScript type definitions from the project, formatted with YAML front matter (wrapped in comments) for architecture analysis and sharing with agents. The file should include dependency information and be structured for AI-assisted code review.
+Create a utility to generate a single `project-types.d.md` file containing all TypeScript type definitions from the project, formatted with YAML front matter (wrapped in comments) for architecture analysis and sharing with agents. The file should include dependency information and be structured for AI-assisted code review.
 
 **Key Requirements:**
 

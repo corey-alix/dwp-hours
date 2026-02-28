@@ -227,7 +227,7 @@ describe("Import Auto-Approve", () => {
 
       expect(result.approved).toBe(false);
       expect(result.violations).toHaveLength(1);
-      expect(result.violations[0]).toContain("borrowing not permitted");
+      expect(result.violations[0]).toContain("requires manual approval");
       expect(result.violations[0]).toContain("first year of service");
     });
 
@@ -351,7 +351,7 @@ describe("Import Auto-Approve", () => {
 
       // Different violation messages
       expect(firstYear.violations[0]).toContain("exceeds available balance");
-      expect(secondYear.violations[0]).toContain("borrowing not permitted");
+      expect(secondYear.violations[0]).toContain("requires manual approval");
     });
   });
 

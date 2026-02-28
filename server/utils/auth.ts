@@ -12,6 +12,7 @@ declare global {
         id: number;
         name: string;
         role: string;
+        hire_date: string;
       };
     }
   }
@@ -66,6 +67,7 @@ export function authenticateMiddleware(
         id: employee.id,
         name: employee.name,
         role: employee.role,
+        hire_date: employee.hire_date,
       };
 
       // Log API access

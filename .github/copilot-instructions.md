@@ -238,7 +238,7 @@ The project uses a structured task system in the `TASKS/` folder. Always referen
 ### Implementation Guidelines
 
 - **Completion Criteria**: All checklist items ✓, builds without errors, linting passes, manual testing, documentation updated
-- **Code Quality**: TypeScript strict mode, proper error handling, input validation, security best practices
+- **Code Quality**: TypeScript strict mode, proper error handling, input validation, security best practices, strong typings are critical (avoid 'any').
 - **Testing**: Manual testing, API testing, frontend integration, error cases
 
 ## Agent Skills
@@ -364,9 +364,9 @@ const input = querySingle<HTMLInputElement>("#input-id", ptoForm.shadowRoot); //
 - Extend `shared/dateUtils.ts` with new utility functions as needed rather than using native Date APIs
 - Use string comparisons and manipulations for date logic to ensure consistency and avoid timezone problems
 
-### Using project-types.d.ts for Architecture Analysis
+### Using project-types.d.md for Architecture Analysis
 
-The `project-types.d.ts` file serves as a comprehensive type declaration file that provides valuable insights during architecture analysis and refactoring discovery:
+The `project-types.d.md` file serves as a comprehensive type declaration file that provides valuable insights during architecture analysis and refactoring discovery:
 
 - **API Structure Discovery**: Contains type definitions for all exported classes, interfaces, and functions, making it easy to understand component relationships and APIClient usage patterns
 - **Component Type Information**: Provides specific class types for web components (e.g., `PtoEntryForm`, `AdminMonthlyReview`) which are essential for understanding the component hierarchy
@@ -375,7 +375,7 @@ The `project-types.d.ts` file serves as a comprehensive type declaration file th
 - **Search and Navigation Aid**: Serves as an index for finding specific patterns, usage locations, and dependencies across the codebase
 - **Type-Safe Analysis**: Enables type-aware analysis of code patterns without needing to load full source files
 
-When performing architecture analysis or refactoring discovery, `project-types.d.ts` should be consulted first to understand the exported API surface and then cross-referenced with actual implementation files for detailed analysis.
+When performing architecture analysis or refactoring discovery, `project-types.d.md` should be consulted first to understand the exported API surface and then cross-referenced with actual implementation files for detailed analysis.
 
 ### CSS Formatting Rules
 

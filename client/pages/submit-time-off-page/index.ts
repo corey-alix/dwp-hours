@@ -64,6 +64,7 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
         this._loaderData.status.availablePTO.toString(),
       );
       this.updateBalanceSummary(this._loaderData.status);
+      this.updateCalendarBalanceLimits(this._loaderData.status);
     }
 
     // Handle query-param navigation: ?month=3&year=2026
@@ -175,6 +176,31 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
     summary.juryDutyHours = status.juryDutyTime.remaining;
   }
 
+  /**
+   * Forward PTO balance limits and accrual data to the entry form so
+   * the PtoBalanceModel can compute overuse indicators across calendars.
+   */
+  private updateCalendarBalanceLimits(
+    status: ApiTypes.PTOStatusResponse,
+  ): void {
+    const form = this.getPtoForm();
+    if (!form) return;
+    // beginningBalance = carryover only. Monthly accruals already represent
+    // the annual allocation spread across months, so the accrual-aware limit
+    // at month M is: carryover + sum(accruals[1..M]).
+    // limits.PTO is a fallback when no accruals are present.
+    form.setBalanceLimits({
+      limits: {
+        PTO: status.annualAllocation + status.carryoverFromPreviousYear,
+        Sick: status.sickTime.allowed,
+        Bereavement: status.bereavementTime.allowed,
+        "Jury Duty": status.juryDutyTime.allowed,
+      },
+      beginningBalance: status.carryoverFromPreviousYear,
+      monthlyAccruals: status.monthlyAccruals,
+    });
+  }
+
   private handleCancel(): void {
     const form = this.getPtoForm();
     if (form) {
@@ -267,6 +293,7 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
       // Refresh balance
       const status = await this.api.getPTOStatus();
       this.updateBalanceSummary(status);
+      this.updateCalendarBalanceLimits(status);
     } catch (error: any) {
       console.error("Error submitting PTO request:", error);
       if (error.responseData?.error === "month_locked") {

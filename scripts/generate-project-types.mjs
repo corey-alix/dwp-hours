@@ -3,14 +3,14 @@
 /**
  * Project Types Generator
  *
- * Generates a single project-types.d.ts file containing all TypeScript type definitions
+ * Generates a single project-types.d.md file containing all TypeScript type definitions
  * from the project, formatted with YAML front matter for architecture analysis and
  * sharing with agents.
  *
  * Usage: node scripts/generate-project-types.mjs
  *        pnpm run generate:types
  *
- * The generated project-types.d.ts file includes:
+ * The generated project-types.d.md file includes:
  * - File index header with line number references for each file
  * - YAML front matter with project metadata and file structure overview
  * - Per-file YAML headers with dependencies and export information
@@ -32,7 +32,7 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(__dirname, '..');
 const TYPES_DIR = join(PROJECT_ROOT, 'dist', 'types');
-const OUTPUT_FILE = join(PROJECT_ROOT, 'project-types.d.ts');
+const OUTPUT_FILE = join(PROJECT_ROOT, 'project-types.d.md');
 
 function log(message) {
   console.log(`[generate-project-types] ${message}`);

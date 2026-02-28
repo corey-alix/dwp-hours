@@ -43,6 +43,7 @@ export const styles = `<style>
     display: inline-flex;
     align-items: center;
     gap: var(--space-xs, 4px);
+    color: var(--color-text-alt, #333);
     padding: var(--space-xs, 4px) var(--space-sm, 8px);
     background: var(--color-surface-alt, #f5f5f5);
     border: 1px solid var(--color-border, #ddd);

@@ -250,7 +250,7 @@ export async function performBulkMigration(
     employee.identifier = employeeEmail;
     employee.pto_rate = 0.71;
     employee.carryover_hours = 0;
-    employee.hire_date = new Date(today());
+    employee.hire_date = today();
     employee.role = "Employee";
     await employeeRepo.save(employee);
     log(

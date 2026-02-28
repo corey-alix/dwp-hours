@@ -302,5 +302,44 @@ export const styles = `<style>
     .action-btn {
       transition: none;
     }
+
+    .show-calendar-btn {
+      transition: none;
+    }
+  }
+
+  .show-calendar-btn {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--font-size-xs);
+    border: 1px solid var(--color-secondary, #6c757d);
+    border-radius: var(--border-radius);
+    background: transparent;
+    color: var(--color-secondary, #6c757d);
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .show-calendar-btn:hover {
+    background: var(--color-secondary, #6c757d);
+    color: white;
+  }
+
+  .inline-calendar-container {
+    margin-bottom: var(--space-md);
+    overflow: hidden;
+    border-bottom: var(--border-width, 1px) solid var(--color-border);
+    padding-bottom: var(--space-sm);
+    --slide-offset: 16px;
+    --duration-normal: 200ms;
+    display: block;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  .inline-calendar-container pto-calendar {
+    display: block;
+    max-width: 36rem;
+    margin: 0 auto;
   }
 </style>`;

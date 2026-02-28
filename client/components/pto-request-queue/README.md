@@ -70,8 +70,23 @@ type PTORequest = {
 
 ## Events
 
-- `request-approved`: Fired when approve button is clicked
-- `request-rejected`: Fired when reject button is clicked
+- `request-approve`: Fired when approve button is clicked (detail: `{ requestId, requestIds }`)
+- `request-reject`: Fired when reject button is clicked (detail: `{ requestId, requestIds }`)
+- `calendar-data-request`: Dispatched when the user opens an inline calendar or navigates to a different month (detail: `{ employeeId: number, month: string }`). The parent page should listen for this event, fetch PTO entries for the given employee and month, and inject them back via `setCalendarEntries()`.
+
+## Methods
+
+### `setCalendarEntries(employeeId: number, month: string, entries: PTOEntry[])`
+
+Injects PTO entry data into the inline calendar for a specific employee. Called by the parent page after handling a `calendar-data-request` event. The `entries` array should match the `PTOEntry` interface from `pto-calendar/index.ts`.
+
+### `dismissCard(requestId: number): Promise<void>`
+
+Animates a request card out of view (dismiss effect). Called by the parent page after approve/reject.
+
+### `expandedCalendars: Map<number, string>` (getter)
+
+Returns a map of employee IDs to their currently displayed month (`YYYY-MM`) for all expanded inline calendars. Used by the parent page to re-fetch calendar data after a data refresh.
 
 ## Features
 

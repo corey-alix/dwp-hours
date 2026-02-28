@@ -148,7 +148,12 @@ export const BEREAVEMENT_CONSECUTIVE_DAYS_BEFORE_PTO = 2;
 
 // Business rules constants
 export const BUSINESS_RULES_CONSTANTS = {
+  /** @deprecated Hour increment restriction removed — fractional hours are now permitted. */
   HOUR_INCREMENT: 4,
+  /**
+   * Days of the week that are not standard working days (0 = Sunday, 6 = Saturday).
+   * Use `isWorkingDay()` instead of checking this array directly.
+   */
   WEEKEND_DAYS: [0, 6] as number[], // Sunday = 0, Saturday = 6
   ANNUAL_LIMITS: {
     PTO: CARRYOVER_LIMIT,
@@ -174,8 +179,10 @@ export const BUSINESS_RULES_CONSTANTS = {
 } as const;
 
 export const VALIDATION_MESSAGES = {
-  "hours.invalid": "Hours must be in 4-hour increments",
+  "hours.invalid": "Hours must be a positive number",
+  /** @deprecated Fractional hours are now allowed. */
   "hours.not_integer": "Hours must be a whole number",
+  /** @deprecated Weekend submissions are now allowed — use isWorkingDay() for display hints. */
   "date.weekday": "Date must be a weekday (Monday to Friday)",
   "pto.duplicate":
     "A PTO entry of this type already exists for this employee on this date",
@@ -232,20 +239,26 @@ export const UI_ERROR_MESSAGES = {
 export type MessageKey = keyof typeof VALIDATION_MESSAGES;
 
 /**
- * Validates that hours are positive and in 4-hour increments
+ * Validates that hours are a positive number.
+ * Fractional hours (e.g. 2.5) are permitted to support partial-day PTO.
+ * Negative hours are permitted on non-working days (make-up time);
+ * callers should use `isWorkingDay()` to contextualise sign.
  */
 export function validateHours(hours: number): ValidationError | null {
-  if (!Number.isInteger(hours)) {
-    return { field: "hours", messageKey: "hours.not_integer" };
+  if (typeof hours !== "number" || isNaN(hours)) {
+    return { field: "hours", messageKey: "hours.invalid" };
   }
-  if (hours <= 0 || hours % BUSINESS_RULES_CONSTANTS.HOUR_INCREMENT !== 0) {
+  // Hours must not be zero
+  if (hours === 0) {
     return { field: "hours", messageKey: "hours.invalid" };
   }
   return null;
 }
 
 /**
- * Validates that date is a weekday (Monday to Friday)
+ * @deprecated Weekend submissions are now allowed. Use `isWorkingDay()` for
+ * display hints (e.g. highlighting non-working-day entries) rather than
+ * rejecting them outright.
  */
 export function validateWeekday(dateStr: string): ValidationError | null {
   const day = getDayOfWeek(dateStr); // 0 = Sunday, 6 = Saturday
@@ -253,6 +266,21 @@ export function validateWeekday(dateStr: string): ValidationError | null {
     return { field: "date", messageKey: "date.weekday" };
   }
   return null;
+}
+
+/**
+ * Determines whether a date is a standard working day (Monday–Friday).
+ *
+ * Use this function instead of checking `WEEKEND_DAYS` directly so that
+ * business-rule assumptions about what constitutes a "working day" are
+ * centralised here and can be extended later (e.g. company holidays).
+ *
+ * @param dateStr - YYYY-MM-DD date string
+ * @returns `true` if the date is a working day, `false` otherwise
+ */
+export function isWorkingDay(dateStr: string): boolean {
+  const day = getDayOfWeek(dateStr); // 0 = Sunday, 6 = Saturday
+  return !BUSINESS_RULES_CONSTANTS.WEEKEND_DAYS.includes(day);
 }
 
 /**
@@ -889,11 +917,11 @@ export function shouldAutoApproveImportEntry(
     if (entry.hours > employeeLimits.availablePtoBalance) {
       if (policyContext.yearsOfService >= 1) {
         violations.push(
-          `PTO borrowing not permitted after first year of service (requested ${entry.hours}h, available ${employeeLimits.availablePtoBalance}h)`,
+          `PTO borrowing after first year of service requires manual approval (requested ${entry.hours}h, available ${employeeLimits.availablePtoBalance.toFixed(1)}h)`,
         );
       } else {
         violations.push(
-          `PTO request exceeds available balance (requested ${entry.hours}h, available ${employeeLimits.availablePtoBalance}h)`,
+          `PTO request exceeds available balance (requested ${entry.hours}h, available ${employeeLimits.availablePtoBalance.toFixed(1)}h)`,
         );
       }
     }
@@ -903,4 +931,152 @@ export function shouldAutoApproveImportEntry(
     approved: violations.length === 0,
     violations,
   };
+}
+
+// ── Balance-Check / Overuse Indicator ──
+
+/**
+ * Balance limits for each PTO type, used by the calendar overuse indicator.
+ * For PTO the limit is dynamic (availablePTO from status); for Sick,
+ * Bereavement and Jury Duty the limits are the static annual caps.
+ */
+export interface BalanceLimits {
+  PTO: number;
+  Sick: number;
+  Bereavement: number;
+  "Jury Duty": number;
+}
+
+/**
+ * Entry shape consumed by the overuse check. Only `date`, `hours` and
+ * `type` are required, matching both persisted entries and pending
+ * calendar selections.
+ */
+export interface OveruseEntry {
+  date: string;
+  hours: number;
+  type: PTOType;
+}
+
+/**
+ * Given an ordered list of PTO entries and the balance limits for each
+ * type, returns a `Set<string>` of date-strings where the running total
+ * for that type *first exceeds* the limit and every subsequent date.
+ *
+ * Entries are walked in **date order** (earliest first) per type.
+ * Once a type's running total crosses its limit, all further dates of
+ * that type are included in the result so the calendar can display
+ * the "!" indicator from the first overuse day onward.
+ *
+ * Entries with `hours <= 0` (e.g. credits) are skipped.
+ */
+export function getOveruseDates(
+  entries: ReadonlyArray<OveruseEntry>,
+  limits: BalanceLimits,
+): Set<string> {
+  const overuseDates = new Set<string>();
+
+  // Group entries by type, then sort each group by date
+  const byType: Record<PTOType, OveruseEntry[]> = {
+    PTO: [],
+    Sick: [],
+    Bereavement: [],
+    "Jury Duty": [],
+  };
+
+  for (const entry of entries) {
+    if (entry.hours <= 0) continue;
+    if (byType[entry.type]) {
+      byType[entry.type].push(entry);
+    }
+  }
+
+  for (const type of Object.keys(byType) as PTOType[]) {
+    const group = byType[type];
+    if (group.length === 0) continue;
+
+    // Sort by date (string comparison works for YYYY-MM-DD)
+    group.sort((a, b) => compareDates(a.date, b.date));
+
+    const limit = limits[type];
+    let runningTotal = 0;
+    let exceeded = false;
+
+    for (const entry of group) {
+      runningTotal += entry.hours;
+      if (!exceeded && runningTotal > limit) {
+        exceeded = true;
+      }
+      if (exceeded) {
+        overuseDates.add(entry.date);
+      }
+    }
+  }
+
+  return overuseDates;
+}
+
+/**
+ * Companion to `getOveruseDates()` — returns a `Map<string, string>` of
+ * date-string → tooltip message for every overuse date.
+ *
+ * For PTO the message explains accrued vs scheduled hours.
+ * For Sick/Bereavement/Jury Duty it explains the flat annual cap.
+ *
+ * Entries with `hours <= 0` are skipped (same as `getOveruseDates`).
+ */
+export function getOveruseTooltips(
+  entries: ReadonlyArray<OveruseEntry>,
+  limits: BalanceLimits,
+): Map<string, string> {
+  const tooltips = new Map<string, string>();
+
+  const byType: Record<PTOType, OveruseEntry[]> = {
+    PTO: [],
+    Sick: [],
+    Bereavement: [],
+    "Jury Duty": [],
+  };
+
+  for (const entry of entries) {
+    if (entry.hours <= 0) continue;
+    if (byType[entry.type]) {
+      byType[entry.type].push(entry);
+    }
+  }
+
+  for (const type of Object.keys(byType) as PTOType[]) {
+    const group = byType[type];
+    if (group.length === 0) continue;
+
+    group.sort((a, b) => compareDates(a.date, b.date));
+
+    const limit = limits[type];
+    let runningTotal = 0;
+    let exceeded = false;
+
+    for (const entry of group) {
+      runningTotal += entry.hours;
+      if (!exceeded && runningTotal > limit) {
+        exceeded = true;
+      }
+      if (exceeded) {
+        const scheduled = Math.round(runningTotal * 100) / 100;
+        const available = Math.round(limit * 100) / 100;
+        if (type === "PTO") {
+          tooltips.set(
+            entry.date,
+            `Exceeds accrued PTO — ${available} hours accrued, ${scheduled} scheduled`,
+          );
+        } else {
+          tooltips.set(
+            entry.date,
+            `Exceeds annual ${type} limit — ${scheduled} of ${available} hours used`,
+          );
+        }
+      }
+    }
+  }
+
+  return tooltips;
 }

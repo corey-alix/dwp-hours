@@ -1,6 +1,5 @@
 import {
   validateHours,
-  validateWeekday,
   validatePTOType,
   VALIDATION_MESSAGES,
   MessageKey,
@@ -56,6 +55,8 @@ export class PtoCalendar extends BaseComponent {
   private _ptoEntries: PTOEntry[] = [];
   private _selectedCells: Map<string, number> = new Map();
   private _selectedPtoType: PTOType | null = null;
+  private _overuseDates: Set<string> = new Set();
+  private _overuseTooltips: Map<string, string> = new Map();
 
   // ── View-model focus state ──
   private _focusedDate: string | null = null;
@@ -169,6 +170,42 @@ export class PtoCalendar extends BaseComponent {
     this.requestUpdate();
   }
 
+  /**
+   * Set of date strings where the running balance exceeds the PTO type
+   * limit. Driven externally by `PtoBalanceModel` via `pto-entry-form`.
+   */
+  get overuseDates(): Set<string> {
+    return this._overuseDates;
+  }
+
+  set overuseDates(value: Set<string>) {
+    const prev = this._overuseDates;
+    this._overuseDates = value;
+
+    // Targeted updates for changed dates only — avoids full re-render
+    // which would destroy focused elements and break keyboard navigation.
+    for (const date of prev) {
+      if (!value.has(date)) this.updateDay(date);
+    }
+    for (const date of value) {
+      if (!prev.has(date)) this.updateDay(date);
+    }
+  }
+
+  /**
+   * Per-date tooltip messages for overuse indicators.
+   * Driven externally by `PtoBalanceModel` via `pto-entry-form`.
+   */
+  get overuseTooltips(): Map<string, string> {
+    return this._overuseTooltips;
+  }
+
+  set overuseTooltips(value: Map<string, string>) {
+    this._overuseTooltips = value;
+    // No re-render needed — tooltips are read during renderDayCell which
+    // is already triggered by the overuseDates setter update cycle.
+  }
+
   setSelectedMonth(selectedMonth: number | null) {
     this.selectedMonth = selectedMonth;
   }
@@ -236,12 +273,6 @@ export class PtoCalendar extends BaseComponent {
       if (hoursError) {
         validationErrors.push(
           `${request.date}: ${VALIDATION_MESSAGES[hoursError.messageKey as MessageKey]}`,
-        );
-      }
-      const weekdayError = validateWeekday(request.date);
-      if (weekdayError) {
-        validationErrors.push(
-          `${request.date}: ${VALIDATION_MESSAGES[weekdayError.messageKey as MessageKey]}`,
         );
       }
       const typeError = validatePTOType(request.type);
@@ -492,10 +523,20 @@ export class PtoCalendar extends BaseComponent {
       ? `<span class="type-dot type-dot-${ptoType.replace(/\s+/g, "-")}"></span>`
       : "";
 
+    // Overuse indicator: "!" in bottom-left when this date exceeds balance
+    const overuseTooltip = this._overuseTooltips.get(dateStr) ?? "";
+    const overuseTitle = overuseTooltip
+      ? ` title="${overuseTooltip.replace(/"/g, "&quot;")}"`
+      : "";
+    const overuseIndicator = this._overuseDates.has(dateStr)
+      ? `<span class="overuse-indicator"${overuseTitle}>!</span>`
+      : "";
+
     return `
       <div class="${dayClass} ${emptyClass} ${selectedClass} ${clickableClass} ${todayClass}" data-date="${dateStr}" ${tabindexAttr} role="gridcell">
           ${checkmarkElement}
           ${noteIndicator}
+          ${overuseIndicator}
           <div class="date">${dayDisplay}</div>
           <div class="${hoursClass}">${typeDot}${hoursDisplay}</div>
       </div>

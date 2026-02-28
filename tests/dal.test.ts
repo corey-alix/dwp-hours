@@ -68,7 +68,7 @@ beforeEach(async () => {
     identifier: "TEST001",
     pto_rate: 0.71,
     carryover_hours: 0,
-    hire_date: new Date("2023-01-01"),
+    hire_date: "2023-01-01",
     role: "Employee",
   });
 });
@@ -87,7 +87,7 @@ describe("PtoEntryDAL", () => {
       expect(errors).toHaveLength(0);
     });
 
-    it("should reject weekend dates", async () => {
+    it("should accept weekend dates (no longer rejected)", async () => {
       const data = {
         employeeId: 1,
         date: "2024-01-06", // Saturday
@@ -96,11 +96,13 @@ describe("PtoEntryDAL", () => {
       };
 
       const errors = await dal.validatePtoEntryData(data);
-      expect(errors).toHaveLength(1);
-      expect(errors[0].messageKey).toBe("date.weekday");
+      // Weekend dates are now permitted (make-up time)
+      expect(
+        errors.filter((e) => e.messageKey === "date.weekday"),
+      ).toHaveLength(0);
     });
 
-    it("should reject invalid hours", async () => {
+    it("should accept non-increment hours", async () => {
       const data = {
         employeeId: 1,
         date: "2024-01-08",
@@ -109,8 +111,9 @@ describe("PtoEntryDAL", () => {
       };
 
       const errors = await dal.validatePtoEntryData(data);
-      expect(errors).toHaveLength(1);
-      expect(errors[0].messageKey).toBe("hours.invalid");
+      expect(
+        errors.filter((e) => e.messageKey === "hours.invalid"),
+      ).toHaveLength(0);
     });
 
     it("should reject duplicate entries", async () => {
@@ -179,7 +182,7 @@ describe("PtoEntryDAL", () => {
         identifier: "LIMITED001",
         pto_rate: 0.65, // Tier-0 daily rate from PTO_EARNING_SCHEDULE
         carryover_hours: 0,
-        hire_date: new Date("2024-01-01"),
+        hire_date: "2024-01-01",
         role: "Employee",
       });
 
@@ -215,7 +218,7 @@ describe("PtoEntryDAL", () => {
         identifier: "SUFFICIENT001",
         pto_rate: 0.71, // Standard accrual rate (~186h/year)
         carryover_hours: 0,
-        hire_date: new Date("2024-01-01"),
+        hire_date: "2024-01-01",
         role: "Employee",
       });
 
@@ -252,7 +255,7 @@ describe("PtoEntryDAL", () => {
         identifier: "EXACT001",
         pto_rate: 0.5,
         carryover_hours: 1,
-        hire_date: new Date("2024-01-01"),
+        hire_date: "2024-01-01",
         role: "Employee",
       });
 
@@ -285,7 +288,7 @@ describe("PtoEntryDAL", () => {
         identifier: "NOPTO001",
         pto_rate: 0.65, // Tier-0 daily rate from PTO_EARNING_SCHEDULE
         carryover_hours: 0,
-        hire_date: new Date("2024-01-01"),
+        hire_date: "2024-01-01",
         role: "Employee",
       });
 
@@ -332,15 +335,15 @@ describe("PtoEntryDAL", () => {
     it("should reject invalid data", async () => {
       const data = {
         employeeId: 1,
-        date: "2024-01-06", // Saturday
-        hours: 8,
+        date: "2024-01-08", // Monday
+        hours: 0, // Zero hours is invalid
         type: "PTO",
       };
 
       const result = await dal.createPtoEntry(data);
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.errors).toHaveLength(1);
+        expect(result.errors.length).toBeGreaterThanOrEqual(1);
       }
     });
 
@@ -354,7 +357,7 @@ describe("PtoEntryDAL", () => {
         identifier: "BLOCKED001",
         pto_rate: 0.65, // Tier-0 daily rate from PTO_EARNING_SCHEDULE
         carryover_hours: 0,
-        hire_date: new Date("2024-01-01"),
+        hire_date: "2024-01-01",
         role: "Employee",
       });
 
@@ -392,7 +395,7 @@ describe("PtoEntryDAL", () => {
         identifier: "ALLOWED001",
         pto_rate: 0.71, // Standard accrual rate (~186h/year)
         carryover_hours: 0,
-        hire_date: new Date("2024-01-01"),
+        hire_date: "2024-01-01",
         role: "Employee",
       });
 
@@ -453,13 +456,13 @@ describe("PtoEntryDAL", () => {
       if (!createResult.success) return;
       const entryId = createResult.ptoEntry.id;
 
-      // Try to update to weekend
+      // Try to update to zero hours (invalid)
       const updateResult = await dal.updatePtoEntry(entryId, {
-        date: "2024-01-06",
+        hours: 0,
       });
       expect(updateResult.success).toBe(false);
       if (!updateResult.success) {
-        expect(updateResult.errors).toHaveLength(1);
+        expect(updateResult.errors.length).toBeGreaterThanOrEqual(1);
       }
     });
   });

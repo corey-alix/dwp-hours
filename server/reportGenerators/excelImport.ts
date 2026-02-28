@@ -30,6 +30,7 @@ import { Employee } from "../entities/Employee.js";
 import { PtoEntry } from "../entities/PtoEntry.js";
 import { Acknowledgement } from "../entities/Acknowledgement.js";
 import { AdminAcknowledgement } from "../entities/AdminAcknowledgement.js";
+import { today } from "../../shared/dateUtils.js";
 
 // ── Re-export everything from the shared parsing module ──
 
@@ -151,7 +152,7 @@ export async function upsertEmployee(
     }
     // Update hire_date if provided and currently missing
     if (info.hireDate && !existing.hire_date) {
-      existing.hire_date = new Date(info.hireDate);
+      existing.hire_date = info.hireDate;
     }
     // Always update PTO rate to the computed value
     const { rate, warning } = computePtoRate(info);
@@ -167,7 +168,7 @@ export async function upsertEmployee(
   const newEmp = empRepo.create({
     name: trimmedName,
     identifier: generatedId,
-    hire_date: info.hireDate ? new Date(info.hireDate) : new Date(),
+    hire_date: info.hireDate || today(),
     pto_rate: rate,
     carryover_hours: info.carryoverHours,
     role: "Employee",

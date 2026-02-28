@@ -269,6 +269,18 @@ export const styles = `
     font-weight: var(--font-weight-bold, 600);
 }
 
+/* Overuse indicator: "!" badge when balance is exceeded */
+
+.overuse-indicator {
+    position: absolute;
+    bottom: 2px;
+    left: 2px;
+    font-size: var(--font-size-xxs);
+    color: var(--color-error);
+    font-weight: var(--font-weight-bold);
+    line-height: 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .note-indicator:hover {
         transform: none;
