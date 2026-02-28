@@ -418,3 +418,37 @@ export interface BulkImportResponse {
     created: boolean;
   }[];
 }
+
+// ── Employee Timesheet Upload Types ──
+
+/** Per-month status in the employee timesheet upload response. */
+export interface EmployeeImportMonthResult {
+  month: string; // YYYY-MM
+  status: "imported" | "skipped-locked";
+  entriesImported: number;
+  entriesDeleted: number;
+  warnings: string[];
+}
+
+/** Request body for POST /api/employee/import-bulk. */
+export interface EmployeeImportBulkRequest {
+  /** Employee name extracted from J2 (client-side verification). */
+  employeeName: string;
+  /** Hire date extracted from R2, normalised to YYYY-MM-DD. */
+  hireDate: string;
+  /** Calendar year extracted from B2. */
+  year: number;
+  /** PTO entries parsed from calendar cells. */
+  ptoEntries: BulkImportPtoEntry[];
+  /** Employee acknowledgements from column X. */
+  acknowledgements: BulkImportAcknowledgement[];
+}
+
+/** Response from POST /api/employee/import-bulk. */
+export interface EmployeeImportBulkResponse {
+  message: string;
+  perMonth: EmployeeImportMonthResult[];
+  totalEntriesImported: number;
+  totalEntriesDeleted: number;
+  warnings: string[];
+}

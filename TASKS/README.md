@@ -16,6 +16,8 @@
 - LATER: See ./TASKS/excel-import-auto-approve.md for details
 - LATER: See ./TASKS/admin-review-calendar-notes.md for details
 - LATER: See ./TASKS/admin-employees-view-calendar.md for details
+- LATER: See ./TASKS/employee-spreadsheet-upload.md for details
+- LATER: See ./TASKS/pto-calendar-negative-balance-indicator.md for details
 
 ## SOME WORK REMAINS
 

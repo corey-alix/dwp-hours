@@ -9,7 +9,6 @@ import { fileURLToPath } from "url";
 import { seedEmployees, seedPTOEntries } from "../shared/seedData.js";
 import {
   validateHours,
-  validateWeekday,
   validatePTOType,
   validateDateString,
 } from "../shared/businessRules.js";
@@ -81,14 +80,6 @@ try {
     if (dateErr) {
       console.error(
         `Skipping invalid PTO entry (invalid date): ${JSON.stringify(entry)} - ${dateErr.messageKey}`,
-      );
-      continue;
-    }
-
-    const weekdayErr = validateWeekday(entry.date);
-    if (weekdayErr) {
-      console.error(
-        `Skipping invalid PTO entry (not weekday): ${JSON.stringify(entry)} - ${weekdayErr.messageKey}`,
       );
       continue;
     }

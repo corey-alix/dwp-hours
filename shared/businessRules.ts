@@ -148,7 +148,12 @@ export const BEREAVEMENT_CONSECUTIVE_DAYS_BEFORE_PTO = 2;
 
 // Business rules constants
 export const BUSINESS_RULES_CONSTANTS = {
+  /** @deprecated Hour increment restriction removed — fractional hours are now permitted. */
   HOUR_INCREMENT: 4,
+  /**
+   * Days of the week that are not standard working days (0 = Sunday, 6 = Saturday).
+   * Use `isWorkingDay()` instead of checking this array directly.
+   */
   WEEKEND_DAYS: [0, 6] as number[], // Sunday = 0, Saturday = 6
   ANNUAL_LIMITS: {
     PTO: CARRYOVER_LIMIT,
@@ -174,8 +179,10 @@ export const BUSINESS_RULES_CONSTANTS = {
 } as const;
 
 export const VALIDATION_MESSAGES = {
-  "hours.invalid": "Hours must be in 4-hour increments",
+  "hours.invalid": "Hours must be a positive number",
+  /** @deprecated Fractional hours are now allowed. */
   "hours.not_integer": "Hours must be a whole number",
+  /** @deprecated Weekend submissions are now allowed — use isWorkingDay() for display hints. */
   "date.weekday": "Date must be a weekday (Monday to Friday)",
   "pto.duplicate":
     "A PTO entry of this type already exists for this employee on this date",
@@ -232,20 +239,26 @@ export const UI_ERROR_MESSAGES = {
 export type MessageKey = keyof typeof VALIDATION_MESSAGES;
 
 /**
- * Validates that hours are positive and in 4-hour increments
+ * Validates that hours are a positive number.
+ * Fractional hours (e.g. 2.5) are permitted to support partial-day PTO.
+ * Negative hours are permitted on non-working days (make-up time);
+ * callers should use `isWorkingDay()` to contextualise sign.
  */
 export function validateHours(hours: number): ValidationError | null {
-  if (!Number.isInteger(hours)) {
-    return { field: "hours", messageKey: "hours.not_integer" };
+  if (typeof hours !== "number" || isNaN(hours)) {
+    return { field: "hours", messageKey: "hours.invalid" };
   }
-  if (hours <= 0 || hours % BUSINESS_RULES_CONSTANTS.HOUR_INCREMENT !== 0) {
+  // Hours must not be zero
+  if (hours === 0) {
     return { field: "hours", messageKey: "hours.invalid" };
   }
   return null;
 }
 
 /**
- * Validates that date is a weekday (Monday to Friday)
+ * @deprecated Weekend submissions are now allowed. Use `isWorkingDay()` for
+ * display hints (e.g. highlighting non-working-day entries) rather than
+ * rejecting them outright.
  */
 export function validateWeekday(dateStr: string): ValidationError | null {
   const day = getDayOfWeek(dateStr); // 0 = Sunday, 6 = Saturday
@@ -253,6 +266,21 @@ export function validateWeekday(dateStr: string): ValidationError | null {
     return { field: "date", messageKey: "date.weekday" };
   }
   return null;
+}
+
+/**
+ * Determines whether a date is a standard working day (Monday–Friday).
+ *
+ * Use this function instead of checking `WEEKEND_DAYS` directly so that
+ * business-rule assumptions about what constitutes a "working day" are
+ * centralised here and can be extended later (e.g. company holidays).
+ *
+ * @param dateStr - YYYY-MM-DD date string
+ * @returns `true` if the date is a working day, `false` otherwise
+ */
+export function isWorkingDay(dateStr: string): boolean {
+  const day = getDayOfWeek(dateStr); // 0 = Sunday, 6 = Saturday
+  return !BUSINESS_RULES_CONSTANTS.WEEKEND_DAYS.includes(day);
 }
 
 /**
@@ -889,7 +917,7 @@ export function shouldAutoApproveImportEntry(
     if (entry.hours > employeeLimits.availablePtoBalance) {
       if (policyContext.yearsOfService >= 1) {
         violations.push(
-          `PTO borrowing not permitted after first year of service (requested ${entry.hours}h, available ${employeeLimits.availablePtoBalance.toFixed(1)}h)`,
+          `PTO borrowing after first year of service requires manual approval (requested ${entry.hours}h, available ${employeeLimits.availablePtoBalance.toFixed(1)}h)`,
         );
       } else {
         violations.push(

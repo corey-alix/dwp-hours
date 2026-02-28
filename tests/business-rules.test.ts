@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   validateHours,
   validateWeekday,
+  isWorkingDay,
   VALIDATION_MESSAGES,
   PTOType,
 } from "../shared/businessRules.js";
@@ -15,37 +16,37 @@ import {
 
 describe("Business Rules", () => {
   describe("validateHours", () => {
-    it("should accept valid hours in 4-hour increments", () => {
+    it("should accept valid positive hours", () => {
       expect(validateHours(4)).toBeNull();
       expect(validateHours(8)).toBeNull();
       expect(validateHours(16)).toBeNull();
     });
 
-    it("should reject non-integer hours", () => {
-      const result = validateHours(4.5);
-      expect(result).not.toBeNull();
-      expect(result?.messageKey).toBe("hours.not_integer");
+    it("should accept fractional hours", () => {
+      expect(validateHours(4.5)).toBeNull();
+      expect(validateHours(2.5)).toBeNull();
+      expect(validateHours(0.25)).toBeNull();
     });
 
-    it("should reject hours not in 4-hour increments", () => {
-      const result = validateHours(6);
-      expect(result).not.toBeNull();
-      expect(result?.messageKey).toBe("hours.invalid");
+    it("should accept non-increment hours", () => {
+      expect(validateHours(6)).toBeNull();
+      expect(validateHours(3)).toBeNull();
     });
 
-    it("should reject zero or negative hours", () => {
+    it("should reject zero hours", () => {
       const result = validateHours(0);
       expect(result).not.toBeNull();
       expect(result?.messageKey).toBe("hours.invalid");
+    });
 
-      const negativeResult = validateHours(-4);
-      expect(negativeResult).not.toBeNull();
-      expect(negativeResult?.messageKey).toBe("hours.invalid");
+    it("should accept negative hours (make-up time)", () => {
+      expect(validateHours(-4)).toBeNull();
+      expect(validateHours(-2.5)).toBeNull();
     });
   });
 
-  describe("validateWeekday", () => {
-    it("should accept weekdays", () => {
+  describe("validateWeekday (deprecated)", () => {
+    it("should return null for weekdays", () => {
       const monday = "2024-01-01"; // Monday
       const friday = "2024-01-05"; // Friday
 
@@ -53,7 +54,7 @@ describe("Business Rules", () => {
       expect(validateWeekday(friday)).toBeNull();
     });
 
-    it("should reject weekends", () => {
+    it("should return error for weekends (deprecated check)", () => {
       const saturday = "2024-01-06"; // Saturday
       const sunday = "2024-01-07"; // Sunday
 
@@ -64,6 +65,21 @@ describe("Business Rules", () => {
       const sunResult = validateWeekday(sunday);
       expect(sunResult).not.toBeNull();
       expect(sunResult?.messageKey).toBe("date.weekday");
+    });
+  });
+
+  describe("isWorkingDay", () => {
+    it("should return true for weekdays", () => {
+      expect(isWorkingDay("2024-01-01")).toBe(true); // Monday
+      expect(isWorkingDay("2024-01-02")).toBe(true); // Tuesday
+      expect(isWorkingDay("2024-01-03")).toBe(true); // Wednesday
+      expect(isWorkingDay("2024-01-04")).toBe(true); // Thursday
+      expect(isWorkingDay("2024-01-05")).toBe(true); // Friday
+    });
+
+    it("should return false for weekends", () => {
+      expect(isWorkingDay("2024-01-06")).toBe(false); // Saturday
+      expect(isWorkingDay("2024-01-07")).toBe(false); // Sunday
     });
   });
 

@@ -3079,6 +3079,291 @@ initDatabase()
       },
     );
 
+    // ── Employee Timesheet Upload (browser-side parsed, single employee) ──
+    // POST /api/employee/import-bulk
+    // Accepts browser-parsed PTO entries for the authenticated employee only.
+    // Validates identity (name + hire date), checks admin-locked months,
+    // overwrites unlocked months, and returns per-month breakdown.
+    app.post(
+      "/api/employee/import-bulk",
+      authenticate(() => dataSource, log),
+      async (req: Request, res: Response) => {
+        logger.info(
+          `API access: ${req.method} ${req.path} by employee ${req.employee!.id}`,
+        );
+        try {
+          const { employeeName, hireDate, year, ptoEntries, acknowledgements } =
+            req.body as {
+              employeeName: string;
+              hireDate: string;
+              year: number;
+              ptoEntries: Array<{
+                date: string;
+                hours: number;
+                type: string;
+                notes?: string | null;
+                isNoteDerived?: boolean;
+              }>;
+              acknowledgements: Array<{
+                month: string;
+                type: string;
+                note?: string | null;
+                status?: string | null;
+              }>;
+            };
+
+          // Basic payload validation
+          if (
+            !employeeName ||
+            !hireDate ||
+            !year ||
+            !Array.isArray(ptoEntries)
+          ) {
+            return res.status(400).json({
+              error:
+                "Invalid payload. Required: employeeName, hireDate, year, ptoEntries[].",
+            });
+          }
+
+          const employee = req.employee!;
+          const employeeId = employee.id;
+
+          // ── Identity verification (server-side) ──
+          const empRepo = dataSource.getRepository(Employee);
+          const dbEmployee = await empRepo.findOne({
+            where: { id: employeeId },
+          });
+          if (!dbEmployee) {
+            return res.status(404).json({ error: "Employee not found." });
+          }
+
+          const normalize = (s: string) =>
+            s.trim().replace(/\s+/g, " ").toLowerCase();
+          const dbName = normalize(dbEmployee.name);
+          const sheetName = normalize(employeeName);
+          if (dbName !== sheetName) {
+            return res.status(403).json({
+              error: `Spreadsheet name "${employeeName}" does not match your account name "${dbEmployee.name}".`,
+            });
+          }
+
+          // Normalize hire date — db format is YYYY-MM-DD, sheet may be M/D/YY etc.
+          const dbHireDate = dbEmployee.hire_date
+            ? dateToString(dbEmployee.hire_date)
+            : "";
+          if (dbHireDate && hireDate && dbHireDate !== hireDate) {
+            return res.status(403).json({
+              error: `Spreadsheet hire date "${hireDate}" does not match your account hire date "${dbHireDate}".`,
+            });
+          }
+
+          // ── Per-month admin-lock check & import ──
+          const ptoRepo = dataSource.getRepository(PtoEntry);
+          const adminAckRepo = dataSource.getRepository(AdminAcknowledgement);
+          const ackRepo = dataSource.getRepository(Acknowledgement);
+          const perMonth: Array<{
+            month: string;
+            status: "imported" | "skipped-locked";
+            entriesImported: number;
+            entriesDeleted: number;
+            warnings: string[];
+          }> = [];
+          const allWarnings: string[] = [];
+          let totalImported = 0;
+          let totalDeleted = 0;
+
+          // Disable autoSave for bulk operation (sql.js performance)
+          const driver = dataSource.driver as any;
+          const originalAutoSave = driver.options?.autoSave;
+          if (driver.options) {
+            driver.options.autoSave = false;
+          }
+
+          try {
+            for (let m = 1; m <= 12; m++) {
+              const monthStr = `${year}-${m < 10 ? "0" + m : m}`;
+              const monthWarnings: string[] = [];
+
+              // Check admin lock
+              const adminAck = await adminAckRepo.findOne({
+                where: { employee_id: employeeId, month: monthStr },
+              });
+              if (adminAck) {
+                perMonth.push({
+                  month: monthStr,
+                  status: "skipped-locked",
+                  entriesImported: 0,
+                  entriesDeleted: 0,
+                  warnings: [],
+                });
+                continue;
+              }
+
+              // Find PTO entries for this month from the payload
+              const monthEntries = ptoEntries.filter(
+                (e) =>
+                  e.date &&
+                  e.date.startsWith(monthStr),
+              );
+
+              // Delete existing entries for this month (full overwrite)
+              const existingEntries = await ptoRepo.find({
+                where: {
+                  employee_id: employeeId,
+                  date: Between(`${monthStr}-01`, `${monthStr}-31`),
+                },
+              });
+              const deletedCount = existingEntries.length;
+              if (deletedCount > 0) {
+                await ptoRepo.remove(existingEntries);
+              }
+
+              // Insert new entries (unapproved — approved_by = null)
+              let insertedCount = 0;
+              for (const entry of monthEntries) {
+                const validTypes = ["PTO", "Sick", "Bereavement", "Jury Duty"] as const;
+                type PtoType = (typeof validTypes)[number];
+                const entryType: PtoType = validTypes.includes(entry.type as PtoType)
+                  ? (entry.type as PtoType)
+                  : "PTO";
+
+                const ptoEntry = ptoRepo.create({
+                  employee_id: employeeId,
+                  date: entry.date,
+                  type: entryType,
+                  hours: entry.hours,
+                  notes: entry.notes || null,
+                  approved_by: null,
+                });
+                await ptoRepo.save(ptoEntry);
+                insertedCount++;
+              }
+
+              // Upsert employee acknowledgement for this month (from column X)
+              const empAck = (acknowledgements || []).find(
+                (a) => a.month === monthStr && a.type === "employee",
+              );
+              if (empAck) {
+                const existing = await ackRepo.findOne({
+                  where: { employee_id: employeeId, month: monthStr },
+                });
+                if (!existing) {
+                  const newAck = ackRepo.create({
+                    employee_id: employeeId,
+                    month: monthStr,
+                    acknowledged_at: new Date(),
+                  });
+                  await ackRepo.save(newAck);
+                }
+              }
+
+              // Business rule warnings (non-blocking)
+              // Check annual usage for the year so far
+              const yearStart = `${year}-01-01`;
+              const yearEnd = `${year}-12-31`;
+              const allYearEntries = await ptoRepo.find({
+                where: {
+                  employee_id: employeeId,
+                  date: Between(yearStart, yearEnd),
+                },
+              });
+              const annualUsage: Record<string, number> = {
+                PTO: 0,
+                Sick: 0,
+                Bereavement: 0,
+                "Jury Duty": 0,
+              };
+              for (const e of allYearEntries) {
+                if (e.type in annualUsage) {
+                  annualUsage[e.type] += e.hours;
+                }
+              }
+
+              if (
+                annualUsage["Sick"] >
+                BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.SICK
+              ) {
+                monthWarnings.push(
+                  `Sick hours (${annualUsage["Sick"]}h) exceed annual limit of ${BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.SICK}h.`,
+                );
+              }
+              if (
+                annualUsage["Bereavement"] >
+                BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.BEREAVEMENT
+              ) {
+                monthWarnings.push(
+                  `Bereavement hours (${annualUsage["Bereavement"]}h) exceed annual limit of ${BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.BEREAVEMENT}h.`,
+                );
+              }
+              if (
+                annualUsage["Jury Duty"] >
+                BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.JURY_DUTY
+              ) {
+                monthWarnings.push(
+                  `Jury Duty hours (${annualUsage["Jury Duty"]}h) exceed annual limit of ${BUSINESS_RULES_CONSTANTS.ANNUAL_LIMITS.JURY_DUTY}h.`,
+                );
+              }
+
+              totalImported += insertedCount;
+              totalDeleted += deletedCount;
+              allWarnings.push(...monthWarnings);
+
+              perMonth.push({
+                month: monthStr,
+                status: "imported",
+                entriesImported: insertedCount,
+                entriesDeleted: deletedCount,
+                warnings: monthWarnings,
+              });
+            }
+          } finally {
+            // Restore autoSave and persist once
+            if (driver.options) {
+              driver.options.autoSave = originalAutoSave;
+            }
+            if (typeof driver.save === "function") {
+              await driver.save();
+            }
+          }
+
+          // If all months were locked, return 409
+          const importedMonths = perMonth.filter(
+            (m) => m.status === "imported",
+          );
+          if (importedMonths.length === 0) {
+            return res.status(409).json({
+              error:
+                "All months in the uploaded year are admin-locked. No data was imported.",
+              perMonth,
+            });
+          }
+
+          const lockedMonths = perMonth.filter(
+            (m) => m.status === "skipped-locked",
+          );
+          const lockedSummary =
+            lockedMonths.length > 0
+              ? ` (${lockedMonths.length} month(s) skipped — admin-locked)`
+              : "";
+
+          logger.info(
+            `Employee import by #${employeeId}: ${totalImported} entries imported, ${totalDeleted} deleted${lockedSummary}`,
+          );
+
+          res.json({
+            message: `Import complete: ${totalImported} entries imported, ${totalDeleted} replaced${lockedSummary}.`,
+            perMonth,
+            totalEntriesImported: totalImported,
+            totalEntriesDeleted: totalDeleted,
+            warnings: allWarnings,
+          });
+        } catch (error) {
+          logger.error(`Error in employee import: ${error}`);
+          res.status(500).json({ error: "Failed to process timesheet import" });
+        }
+      },
+    );
+
     // Create a notification for a specific employee (admin-only)
     app.post(
       "/api/notifications",

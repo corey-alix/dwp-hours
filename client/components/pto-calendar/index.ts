@@ -1,6 +1,5 @@
 import {
   validateHours,
-  validateWeekday,
   validatePTOType,
   VALIDATION_MESSAGES,
   MessageKey,
@@ -236,12 +235,6 @@ export class PtoCalendar extends BaseComponent {
       if (hoursError) {
         validationErrors.push(
           `${request.date}: ${VALIDATION_MESSAGES[hoursError.messageKey as MessageKey]}`,
-        );
-      }
-      const weekdayError = validateWeekday(request.date);
-      if (weekdayError) {
-        validationErrors.push(
-          `${request.date}: ${VALIDATION_MESSAGES[weekdayError.messageKey as MessageKey]}`,
         );
       }
       const typeError = validatePTOType(request.type);

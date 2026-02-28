@@ -4,7 +4,6 @@ import {
   PTOType,
   ValidationError,
   validateHours,
-  validateWeekday,
   validatePTOType,
   normalizePTOType,
   validateDateString,
@@ -68,12 +67,6 @@ export class PtoEntryDAL {
     if (dateError) {
       errors.push(dateError);
       return errors; // Can't continue with invalid date
-    }
-
-    // Validate weekday
-    const weekdayError = validateWeekday(data.date);
-    if (weekdayError) {
-      errors.push(weekdayError);
     }
 
     // Validate hours
@@ -147,7 +140,7 @@ export class PtoEntryDAL {
     }
 
     // Check for duplicate
-    if (!weekdayError && !typeError) {
+    if (!typeError) {
       // Only check if date and type are valid
       const existingEntries = await this.ptoEntryRepo
         .createQueryBuilder("entry")
@@ -169,7 +162,7 @@ export class PtoEntryDAL {
     // This is complex and might be better handled at a higher level or with additional context
 
     // Bereavement consecutive-day warning
-    if (normalizedType === "Bereavement" && !typeError && !weekdayError) {
+    if (normalizedType === "Bereavement" && !typeError) {
       const consecutiveDays = await this.countConsecutiveBereavementDays(
         data.employeeId,
         data.date,

@@ -3,7 +3,6 @@ import { today, parseDate, getCurrentYear } from "../../../shared/dateUtils.js";
 import {
   validateHours,
   validatePTOType,
-  validateWeekday,
   validatePTOBalance,
   VALIDATION_MESSAGES,
 } from "../../../shared/businessRules.js";
@@ -610,17 +609,6 @@ export class PtoEntryForm extends BaseComponent {
             `${request.date}: ${VALIDATION_MESSAGES[balanceError.messageKey as MessageKey]}`,
           );
         }
-      }
-
-      try {
-        const weekdayError = validateWeekday(request.date);
-        if (weekdayError) {
-          errors.push(
-            `${request.date}: ${VALIDATION_MESSAGES[weekdayError.messageKey as MessageKey]}`,
-          );
-        }
-      } catch (error) {
-        errors.push(`${request.date}: ${VALIDATION_MESSAGES["date.invalid"]}`);
       }
 
       const typeError = validatePTOType(request.type);
