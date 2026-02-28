@@ -238,7 +238,7 @@ The project uses a structured task system in the `TASKS/` folder. Always referen
 ### Implementation Guidelines
 
 - **Completion Criteria**: All checklist items ✓, builds without errors, linting passes, manual testing, documentation updated
-- **Code Quality**: TypeScript strict mode, proper error handling, input validation, security best practices
+- **Code Quality**: TypeScript strict mode, proper error handling, input validation, security best practices, strong typings are critical (avoid 'any').
 - **Testing**: Manual testing, API testing, frontend integration, error cases
 
 ## Agent Skills

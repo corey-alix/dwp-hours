@@ -932,3 +932,151 @@ export function shouldAutoApproveImportEntry(
     violations,
   };
 }
+
+// ── Balance-Check / Overuse Indicator ──
+
+/**
+ * Balance limits for each PTO type, used by the calendar overuse indicator.
+ * For PTO the limit is dynamic (availablePTO from status); for Sick,
+ * Bereavement and Jury Duty the limits are the static annual caps.
+ */
+export interface BalanceLimits {
+  PTO: number;
+  Sick: number;
+  Bereavement: number;
+  "Jury Duty": number;
+}
+
+/**
+ * Entry shape consumed by the overuse check. Only `date`, `hours` and
+ * `type` are required, matching both persisted entries and pending
+ * calendar selections.
+ */
+export interface OveruseEntry {
+  date: string;
+  hours: number;
+  type: PTOType;
+}
+
+/**
+ * Given an ordered list of PTO entries and the balance limits for each
+ * type, returns a `Set<string>` of date-strings where the running total
+ * for that type *first exceeds* the limit and every subsequent date.
+ *
+ * Entries are walked in **date order** (earliest first) per type.
+ * Once a type's running total crosses its limit, all further dates of
+ * that type are included in the result so the calendar can display
+ * the "!" indicator from the first overuse day onward.
+ *
+ * Entries with `hours <= 0` (e.g. credits) are skipped.
+ */
+export function getOveruseDates(
+  entries: ReadonlyArray<OveruseEntry>,
+  limits: BalanceLimits,
+): Set<string> {
+  const overuseDates = new Set<string>();
+
+  // Group entries by type, then sort each group by date
+  const byType: Record<PTOType, OveruseEntry[]> = {
+    PTO: [],
+    Sick: [],
+    Bereavement: [],
+    "Jury Duty": [],
+  };
+
+  for (const entry of entries) {
+    if (entry.hours <= 0) continue;
+    if (byType[entry.type]) {
+      byType[entry.type].push(entry);
+    }
+  }
+
+  for (const type of Object.keys(byType) as PTOType[]) {
+    const group = byType[type];
+    if (group.length === 0) continue;
+
+    // Sort by date (string comparison works for YYYY-MM-DD)
+    group.sort((a, b) => compareDates(a.date, b.date));
+
+    const limit = limits[type];
+    let runningTotal = 0;
+    let exceeded = false;
+
+    for (const entry of group) {
+      runningTotal += entry.hours;
+      if (!exceeded && runningTotal > limit) {
+        exceeded = true;
+      }
+      if (exceeded) {
+        overuseDates.add(entry.date);
+      }
+    }
+  }
+
+  return overuseDates;
+}
+
+/**
+ * Companion to `getOveruseDates()` — returns a `Map<string, string>` of
+ * date-string → tooltip message for every overuse date.
+ *
+ * For PTO the message explains accrued vs scheduled hours.
+ * For Sick/Bereavement/Jury Duty it explains the flat annual cap.
+ *
+ * Entries with `hours <= 0` are skipped (same as `getOveruseDates`).
+ */
+export function getOveruseTooltips(
+  entries: ReadonlyArray<OveruseEntry>,
+  limits: BalanceLimits,
+): Map<string, string> {
+  const tooltips = new Map<string, string>();
+
+  const byType: Record<PTOType, OveruseEntry[]> = {
+    PTO: [],
+    Sick: [],
+    Bereavement: [],
+    "Jury Duty": [],
+  };
+
+  for (const entry of entries) {
+    if (entry.hours <= 0) continue;
+    if (byType[entry.type]) {
+      byType[entry.type].push(entry);
+    }
+  }
+
+  for (const type of Object.keys(byType) as PTOType[]) {
+    const group = byType[type];
+    if (group.length === 0) continue;
+
+    group.sort((a, b) => compareDates(a.date, b.date));
+
+    const limit = limits[type];
+    let runningTotal = 0;
+    let exceeded = false;
+
+    for (const entry of group) {
+      runningTotal += entry.hours;
+      if (!exceeded && runningTotal > limit) {
+        exceeded = true;
+      }
+      if (exceeded) {
+        const scheduled = Math.round(runningTotal * 100) / 100;
+        const available = Math.round(limit * 100) / 100;
+        if (type === "PTO") {
+          tooltips.set(
+            entry.date,
+            `Exceeds accrued PTO — ${available} hours accrued, ${scheduled} scheduled`,
+          );
+        } else {
+          tooltips.set(
+            entry.date,
+            `Exceeds annual ${type} limit — ${scheduled} of ${available} hours used`,
+          );
+        }
+      }
+    }
+  }
+
+  return tooltips;
+}

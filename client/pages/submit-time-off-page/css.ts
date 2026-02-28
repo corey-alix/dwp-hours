@@ -26,7 +26,7 @@ export const styles = `<style>
   /* ── Stage 1: Sticky toolbar at bottom of viewport ── */
 
   .toolbar {
-    position: fixed;
+    position: sticky;
     bottom: 0;
     left: 0;
     right: 0;
