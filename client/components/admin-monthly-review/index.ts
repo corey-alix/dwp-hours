@@ -880,7 +880,7 @@ export class AdminMonthlyReview extends BaseComponent {
           ${warningIndicatorHtml}
           <div class="activity-indicator">
             <div class="activity-dot ${hasActivity ? "active" : "inactive"}"></div>
-            <span>${hasActivity ? `${totalActivity}h scheduled` : "No activity"}</span>
+            <span>${hasActivity ? `${totalActivity.toFixed(1)}h scheduled` : "No activity"}</span>
           </div>
         </div>
 

@@ -78,7 +78,7 @@ export function generateImportAcknowledgements(
     } else {
       const sign = delta > 0 ? "+" : "";
       const note =
-        `Calendar shows ${calendarTotal}h but column S declares ${declaredTotal}h ` +
+        `Calendar shows ${calendarTotal.toFixed(1)}h but column S declares ${declaredTotal}h ` +
         `(Δ=${sign}${delta}h) for ${sheetName} month ${calc.month}. Requires manual review.`;
       acks.push({ month: monthStr, type: "employee", status: "warning", note });
     }
