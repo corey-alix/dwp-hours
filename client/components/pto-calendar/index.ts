@@ -23,19 +23,15 @@ import { notifications } from "../../app.js";
 /** @deprecated Use `MONTH_NAMES` from `shared/businessRules.js` instead. */
 export const monthNames = MONTH_NAMES;
 
-/** Unicode superscript digits for partial-day hour indicators */
-const SUPERSCRIPTS: Record<number, string> = {
-  0: "\u2070",
-  1: "\u00B9",
-  2: "\u00B2",
-  3: "\u00B3",
-  4: "\u2074",
-  5: "\u2075",
-  6: "\u2076",
-  7: "\u2077",
-  8: "\u2078",
-  9: "\u2079",
-};
+/**
+ * Format hours for superscript display: integer if whole, 1 decimal if fractional.
+ * Weekend/off-day credits are prefixed with "+".
+ */
+function formatHoursSuperscript(hours: number, isCredit: boolean): string {
+  const prefix = isCredit ? "+" : "";
+  const formatted = hours % 1 === 0 ? `${hours}` : hours.toFixed(1);
+  return `${prefix}${formatted}`;
+}
 
 export interface CalendarEntry {
   date: string;
@@ -445,29 +441,24 @@ export class PtoCalendar extends BaseComponent {
       ? `tabindex="${dateStr === this._focusedDate ? "0" : "-1"}"`
       : "";
 
-    // Hours display: ● for full day (8h), ½ for partial (<8h), ✕ for clearing
+    // Hours display: colored type-dot + numeric hours in superscript
+    // Negative hours represent worked-day credits (e.g. weekend work = -3.3h).
     const displayHours = isClearing
       ? 0
       : isSelected
-        ? selectedHours
-        : totalHours > 0
-          ? totalHours
+        ? Math.abs(selectedHours)
+        : totalHours !== 0
+          ? Math.abs(totalHours)
           : 0;
+    const isCredit = totalHours < 0;
     let hoursDisplay = "";
     let hoursClass = "hours";
-    let partialDayClass = "";
     if (isClearing) {
       hoursDisplay = CALENDAR_SYMBOLS.HOURS_CLEARING;
       hoursClass = "hours hours-clearing";
     } else if (displayHours > 0) {
-      if (displayHours >= 8) {
-        hoursDisplay = CALENDAR_SYMBOLS.HOURS_FULL;
-        hoursClass = "hours hours-full";
-      } else {
-        hoursDisplay = CALENDAR_SYMBOLS.HOURS_PARTIAL;
-        hoursClass = "hours hours-partial";
-        partialDayClass = " partial-day";
-      }
+      hoursClass =
+        displayHours >= 8 ? "hours hours-full" : "hours hours-partial";
     }
 
     const checkmarkElement = hasApprovedEntry
@@ -481,18 +472,32 @@ export class PtoCalendar extends BaseComponent {
       ? `<div class="note-indicator" data-note="${this.escapeAttribute(entryNotes)}" title="${this.escapeAttribute(entryNotes)}">&#9662;</div>`
       : "";
 
-    // Superscript for partial-day hours (mirrors Excel export decorateDay)
+    // Superscript hours on day number: numeric text (e.g. 4, 1.5, +3.3)
+    // Credit entries (negative hours / weekend work) shown with "+" prefix.
+    const partialClass = isCredit ? "partial-hours credit" : "partial-hours";
     const dayDisplay =
-      displayHours > 0 && displayHours < 8
-        ? `${day}<sup class="partial-hours">${SUPERSCRIPTS[Math.round(displayHours)] ?? `${displayHours}h`}</sup>`
+      displayHours > 0
+        ? `${day}<sup class="${partialClass}">${formatHoursSuperscript(displayHours, isCredit)}</sup>`
         : `${day}`;
 
+    // Colored type-indicator dot (always shown when PTO type is active)
+    const ptoType = isClearing
+      ? null
+      : entry
+        ? entry.type
+        : isSelected && this._selectedPtoType
+          ? this._selectedPtoType
+          : null;
+    const typeDot = ptoType
+      ? `<span class="type-dot type-dot-${ptoType.replace(/\s+/g, "-")}"></span>`
+      : "";
+
     return `
-      <div class="${dayClass} ${emptyClass} ${selectedClass} ${clickableClass} ${todayClass}${partialDayClass}" data-date="${dateStr}" ${tabindexAttr} role="gridcell">
+      <div class="${dayClass} ${emptyClass} ${selectedClass} ${clickableClass} ${todayClass}" data-date="${dateStr}" ${tabindexAttr} role="gridcell">
           ${checkmarkElement}
           ${noteIndicator}
           <div class="date">${dayDisplay}</div>
-          <div class="${hoursClass}">${hoursDisplay}</div>
+          <div class="${hoursClass}">${typeDot}${hoursDisplay}</div>
       </div>
     `;
   }

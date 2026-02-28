@@ -828,6 +828,228 @@ describe("AdminMonthlyReview Component", () => {
     });
   });
 
+  describe("Month-specific acknowledgement data on calendar navigation", () => {
+    let originalMatchMedia: typeof window.matchMedia;
+
+    beforeEach(() => {
+      // Stub matchMedia for reduced-motion (synchronous) animations in happy-dom
+      originalMatchMedia = window.matchMedia;
+      window.matchMedia = vi.fn().mockReturnValue({ matches: true }) as any;
+    });
+
+    afterEach(() => {
+      window.matchMedia = originalMatchMedia;
+    });
+
+    it("should show review-month warning when calendar is not expanded", () => {
+      const testData = generateMonthlyData("2026-02");
+      // Add a warning to the first employee
+      testData[0].employeeAckStatus = "warning";
+      testData[0].employeeAckNote = "Import discrepancy for Feb";
+      component.setEmployeeData(testData);
+
+      const warningBadge = component.shadowRoot?.querySelector(
+        ".lock-indicator.warning",
+      );
+      expect(warningBadge).toBeTruthy();
+      expect(warningBadge?.textContent?.trim()).toContain("Warning");
+    });
+
+    it("should update warning indicator when navigating to a month with different ack status", () => {
+      const testData = generateMonthlyData("2026-02");
+      testData[0].employeeAckStatus = "warning";
+      testData[0].employeeAckNote = "Import discrepancy for Feb";
+      component.setPtoEntries(
+        seedPTOEntries.map((e: SeedPtoEntry) => ({
+          employee_id: e.employee_id,
+          type: e.type,
+          hours: e.hours,
+          date: e.date,
+          approved_by: e.approved_by ?? null,
+        })),
+      );
+      component.setEmployeeData(testData);
+
+      // Expand calendar for the first employee
+      const viewBtn = component.shadowRoot?.querySelector(
+        ".view-calendar-btn",
+      ) as HTMLElement;
+      viewBtn.click();
+
+      // Warning should be visible for the review month
+      let warningBadge = component.shadowRoot?.querySelector(
+        ".lock-indicator.warning",
+      );
+      expect(warningBadge).toBeTruthy();
+
+      // Navigate to next month
+      const nextBtn = component.shadowRoot?.querySelector(
+        ".cal-nav-next",
+      ) as HTMLElement;
+      nextBtn.click();
+
+      // Inject month ack data for March — no warning
+      component.setMonthAckData("2026-03", [
+        { employeeId: testData[0].employeeId, status: null, note: null },
+      ]);
+
+      // Warning badge should disappear for the navigated month
+      warningBadge = component.shadowRoot?.querySelector(
+        ".lock-indicator.warning",
+      );
+      expect(warningBadge).toBeFalsy();
+    });
+
+    it("should show navigated month warning instead of review month warning", () => {
+      const testData = generateMonthlyData("2026-02");
+      // Review month has no warning
+      testData[0].employeeAckStatus = null;
+      testData[0].employeeAckNote = null;
+      component.setPtoEntries(
+        seedPTOEntries.map((e: SeedPtoEntry) => ({
+          employee_id: e.employee_id,
+          type: e.type,
+          hours: e.hours,
+          date: e.date,
+          approved_by: e.approved_by ?? null,
+        })),
+      );
+      component.setEmployeeData(testData);
+
+      // Expand calendar
+      const viewBtn = component.shadowRoot?.querySelector(
+        ".view-calendar-btn",
+      ) as HTMLElement;
+      viewBtn.click();
+
+      // No warning initially
+      let warningBadge = component.shadowRoot?.querySelector(
+        ".lock-indicator.warning",
+      );
+      expect(warningBadge).toBeFalsy();
+
+      // Navigate to next month
+      const nextBtn = component.shadowRoot?.querySelector(
+        ".cal-nav-next",
+      ) as HTMLElement;
+      nextBtn.click();
+
+      // Inject month ack data for March — has a warning
+      component.setMonthAckData("2026-03", [
+        {
+          employeeId: testData[0].employeeId,
+          status: "warning",
+          note: "March discrepancy",
+        },
+      ]);
+
+      // Warning badge should now be visible
+      warningBadge = component.shadowRoot?.querySelector(
+        ".lock-indicator.warning",
+      );
+      expect(warningBadge).toBeTruthy();
+    });
+
+    it("should update ack-note text when navigating to a different month", () => {
+      const testData = generateMonthlyData("2026-02");
+      testData[0].employeeAckStatus = "warning";
+      testData[0].employeeAckNote = "Feb note";
+      component.setPtoEntries(
+        seedPTOEntries.map((e: SeedPtoEntry) => ({
+          employee_id: e.employee_id,
+          type: e.type,
+          hours: e.hours,
+          date: e.date,
+          approved_by: e.approved_by ?? null,
+        })),
+      );
+      component.setEmployeeData(testData);
+
+      // Expand calendar
+      const viewBtn = component.shadowRoot?.querySelector(
+        ".view-calendar-btn",
+      ) as HTMLElement;
+      viewBtn.click();
+
+      // Should show Feb note
+      let ackNoteEl = component.shadowRoot?.querySelector(".ack-note");
+      expect(ackNoteEl?.textContent?.trim()).toBe("Feb note");
+
+      // Navigate to March
+      const nextBtn = component.shadowRoot?.querySelector(
+        ".cal-nav-next",
+      ) as HTMLElement;
+      nextBtn.click();
+
+      // Inject March ack data with different note
+      component.setMonthAckData("2026-03", [
+        {
+          employeeId: testData[0].employeeId,
+          status: "warning",
+          note: "March note",
+        },
+      ]);
+
+      // Ack note should now show March's note
+      ackNoteEl = component.shadowRoot?.querySelector(".ack-note");
+      expect(ackNoteEl?.textContent?.trim()).toBe("March note");
+    });
+
+    it("should restore review-month ack data when navigating back", () => {
+      const testData = generateMonthlyData("2026-02");
+      testData[0].employeeAckStatus = "warning";
+      testData[0].employeeAckNote = "Feb warning";
+      component.setPtoEntries(
+        seedPTOEntries.map((e: SeedPtoEntry) => ({
+          employee_id: e.employee_id,
+          type: e.type,
+          hours: e.hours,
+          date: e.date,
+          approved_by: e.approved_by ?? null,
+        })),
+      );
+      component.setEmployeeData(testData);
+
+      // Expand calendar
+      const viewBtn = component.shadowRoot?.querySelector(
+        ".view-calendar-btn",
+      ) as HTMLElement;
+      viewBtn.click();
+
+      // Navigate forward
+      const nextBtn = component.shadowRoot?.querySelector(
+        ".cal-nav-next",
+      ) as HTMLElement;
+      nextBtn.click();
+
+      // Inject March ack data — no warning
+      component.setMonthAckData("2026-03", [
+        { employeeId: testData[0].employeeId, status: null, note: null },
+      ]);
+
+      // Warning should be gone for March
+      let warningBadge = component.shadowRoot?.querySelector(
+        ".lock-indicator.warning",
+      );
+      expect(warningBadge).toBeFalsy();
+
+      // Navigate back to review month
+      const prevBtn = component.shadowRoot?.querySelector(
+        ".cal-nav-prev",
+      ) as HTMLElement;
+      prevBtn.click();
+
+      // Warning should reappear (review month data)
+      warningBadge = component.shadowRoot?.querySelector(
+        ".lock-indicator.warning",
+      );
+      expect(warningBadge).toBeTruthy();
+
+      const ackNoteEl = component.shadowRoot?.querySelector(".ack-note");
+      expect(ackNoteEl?.textContent?.trim()).toBe("Feb warning");
+    });
+  });
+
   describe("Swipe Navigation", () => {
     let originalMatchMedia: typeof window.matchMedia;
 

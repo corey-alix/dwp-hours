@@ -131,9 +131,13 @@ export class AdminMonthlyReviewPage
             const lastDay = new Date(y, m, 0).getDate();
             const endDate = `${month}-${String(lastDay).padStart(2, "0")}`;
 
-            const ptoEntries = await this.api.get(
-              `/admin/pto?startDate=${startDate}&endDate=${endDate}`,
-            );
+            // Fetch PTO entries and monthly review data in parallel
+            const [ptoEntries, monthlyReview] = await Promise.all([
+              this.api.get(
+                `/admin/pto?startDate=${startDate}&endDate=${endDate}`,
+              ),
+              this.api.getAdminMonthlyReview(month),
+            ]);
 
             const adminComp = this.shadowRoot?.querySelector(
               "admin-monthly-review",
@@ -149,6 +153,14 @@ export class AdminMonthlyReviewPage
               notes: p.notes ?? null,
             }));
             adminComp.setMonthPtoEntries(month, normalized);
+
+            // Pass acknowledgement data so the card warning/note updates
+            const ackData = (monthlyReview || []).map((item: any) => ({
+              employeeId: item.employeeId,
+              status: item.employeeAckStatus ?? null,
+              note: item.employeeAckNote ?? null,
+            }));
+            adminComp.setMonthAckData(month, ackData);
           } catch (error: any) {
             console.error(`Failed to load PTO data for month ${month}:`, error);
           }

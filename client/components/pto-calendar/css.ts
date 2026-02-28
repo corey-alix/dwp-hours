@@ -105,7 +105,7 @@ export const styles = `
     top: 2px;
     right: 2px;
     color: var(--color-success);
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-xxs);
     font-weight: bold;
 }
 
@@ -222,9 +222,20 @@ export const styles = `
     opacity: 1;
 }
 
-.day.partial-day {
-    opacity: 1;
+/* Colored type-indicator dot — sole PTO indicator in day cell */
+.type-dot {
+    display: inline-block;
+    width: 0.5em;
+    height: 0.5em;
+    border-radius: 50%;
+    font-size: var(--font-size-xxs);
+    vertical-align: middle;
 }
+
+.type-dot-PTO { background: ${PTO_TYPE_COLORS.PTO}; }
+.type-dot-Sick { background: ${PTO_TYPE_COLORS.Sick}; }
+.type-dot-Bereavement { background: ${PTO_TYPE_COLORS.Bereavement}; }
+.type-dot-Jury-Duty { background: ${PTO_TYPE_COLORS["Jury Duty"]}; }
 
 /* Note indicator: small triangle in top-left corner */
 .note-indicator {
@@ -244,12 +255,18 @@ export const styles = `
     transform: scale(1.3);
 }
 
-/* Superscript for partial-day hours */
+/* Superscript for hours display */
 .date sup.partial-hours {
     font-size: 0.65em;
     vertical-align: super;
     color: var(--color-text-secondary);
     font-weight: var(--font-weight-normal);
+}
+
+/* Weekend/off-day credit indicator (green tint) */
+.date sup.partial-hours.credit {
+    color: var(--color-success, #2e7d32);
+    font-weight: var(--font-weight-bold, 600);
 }
 
 @media (prefers-reduced-motion: reduce) {

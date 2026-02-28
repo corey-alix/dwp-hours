@@ -89,6 +89,12 @@ export class AdminMonthlyReview extends BaseComponent {
     }>
   > = new Map();
 
+  /** Cache of acknowledgement data for non-review months, keyed by YYYY-MM → employeeId */
+  private _monthAckCache: Map<
+    string,
+    Map<number, { status: string | null; note: string | null }>
+  > = new Map();
+
   static get observedAttributes() {
     return ["selected-month"];
   }
@@ -206,6 +212,28 @@ export class AdminMonthlyReview extends BaseComponent {
     }>,
   ): void {
     this._monthPtoCache.set(month, data);
+    this.requestUpdate();
+  }
+
+  /** Inject acknowledgement data for a specific non-review month.
+   *  Used so the warning indicator and ack-note update when the inline
+   *  calendar navigates away from the review month. */
+  setMonthAckData(
+    month: string,
+    data: Array<{
+      employeeId: number;
+      status: string | null;
+      note: string | null;
+    }>,
+  ): void {
+    const map = new Map<
+      number,
+      { status: string | null; note: string | null }
+    >();
+    for (const d of data) {
+      map.set(d.employeeId, { status: d.status, note: d.note });
+    }
+    this._monthAckCache.set(month, map);
     this.requestUpdate();
   }
 
@@ -823,11 +851,24 @@ export class AdminMonthlyReview extends BaseComponent {
       lockIndicatorHtml = `<span class="lock-indicator notified-read" title="Employee saw reminder but hasn't locked — click to re-send" data-notify-employee="${employee.employeeId}">👁 Seen</span>`;
     }
 
+    // Resolve acknowledgement status/note for the displayed month.
+    // When the inline calendar is showing a non-review month, use the
+    // cached ack data for that month instead of the review-month data.
+    let ackStatus = employee.employeeAckStatus;
+    let ackNote = employee.employeeAckNote;
+    if (isCalendarExpanded && displayMonth !== this._selectedMonth) {
+      const monthAck = this._monthAckCache
+        .get(displayMonth)
+        ?.get(employee.employeeId);
+      ackStatus = monthAck?.status ?? null;
+      ackNote = monthAck?.note ?? null;
+    }
+
     // Warning/resolved status indicator from employee acknowledgement
     let warningIndicatorHtml = "";
-    if (employee.employeeAckStatus === "warning") {
+    if (ackStatus === "warning") {
       warningIndicatorHtml = `<span class="lock-indicator warning" title="Import discrepancy — expand calendar for details">⚠ Warning</span>`;
-    } else if (employee.employeeAckStatus === "resolved") {
+    } else if (ackStatus === "resolved") {
       warningIndicatorHtml = `<span class="lock-indicator resolved" title="Import discrepancy reviewed and resolved">✓ Resolved</span>`;
     }
 
@@ -891,7 +932,7 @@ export class AdminMonthlyReview extends BaseComponent {
                 hide-header="true"
                 data-employee-id="${employee.employeeId}"
               ></pto-calendar>
-              ${employee.employeeAckNote ? `<div class="ack-note">${employee.employeeAckNote}</div>` : ""}
+              ${ackNote ? `<div class="ack-note">${ackNote}</div>` : ""}
             </div>`
             : ""
         }
