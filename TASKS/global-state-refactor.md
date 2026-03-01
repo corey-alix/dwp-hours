@@ -13,9 +13,9 @@ Refactor global singletons and side effects (TraceListener for notifications, ac
 ### Phase 1: Analysis and Inventory
 
 - [x] Identify all global singletons and side effects in the codebase
-- [ ] Document TraceListener, activityTracker, and DebugConsoleController usage
-- [ ] Analyze localStorage dependencies and data flow
-- [ ] Design component-scoped alternatives for each global
+- [x] Document TraceListener, activityTracker, and DebugConsoleController usage
+- [x] Analyze localStorage dependencies and data flow
+- [x] Design component-scoped alternatives for each global
 - [ ] Create context provider patterns for shared state
 - [ ] Update architecture-guidance skill with state management patterns
 - [ ] Manual review of refactoring approach
@@ -40,6 +40,178 @@ Refactor global singletons and side effects (TraceListener for notifications, ac
   - No explicit side effects found in component constructors, but global registration happens in App.run()
 
 - **Impact:** 3 major global systems with localStorage dependencies, used across 10+ files
+
+---
+
+### TraceListener / `notifications` — Detailed Usage Documentation
+
+**Definition:** `client/controller/TraceListener.ts` — a fan-out event bus with convenience methods (`success`, `error`, `info`, `warning`). Not reactive state — purely a service (command dispatch).
+
+**Singleton:** Created at module scope in `client/app.ts` line 54: `export const notifications = new TraceListener()`.
+
+**Listener registration** (both in `App.run()`):
+
+- `PtoNotificationController` — bridges to `<pto-notification>` (toast UI). Auto-injects element if absent. Constructor queries DOM.
+- `DebugConsoleController` — bridges to `<debug-console>`. Conditionally activates on `?debug=1`. Constructor queries DOM + patches `console.*`.
+
+**Consumer call sites** (7 files, ~30+ calls): All import `notifications` from `../../app.js`:
+
+| File                                 | Methods called                         | Purpose                                                 |
+| ------------------------------------ | -------------------------------------- | ------------------------------------------------------- |
+| `UIManager.ts`                       | `.info()`                              | Prior month ack prompt, queued notification display     |
+| `submit-time-off-page/index.ts`      | `.error()`, `.success()`, `.warning()` | PTO submission results, lock/unlock feedback            |
+| `admin-employees-page/index.ts`      | `.success()`, `.error()`               | CRUD feedback for employee management                   |
+| `admin-monthly-review-page/index.ts` | `.error()`, `.success()`               | Review data load errors, ack submission, lock reminders |
+| `admin-pto-requests-page/index.ts`   | `.success()`, `.error()`               | Approve/reject feedback, queue refresh errors           |
+| `upload-timesheet-page/index.ts`     | `.error()`                             | Profile load failures                                   |
+| `prior-year-summary-page/index.ts`   | `.error()`                             | Data load failures                                      |
+| `components/pto-calendar/index.ts`   | `.info()`                              | Show note text on note-indicator click                  |
+
+**Testing:** `tests/trace-listener.test.ts` — comprehensive unit tests for all convenience methods, listener management, and error isolation.
+
+---
+
+### activityTracker — Detailed Usage Documentation
+
+**Definition:** `client/shared/activityTracker.ts` — two pure functions + localStorage.
+
+| Function                    | Purpose                                            | localStorage key                          |
+| --------------------------- | -------------------------------------------------- | ----------------------------------------- |
+| `isFirstSessionVisit()`     | Returns `true` if no timestamp or 8+ hours elapsed | `dwp-hours:lastActivityTimestamp` (read)  |
+| `updateActivityTimestamp()` | Writes current ISO timestamp                       | `dwp-hours:lastActivityTimestamp` (write) |
+
+**Sole consumer:** `UIManager.ts` lines 220–221 — called inside `checkPriorMonthAcknowledgement()`:
+
+1. `isFirstSessionVisit()` — determines whether to check prior month ack
+2. `updateActivityTimestamp()` — resets the rolling window regardless of result
+
+**Threshold:** `BUSINESS_RULES_CONSTANTS.SESSION_INACTIVITY_THRESHOLD_MS` (8 hours) from `shared/businessRules.ts`.
+
+**Testing:** `tests/activityTracker.test.ts` — mocks localStorage via `vi.stubGlobal`, uses fake timers. 7 tests covering: no timestamp, invalid value, 8h boundary, recent timestamp, overwrite.
+
+**Assessment:** This is NOT a global singleton — it's stateless functions with a localStorage side effect. Does not need context protocol. Needs only a `StorageService` interface to make it testable without `vi.stubGlobal`.
+
+---
+
+### DebugConsoleController — Detailed Usage Documentation
+
+**Definition:** `client/controller/DebugConsoleController.ts` — implements `TraceListenerHandler`.
+
+**Side effects in constructor (all gated on `?debug=1`):**
+
+1. Queries DOM for `<debug-console>` element
+2. Auto-injects `<debug-console>` into `document.body` if absent
+3. Patches `console.log`, `console.warn`, `console.error` with interceptors
+4. Registers `window.addEventListener('error', ...)` for unhandled errors
+5. Registers `window.addEventListener('unhandledrejection', ...)` for promise rejections
+
+**Without `?debug=1`:** Only forwards TraceListener messages to existing `<debug-console>` if it happens to be in the DOM (e.g., test pages).
+
+**Cleanup:** `destroy()` method restores original `console.*` — but only used in tests, never called in production.
+
+**Concerns:**
+
+- Global `console.*` interception is irreversible in production (no lifecycle teardown)
+- `window` error/rejection handlers are never removed (leak)
+- Constructor performs DOM mutation + global patching — violates "no side effects in constructors" principle
+
+**Testing:** `tests/components/debug-console.test.ts` — tests console interception, error/rejection forwarding, TraceMessage bridging. Uses `?debug=1` URL setup in `beforeEach`.
+
+---
+
+### localStorage Dependencies — Data Flow Analysis
+
+**5 files, 10 call sites, 4 distinct keys:**
+
+| Key                               | File(s)                                                 | Read                         | Write                       | Delete                   | Scope                                |
+| --------------------------------- | ------------------------------------------------------- | ---------------------------- | --------------------------- | ------------------------ | ------------------------------------ |
+| `dwp-hours:lastActivityTimestamp` | `activityTracker.ts`                                    | `isFirstSessionVisit()`      | `updateActivityTimestamp()` | —                        | Session detection                    |
+| `currentUser`                     | `auth-service.ts`, `current-year-summary-page/index.ts` | `getItem` (summary page L72) | `setItem` (auth L159)       | `removeItem` (auth L134) | Auth session persistence             |
+| `pto-pto-card-expanded`           | `pto-pto-card/index.ts`                                 | `restoreExpandedState()`     | `setExpandedState()`        | —                        | UI preference (card expand/collapse) |
+| `dwp-pto-form-selected-month`     | `pto-entry-form/index.ts`                               | `getPersistedMonth()`        | `persistSelectedMonth()`    | `clearPersistedMonth()`  | UI preference (selected month)       |
+
+**Data flow concerns:**
+
+- `currentUser` is read directly by `current-year-summary-page` (line 72) bypassing `AuthService` — tight coupling to localStorage shape and key. Should read from `AuthService.getUser()`.
+- All localStorage access is wrapped in try/catch (good — handles unavailable storage)
+- No cross-key dependencies (each key is independent)
+- No expiration/cleanup strategy for stale keys
+
+---
+
+### Component-Scoped Alternatives — Design
+
+#### 1. `notifications` (TraceListener) → Context-provided service
+
+**Current:** Module-level singleton in `app.ts`, imported by 7 page/component files.
+
+**Alternative:** Provide `TraceListener` instance via context protocol. The provider wraps the app root in `App.run()`. Consumers call `consumeContext<TraceListener>(this, cb)` in `connectedCallback`.
+
+```
+App.run()
+  └─ <notification-provider>     ← ContextProvider<TraceListener>
+       ├─ <pto-notification>     ← PtoNotificationController registered on provider's TraceListener
+       ├─ <debug-console>        ← DebugConsoleController registered on provider's TraceListener
+       └─ #router-outlet
+            ├─ submit-time-off-page   ← consumeContext → notifications.success(...)
+            ├─ admin-employees-page   ← consumeContext → notifications.error(...)
+            └─ ...
+```
+
+**Migration:** Replace `import { notifications } from "../../app.js"` with context consumption. Since `notifications` is a service (not reactive state), the context callback fires once at connection and the component retains the reference.
+
+**Benefit:** Testable — mount component under a fake provider with a spy TraceListener.
+
+#### 2. `activityTracker` → StorageService injection
+
+**Current:** Pure functions with hardcoded `localStorage` calls.
+
+**Alternative:** Add `StorageService` interface parameter (optional, defaults to `localStorage`):
+
+```ts
+export interface StorageService {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+  removeItem(key: string): void;
+}
+
+export function isFirstSessionVisit(storage: StorageService = localStorage): boolean { ... }
+export function updateActivityTimestamp(storage: StorageService = localStorage): void { ... }
+```
+
+**No context protocol needed.** UIManager already constructs these calls — can pass a `StorageService` from context or constructor.
+
+**Migration:** Add optional parameter. Existing call sites unchanged (use default). Tests pass `InMemoryStorage` instead of `vi.stubGlobal`.
+
+#### 3. `DebugConsoleController` → Context-provided debug flag + scoped controller
+
+**Current:** Constructor reads `?debug=1`, patches globals, injects DOM elements.
+
+**Alternative:**
+
+- A `<debug-provider>` context reads `?debug=1` once and provides a `{ isDebug: boolean }` context value.
+- `DebugConsoleController` becomes a method called from `App.run()` or from the provider's `connectedCallback` — not a constructor with side effects.
+- Console interception moves to an explicit `activate()` / `deactivate()` lifecycle.
+- Error handlers stored as references for cleanup in `disconnectedCallback`.
+
+**Migration:** Extract constructor body into `activate()`. Provider calls `activate()` in `connectedCallback`, `deactivate()` in `disconnectedCallback`. Eliminates permanent global patching.
+
+#### 4. localStorage — Centralized StorageService
+
+**Current:** 4 keys across 5 files, all with direct `localStorage.*` calls.
+
+**Alternative:** Single `StorageService` interface (see above). Provided via context or constructor injection. Concrete implementations:
+
+- `LocalStorageAdapter` — production (wraps `localStorage` with try/catch)
+- `InMemoryStorage` — tests (no DOM dependency)
+
+**Migration order:**
+
+1. Create `StorageService` interface + `LocalStorageAdapter` in `client/shared/storage.ts`
+2. Refactor `activityTracker.ts` — add optional parameter (backward-compatible)
+3. Refactor `auth-service.ts` — accept `StorageService` in constructor
+4. Fix `current-year-summary-page` — read user from `AuthService.getUser()` instead of raw localStorage
+5. Refactor `pto-entry-form` and `pto-pto-card` — accept storage via constructor or context
 
 ### Phase 2: Context Provider Infrastructure
 
