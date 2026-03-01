@@ -254,6 +254,81 @@ describe("EmployeeList Component - Inline Calendar", () => {
     expect(newLabel).not.toBe(initialLabel);
   });
 
+  it("should dispatch calendar-data-request on View Calendar click", () => {
+    const emp1Id = testEmployees[0].id;
+    const currentMonth = getCurrentMonth();
+
+    let firedEvent: CustomEvent | null = null;
+    component.addEventListener("calendar-data-request", (e: Event) => {
+      firedEvent = e as CustomEvent;
+    });
+
+    // Open calendar for employee 1
+    const firstBtn = component.shadowRoot?.querySelector(
+      `.view-calendar-btn[data-employee-id="${emp1Id}"]`,
+    ) as HTMLElement;
+    firstBtn.click();
+
+    expect(firedEvent).toBeTruthy();
+    expect(firedEvent!.detail.employeeId).toBe(emp1Id);
+    expect(firedEvent!.detail.month).toBe(currentMonth);
+  });
+
+  it("should dispatch calendar-data-request on month navigation", () => {
+    const emp1Id = testEmployees[0].id;
+
+    // Open calendar first
+    const firstBtn = component.shadowRoot?.querySelector(
+      `.view-calendar-btn[data-employee-id="${emp1Id}"]`,
+    ) as HTMLElement;
+    firstBtn.click();
+
+    // Capture events on next navigation
+    const events: CustomEvent[] = [];
+    component.addEventListener("calendar-data-request", (e: Event) => {
+      events.push(e as CustomEvent);
+    });
+
+    const nextArrow = component.shadowRoot?.querySelector(
+      ".cal-nav-next",
+    ) as HTMLElement;
+    nextArrow.click();
+
+    expect(events.length).toBe(1);
+    expect(events[0].detail.employeeId).toBe(emp1Id);
+    // Should be next month
+    expect(events[0].detail.month).toBeDefined();
+  });
+
+  it("should inject PTO entries into calendar via setCalendarEntries", () => {
+    const emp1Id = testEmployees[0].id;
+    const currentMonth = getCurrentMonth();
+
+    // Open calendar for employee 1
+    const firstBtn = component.shadowRoot?.querySelector(
+      `.view-calendar-btn[data-employee-id="${emp1Id}"]`,
+    ) as HTMLElement;
+    firstBtn.click();
+
+    // Inject entries via the public method
+    (component as any).setCalendarEntries(emp1Id, currentMonth, [
+      {
+        id: 1,
+        employeeId: emp1Id,
+        date: `${currentMonth}-10`,
+        type: "PTO",
+        hours: 8,
+        createdAt: "",
+        approved_by: null,
+      },
+    ]);
+
+    const cal = component.shadowRoot?.querySelector("pto-calendar") as any;
+    expect(cal).toBeTruthy();
+    expect(cal.ptoEntries?.length).toBe(1);
+    expect(cal.ptoEntries[0].date).toBe(`${currentMonth}-10`);
+  });
+
   it("should filter PTO entries by employee and month for calendar", () => {
     const emp1Id = testEmployees[0].id;
     const emp2Id = testEmployees[1].id;

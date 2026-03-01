@@ -2,7 +2,11 @@ import { BaseComponent } from "../../components/base-component.js";
 import type { PageComponent } from "../../router/types.js";
 import { APIClient } from "../../APIClient.js";
 import { notifications } from "../../app.js";
-import { getCurrentYear, today } from "../../../shared/dateUtils.js";
+import {
+  getCurrentYear,
+  getLastDayOfMonth,
+  today,
+} from "../../../shared/dateUtils.js";
 import {
   BUSINESS_RULES_CONSTANTS,
   computeAnnualAllocation,
@@ -186,6 +190,47 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
       e.stopPropagation();
       this.handleEmployeeSubmit(e.detail);
     }) as EventListener);
+
+    // Handle on-demand calendar data requests from the employee-list
+    this.shadowRoot.addEventListener("calendar-data-request", (evt: Event) => {
+      const e = evt as CustomEvent;
+      e.stopPropagation();
+      (async () => {
+        const { employeeId, month } = e.detail as {
+          employeeId: number;
+          month: string;
+        };
+        if (!employeeId || !month) return;
+        try {
+          const startDate = `${month}-01`;
+          const [y, m] = month.split("-").map(Number);
+          const endDate = getLastDayOfMonth(y, m);
+
+          const ptoEntries = await this.api.get(
+            `/admin/pto?employeeId=${employeeId}&startDate=${startDate}&endDate=${endDate}`,
+          );
+
+          const list = this.shadowRoot?.querySelector("employee-list") as any;
+          if (!list?.setCalendarEntries) return;
+
+          const normalized = (ptoEntries || []).map((p: any, idx: number) => ({
+            id: p.id ?? idx + 1,
+            employeeId: p.employeeId,
+            date: p.date,
+            type: p.type,
+            hours: p.hours,
+            createdAt: p.createdAt ?? "",
+            approved_by: p.approved_by ?? null,
+          }));
+          list.setCalendarEntries(employeeId, month, normalized);
+        } catch (error: any) {
+          console.error(
+            `Failed to load calendar data for employee ${employeeId}, month ${month}:`,
+            error,
+          );
+        }
+      })().catch((err) => console.error(err));
+    });
 
     this.shadowRoot.addEventListener("form-cancel", (() => {
       const wasInlineEdit = !!this._editEmployee && !this._showForm;

@@ -21,7 +21,7 @@ import { addMonths, getCurrentMonth } from "../../../shared/dateUtils.js";
 import { MONTH_NAMES, type PTOType } from "../../../shared/businessRules.js";
 // Side-effect import: ensure <pto-calendar> custom element is registered
 import "../pto-calendar/index.js";
-import type { PtoCalendar } from "../pto-calendar/index.js";
+import type { PtoCalendar, PTOEntry } from "../pto-calendar/index.js";
 
 export interface EmployeePtoEntry {
   employee_id: number;
@@ -223,30 +223,37 @@ export class EmployeeList extends BaseComponent {
     `;
   }
 
-  /** Inject PTO entry data into all expanded inline calendars after render. */
-  private injectCalendarData(): void {
-    this.shadowRoot
-      .querySelectorAll<PtoCalendar>("pto-calendar")
-      .forEach((cal) => {
-        const empId = parseInt(cal.dataset.employeeId || "0");
-        if (!empId) return;
-        const calMonthStr =
-          this._calendarMonths.get(empId) || getCurrentMonth();
-        const empEntries = this._ptoEntries
-          .filter(
-            (e) => e.employee_id === empId && e.date.startsWith(calMonthStr),
-          )
-          .map((e, idx) => ({
-            id: idx + 1,
-            employeeId: empId,
-            date: e.date,
-            type: e.type,
-            hours: e.hours,
-            createdAt: "",
-            approved_by: e.approved_by ?? null,
-          }));
-        cal.setPtoEntries(empEntries);
-      });
+  /**
+   * Dispatch a `calendar-data-request` event so the parent page fetches
+   * PTO entries for the given employee + month and injects them back
+   * via `setCalendarEntries()`.
+   */
+  private requestCalendarData(empId: number, month: string): void {
+    this.dispatchEvent(
+      new CustomEvent("calendar-data-request", {
+        bubbles: true,
+        composed: true,
+        detail: { employeeId: empId, month },
+      }),
+    );
+  }
+
+  /**
+   * Inject PTO entries into a specific expanded calendar.
+   * Called by the parent page after fetching calendar data in response
+   * to a `calendar-data-request` event.
+   */
+  setCalendarEntries(
+    employeeId: number,
+    _month: string,
+    entries: PTOEntry[],
+  ): void {
+    const cal = this.shadowRoot.querySelector(
+      `pto-calendar[data-employee-id="${employeeId}"]`,
+    ) as PtoCalendar | null;
+    if (cal) {
+      cal.setPtoEntries(entries);
+    }
   }
 
   private renderInlineEditor(employee: Employee): string {
@@ -529,7 +536,10 @@ export class EmployeeList extends BaseComponent {
       this._expandedCalendars.add(employeeId);
 
       this.requestUpdate();
-      this.injectCalendarData();
+
+      // Request calendar data from the parent page (on-demand fetch)
+      const month = this._calendarMonths.get(employeeId) || getCurrentMonth();
+      this.requestCalendarData(employeeId, month);
 
       // Animate the calendar sliding into view
       requestAnimationFrame(() => {
@@ -577,7 +587,9 @@ export class EmployeeList extends BaseComponent {
     const newMonth = newMonthDate.slice(0, 7); // YYYY-MM
     this._calendarMonths.set(employeeId, newMonth);
     this.requestUpdate();
-    this.injectCalendarData();
+
+    // Request calendar data for the new month from the parent page
+    this.requestCalendarData(employeeId, newMonth);
   }
 }
 

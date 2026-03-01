@@ -164,8 +164,26 @@ The `<pto-calendar>` component renders the following visual indicators per day c
 - **Button location**: The "Show Calendar" button should be placed in the `.employee-group-header` div, next to the employee name heading, consistent with the other admin pages.
 - **Reuse**: The same `_calendarExpandedEmployees`, `_calendarMonths`, and `injectCalendarData()` patterns from `employee-list` should be replicated in `pto-request-queue`.
 
-## Questions and Concerns
+## Defect Reports
 
-1.
-2.
-3.
+### Defect 1: Calendar does not fetch PTO data on open or navigation.
+
+Clicking "Open Calendar" on an employee card produces no network activity — the calendar renders with not employee activity. Navigating to other months also triggers no API requests. The calendar should be requesting PTO entry data for the displayed month (either from the already-fetched `_ptoEntries` passed via `setPtoEntries()`, or via a new fetch if the data isn't already available). Root cause is likely that `injectCalendarData()` is never called after render, or `setPtoEntries()` is not being invoked on the `<pto-calendar>` element with the filtered entries for the target employee and month.
+
+**Root cause analysis**: The `employee-list` component uses a local `injectCalendarData()` method that filters pre-fetched `_ptoEntries` (passed by the parent page). However, the parent page (`admin-employees-page`) filters PTO entries to the current year only (`.filter(p => p.date?.startsWith(this._currentYear))`), so the calendar has no data for other years and may have no data at all if the seeded database has no entries for the current year. Furthermore, unlike `pto-request-queue` (which dispatches `calendar-data-request` events for on-demand API fetching), the `employee-list` never makes API requests for calendar data—it solely relies on the pre-fetched, year-filtered set.
+
+**Fix**: Adopt the same on-demand `calendar-data-request` event pattern that `pto-request-queue` already uses. This ensures calendar data is always fresh and available regardless of the month/year being viewed.
+
+#### Defect 1 Resolution Checklist
+
+- [x] **Verify existing test gap**: Confirm the existing test `"should filter PTO entries by employee and month for calendar"` only checks element attributes, not data injection
+- [x] **Add failing test**: Modify `employee-list.test.ts` to assert that a `calendar-data-request` CustomEvent is dispatched when "View Calendar" is clicked (matching `pto-request-queue` behavior)
+- [x] **Add failing test for navigation**: Assert that `calendar-data-request` is dispatched when calendar month navigation arrows are clicked
+- [x] **Add test for `setCalendarEntries()`**: Assert that calling `setCalendarEntries(empId, month, entries)` injects PTO entries into the calendar element
+- [x] **Implement `requestCalendarData()`**: Add private method to `employee-list` that dispatches `calendar-data-request` event (mirroring `pto-request-queue.requestCalendarData()`)
+- [x] **Implement `setCalendarEntries()`**: Add public method to `employee-list` that receives fetched data and calls `cal.setPtoEntries()` on the matching `<pto-calendar>`
+- [x] **Update `toggleCalendar()`**: Replace `this.injectCalendarData()` with `this.requestCalendarData(empId, month)` in the expand branch
+- [x] **Update `navigateCalendarMonth()`**: Replace `this.injectCalendarData()` with `this.requestCalendarData(empId, newMonth)`
+- [x] **Add `calendar-data-request` handler in `admin-employees-page`**: Listen for the event, fetch PTO entries via `this.api.get(\`/admin/pto?employeeId=...&startDate=...&endDate=...\`)`, normalize, and call `list.setCalendarEntries()`
+- [x] **Run tests**: All new tests pass, existing tests still pass
+- [x] **Build & lint**: `pnpm run build` and `pnpm run lint` pass
