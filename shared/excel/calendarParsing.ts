@@ -215,7 +215,7 @@ export function parseCalendarGrid(
             unmatchedColoredCells.push({
               date: dateStr,
               color: cellArgb,
-              note: "",
+              note: `Unrecognized fill color ${cellArgb} — not in legend`,
             });
           }
         }

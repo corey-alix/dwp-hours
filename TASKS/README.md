@@ -28,6 +28,7 @@
 - LATER: See ./TASKS/page-controller-targeted-refresh.md for details
 - LATER: See ./TASKS/monthly-accrual-table.md for details
 - LATER: See ./TASKS/responsive-visibility-tokens.md for details
+- LATER: See ./TASKS/pto-calendar-day-notes.md for details
 
 ## SOME WORK REMAINS
 

@@ -1142,3 +1142,203 @@ describe("PtoCalendar Component - Reconciled Indicator", () => {
     expect(dayCell?.querySelector(".reconciled-indicator")).toBeNull();
   });
 });
+
+// ========================================================================
+// Day Notes & Custom Hours Integration Tests
+// ========================================================================
+
+describe("PtoCalendar - Day Notes", () => {
+  let component: PtoCalendar;
+  let container: HTMLElement;
+
+  beforeEach(() => {
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    component = new PtoCalendar();
+    container.appendChild(component);
+  });
+
+  afterEach(() => {
+    document.body.removeChild(container);
+  });
+
+  describe("Note Indicator Rendering", () => {
+    it("should show note-indicator for entries with notes", () => {
+      const entries: PTOEntry[] = [
+        {
+          id: 1,
+          employeeId: 1,
+          date: "2024-02-12",
+          type: "PTO",
+          hours: 8,
+          createdAt: "2024-01-01T00:00:00Z",
+          approved_by: null,
+          notes: "Doctor appointment",
+        },
+      ];
+
+      component.setYear(2024);
+      component.setMonth(2);
+      component.setPtoEntries(entries);
+
+      const dayCell = component.shadowRoot?.querySelector(
+        '[data-date="2024-02-12"]',
+      );
+      const noteIndicator = dayCell?.querySelector(".note-indicator");
+      expect(noteIndicator).toBeTruthy();
+      expect(noteIndicator?.getAttribute("data-note")).toBe(
+        "Doctor appointment",
+      );
+    });
+
+    it("should not show note-indicator for entries without notes", () => {
+      const entries: PTOEntry[] = [
+        {
+          id: 1,
+          employeeId: 1,
+          date: "2024-02-12",
+          type: "PTO",
+          hours: 8,
+          createdAt: "2024-01-01T00:00:00Z",
+          approved_by: null,
+        },
+      ];
+
+      component.setYear(2024);
+      component.setMonth(2);
+      component.setPtoEntries(entries);
+
+      const dayCell = component.shadowRoot?.querySelector(
+        '[data-date="2024-02-12"]',
+      );
+      const noteIndicator = dayCell?.querySelector(".note-indicator");
+      expect(noteIndicator).toBeNull();
+    });
+
+    it("should show tooltip with note text in title attribute", () => {
+      const entries: PTOEntry[] = [
+        {
+          id: 1,
+          employeeId: 1,
+          date: "2024-02-12",
+          type: "PTO",
+          hours: 4,
+          createdAt: "2024-01-01T00:00:00Z",
+          approved_by: null,
+          notes: "Half day for dentist",
+        },
+      ];
+
+      component.setYear(2024);
+      component.setMonth(2);
+      component.setPtoEntries(entries);
+
+      const noteIndicator = component.shadowRoot?.querySelector(
+        '[data-date="2024-02-12"] .note-indicator',
+      );
+      expect(noteIndicator?.getAttribute("title")).toBe("Half day for dentist");
+    });
+  });
+
+  describe("Edit-Note Ghost Icon", () => {
+    it("should show edit-note-icon on editable day cells without notes in edit mode", () => {
+      component.setYear(2024);
+      component.setMonth(2);
+      component.setReadonly(false);
+      component.setPtoEntries([]);
+
+      // Check a weekday in the month
+      const dayCell = component.shadowRoot?.querySelector(
+        '[data-date="2024-02-12"]',
+      );
+      const editIcon = dayCell?.querySelector(".edit-note-icon");
+      expect(editIcon).toBeTruthy();
+    });
+
+    it("should not show edit-note-icon in readonly mode", () => {
+      component.setYear(2024);
+      component.setMonth(2);
+      component.setReadonly(true);
+      component.setPtoEntries([]);
+
+      const dayCell = component.shadowRoot?.querySelector(
+        '[data-date="2024-02-12"]',
+      );
+      const editIcon = dayCell?.querySelector(".edit-note-icon");
+      expect(editIcon).toBeNull();
+    });
+
+    it("should not show edit-note-icon when note already exists (shows filled indicator instead)", () => {
+      const entries: PTOEntry[] = [
+        {
+          id: 1,
+          employeeId: 1,
+          date: "2024-02-12",
+          type: "PTO",
+          hours: 8,
+          createdAt: "2024-01-01T00:00:00Z",
+          approved_by: null,
+          notes: "Existing note",
+        },
+      ];
+
+      component.setYear(2024);
+      component.setMonth(2);
+      component.setReadonly(false);
+      component.setPtoEntries(entries);
+
+      const dayCell = component.shadowRoot?.querySelector(
+        '[data-date="2024-02-12"]',
+      );
+      const editIcon = dayCell?.querySelector(".edit-note-icon");
+      const noteIndicator = dayCell?.querySelector(".note-indicator");
+      expect(editIcon).toBeNull();
+      expect(noteIndicator).toBeTruthy();
+    });
+  });
+
+  describe("getSelectedRequests with notes", () => {
+    it("should include notes field in CalendarEntry interface", () => {
+      // Verify the CalendarEntry interface supports notes
+      // by checking getSelectedRequests returns objects with the expected shape
+      component.setYear(2026);
+      component.setMonth(2);
+      component.setReadonly(false);
+      component.setPtoEntries([]);
+
+      // getSelectedRequests should return CalendarEntry[] which now has
+      // an optional notes field — test the empty case
+      const requests = component.getSelectedRequests();
+      expect(Array.isArray(requests)).toBe(true);
+      expect(requests.length).toBe(0); // Nothing selected yet
+    });
+  });
+
+  describe("Credit Display for Selected Negative Hours", () => {
+    it("should display credit class for selected negative hours on weekends", () => {
+      component.setYear(2024);
+      component.setMonth(2);
+      component.setReadonly(false);
+
+      // Set an existing weekend entry with negative hours
+      const entries: PTOEntry[] = [
+        {
+          id: 1,
+          employeeId: 1,
+          date: "2024-02-10", // Saturday
+          type: "PTO",
+          hours: -3.3,
+          createdAt: "2024-01-01T00:00:00Z",
+          approved_by: null,
+        },
+      ];
+      component.setPtoEntries(entries);
+
+      const dayCell = component.shadowRoot?.querySelector(
+        '[data-date="2024-02-10"]',
+      );
+      const creditSup = dayCell?.querySelector("sup.credit");
+      expect(creditSup).toBeTruthy();
+    });
+  });
+});

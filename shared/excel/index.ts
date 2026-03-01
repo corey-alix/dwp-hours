@@ -32,6 +32,7 @@ export {
   parseThemeColors,
   resolveColorToARGB,
   colorDistance,
+  labColorDistance,
   findClosestLegendColor,
 } from "./colorUtils.js";
 

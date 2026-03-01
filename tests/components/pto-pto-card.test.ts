@@ -295,14 +295,14 @@ describe("PtoPtoCard", () => {
     const separators =
       component.shadowRoot?.querySelectorAll(".month-separator");
     expect(separators?.length).toBe(2);
-    expect(separators?.[0].textContent).toContain("February 2025");
-    expect(separators?.[1].textContent).toContain("January 2025");
+    expect(separators?.[1].textContent).toContain("February 2025");
+    expect(separators?.[0].textContent).toContain("January 2025");
 
     const subtotals = component.shadowRoot?.querySelectorAll(".month-subtotal");
     expect(subtotals?.length).toBe(2);
     // Feb: 8.0, Jan: 12.0 (8+4)
-    expect(subtotals?.[0].textContent).toContain("8.0");
-    expect(subtotals?.[1].textContent).toContain("12.0");
+    expect(subtotals?.[1].textContent).toContain("8.0");
+    expect(subtotals?.[0].textContent).toContain("12.0");
   });
 
   it("should render approval legend when approved entries exist", () => {

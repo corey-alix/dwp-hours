@@ -53,8 +53,11 @@ export const LEGEND_LABEL_TO_PTO_TYPE: Record<string, PTOType> = {
   "Jury Duty": "Jury Duty",
 };
 
-/** Maximum Euclidean RGB distance for approximate color matching. */
+/** Maximum Euclidean RGB distance for approximate color matching (legacy). */
 export const MAX_COLOR_DISTANCE = 100;
+
+/** Maximum CIE76 Lab distance for perceptual approximate color matching. */
+export const MAX_LAB_COLOR_DISTANCE = 50;
 
 /**
  * Standard Office 2010 theme palette.

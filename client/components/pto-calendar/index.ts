@@ -5,6 +5,7 @@ import {
   MessageKey,
   type PTOType,
   normalizePTOType,
+  isWorkingDay,
 } from "../../../shared/businessRules.js";
 import {
   getCalendarDates,
@@ -18,6 +19,11 @@ import { BaseComponent } from "../base-component.js";
 import { styles, PTO_TYPE_COLORS } from "./css.js";
 import { MONTH_NAMES } from "../../../shared/businessRules.js";
 import { notifications } from "../../app.js";
+import {
+  LONG_PRESS_MS,
+  LONG_PRESS_MOVE_THRESHOLD,
+} from "../../css-extensions/interactions/index.js";
+import type { DayNoteDialog } from "../day-note-dialog/index.js";
 
 /** @deprecated Use `MONTH_NAMES` from `shared/businessRules.js` instead. */
 export const monthNames = MONTH_NAMES;
@@ -37,6 +43,7 @@ export interface CalendarEntry {
   hours: number;
   type: PTOType;
   id?: number; // For existing entries being updated
+  notes?: string;
 }
 
 export interface PTOEntry {
@@ -57,6 +64,15 @@ export class PtoCalendar extends BaseComponent {
   private _selectedPtoType: PTOType | null = null;
   private _overuseDates: Set<string> = new Set();
   private _overuseTooltips: Map<string, string> = new Map();
+  /** Notes entered via the day-note dialog for pending selections. */
+  private _selectedNotes: Map<string, string> = new Map();
+  /** Long-press state tracking */
+  private _longPressTimer: ReturnType<typeof setTimeout> | null = null;
+  private _longPressStartX = 0;
+  private _longPressStartY = 0;
+  private _longPressDate: string | null = null;
+  /** The dialog instance currently attached to the shadow DOM (if any). */
+  private _noteDialog: DayNoteDialog | null = null;
   /**
    * Set of date strings for entries that are unapproved but in a
    * locked/reconciled month (e.g., historic import policy violations).
@@ -285,18 +301,24 @@ export class PtoCalendar extends BaseComponent {
       const existingEntry = this._ptoEntries.find(
         (entry) => entry.date === date,
       );
-      return {
+      const note = this._selectedNotes.get(date);
+      const entry: CalendarEntry = {
         date,
         hours,
         type: existingEntry?.type || this._selectedPtoType || "PTO",
         id: existingEntry?.id,
       };
+      if (note !== undefined) {
+        entry.notes = note;
+      }
+      return entry;
     });
   }
 
   clearSelection() {
     this._selectedPtoType = null;
     this._selectedCells.clear();
+    this._selectedNotes.clear();
     this.requestUpdate();
     this.notifySelectionChanged();
   }
@@ -366,17 +388,59 @@ export class PtoCalendar extends BaseComponent {
   }
 
   // ── Event delegation ──
+  protected setupEventDelegation() {
+    super.setupEventDelegation();
+
+    // Long-press detection via pointer events
+    this.shadowRoot.addEventListener("pointerdown", (e) => {
+      this.handlePointerDown(e as PointerEvent);
+    });
+    this.shadowRoot.addEventListener("pointermove", (e) => {
+      this.handlePointerMove(e as PointerEvent);
+    });
+    this.shadowRoot.addEventListener("pointerup", () => {
+      this.cancelLongPress();
+    });
+    this.shadowRoot.addEventListener("pointercancel", () => {
+      this.cancelLongPress();
+    });
+    // Suppress context menu on long-press
+    this.shadowRoot.addEventListener("contextmenu", (e) => {
+      if (this._longPressDate) {
+        e.preventDefault();
+      }
+    });
+  }
+
   protected handleDelegatedClick(e: Event): void {
     const target = e.target as HTMLElement;
 
-    // Note indicator clicks (show toast regardless of readonly)
+    // Note indicator clicks — in edit mode, open the note dialog;
+    // in read-only mode, show a toast.
     const noteIndicator = target.closest(".note-indicator") as HTMLElement;
     if (noteIndicator) {
       e.preventDefault();
       e.stopPropagation();
-      const noteText = noteIndicator.getAttribute("data-note");
-      if (noteText) {
-        notifications.info(noteText, "Note");
+      const date = noteIndicator.closest(".day")?.getAttribute("data-date");
+      if (!this.isReadonly && date) {
+        this.openNoteDialog(date);
+      } else {
+        const noteText = noteIndicator.getAttribute("data-note");
+        if (noteText) {
+          notifications.info(noteText, "Note");
+        }
+      }
+      return;
+    }
+
+    // Edit-note placeholder clicks (TL ghost icon shown in edit mode)
+    const editNote = target.closest(".edit-note-icon") as HTMLElement;
+    if (editNote && !this.isReadonly) {
+      e.preventDefault();
+      e.stopPropagation();
+      const date = editNote.closest(".day")?.getAttribute("data-date");
+      if (date) {
+        this.openNoteDialog(date);
       }
       return;
     }
@@ -438,6 +502,119 @@ export class PtoCalendar extends BaseComponent {
       this.handleLegendKeyDown(e, target);
     } else if (isDayCell) {
       this.handleGridKeyDown(e, target);
+    }
+  }
+
+  // ── Long-press gesture handling ──
+
+  private handlePointerDown(e: PointerEvent): void {
+    if (this.isReadonly) return;
+
+    const target = e.target as HTMLElement;
+    const dayCell = target.closest(".day:not(.empty)") as HTMLElement;
+    if (!dayCell) return;
+
+    const date = dayCell.dataset.date;
+    if (!date) return;
+
+    // Only allow long-press on current-month cells
+    if (!isInMonth(date, this.year, this.month)) return;
+
+    this._longPressStartX = e.clientX;
+    this._longPressStartY = e.clientY;
+    this._longPressDate = date;
+
+    this._longPressTimer = setTimeout(() => {
+      if (this._longPressDate) {
+        this.openNoteDialog(this._longPressDate);
+        this._longPressDate = null;
+      }
+    }, LONG_PRESS_MS);
+  }
+
+  private handlePointerMove(e: PointerEvent): void {
+    if (!this._longPressTimer) return;
+
+    const dx = e.clientX - this._longPressStartX;
+    const dy = e.clientY - this._longPressStartY;
+    if (Math.sqrt(dx * dx + dy * dy) > LONG_PRESS_MOVE_THRESHOLD) {
+      this.cancelLongPress();
+    }
+  }
+
+  private cancelLongPress(): void {
+    if (this._longPressTimer) {
+      clearTimeout(this._longPressTimer);
+      this._longPressTimer = null;
+    }
+    this._longPressDate = null;
+  }
+
+  // ── Note dialog management ──
+
+  /**
+   * Open the day-note dialog for a given date. Dynamically imports the
+   * dialog component on first use to avoid loading it eagerly.
+   */
+  private async openNoteDialog(date: string): Promise<void> {
+    // Close any existing dialog
+    this.closeNoteDialog();
+
+    // Lazy-import the dialog component
+    const { DayNoteDialog } = await import("../day-note-dialog/index.js");
+
+    const dialog = new DayNoteDialog();
+    dialog.date = date;
+
+    // Populate from existing entry or pending selection
+    const existingEntry = this._ptoEntries.find((e) => e.date === date);
+    dialog.currentNote =
+      this._selectedNotes.get(date) ?? existingEntry?.notes ?? "";
+    dialog.currentHours =
+      this._selectedCells.get(date) ?? existingEntry?.hours ?? 0;
+
+    // Listen for save/cancel
+    dialog.addEventListener("day-note-save", ((e: CustomEvent) => {
+      const { note, hours } = e.detail as {
+        date: string;
+        note: string;
+        hours: number;
+      };
+
+      // Update selected cells with custom hours
+      this._selectedCells.set(date, hours);
+
+      // Store or clear note
+      if (note) {
+        this._selectedNotes.set(date, note);
+      } else {
+        this._selectedNotes.delete(date);
+      }
+
+      // Ensure a PTO type is set for the selection
+      if (!this._selectedPtoType && existingEntry) {
+        this._selectedPtoType = existingEntry.type;
+      } else if (!this._selectedPtoType) {
+        this._selectedPtoType = "PTO";
+      }
+
+      this.closeNoteDialog();
+      this.updateDay(date);
+      this.notifySelectionChanged();
+    }) as EventListener);
+
+    dialog.addEventListener("day-note-cancel", () => {
+      this.closeNoteDialog();
+    });
+
+    this._noteDialog = dialog;
+    this.shadowRoot.appendChild(dialog);
+  }
+
+  private closeNoteDialog(): void {
+    if (this._noteDialog) {
+      this._noteDialog.remove();
+      this._noteDialog = null;
     }
   }
 
@@ -520,7 +697,7 @@ export class PtoCalendar extends BaseComponent {
         : totalHours !== 0
           ? Math.abs(totalHours)
           : 0;
-    const isCredit = totalHours < 0;
+    const isCredit = isSelected ? selectedHours < 0 : totalHours < 0;
     let hoursDisplay = "";
     let hoursClass = "hours";
     if (isClearing) {
@@ -546,11 +723,21 @@ export class PtoCalendar extends BaseComponent {
         : "";
     const { day } = parseDate(dateStr);
 
-    // Note indicator: show triangle when PTO entry has notes
+    // Note indicator: show filled triangle when PTO entry has notes,
+    // or when a pending note exists in _selectedNotes.
     const entryNotes = entry?.notes || "";
-    const noteIndicator = entryNotes
-      ? `<div class="note-indicator" data-note="${this.escapeAttribute(entryNotes)}" title="${this.escapeAttribute(entryNotes)}">&#9662;</div>`
+    const pendingNote = this._selectedNotes.get(dateStr) ?? "";
+    const effectiveNote = pendingNote || entryNotes;
+    const noteIndicator = effectiveNote
+      ? `<div class="note-indicator" data-note="${this.escapeAttribute(effectiveNote)}" title="${this.escapeAttribute(effectiveNote)}">&#9662;</div>`
       : "";
+
+    // Edit-note ghost icon: shown in TL corner on editable, current-month
+    // cells that don't already have a filled note indicator.
+    const editNoteIcon =
+      !this.isReadonly && isCurrentMonth && !effectiveNote
+        ? '<div class="edit-note-icon" title="Add note">&#9662;</div>'
+        : "";
 
     // Superscript hours on day number: numeric text (e.g. 4, 1.5, +3.3)
     // Credit entries (negative hours / weekend work) shown with "+" prefix.
@@ -586,6 +773,7 @@ export class PtoCalendar extends BaseComponent {
           ${checkmarkElement}
           ${reconciledIndicator}
           ${noteIndicator}
+          ${editNoteIcon}
           ${overuseIndicator}
           <div class="date">${dayDisplay}</div>
           <div class="${hoursClass}">${typeDot}${hoursDisplay}</div>

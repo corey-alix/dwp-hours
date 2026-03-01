@@ -9,6 +9,7 @@ import type { PTOType } from "../businessRules.js";
 import {
   DEFAULT_OFFICE_THEME,
   MAX_COLOR_DISTANCE,
+  MAX_LAB_COLOR_DISTANCE,
   MIN_CHROMA_FOR_APPROX,
 } from "./types.js";
 
@@ -97,6 +98,55 @@ export function colorDistance(argb1: string, argb2: string): number {
   return Math.sqrt((r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2);
 }
 
+// ── CIE Lab Perceptual Color Distance ──
+
+/** Convert a single sRGB channel (0–255) to linear light. */
+function srgbToLinear(c: number): number {
+  const s = c / 255;
+  return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+}
+
+/** CIE Lab transfer function. */
+function labF(t: number): number {
+  return t > 0.008856 ? t ** (1 / 3) : 7.787 * t + 16 / 116;
+}
+
+/** Convert an ARGB hex string to CIE Lab (L*, a*, b*). */
+function argbToLab(argb: string): [number, number, number] {
+  const hex = argb.length === 8 ? argb.substring(2) : argb;
+  const rl = srgbToLinear(parseInt(hex.substring(0, 2), 16));
+  const gl = srgbToLinear(parseInt(hex.substring(2, 4), 16));
+  const bl = srgbToLinear(parseInt(hex.substring(4, 6), 16));
+
+  // sRGB → XYZ (D65 illuminant)
+  const x = 0.4124564 * rl + 0.3575761 * gl + 0.1804375 * bl;
+  const y = 0.2126729 * rl + 0.7151522 * gl + 0.072175 * bl;
+  const z = 0.0193339 * rl + 0.119192 * gl + 0.9503041 * bl;
+
+  // D65 white-point
+  const fx = labF(x / 0.95047);
+  const fy = labF(y / 1.0);
+  const fz = labF(z / 1.08883);
+
+  const L = 116 * fy - 16;
+  const a = 500 * (fx - fy);
+  const b = 200 * (fy - fz);
+  return [L, a, b];
+}
+
+/**
+ * CIE76 perceptual color distance (Euclidean distance in Lab space).
+ * More accurate than RGB Euclidean distance for fuzzy color matching
+ * because Lab is designed for perceptual uniformity — e.g. lime green
+ * (92D050) correctly measures closer to standard green (00B050) than
+ * to orange/yellow (FFC000).
+ */
+export function labColorDistance(argb1: string, argb2: string): number {
+  const [L1, a1, b1] = argbToLab(argb1);
+  const [L2, a2, b2] = argbToLab(argb2);
+  return Math.sqrt((L1 - L2) ** 2 + (a1 - a2) ** 2 + (b1 - b2) ** 2);
+}
+
 export function findClosestLegendColor(
   cellArgb: string,
   legend: Map<string, PTOType>,
@@ -108,11 +158,11 @@ export function findClosestLegendColor(
   const chroma = Math.max(r, g, b) - Math.min(r, g, b);
   if (chroma < MIN_CHROMA_FOR_APPROX) return undefined;
 
-  let bestDist = MAX_COLOR_DISTANCE;
+  let bestDist = MAX_LAB_COLOR_DISTANCE;
   let bestType: PTOType | undefined;
 
   for (const [legendArgb, ptoType] of legend) {
-    const d = colorDistance(cellArgb, legendArgb);
+    const d = labColorDistance(cellArgb, legendArgb);
     if (d < bestDist) {
       bestDist = d;
       bestType = ptoType;

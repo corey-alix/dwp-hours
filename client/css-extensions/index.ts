@@ -50,3 +50,9 @@ export {
   getPtoDayColorsSheet,
   adoptPtoDayColors,
 } from "./pto-day-colors/index.js";
+
+// ── Interactions (gesture constants) ──
+export {
+  LONG_PRESS_MS,
+  LONG_PRESS_MOVE_THRESHOLD,
+} from "./interactions/index.js";
