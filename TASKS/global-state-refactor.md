@@ -94,5 +94,113 @@ Refactor global singletons and side effects (TraceListener for notifications, ac
 2. Should we create a custom context API or use a lightweight library?
 3. How to handle cross-component communication without globals?
 4. What migration strategy for existing global-dependent code?
-5. How to test context-based state management reliably?</content>
-   <parameter name="filePath">/home/ca0v/code/corey-alix/dwp-hours/jupiter/TASKS/global-state-refactor.md
+5. How to test context-based state management reliably?
+
+## Design Decisions
+
+Decisions recorded from review of community-standard Context Protocol patterns:
+
+### Q1 — Context providers in vanilla web components
+
+**Decision: Custom Context Protocol implementation (~50 LOC), provider as HTMLElement.**
+
+Use the Context Protocol pattern (community standard adopted by Lit, wc-context, etc.) with one critical correction: the provider must extend `HTMLElement` (not bare `EventTarget`) so that `bubbles: true, composed: true` events dispatched by consumers actually reach the provider through DOM propagation.
+
+Implementation sketch (will live in `client/shared/context.ts`):
+
+```ts
+const CONTEXT_REQUEST = "context-request";
+
+type ContextCallback<T> = (value: T | undefined, dispose?: () => void) => void;
+
+// Provider — must be an HTMLElement in the DOM tree for event bubbling
+export class ContextProvider<T> extends HTMLElement {
+  #value: T | undefined;
+  #consumers = new Set<ContextCallback<T>>();
+
+  constructor(initial?: T) {
+    super();
+    this.#value = initial;
+    this.addEventListener(CONTEXT_REQUEST, ((e: Event) => {
+      const ev = e as CustomEvent<{ callback: ContextCallback<T> }>;
+      if (ev.detail?.callback) {
+        const cb = ev.detail.callback;
+        this.#consumers.add(cb);
+        cb(this.#value);
+        ev.stopPropagation();
+      }
+    }) as EventListener);
+  }
+
+  set value(v: T | undefined) {
+    this.#value = v;
+    this.#consumers.forEach((cb) => cb(v));
+  }
+
+  get value() {
+    return this.#value;
+  }
+}
+
+// Consumer — call from connectedCallback
+export function consumeContext<T>(
+  element: Element,
+  callback: ContextCallback<T>,
+) {
+  element.dispatchEvent(
+    new CustomEvent(CONTEXT_REQUEST, {
+      bubbles: true,
+      composed: true,
+      detail: { callback },
+    }),
+  );
+}
+```
+
+**⚠ Additional concern (6):** `consumeContext` in `connectedCallback` has ordering risks — if the provider element hasn't connected to the DOM yet when the consumer fires, the event will miss it. Mitigation: use a microtask delay (`queueMicrotask`) or ensure providers are registered before child components via synchronous DOM insertion order.
+
+### Q2 — Custom API vs library
+
+**Decision: Custom minimal implementation. 0 dependencies, < 1 KB minified, full lifecycle control.**
+
+No need for `@lit/context` or similar — this project is vanilla TS with no framework dependencies.
+
+### Q3 — Cross-component communication without globals
+
+**Decision: Layered approach, ranked by preference:**
+
+1. **Context protocol** — for tree-scoped shared services (notifications, debug flag)
+2. **Custom events** — for fire-and-forget signals (user activity ping, nav events) — already used for `auth-state-changed`, `page-change`
+3. **Storage abstraction** — for persistence concerns (activity timestamp, selected month)
+4. **Constructor injection** — for services with behavior (APIClient already follows this in UIManager)
+
+**Note:** `activityTracker` is just two pure functions + localStorage — context protocol is overkill for it. A `StorageService` interface injected into the functions (or into UIManager) is sufficient.
+
+### Q4 — Migration strategy
+
+**Decision: Incremental, one system at a time. No kill-switch or dual-support shim.**
+
+Order:
+
+1. **Storage abstraction first** (Phase 2) — `StorageService` interface + `LocalStorageAdapter`. Refactor all direct `localStorage.getItem/setItem` calls (10 call sites across 5 files). Unlocks test fakes immediately.
+2. **Context providers at root** (Phase 2) — register in `App.run()` wrapping `<notification-context>` and `<debug-context>` around the app shell.
+3. **Notifications** (Phase 3) — highest visibility, 7 consumer files importing `notifications` from `app.ts`.
+4. **Activity tracking** (Phase 4) — touches localStorage, uses new StorageService.
+5. **Debug system** (Phase 5) — lowest user impact.
+
+Kill-switch and dual-support period are skipped — this is a small internal app where a clean cutover with good test coverage is simpler than maintaining backward compatibility shims.
+
+### Q5 — Testing context-based state
+
+**Decision: Fake providers + storage interface mocks.**
+
+- **Unit tests:** Mount component with a fake `ContextProvider` wrapping it, assert behavior against injected fakes.
+- **Storage tests:** `StorageService` interface allows in-memory fake — no localStorage dependency in tests.
+- **Integration:** Render full subtree with real providers, simulate events, assert DOM output.
+- **Existing tests:** `tests/activityTracker.test.ts` already exists — will be updated to use StorageService fake instead of mocking localStorage directly.
+
+### Additional Concerns
+
+6. Provider-consumer connection ordering: `consumeContext` dispatched before provider is in the DOM will silently fail. Must ensure DOM insertion order or use microtask retry.
+7. `notifications` is a service (event fan-out), not reactive state — context provides the service object, not a value. This works but is a conceptual mismatch worth documenting for future maintainers.
+8. Architecture doc update: Add a "State Management" section to ARCHITECTURE.md: "context > events > props > never globals".</content>
