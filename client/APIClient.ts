@@ -228,8 +228,10 @@ export class APIClient {
 
   async getAdminEmployeePTOStatus(
     employeeId: number,
+    currentDate?: string,
   ): Promise<ApiTypes.PTOStatusResponse & { employeeName: string }> {
-    return this.get(`/admin/employees/${employeeId}/pto-status`);
+    const query = currentDate ? `?current_date=${currentDate}` : "";
+    return this.get(`/admin/employees/${employeeId}/pto-status${query}`);
   }
 
   async getAdminPTOEntries(options?: {

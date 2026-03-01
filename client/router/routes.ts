@@ -35,8 +35,9 @@ export const appRoutes: AppRoutes = [
       const employeeIdParam = search.get("employeeId");
       if (employeeIdParam) {
         const employeeId = parseInt(employeeIdParam, 10);
+        const currentDate = search.get("current_date") ?? undefined;
         const [statusWithName, entries] = await Promise.all([
-          api.getAdminEmployeePTOStatus(employeeId),
+          api.getAdminEmployeePTOStatus(employeeId, currentDate),
           api.getAdminPTOEntries({ employeeId }),
         ]);
         const { employeeName, ...status } = statusWithName;

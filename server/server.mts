@@ -57,6 +57,7 @@ import {
   SYS_ADMIN_EMPLOYEE_ID,
   ENABLE_IMPORT_AUTO_APPROVE,
   computeEmployeeBalanceData,
+  validateDateString,
   type PTOType,
 } from "../shared/businessRules.js";
 import { BACKUP_CONFIG } from "../shared/backupConfig.js";
@@ -2109,6 +2110,7 @@ initDatabase()
     );
 
     // Admin endpoint — get PTO status for a specific employee (admin only)
+    // Accepts optional ?current_date=YYYY-MM-DD to compute status as of that date
     app.get(
       "/api/admin/employees/:id/pto-status",
       authenticateAdmin(() => dataSource, log),
@@ -2119,6 +2121,19 @@ initDatabase()
             return res
               .status(400)
               .json({ error: "Invalid employee ID" });
+          }
+
+          // Validate optional current_date query param
+          const currentDateParam = req.query.current_date as
+            | string
+            | undefined;
+          if (currentDateParam) {
+            const dateError = validateDateString(currentDateParam);
+            if (dateError) {
+              return res.status(400).json({
+                error: `Invalid current_date: ${currentDateParam}`,
+              });
+            }
           }
 
           const employeeRepo = dataSource.getRepository(Employee);
@@ -2163,6 +2178,7 @@ initDatabase()
           const status = calculatePTOStatus(
             employeeData,
             ptoEntriesData,
+            currentDateParam,
           );
 
           // Include the employee name so the client can display it

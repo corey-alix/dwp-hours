@@ -75,6 +75,66 @@ describe("APIClient.getAdminEmployeePTOStatus", () => {
       "Admin access required",
     );
   });
+
+  it("should include current_date query param when provided", async () => {
+    const mockResponse = {
+      employeeId: 5,
+      employeeName: "Jane Smith",
+      hireDate: "2020-01-15",
+      dailyRate: 0.71,
+      annualAllocation: 80,
+      availablePTO: 50,
+      usedPTO: 10,
+      carryoverFromPreviousYear: 0,
+      monthlyAccruals: [],
+      nextRolloverDate: "2026-01-01",
+      sickTime: { allowed: 40, used: 0, remaining: 40 },
+      ptoTime: { allowed: 80, used: 10, remaining: 70 },
+      bereavementTime: { allowed: 24, used: 0, remaining: 24 },
+      juryDutyTime: { allowed: 40, used: 0, remaining: 40 },
+    };
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(mockResponse),
+    });
+
+    await apiClient.getAdminEmployeePTOStatus(5, "2025-06-15");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/admin/employees/5/pto-status?current_date=2025-06-15",
+      { credentials: "include" },
+    );
+  });
+
+  it("should not include current_date query param when omitted", async () => {
+    const mockResponse = {
+      employeeId: 5,
+      employeeName: "Jane Smith",
+      hireDate: "2020-01-15",
+      dailyRate: 0.71,
+      annualAllocation: 80,
+      availablePTO: 50,
+      usedPTO: 10,
+      carryoverFromPreviousYear: 0,
+      monthlyAccruals: [],
+      nextRolloverDate: "2027-01-01",
+      sickTime: { allowed: 40, used: 0, remaining: 40 },
+      ptoTime: { allowed: 80, used: 10, remaining: 70 },
+      bereavementTime: { allowed: 24, used: 0, remaining: 24 },
+      juryDutyTime: { allowed: 40, used: 0, remaining: 40 },
+    };
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(mockResponse),
+    });
+
+    await apiClient.getAdminEmployeePTOStatus(5);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/admin/employees/5/pto-status",
+      { credentials: "include" },
+    );
+  });
 });
 
 // ── EmployeeList: "View" button ─────────────────────────────────
@@ -143,7 +203,9 @@ describe("EmployeeList - View Summary Button", () => {
 
     expect(navigateHandler).toHaveBeenCalledTimes(1);
     const detail = (navigateHandler.mock.calls[0][0] as CustomEvent).detail;
-    expect(detail.path).toBe(`/current-year-summary?employeeId=1`);
+    expect(detail.path).toMatch(
+      /^\/current-year-summary\?employeeId=1&current_date=\d{4}-\d{2}-\d{2}$/,
+    );
 
     window.removeEventListener(
       "router-navigate",

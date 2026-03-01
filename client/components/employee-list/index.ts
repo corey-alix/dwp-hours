@@ -17,7 +17,11 @@ import {
   animateSlide,
 } from "../../css-extensions/index.js";
 import { styles } from "./css.js";
-import { addMonths, getCurrentMonth } from "../../../shared/dateUtils.js";
+import {
+  addMonths,
+  getCurrentMonth,
+  today,
+} from "../../../shared/dateUtils.js";
 import { MONTH_NAMES, type PTOType } from "../../../shared/businessRules.js";
 // Side-effect import: ensure <pto-calendar> custom element is registered
 import "../pto-calendar/index.js";
@@ -520,7 +524,7 @@ export class EmployeeList extends BaseComponent {
         window.dispatchEvent(
           new CustomEvent("router-navigate", {
             detail: {
-              path: `/current-year-summary?employeeId=${employeeId}`,
+              path: `/current-year-summary?employeeId=${employeeId}&current_date=${today()}`,
             },
           }),
         );
