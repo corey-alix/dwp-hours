@@ -49,19 +49,30 @@ export class App {
   static run(): UIManager {
     // Register output-channel controllers
     notifications.addListener(new PtoNotificationController());
-    notifications.addListener(new DebugConsoleController());
+    const debugController = new DebugConsoleController();
+    notifications.addListener(debugController);
 
-    // Mount notifications context provider around the app wrapper
-    // so any descendant can call consumeContext<TraceListener>(this, "notifications", cb)
+    // Mount context providers around the app wrapper so any descendant
+    // can call consumeContext<T>(this, key, cb) for notifications or debug.
     const appWrapper = document.getElementById("app-wrapper");
     if (appWrapper?.parentElement) {
-      const provider = createContextProvider(
+      // Outer: notifications provider
+      const notifProvider = createContextProvider(
         CONTEXT_KEYS.NOTIFICATIONS,
         notifications,
       );
-      provider.style.display = "contents"; // invisible wrapper
-      appWrapper.parentElement.insertBefore(provider, appWrapper);
-      provider.appendChild(appWrapper);
+      notifProvider.style.display = "contents"; // invisible wrapper
+
+      // Inner: debug provider
+      const debugProvider = createContextProvider(
+        CONTEXT_KEYS.DEBUG,
+        debugController,
+      );
+      debugProvider.style.display = "contents";
+
+      appWrapper.parentElement.insertBefore(notifProvider, appWrapper);
+      notifProvider.appendChild(debugProvider);
+      debugProvider.appendChild(appWrapper);
     }
 
     return new UIManager(notifications);

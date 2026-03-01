@@ -21,6 +21,8 @@ import type { MonthSummary } from "../month-summary/index.js";
 import { computeSelectionDeltas } from "../utils/compute-selection-deltas.js";
 import { BaseComponent } from "../base-component.js";
 import { styles } from "./css.js";
+import type { StorageService } from "../../shared/storage.js";
+import { LocalStorageAdapter } from "../../shared/storage.js";
 import {
   adoptAnimations,
   animateCarousel,
@@ -48,6 +50,9 @@ export interface BalanceModelConfig {
 }
 
 export class PtoEntryForm extends BaseComponent {
+  /** Storage adapter for persisting the selected month. */
+  private _storage: StorageService = new LocalStorageAdapter();
+
   /** MediaQueryList used to detect multi-calendar mode */
   private multiCalendarMql: MediaQueryList | null = null;
   /** Bound handler for matchMedia changes */
@@ -65,6 +70,14 @@ export class PtoEntryForm extends BaseComponent {
 
   /** Swipe navigation handle for the calendar container */
   private _swipeHandle: SwipeNavigationHandle | null = null;
+
+  /**
+   * Inject a custom StorageService (e.g. InMemoryStorage for tests).
+   * Must be set before connectedCallback for effect on initial month.
+   */
+  set storage(svc: StorageService) {
+    this._storage = svc;
+  }
 
   static get observedAttributes() {
     return ["available-pto-balance"];
@@ -877,11 +890,7 @@ export class PtoEntryForm extends BaseComponent {
    * submissions and page reloads in single-calendar mode.
    */
   private persistSelectedMonth(month: number): void {
-    try {
-      localStorage.setItem(SELECTED_MONTH_STORAGE_KEY, month.toString());
-    } catch {
-      // Storage unavailable — silent fallback
-    }
+    this._storage.setItem(SELECTED_MONTH_STORAGE_KEY, month.toString());
   }
 
   /**
@@ -889,14 +898,10 @@ export class PtoEntryForm extends BaseComponent {
    * to the current month if nothing is stored or storage is unavailable.
    */
   private getPersistedMonth(): number {
-    try {
-      const stored = localStorage.getItem(SELECTED_MONTH_STORAGE_KEY);
-      if (stored) {
-        const month = parseInt(stored, 10);
-        if (month >= 1 && month <= 12) return month;
-      }
-    } catch {
-      // Storage unavailable — fall through
+    const stored = this._storage.getItem(SELECTED_MONTH_STORAGE_KEY);
+    if (stored) {
+      const month = parseInt(stored, 10);
+      if (month >= 1 && month <= 12) return month;
     }
     const currentDate = today();
     return parseDate(currentDate).month;
@@ -907,11 +912,7 @@ export class PtoEntryForm extends BaseComponent {
    * when the stored value is no longer valid.
    */
   clearPersistedMonth(): void {
-    try {
-      localStorage.removeItem(SELECTED_MONTH_STORAGE_KEY);
-    } catch {
-      // Storage unavailable — silent fallback
-    }
+    this._storage.removeItem(SELECTED_MONTH_STORAGE_KEY);
   }
 }
 

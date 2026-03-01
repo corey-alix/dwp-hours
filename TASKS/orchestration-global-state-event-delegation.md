@@ -32,13 +32,13 @@ Temporary orchestrator tracking unified progress across `global-state-refactor.m
 
 ## Stage 3: Activity & Debug (Global State Phases 4–5)
 
-- [ ] Refactor `activityTracker.ts` — add optional `StorageService` parameter
-- [ ] Fix `current-year-summary-page` — read user from `AuthService.getUser()` not raw localStorage
-- [ ] Refactor `pto-entry-form` + `pto-pto-card` localStorage to StorageService
-- [ ] Refactor `DebugConsoleController` — extract `activate()`/`deactivate()` lifecycle
-- [ ] Register `<debug-provider>` in `App.run()`
-- [ ] Update tests to use in-memory storage fakes
-- [ ] Build passes, lint passes, all tests pass
+- [x] Refactor `activityTracker.ts` — add optional `StorageService` parameter
+- [x] Fix `current-year-summary-page` — read user from `AuthService.getUser()` not raw localStorage
+- [x] Refactor `pto-entry-form` + `pto-pto-card` localStorage to StorageService
+- [x] Refactor `DebugConsoleController` — extract `activate()`/`deactivate()` lifecycle
+- [x] Register `<debug-provider>` in `App.run()`
+- [x] Update tests to use in-memory storage fakes
+- [x] Build passes, lint passes, all tests pass
 
 ## Stage 4: Event System Design (Event Delegation Phases 1–2)
 
@@ -71,7 +71,7 @@ Temporary orchestrator tracking unified progress across `global-state-refactor.m
 
 ## Status
 
-**Current Stage:** 2 — Notification System (all code tasks complete, manual testing remaining)
+**Current Stage:** 3 — Activity & Debug (complete)
 **Started:** 2026-03-01
 
 ---
@@ -131,6 +131,17 @@ Migrated files:
 - `client/UIManager.ts` constructor accepts `TraceListener` parameter; `App.run()` passes the instance
 - No test changes required: existing tests don't import `notifications` from `app.ts`
 
+**Stage 3 deliverables:**
+
+- `client/shared/activityTracker.ts` — both functions now accept optional `StorageService` parameter (defaults to `LocalStorageAdapter`). Removed raw `localStorage` calls and inner try/catch (adapter handles errors).
+- `client/pages/current-year-summary-page/index.ts` — added `authService` setter (auto-injected by router). Replaced `localStorage.getItem("currentUser")` with `this._authService?.getUser()?.name`.
+- `client/components/pto-entry-form/index.ts` — added `_storage: StorageService` field (defaults to `LocalStorageAdapter`), exposed via `storage` setter. `persistSelectedMonth()`, `getPersistedMonth()`, `clearPersistedMonth()` now use `this._storage` instead of raw `localStorage`.
+- `client/components/pto-pto-card/index.ts` — added `_storage: StorageService` field + setter. `isExpanded` setter and `restoreExpandedState()` now use `this._storage`.
+- `client/controller/DebugConsoleController.ts` — extracted `activate()` / `deactivate()` lifecycle methods. `activate()` is idempotent (guarded by `_active` flag). `deactivate()` restores `console.*`, removes `window` error/rejection listeners, detaches the `<debug-console>` element. `destroy()` kept as deprecated alias.
+- `client/app.ts` — `App.run()` now nests a `<debug-provider>` (keyed `CONTEXT_KEYS.DEBUG`, value: `DebugConsoleController`) inside the existing notifications provider.
+- `tests/activityTracker.test.ts` — replaced `vi.stubGlobal("localStorage", ...)` with `InMemoryStorage`. Functions called with explicit `storage` parameter.
+- `tests/components/pto-pto-card.test.ts` — replaced `vi.stubGlobal("localStorage")` with `InMemoryStorage` via `component.storage = storage`.
+
 ### Key Architecture Decisions
 
 1. **Context keys are strings** (not Symbols) — stored in `CONTEXT_KEYS` const object.
@@ -141,7 +152,7 @@ Migrated files:
 
 ### Test Suite Status
 
-All 1162 tests passing (47 skipped: 46 excel-import tests requiring external `.xlsx` fixtures + 1 server test). Key test files:
+All 1204 tests passing (1 skipped: server test). Key test files:
 
 - `tests/shared/context.test.ts` — context protocol lifecycle (happy-dom)
 - `tests/shared/storage.test.ts` — InMemoryStorage (node)

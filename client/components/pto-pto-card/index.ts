@@ -6,6 +6,8 @@ import {
 } from "../../../shared/dateUtils.js";
 import type { PTOEntry } from "../../../shared/api-models.js";
 import { MONTH_NAMES } from "../../../shared/businessRules.js";
+import type { StorageService } from "../../shared/storage.js";
+import { LocalStorageAdapter } from "../../shared/storage.js";
 
 /** Map PTO type to its CSS color class for color-coded hours. */
 const TYPE_CSS_CLASS: Record<string, string> = {
@@ -194,8 +196,16 @@ export class PtoPtoCard extends BaseComponent {
   private fullEntries: PTOEntry[] = [];
   private expanded: boolean = false;
   private _expandedRestored = false;
+  private _storage: StorageService = new LocalStorageAdapter();
 
   private static readonly STORAGE_KEY = "pto-pto-card-expanded";
+
+  /**
+   * Inject a custom StorageService (e.g. InMemoryStorage for tests).
+   */
+  set storage(svc: StorageService) {
+    this._storage = svc;
+  }
 
   static get observedAttributes() {
     return ["expanded"];
@@ -216,24 +226,16 @@ export class PtoPtoCard extends BaseComponent {
   set isExpanded(value: boolean) {
     this.expanded = value;
     this.setAttribute("expanded", value.toString());
-    try {
-      localStorage.setItem(PtoPtoCard.STORAGE_KEY, value.toString());
-    } catch {
-      // localStorage unavailable — ignore
-    }
+    this._storage.setItem(PtoPtoCard.STORAGE_KEY, value.toString());
   }
 
   /** Restore expanded state from localStorage if available (once). */
   private restoreExpandedState(): void {
     if (this._expandedRestored) return;
     this._expandedRestored = true;
-    try {
-      const stored = localStorage.getItem(PtoPtoCard.STORAGE_KEY);
-      if (stored !== null) {
-        this.expanded = stored === "true";
-      }
-    } catch {
-      // localStorage unavailable — ignore
+    const stored = this._storage.getItem(PtoPtoCard.STORAGE_KEY);
+    if (stored !== null) {
+      this.expanded = stored === "true";
     }
   }
 

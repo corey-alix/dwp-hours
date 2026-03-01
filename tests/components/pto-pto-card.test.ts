@@ -3,6 +3,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { PtoPtoCard } from "../../client/components/pto-pto-card/index.js";
 import type { PTOEntry } from "../../shared/api-models.js";
+import { InMemoryStorage } from "../../client/shared/storage.js";
 
 describe("PtoPtoCard", () => {
   let component: PtoPtoCard;
@@ -344,23 +345,9 @@ describe("PtoPtoCard", () => {
     expect(legend).toBeFalsy();
   });
 
-  it("should persist expanded state to localStorage", () => {
-    const store: Record<string, string> = {};
-    const mockStorage = {
-      getItem: vi.fn((key: string) => store[key] ?? null),
-      setItem: vi.fn((key: string, val: string) => {
-        store[key] = val;
-      }),
-      removeItem: vi.fn((key: string) => {
-        delete store[key];
-      }),
-      clear: vi.fn(() => {
-        for (const k of Object.keys(store)) delete store[k];
-      }),
-      key: vi.fn(() => null),
-      length: 0,
-    };
-    vi.stubGlobal("localStorage", mockStorage);
+  it("should persist expanded state to storage", () => {
+    const storage = new InMemoryStorage();
+    component.storage = storage;
 
     const entries: PTOEntry[] = [
       {
@@ -376,11 +363,9 @@ describe("PtoPtoCard", () => {
     component.fullPtoEntries = entries;
 
     component.isExpanded = true;
-    expect(mockStorage.getItem("pto-pto-card-expanded")).toBe("true");
+    expect(storage.getItem("pto-pto-card-expanded")).toBe("true");
 
     component.isExpanded = false;
-    expect(mockStorage.getItem("pto-pto-card-expanded")).toBe("false");
-
-    vi.unstubAllGlobals();
+    expect(storage.getItem("pto-pto-card-expanded")).toBe("false");
   });
 });

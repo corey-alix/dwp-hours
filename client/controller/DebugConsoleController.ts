@@ -16,12 +16,20 @@ import type {
  * messages to `<debug-console>` if the element happens to be present
  * (e.g., test pages that include it declaratively), but no console
  * interception or error hooking occurs.
+ *
+ * Lifecycle:
+ *   `activate()` — set up console interception & error handlers (idempotent)
+ *   `deactivate()` — restore originals and remove the element (idempotent)
  */
 export class DebugConsoleController implements TraceListenerHandler {
-  private element: DebugConsole | null;
+  private element: DebugConsole | null = null;
   private originalConsoleLog: typeof console.log | null = null;
   private originalConsoleWarn: typeof console.warn | null = null;
   private originalConsoleError: typeof console.error | null = null;
+  private _errorHandler: ((event: ErrorEvent) => void) | null = null;
+  private _rejectionHandler: ((event: PromiseRejectionEvent) => void) | null =
+    null;
+  private _active = false;
 
   constructor() {
     const isDebug =
@@ -30,14 +38,60 @@ export class DebugConsoleController implements TraceListenerHandler {
     this.element = document.querySelector<DebugConsole>("debug-console");
 
     if (isDebug) {
-      // Inject if absent
-      if (!this.element) {
-        this.element = document.createElement("debug-console") as DebugConsole;
-        document.body.appendChild(this.element);
-      }
+      this.activate();
+    }
+  }
 
-      this.setupConsoleInterception();
-      this.setupExceptionHandlers();
+  /**
+   * Set up console interception, exception handlers, and inject
+   * `<debug-console>` if absent. Safe to call multiple times —
+   * subsequent calls are no-ops while already active.
+   */
+  activate(): void {
+    if (this._active) return;
+    this._active = true;
+
+    // Inject if absent
+    if (!this.element) {
+      this.element = document.createElement("debug-console") as DebugConsole;
+      document.body.appendChild(this.element);
+    }
+
+    this.setupConsoleInterception();
+    this.setupExceptionHandlers();
+  }
+
+  /**
+   * Restore original `console.*` methods, remove global error/rejection
+   * listeners, and detach the `<debug-console>` element. Safe to call
+   * multiple times — subsequent calls are no-ops while already inactive.
+   */
+  deactivate(): void {
+    if (!this._active) return;
+    this._active = false;
+
+    // Restore console methods
+    if (this.originalConsoleLog) console.log = this.originalConsoleLog;
+    if (this.originalConsoleWarn) console.warn = this.originalConsoleWarn;
+    if (this.originalConsoleError) console.error = this.originalConsoleError;
+    this.originalConsoleLog = null;
+    this.originalConsoleWarn = null;
+    this.originalConsoleError = null;
+
+    // Remove global event listeners
+    if (this._errorHandler) {
+      window.removeEventListener("error", this._errorHandler);
+      this._errorHandler = null;
+    }
+    if (this._rejectionHandler) {
+      window.removeEventListener("unhandledrejection", this._rejectionHandler);
+      this._rejectionHandler = null;
+    }
+
+    // Detach element
+    if (this.element?.parentNode) {
+      this.element.parentNode.removeChild(this.element);
+      this.element = null;
     }
   }
 
@@ -48,11 +102,9 @@ export class DebugConsoleController implements TraceListenerHandler {
     this.element?.log(level, text);
   }
 
-  /** Tear down hooks (useful for tests). */
+  /** @deprecated Use `deactivate()` instead. Kept for backward compatibility. */
   destroy(): void {
-    if (this.originalConsoleLog) console.log = this.originalConsoleLog;
-    if (this.originalConsoleWarn) console.warn = this.originalConsoleWarn;
-    if (this.originalConsoleError) console.error = this.originalConsoleError;
+    this.deactivate();
   }
 
   // ── Private ──
@@ -91,20 +143,22 @@ export class DebugConsoleController implements TraceListenerHandler {
   }
 
   private setupExceptionHandlers(): void {
-    window.addEventListener("error", (event) => {
+    this._errorHandler = (event: ErrorEvent) => {
       this.element?.log(
         "error",
         `Unhandled error: ${event.message} (${event.filename}:${event.lineno})`,
       );
-    });
+    };
+    window.addEventListener("error", this._errorHandler);
 
-    window.addEventListener("unhandledrejection", (event) => {
+    this._rejectionHandler = (event: PromiseRejectionEvent) => {
       const reason =
         event.reason instanceof Error
           ? event.reason.message
           : String(event.reason);
       this.element?.log("error", `Unhandled rejection: ${reason}`);
-    });
+    };
+    window.addEventListener("unhandledrejection", this._rejectionHandler);
   }
 
   private formatArgs(args: unknown[]): string {

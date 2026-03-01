@@ -5,6 +5,7 @@ import type { PtoEmployeeInfoCard } from "../../components/pto-employee-info-car
 import type { BalanceTable } from "../../components/balance-table/index.js";
 import type { MonthlyAccrualTable } from "../../components/monthly-accrual-table/index.js";
 import type * as ApiTypes from "../../../shared/api-models.js";
+import type { AuthService } from "../../auth/auth-service.js";
 import {
   getCurrentYear,
   formatDateForDisplay,
@@ -39,6 +40,12 @@ export class CurrentYearSummaryPage
   private _loaderData: LoaderData | null = null;
   /** True when an admin is viewing another employee's summary. */
   private _isAdminView = false;
+  private _authService: AuthService | null = null;
+
+  /** Injected by the router (auto-detected via property name). */
+  set authService(svc: AuthService) {
+    this._authService = svc;
+  }
 
   async onRouteEnter(
     _params: Record<string, string>,
@@ -88,10 +95,7 @@ export class CurrentYearSummaryPage
       if (this._loaderData?.employeeName) {
         employeeName = this._loaderData.employeeName;
       } else {
-        const storedUser = localStorage.getItem("currentUser");
-        employeeName = storedUser
-          ? (JSON.parse(storedUser) as { name?: string }).name
-          : undefined;
+        employeeName = this._authService?.getUser()?.name;
       }
       infoCard.info = {
         employeeName,
