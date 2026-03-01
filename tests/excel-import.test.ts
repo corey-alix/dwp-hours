@@ -2570,28 +2570,29 @@ describe("Excel Import", () => {
         }
       });
 
-      it("should NOT reclassify any sick entries (total=24h, exactly at allowance)", () => {
+      it("should reclassify the 4th sick entry after exhausting 24h allowance", () => {
         const result = parseEmployeeSheet(ws, themeColors);
 
-        // Dan Allen has 3 Sick entries: Mar 5 (8h), Mar 8 (8h), Apr 23 (8h) = 24h total.
-        // Feb 8 has a different green (FF92D050 vs legend FF00B050, distance ~149 > threshold 100)
-        // so it is NOT matched as Sick. With only 24h total, the allowance is never exceeded,
-        // and no reclassification occurs (reclassification triggers only when cumulative >= 24h
-        // BEFORE the current entry).
+        // Dan Allen has 4 Sick-colored entries: Feb 8 (8h), Mar 5 (8h), Mar 8 (8h), Apr 23 (8h) = 32h total.
+        // With Lab color distance, Feb 8's green (FF92D050) is perceptually close
+        // to the Sick legend green (FF00B050) and now matches as Sick.
+        // After the first 3 entries (24h cumulative), the 4th (Apr 23) is reclassified
+        // as PTO because cumulative >= 24h BEFORE that entry.
         const sickEntries = result.ptoEntries.filter((e) => e.type === "Sick");
         expect(sickEntries.length).toBe(3);
 
-        // No entries should have reclassification notes
+        // The 4th sick entry should have been reclassified as PTO
         const reclassified = result.ptoEntries.filter(
           (e) => e.notes && e.notes.includes("reclassified as PTO"),
         );
-        expect(reclassified.length).toBe(0);
+        expect(reclassified.length).toBe(1);
+        expect(reclassified[0].type).toBe("PTO");
 
-        // Verify no reclassification warnings
-        const reclassWarnings = result.warnings.filter((w) =>
+        // Verify reclassification resolved message was generated
+        const reclassResolved = result.resolved.filter((w) =>
           w.includes("reclassified"),
         );
-        expect(reclassWarnings.length).toBe(0);
+        expect(reclassResolved.length).toBe(1);
       });
 
       it("should detect December over-coloring", () => {
