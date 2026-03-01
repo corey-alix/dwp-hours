@@ -226,6 +226,12 @@ export class APIClient {
     return this.get(`/admin/monthly-review/${month}`);
   }
 
+  async getAdminEmployeePTOStatus(
+    employeeId: number,
+  ): Promise<ApiTypes.PTOStatusResponse & { employeeName: string }> {
+    return this.get(`/admin/employees/${employeeId}/pto-status`);
+  }
+
   async getAdminPTOEntries(options?: {
     excludeLockedMonths?: boolean;
     employeeId?: number;

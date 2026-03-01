@@ -2108,6 +2108,74 @@ initDatabase()
       },
     );
 
+    // Admin endpoint — get PTO status for a specific employee (admin only)
+    app.get(
+      "/api/admin/employees/:id/pto-status",
+      authenticateAdmin(() => dataSource, log),
+      async (req, res) => {
+        try {
+          const employeeId = parseInt(String(req.params.id), 10);
+          if (isNaN(employeeId) || employeeId <= 0) {
+            return res
+              .status(400)
+              .json({ error: "Invalid employee ID" });
+          }
+
+          const employeeRepo = dataSource.getRepository(Employee);
+          const ptoEntryRepo = dataSource.getRepository(PtoEntry);
+
+          const employee = await employeeRepo.findOne({
+            where: { id: employeeId },
+          });
+          if (!employee) {
+            return res
+              .status(404)
+              .json({ error: "Employee not found" });
+          }
+
+          const ptoEntries = await ptoEntryRepo.find({
+            where: { employee_id: employeeId },
+          });
+
+          const employeeData = {
+            id: employee.id,
+            name: employee.name,
+            identifier: employee.identifier,
+            pto_rate: employee.pto_rate,
+            carryover_hours: employee.carryover_hours,
+            hire_date: employee.hire_date,
+            role: employee.role,
+          };
+
+          const ptoEntriesData = ptoEntries.map((entry) => ({
+            id: entry.id,
+            employee_id: entry.employee_id,
+            date: entry.date,
+            type: entry.type,
+            hours: entry.hours,
+            created_at: dateToString(
+              entry.created_at instanceof Date
+                ? entry.created_at
+                : new Date(entry.created_at as any),
+            ),
+          }));
+
+          const status = calculatePTOStatus(
+            employeeData,
+            ptoEntriesData,
+          );
+
+          // Include the employee name so the client can display it
+          res.json({ ...status, employeeName: employee.name });
+        } catch (error) {
+          logger.error(
+            `Error getting admin employee PTO status: ${error}`,
+          );
+          res.status(500).json({ error: "Internal server error" });
+        }
+      },
+    );
+
     // Admin PTO endpoint — returns all employees' PTO entries (admin only)
     app.get(
       "/api/admin/pto",

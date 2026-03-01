@@ -30,6 +30,7 @@
 - LATER: See ./TASKS/responsive-visibility-tokens.md for details
 - LATER: See ./TASKS/pto-calendar-day-notes.md for details
 - LATER: See ./TASKS/time-travel-encapsulation.md for details
+- LATER: See ./TASKS/admin-view-employee-year-summary.md for details
 
 ## SOME WORK REMAINS
 

@@ -21,6 +21,10 @@ import { styles } from "./css.js";
 interface LoaderData {
   status: ApiTypes.PTOStatusResponse;
   entries: ApiTypes.PTOEntry[];
+  /** Present when an admin is viewing another employee's summary. */
+  employeeName?: string;
+  /** Present when an admin is viewing another employee's summary. */
+  employeeId?: number;
 }
 
 /**
@@ -33,6 +37,8 @@ export class CurrentYearSummaryPage
   implements PageComponent
 {
   private _loaderData: LoaderData | null = null;
+  /** True when an admin is viewing another employee's summary. */
+  private _isAdminView = false;
 
   async onRouteEnter(
     _params: Record<string, string>,
@@ -40,6 +46,7 @@ export class CurrentYearSummaryPage
     loaderData?: unknown,
   ): Promise<void> {
     this._loaderData = (loaderData as LoaderData) ?? null;
+    this._isAdminView = !!this._loaderData?.employeeId;
     this.requestUpdate();
 
     // Wait a tick for the DOM to initialise
@@ -50,9 +57,12 @@ export class CurrentYearSummaryPage
 
   protected render(): string {
     const year = getCurrentYear();
+    const nameSuffix = this._loaderData?.employeeName
+      ? ` — ${this._loaderData.employeeName}`
+      : "";
     return `
       ${styles}
-      <h2 class="page-heading">${year} Year Summary</h2>
+      <h2 class="page-heading">${year} Year Summary${nameSuffix}</h2>
       <div class="sticky-balance">
         <balance-table></balance-table>
       </div>
@@ -74,10 +84,15 @@ export class CurrentYearSummaryPage
       "pto-employee-info-card",
     );
     if (infoCard) {
-      const storedUser = localStorage.getItem("currentUser");
-      const employeeName = storedUser
-        ? (JSON.parse(storedUser) as { name?: string }).name
-        : undefined;
+      let employeeName: string | undefined;
+      if (this._loaderData?.employeeName) {
+        employeeName = this._loaderData.employeeName;
+      } else {
+        const storedUser = localStorage.getItem("currentUser");
+        employeeName = storedUser
+          ? (JSON.parse(storedUser) as { name?: string }).name
+          : undefined;
+      }
       infoCard.info = {
         employeeName,
         hireDate: formatDateForDisplay(status.hireDate),
@@ -148,6 +163,9 @@ export class CurrentYearSummaryPage
   private setupCardListeners(): void {
     if (this._cardListenersSetup) return;
     this._cardListenersSetup = true;
+
+    // Suppress navigation to Submit Time Off when viewing another employee
+    if (this._isAdminView) return;
 
     const handleNavToMonth = (e: Event) => {
       const detail = (e as CustomEvent).detail;
