@@ -237,7 +237,7 @@ export const styles = `
 .type-dot-Bereavement { background: ${PTO_TYPE_COLORS.Bereavement}; }
 .type-dot-Jury-Duty { background: ${PTO_TYPE_COLORS["Jury Duty"]}; }
 
-/* Note indicator: small triangle in top-left corner */
+/* Note indicator: small triangle in top-left corner (filled = has note) */
 .note-indicator {
     position: absolute;
     top: 1px;
@@ -252,6 +252,32 @@ export const styles = `
 
 .note-indicator:hover {
     opacity: 1;
+    transform: scale(1.3);
+}
+
+/* Edit-note ghost icon: outlined / semi-transparent in TL corner (edit mode, no existing note) */
+.edit-note-icon {
+    position: absolute;
+    top: 1px;
+    left: 2px;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    line-height: 1;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity var(--duration-fast, 150ms) var(--easing-standard, ease);
+}
+
+/* Show ghost icon on hover/focus of the parent day cell */
+.day:hover .edit-note-icon,
+.day:focus-within .edit-note-icon {
+    opacity: 0.5;
+}
+
+.edit-note-icon:hover {
+    opacity: 1;
+    color: var(--color-primary);
     transform: scale(1.3);
 }
 
@@ -295,8 +321,13 @@ export const styles = `
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .note-indicator:hover {
+    .note-indicator:hover,
+    .edit-note-icon:hover {
         transform: none;
+    }
+
+    .edit-note-icon {
+        transition: none;
     }
 }
 `;

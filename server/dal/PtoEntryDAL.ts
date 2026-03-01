@@ -26,6 +26,7 @@ export interface CreatePtoEntryData {
   date: string;
   hours: number;
   type: string;
+  notes?: string;
 }
 
 export interface UpdatePtoEntryData {
@@ -197,6 +198,7 @@ export class PtoEntryDAL {
       date: data.date, // Store as string
       type: normalizedType,
       hours: data.hours,
+      notes: data.notes || null,
     });
 
     const savedEntry = await this.ptoEntryRepo.save(ptoEntry);

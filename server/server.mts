@@ -2269,6 +2269,7 @@ initDatabase()
               date: reqDate,
               hours: reqHours,
               type: reqType,
+              notes: reqNotes,
             } = request;
 
             // For non-admin users, force the employeeId to be their own.
@@ -2341,6 +2342,7 @@ initDatabase()
               date: reqDate,
               hours: reqHoursNum,
               type: reqType,
+              notes: reqNotes || undefined,
             });
 
             if (!result.success) {

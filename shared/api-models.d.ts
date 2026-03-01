@@ -36,6 +36,7 @@ export interface PTOCreateRequest {
   date: string;
   hours: number;
   type: "PTO" | "Sick" | "Bereavement" | "Jury Duty";
+  notes?: string;
 }
 
 export interface PTOBulkCreateRequest {
