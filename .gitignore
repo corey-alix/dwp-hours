@@ -20,3 +20,4 @@ deploy
 AGENT_DIAGNOSTICS.log
 reports/
 types/**/*.d.ts
+tmp/
