@@ -1,10 +1,6 @@
 export abstract class BaseComponent extends HTMLElement {
   public shadowRoot!: ShadowRoot;
-  private eventListeners: {
-    element: EventTarget;
-    event: string;
-    handler: EventListener;
-  }[] = [];
+  private _cleanups: Array<() => void> = [];
   private isEventDelegationSetup = false;
   private _isConnected = false;
 
@@ -68,6 +64,14 @@ export abstract class BaseComponent extends HTMLElement {
     // Subclasses implement specific logic
   }
 
+  /**
+   * Register an arbitrary cleanup function to run in disconnectedCallback
+   * or before re-render. Use for addEventListener, timers, observers, etc.
+   */
+  protected addCleanup(fn: () => void) {
+    this._cleanups.push(fn);
+  }
+
   // Safe event listener management
   protected addListener(
     element: EventTarget,
@@ -75,14 +79,12 @@ export abstract class BaseComponent extends HTMLElement {
     handler: EventListener,
   ) {
     element.addEventListener(event, handler);
-    this.eventListeners.push({ element, event, handler });
+    this.addCleanup(() => element.removeEventListener(event, handler));
   }
 
   protected removeAllListeners() {
-    this.eventListeners.forEach(({ element, event, handler }) => {
-      element.removeEventListener(event, handler);
-    });
-    this.eventListeners = [];
+    this._cleanups.forEach((fn) => fn());
+    this._cleanups = [];
   }
 
   // Cleanup method for subclasses

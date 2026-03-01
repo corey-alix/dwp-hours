@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import ExcelJS from "exceljs";
 import { existsSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   parseLegend,
   findLegendHeaderRow,
@@ -1016,8 +1018,10 @@ describe("Excel Import", () => {
 
   // ── Legacy 2018 Workbook Integration ──
 
-  const LEGACY_2018_PATH =
-    "/home/ca0v/code/corey-alix/dwp-hours/reports/2018.xlsx";
+  const LEGACY_2018_PATH = resolve(
+    dirname(fileURLToPath(import.meta.url)),
+    "../reports/2018.xlsx",
+  );
 
   describe.skipIf(!existsSync(LEGACY_2018_PATH))(
     "Legacy 2018 workbook - A Bylenga",
@@ -2570,22 +2574,21 @@ describe("Excel Import", () => {
         }
       });
 
-      it("should NOT reclassify any sick entries (total=24h, exactly at allowance)", () => {
+      it("should reclassify the last sick entry (total=32h, exceeds 24h allowance with Lab matching)", () => {
         const result = parseEmployeeSheet(ws, themeColors);
 
-        // Dan Allen has 3 Sick entries: Mar 5 (8h), Mar 8 (8h), Apr 23 (8h) = 24h total.
-        // Feb 8 has a different green (FF92D050 vs legend FF00B050, distance ~149 > threshold 100)
-        // so it is NOT matched as Sick. With only 24h total, the allowance is never exceeded,
-        // and no reclassification occurs (reclassification triggers only when cumulative >= 24h
-        // BEFORE the current entry).
+        // Dan Allen has 4 Sick entries: Feb 8 (8h), Mar 5 (8h), Mar 8 (8h), Apr 23 (8h) = 32h total.
+        // Feb 8 has a different green (FF92D050 vs legend FF00B050). With Lab distance (~29 < 50)
+        // it IS matched as Sick. With 32h total, cumulative reaches 24h after the 3rd entry,
+        // so the 4th entry (Apr 23) is reclassified from Sick to PTO.
         const sickEntries = result.ptoEntries.filter((e) => e.type === "Sick");
         expect(sickEntries.length).toBe(3);
 
-        // No entries should have reclassification notes
+        // One entry should have reclassification notes
         const reclassified = result.ptoEntries.filter(
           (e) => e.notes && e.notes.includes("reclassified as PTO"),
         );
-        expect(reclassified.length).toBe(0);
+        expect(reclassified.length).toBe(1);
 
         // Verify no reclassification warnings
         const reclassWarnings = result.warnings.filter((w) =>

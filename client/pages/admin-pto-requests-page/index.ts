@@ -2,7 +2,8 @@ import { BaseComponent } from "../../components/base-component.js";
 import type { PageComponent } from "../../router/types.js";
 import type { AuthService } from "../../auth/auth-service.js";
 import { APIClient } from "../../APIClient.js";
-import { notifications } from "../../app.js";
+import { consumeContext, CONTEXT_KEYS } from "../../shared/context.js";
+import type { TraceListener } from "../../controller/TraceListener.js";
 import { today, getLastDayOfMonth } from "../../../shared/dateUtils.js";
 import {
   BUSINESS_RULES_CONSTANTS,
@@ -35,6 +36,7 @@ export class AdminPtoRequestsPage
   implements PageComponent
 {
   private api = new APIClient();
+  private _notifications: TraceListener | null = null;
   private _requests: PTORequest[] = [];
   private _ptoEntries: Array<{
     employee_id: number;
@@ -47,6 +49,13 @@ export class AdminPtoRequestsPage
 
   set authService(svc: AuthService) {
     this._authService = svc;
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    consumeContext<TraceListener>(this, CONTEXT_KEYS.NOTIFICATIONS, (svc) => {
+      this._notifications = svc;
+    });
   }
 
   async onRouteEnter(
@@ -278,7 +287,7 @@ export class AdminPtoRequestsPage
     try {
       const adminUser = this._authService?.getUser();
       if (!adminUser) {
-        notifications.error("Unable to approve: admin user not found.");
+        this._notifications?.error("Unable to approve: admin user not found.");
         return;
       }
       // Dismiss the card using the primary (first) request ID
@@ -291,10 +300,10 @@ export class AdminPtoRequestsPage
         requestIds.length === 1
           ? "PTO request approved."
           : `${requestIds.length} PTO requests approved.`;
-      notifications.success(label);
+      this._notifications?.success(label);
       await this.refreshQueue();
     } catch (error) {
-      notifications.error(
+      this._notifications?.error(
         `Failed to approve request: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
@@ -311,10 +320,10 @@ export class AdminPtoRequestsPage
         requestIds.length === 1
           ? "PTO request rejected."
           : `${requestIds.length} PTO requests rejected.`;
-      notifications.success(label);
+      this._notifications?.success(label);
       await this.refreshQueue();
     } catch (error) {
-      notifications.error(
+      this._notifications?.error(
         `Failed to reject request: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
@@ -378,7 +387,7 @@ export class AdminPtoRequestsPage
 
       this.hydrateBalanceSummaries();
     } catch (error) {
-      notifications.error(
+      this._notifications?.error(
         `Failed to refresh queue: ${error instanceof Error ? error.message : String(error)}`,
       );
     }

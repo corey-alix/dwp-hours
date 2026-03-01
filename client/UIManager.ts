@@ -1,8 +1,8 @@
 import { APIClient } from "./APIClient";
 import { AuthService } from "./auth/auth-service";
 import { Router, appRoutes } from "./router";
-import { notifications } from "./app";
 import { DashboardNavigationMenu } from "./components";
+import type { TraceListener } from "./controller/TraceListener";
 import { querySingle, addEventListener } from "./components/test-utils";
 import {
   isFirstSessionVisit,
@@ -25,8 +25,10 @@ export class UIManager {
   private router: Router;
   private api: APIClient;
   private notificationService: NotificationService;
+  private notifications: TraceListener;
 
-  constructor() {
+  constructor(notifications: TraceListener) {
+    this.notifications = notifications;
     this.api = new APIClient();
     this.notificationService = new NotificationService(this.api);
     this.authService = new AuthService(this.api);
@@ -234,7 +236,7 @@ export class UIManager {
       if (isAcknowledged) return false;
 
       // Navigate to the unacknowledged month
-      notifications.info(
+      this.notifications.info(
         `Please review and lock ${priorMonth} before continuing.`,
       );
       await this.router.navigate(
@@ -264,7 +266,7 @@ export class UIManager {
       for (const item of items) {
         // Show each notification as a toast with auto-dismiss
         // The notification is NOT marked as read on auto-dismiss
-        notifications.info(item.message, {
+        this.notifications.info(item.message, {
           autoDismissMs: this.notificationService.autoDismissMs,
           onDismiss: () => {
             // Only mark as read when user explicitly clicks dismiss

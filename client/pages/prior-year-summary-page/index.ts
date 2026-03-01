@@ -2,7 +2,8 @@ import { BaseComponent } from "../../components/base-component.js";
 import type { PageComponent } from "../../router/types.js";
 import type { PriorYearReview } from "../../components/prior-year-review/index.js";
 import type { PTOYearReviewResponse } from "../../../shared/api-models.js";
-import { notifications } from "../../app.js";
+import { consumeContext, CONTEXT_KEYS } from "../../shared/context.js";
+import type { TraceListener } from "../../controller/TraceListener.js";
 import { getCurrentYear } from "../../../shared/dateUtils.js";
 import { styles } from "./css.js";
 
@@ -15,7 +16,15 @@ export class PriorYearSummaryPage
   extends BaseComponent
   implements PageComponent
 {
+  private _notifications: TraceListener | null = null;
   private _loaderData: PTOYearReviewResponse | null = null;
+
+  connectedCallback() {
+    super.connectedCallback();
+    consumeContext<TraceListener>(this, CONTEXT_KEYS.NOTIFICATIONS, (svc) => {
+      this._notifications = svc;
+    });
+  }
 
   async onRouteEnter(
     _params: Record<string, string>,
@@ -35,7 +44,7 @@ export class PriorYearSummaryPage
         review.data = this._loaderData;
       } else {
         review.data = null;
-        notifications.error(
+        this._notifications?.error(
           "Failed to load prior year data. Please try again later.",
         );
       }

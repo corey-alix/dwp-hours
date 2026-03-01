@@ -1,7 +1,8 @@
 import { BaseComponent } from "../../components/base-component.js";
 import type { PageComponent } from "../../router/types.js";
 import { APIClient } from "../../APIClient.js";
-import { notifications } from "../../app.js";
+import { consumeContext, CONTEXT_KEYS } from "../../shared/context.js";
+import type { TraceListener } from "../../controller/TraceListener.js";
 import {
   getCurrentYear,
   getLastDayOfMonth,
@@ -23,6 +24,7 @@ import { styles } from "./css.js";
  */
 export class AdminEmployeesPage extends BaseComponent implements PageComponent {
   private api = new APIClient();
+  private _notifications: TraceListener | null = null;
   private _employees: any[] = [];
   private _ptoEntries: Array<{
     employee_id: number;
@@ -39,6 +41,9 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
     super.connectedCallback();
     adoptToolbar(this.shadowRoot);
     adoptAnimations(this.shadowRoot);
+    consumeContext<TraceListener>(this, CONTEXT_KEYS.NOTIFICATIONS, (svc) => {
+      this._notifications = svc;
+    });
   }
 
   async onRouteEnter(
@@ -260,7 +265,7 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
   private handleEditEmployee(employeeId: number): void {
     const employee = this._employees.find((e: any) => e.id === employeeId);
     if (!employee) {
-      notifications.error(`Employee ${employeeId} not found.`);
+      this._notifications?.error(`Employee ${employeeId} not found.`);
       return;
     }
     // Track edit state for cancel/submit handlers
@@ -283,10 +288,10 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
 
     try {
       await this.api.deleteEmployee(employeeId);
-      notifications.success(`Employee "${name}" deleted successfully.`);
+      this._notifications?.success(`Employee "${name}" deleted successfully.`);
       await this.refreshEmployees();
     } catch (error) {
-      notifications.error(
+      this._notifications?.error(
         `Failed to delete employee: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
@@ -316,7 +321,7 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
           hireDate: employee.hireDate,
           role: employee.role as "Employee" | "Admin",
         });
-        notifications.success(
+        this._notifications?.success(
           `Employee "${employee.name}" updated successfully!`,
         );
       } else {
@@ -328,7 +333,7 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
           hireDate: employee.hireDate || today(),
           role: employee.role as "Employee" | "Admin",
         });
-        notifications.success(
+        this._notifications?.success(
           `Employee "${employee.name}" added successfully!`,
         );
       }
@@ -337,7 +342,7 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
       this._editEmployee = null;
       await this.refreshEmployees();
     } catch (error) {
-      notifications.error(
+      this._notifications?.error(
         `Failed to ${detail.isEdit ? "update" : "add"} employee: ${error instanceof Error ? error.message : String(error)}`,
       );
     }

@@ -2,7 +2,8 @@ import { BaseComponent } from "../../components/base-component.js";
 import type { PageComponent } from "../../router/types.js";
 import type { TimesheetUploadForm } from "../../components/timesheet-upload-form/index.js";
 import { APIClient } from "../../APIClient.js";
-import { notifications } from "../../app.js";
+import { consumeContext, CONTEXT_KEYS } from "../../shared/context.js";
+import type { TraceListener } from "../../controller/TraceListener.js";
 import { styles } from "./css.js";
 
 const api = new APIClient();
@@ -16,6 +17,15 @@ export class UploadTimesheetPage
   extends BaseComponent
   implements PageComponent
 {
+  private _notifications: TraceListener | null = null;
+
+  connectedCallback() {
+    super.connectedCallback();
+    consumeContext<TraceListener>(this, CONTEXT_KEYS.NOTIFICATIONS, (svc) => {
+      this._notifications = svc;
+    });
+  }
+
   async onRouteEnter(): Promise<void> {
     this.requestUpdate();
 
@@ -31,7 +41,7 @@ export class UploadTimesheetPage
       // Fetch the authenticated employee's profile via the session endpoint
       const session = await api.validateSession();
       if (!session?.valid || !session.employee) {
-        notifications.error(
+        this._notifications?.error(
           "Unable to load your profile. Please log in again.",
         );
         return;
@@ -42,7 +52,7 @@ export class UploadTimesheetPage
         hireDate: session.employee.hireDate || "",
       };
     } catch (err) {
-      notifications.error(
+      this._notifications?.error(
         "Failed to load your profile. Please try again later.",
       );
     }

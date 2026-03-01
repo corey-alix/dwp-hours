@@ -1,7 +1,8 @@
 import { BaseComponent } from "../../components/base-component.js";
 import type { PageComponent } from "../../router/types.js";
 import { APIClient } from "../../APIClient.js";
-import { notifications } from "../../app.js";
+import { consumeContext, CONTEXT_KEYS } from "../../shared/context.js";
+import type { TraceListener } from "../../controller/TraceListener.js";
 import { styles } from "./css.js";
 import {
   SUCCESS_MESSAGES,
@@ -17,6 +18,14 @@ export class AdminMonthlyReviewPage
   implements PageComponent
 {
   private api = new APIClient();
+  private _notifications: TraceListener | null = null;
+
+  connectedCallback() {
+    super.connectedCallback();
+    consumeContext<TraceListener>(this, CONTEXT_KEYS.NOTIFICATIONS, (svc) => {
+      this._notifications = svc;
+    });
+  }
 
   async onRouteEnter(
     _params: Record<string, string>,
@@ -106,7 +115,7 @@ export class AdminMonthlyReviewPage
             adminComp.setEmployeeData(employeeData);
           } catch (error: any) {
             console.error("Failed to load admin monthly review data:", error);
-            notifications.error(
+            this._notifications?.error(
               "Failed to load monthly review data: " + (error?.message || ""),
             );
           }
@@ -215,7 +224,7 @@ export class AdminMonthlyReviewPage
         "calendar_lock_reminder",
         message,
       );
-      notifications.success(
+      this._notifications?.success(
         SUCCESS_MESSAGES["notification.calendar_lock_sent"],
       );
 
@@ -228,7 +237,7 @@ export class AdminMonthlyReviewPage
       }
     } catch (error: any) {
       console.error("Failed to send lock reminder:", error);
-      notifications.error(
+      this._notifications?.error(
         "Failed to send reminder: " + (error.message || "Unknown error"),
       );
     }
@@ -243,7 +252,7 @@ export class AdminMonthlyReviewPage
         employeeId,
         month,
       );
-      notifications.success(
+      this._notifications?.success(
         response.message || "Acknowledgment submitted successfully.",
       );
 
@@ -281,7 +290,7 @@ export class AdminMonthlyReviewPage
       }
     } catch (error: any) {
       console.error("Failed to submit admin acknowledgment:", error);
-      notifications.error(
+      this._notifications?.error(
         "Failed to submit acknowledgment: " +
           (error.message || "Unknown error"),
       );

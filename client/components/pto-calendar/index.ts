@@ -18,7 +18,8 @@ import { CALENDAR_SYMBOLS } from "../../../shared/calendar-symbols.js";
 import { BaseComponent } from "../base-component.js";
 import { styles, PTO_TYPE_COLORS } from "./css.js";
 import { MONTH_NAMES } from "../../../shared/businessRules.js";
-import { notifications } from "../../app.js";
+import { consumeContext, CONTEXT_KEYS } from "../../shared/context.js";
+import type { TraceListener } from "../../controller/TraceListener.js";
 import {
   LONG_PRESS_MS,
   LONG_PRESS_MOVE_THRESHOLD,
@@ -59,6 +60,7 @@ export interface PTOEntry {
 
 export class PtoCalendar extends BaseComponent {
   // ── Complex values: private fields with get/set ──
+  private _notifications: TraceListener | null = null;
   private _ptoEntries: PTOEntry[] = [];
   private _selectedCells: Map<string, number> = new Map();
   private _selectedPtoType: PTOType | null = null;
@@ -81,6 +83,13 @@ export class PtoCalendar extends BaseComponent {
   private _reconciledDates: Set<string> = new Set();
   /** Per-date tooltip for reconciled indicators, sourced from PTO entry notes. */
   private _reconciledTooltips: Map<string, string> = new Map();
+
+  connectedCallback() {
+    super.connectedCallback();
+    consumeContext<TraceListener>(this, CONTEXT_KEYS.NOTIFICATIONS, (svc) => {
+      this._notifications = svc;
+    });
+  }
 
   // ── View-model focus state ──
   private _focusedDate: string | null = null;
@@ -427,7 +436,7 @@ export class PtoCalendar extends BaseComponent {
       } else {
         const noteText = noteIndicator.getAttribute("data-note");
         if (noteText) {
-          notifications.info(noteText, "Note");
+          this._notifications?.info(noteText, "Note");
         }
       }
       return;

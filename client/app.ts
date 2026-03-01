@@ -11,6 +11,7 @@ import { TraceListener } from "./controller/TraceListener.js";
 import { PtoNotificationController } from "./controller/PtoNotificationController.js";
 import { DebugConsoleController } from "./controller/DebugConsoleController.js";
 import { UIManager } from "./UIManager.js";
+import { createContextProvider, CONTEXT_KEYS } from "./shared/context.js";
 import {
   setTimeTravelYear,
   setTimeTravelDay,
@@ -50,8 +51,9 @@ import {
 })();
 
 // Notification system — TraceListener replaces the old NotificationManager.
-// The variable name `notifications` is retained for call-site compatibility.
-export const notifications = new TraceListener();
+// Module-scoped instance provided to UIManager via constructor injection
+// and to DOM components via the context protocol.
+const notifications = new TraceListener();
 
 /**
  * Application entry point.
@@ -63,7 +65,20 @@ export class App {
     notifications.addListener(new PtoNotificationController());
     notifications.addListener(new DebugConsoleController());
 
-    return new UIManager();
+    // Mount notifications context provider around the app wrapper
+    // so any descendant can call consumeContext<TraceListener>(this, "notifications", cb)
+    const appWrapper = document.getElementById("app-wrapper");
+    if (appWrapper?.parentElement) {
+      const provider = createContextProvider(
+        CONTEXT_KEYS.NOTIFICATIONS,
+        notifications,
+      );
+      provider.style.display = "contents"; // invisible wrapper
+      appWrapper.parentElement.insertBefore(provider, appWrapper);
+      provider.appendChild(appWrapper);
+    }
+
+    return new UIManager(notifications);
   }
 }
 

@@ -12,7 +12,8 @@ import {
 import type { CalendarEntry } from "../../components/pto-calendar/index.js";
 import type { PtoCalendar } from "../../components/pto-calendar/index.js";
 import { APIClient } from "../../APIClient.js";
-import { notifications } from "../../app.js";
+import { consumeContext, CONTEXT_KEYS } from "../../shared/context.js";
+import type { TraceListener } from "../../controller/TraceListener.js";
 import { adoptToolbar } from "../../css-extensions/index.js";
 import { styles } from "./css.js";
 
@@ -31,6 +32,7 @@ interface LoaderData {
  */
 export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
   private api = new APIClient();
+  private _notifications: TraceListener | null = null;
   private _loaderData: LoaderData | null = null;
   private _lockState: MonthLockState = "unlocked";
   private _currentAckId: number | null = null;
@@ -40,6 +42,9 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
   connectedCallback() {
     super.connectedCallback();
     adoptToolbar(this.shadowRoot);
+    consumeContext<TraceListener>(this, CONTEXT_KEYS.NOTIFICATIONS, (svc) => {
+      this._notifications = svc;
+    });
   }
 
   async onRouteEnter(
@@ -119,7 +124,7 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
     ) => {
       e.stopPropagation();
       const errors: string[] = e.detail?.errors ?? [];
-      notifications.error(errors.join("\n"));
+      this._notifications?.error(errors.join("\n"));
     }) as EventListener);
 
     this.shadowRoot.addEventListener("selection-changed", ((e: Event) => {
@@ -266,19 +271,21 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
         currentDateStr = addDays(currentDateStr, 1);
       }
       if (requests.length === 0) {
-        notifications.error("No valid dates selected (must be weekdays).");
+        this._notifications?.error(
+          "No valid dates selected (must be weekdays).",
+        );
         return;
       }
     }
 
     try {
       const result = await this.api.createPTOEntry({ requests });
-      notifications.success("PTO request submitted successfully!");
+      this._notifications?.success("PTO request submitted successfully!");
 
       // Display any soft warnings (e.g., sick day threshold exceeded)
       if (result.warnings && result.warnings.length > 0) {
         for (const warning of result.warnings) {
-          notifications.warning(warning);
+          this._notifications?.warning(warning);
         }
       }
 
@@ -297,14 +304,18 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
     } catch (error: any) {
       console.error("Error submitting PTO request:", error);
       if (error.responseData?.error === "month_locked") {
-        notifications.error(error.responseData.message);
+        this._notifications?.error(error.responseData.message);
       } else if (error.responseData?.fieldErrors) {
         const messages = error.responseData.fieldErrors.map(
           (err: any) => `${err.field}: ${err.message}`,
         );
-        notifications.error(`PTO request failed: ${messages.join("; ")}`);
+        this._notifications?.error(
+          `PTO request failed: ${messages.join("; ")}`,
+        );
       } else {
-        notifications.error("Failed to submit PTO request. Please try again.");
+        this._notifications?.error(
+          "Failed to submit PTO request. Please try again.",
+        );
       }
     }
   }
@@ -524,15 +535,15 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
       // Lock the month
       try {
         await this.api.submitAcknowledgement(month);
-        notifications.success("Month locked successfully.");
+        this._notifications?.success("Month locked successfully.");
         await this.refreshLockState();
       } catch (error: any) {
         if (error.responseData?.error === "month_locked") {
           // Admin already locked — refresh state
-          notifications.error(error.responseData.message);
+          this._notifications?.error(error.responseData.message);
           await this.refreshLockState();
         } else {
-          notifications.error(
+          this._notifications?.error(
             error.responseData?.error ??
               "Failed to lock month. Please try again.",
           );
@@ -542,15 +553,15 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
       // Unlock the month
       try {
         await this.api.deleteAcknowledgement(this._currentAckId);
-        notifications.success("Month unlocked successfully.");
+        this._notifications?.success("Month unlocked successfully.");
         await this.refreshLockState();
       } catch (error: any) {
         if (error.responseData?.error === "month.admin_locked_cannot_unlock") {
           this._lockState = "admin-locked";
           this.applyLockStateUI();
-          notifications.error(error.responseData.message);
+          this._notifications?.error(error.responseData.message);
         } else {
-          notifications.error(
+          this._notifications?.error(
             error.responseData?.error ??
               "Failed to unlock month. Please try again.",
           );
