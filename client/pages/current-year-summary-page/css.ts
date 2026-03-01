@@ -24,13 +24,13 @@ export const styles = `<style>
     display: flex;
     flex-direction: column;
     gap: var(--space-md);
+    margin-top: var(--space-md);
   }
 
   @media (min-width: 768px) {
     .pto-summary {
       display: grid;
       grid-template-columns: minmax(18em, 1fr) minmax(24em, 2fr);
-      gap: var(--space-md);
     }
   }
 </style>`;

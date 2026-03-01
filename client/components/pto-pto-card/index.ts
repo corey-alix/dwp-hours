@@ -259,9 +259,9 @@ export class PtoPtoCard extends BaseComponent {
   private renderTable(): string {
     if (!this.expanded || this.fullEntries.length === 0) return "";
 
-    // Reverse chronological order
+    // chronological order
     const sorted = [...this.fullEntries].sort((a, b) =>
-      b.date.localeCompare(a.date),
+      a.date.localeCompare(b.date),
     );
 
     // Group by month
