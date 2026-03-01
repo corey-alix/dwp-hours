@@ -10,7 +10,7 @@ import dotenv from "dotenv";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import "reflect-metadata";
-import { DataSource, Not, IsNull, Between, Like } from "typeorm";
+import { DataSource, Not, IsNull, Between, Like, In } from "typeorm";
 import {
   Employee,
   PtoEntry,
@@ -2125,7 +2125,8 @@ initDatabase()
       authenticateAdmin(() => dataSource, log),
       async (req, res) => {
         try {
-          const { type, startDate, endDate, employeeId } = req.query;
+          const { type, startDate, endDate, employeeId, excludeLockedMonths } =
+            req.query;
           const ptoEntryRepo = dataSource.getRepository(PtoEntry);
 
           let whereCondition: any = {};
@@ -2149,10 +2150,31 @@ initDatabase()
             whereCondition.date = Between("0000-01-01", endDate as string);
           }
 
-          const ptoEntries = await ptoEntryRepo.find({
+          let ptoEntries = await ptoEntryRepo.find({
             where: whereCondition,
             order: { date: "DESC" },
           });
+
+          // When excludeLockedMonths is set, remove entries whose
+          // employee+month combination has an admin acknowledgement.
+          // This prevents unapproved historic entries in locked months
+          // from appearing in the PTO Request Queue.
+          if (excludeLockedMonths === "true") {
+            const adminAckRepo =
+              dataSource.getRepository(AdminAcknowledgement);
+            const adminAcks = await adminAckRepo.find();
+            const lockedKeys = new Set(
+              adminAcks.map(
+                (ack) => `${ack.employee_id}:${ack.month}`,
+              ),
+            );
+            ptoEntries = ptoEntries.filter((entry) => {
+              const entryMonth = entry.date.slice(0, 7);
+              return !lockedKeys.has(
+                `${entry.employee_id}:${entryMonth}`,
+              );
+            });
+          }
 
           const serializedEntries = ptoEntries.map((entry) =>
             serializePTOEntry(entry),

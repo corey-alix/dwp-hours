@@ -889,3 +889,256 @@ describe("PtoCalendar Component - Note Indicator", () => {
     expect(noteIndicator).toBeNull();
   });
 });
+
+describe("PtoCalendar Component - Reconciled Indicator", () => {
+  let component: PtoCalendar;
+  let container: HTMLElement;
+
+  beforeEach(async () => {
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    component = new PtoCalendar();
+    container.appendChild(component);
+  });
+
+  afterEach(() => {
+    document.body.removeChild(container);
+  });
+
+  it("should display † indicator for unapproved entries in reconciled dates", () => {
+    const entries: PTOEntry[] = [
+      {
+        id: 1,
+        employeeId: 1,
+        date: "2024-02-12",
+        type: "PTO",
+        hours: 8,
+        createdAt: "2024-01-01T00:00:00Z",
+        approved_by: null,
+        notes: "Exceeded PTO balance",
+      },
+    ];
+
+    component.setYear(2024);
+    component.setMonth(2);
+    component.setPtoEntries(entries);
+    component.reconciledDates = new Set(["2024-02-12"]);
+    component.reconciledTooltips = new Map([
+      ["2024-02-12", "Exceeded PTO balance"],
+    ]);
+
+    const dayCell = component.shadowRoot?.querySelector(
+      '[data-date="2024-02-12"]',
+    );
+    const indicator = dayCell?.querySelector(".reconciled-indicator");
+    expect(indicator).toBeTruthy();
+    expect(indicator?.textContent).toBe("†");
+  });
+
+  it("should not display † indicator for approved entries even if in reconciled set", () => {
+    const entries: PTOEntry[] = [
+      {
+        id: 1,
+        employeeId: 1,
+        date: "2024-02-12",
+        type: "PTO",
+        hours: 8,
+        createdAt: "2024-01-01T00:00:00Z",
+        approved_by: 3,
+      },
+    ];
+
+    component.setYear(2024);
+    component.setMonth(2);
+    component.setPtoEntries(entries);
+    component.reconciledDates = new Set(["2024-02-12"]);
+
+    const dayCell = component.shadowRoot?.querySelector(
+      '[data-date="2024-02-12"]',
+    );
+    // Approved entry shows checkmark, not reconciled indicator
+    const checkmark = dayCell?.querySelector(".checkmark");
+    const indicator = dayCell?.querySelector(".reconciled-indicator");
+    expect(checkmark).toBeTruthy();
+    expect(indicator).toBeNull();
+  });
+
+  it("should not display † indicator when date is not in reconciled set", () => {
+    const entries: PTOEntry[] = [
+      {
+        id: 1,
+        employeeId: 1,
+        date: "2024-02-12",
+        type: "PTO",
+        hours: 8,
+        createdAt: "2024-01-01T00:00:00Z",
+        approved_by: null,
+      },
+    ];
+
+    component.setYear(2024);
+    component.setMonth(2);
+    component.setPtoEntries(entries);
+    // reconciledDates is empty (default)
+
+    const dayCell = component.shadowRoot?.querySelector(
+      '[data-date="2024-02-12"]',
+    );
+    const indicator = dayCell?.querySelector(".reconciled-indicator");
+    expect(indicator).toBeNull();
+  });
+
+  it("should position † indicator in top-right corner (same as checkmark)", () => {
+    const entries: PTOEntry[] = [
+      {
+        id: 1,
+        employeeId: 1,
+        date: "2024-02-12",
+        type: "PTO",
+        hours: 8,
+        createdAt: "2024-01-01T00:00:00Z",
+        approved_by: null,
+      },
+    ];
+
+    component.setYear(2024);
+    component.setMonth(2);
+    component.setPtoEntries(entries);
+    component.reconciledDates = new Set(["2024-02-12"]);
+
+    const dayCell = component.shadowRoot?.querySelector(
+      '[data-date="2024-02-12"]',
+    );
+    const indicator = dayCell?.querySelector(
+      ".reconciled-indicator",
+    ) as HTMLElement;
+    expect(indicator).toBeTruthy();
+
+    // Verify the CSS class exists in the stylesheet
+    const styleEl = component.shadowRoot?.querySelector("style");
+    expect(styleEl?.textContent).toContain(".reconciled-indicator");
+    expect(styleEl?.textContent).toContain("top: 2px");
+    expect(styleEl?.textContent).toContain("right: 2px");
+  });
+
+  it("should use warning color for † indicator", () => {
+    const entries: PTOEntry[] = [
+      {
+        id: 1,
+        employeeId: 1,
+        date: "2024-02-12",
+        type: "PTO",
+        hours: 8,
+        createdAt: "2024-01-01T00:00:00Z",
+        approved_by: null,
+      },
+    ];
+
+    component.setYear(2024);
+    component.setMonth(2);
+    component.setPtoEntries(entries);
+    component.reconciledDates = new Set(["2024-02-12"]);
+
+    const styleEl = component.shadowRoot?.querySelector("style");
+    expect(styleEl?.textContent).toContain("var(--color-warning)");
+  });
+
+  it("should include tooltip from reconciledTooltips map", () => {
+    const entries: PTOEntry[] = [
+      {
+        id: 1,
+        employeeId: 1,
+        date: "2024-02-12",
+        type: "PTO",
+        hours: 8,
+        createdAt: "2024-01-01T00:00:00Z",
+        approved_by: null,
+      },
+    ];
+
+    component.setYear(2024);
+    component.setMonth(2);
+    component.setPtoEntries(entries);
+    // Set tooltips before reconciledDates since the dates setter triggers render
+    component.reconciledTooltips = new Map([
+      ["2024-02-12", "PTO exceeded: borrowed 16h beyond balance"],
+    ]);
+    component.reconciledDates = new Set(["2024-02-12"]);
+
+    const dayCell = component.shadowRoot?.querySelector(
+      '[data-date="2024-02-12"]',
+    );
+    const indicator = dayCell?.querySelector(
+      ".reconciled-indicator",
+    ) as HTMLElement;
+    expect(indicator?.getAttribute("title")).toBe(
+      "PTO exceeded: borrowed 16h beyond balance",
+    );
+  });
+
+  it("should show default tooltip when no reconciledTooltips entry exists", () => {
+    const entries: PTOEntry[] = [
+      {
+        id: 1,
+        employeeId: 1,
+        date: "2024-02-12",
+        type: "PTO",
+        hours: 8,
+        createdAt: "2024-01-01T00:00:00Z",
+        approved_by: null,
+      },
+    ];
+
+    component.setYear(2024);
+    component.setMonth(2);
+    component.setPtoEntries(entries);
+    component.reconciledDates = new Set(["2024-02-12"]);
+    // No reconciledTooltips set — should use default
+
+    const dayCell = component.shadowRoot?.querySelector(
+      '[data-date="2024-02-12"]',
+    );
+    const indicator = dayCell?.querySelector(
+      ".reconciled-indicator",
+    ) as HTMLElement;
+    expect(indicator?.getAttribute("title")).toBe(
+      "Unapproved borrowed time (month reconciled)",
+    );
+  });
+
+  it("should update indicator via targeted day update when reconciledDates changes", () => {
+    const entries: PTOEntry[] = [
+      {
+        id: 1,
+        employeeId: 1,
+        date: "2024-02-12",
+        type: "PTO",
+        hours: 8,
+        createdAt: "2024-01-01T00:00:00Z",
+        approved_by: null,
+      },
+    ];
+
+    component.setYear(2024);
+    component.setMonth(2);
+    component.setPtoEntries(entries);
+
+    // Initially no reconciled indicator
+    let dayCell = component.shadowRoot?.querySelector(
+      '[data-date="2024-02-12"]',
+    );
+    expect(dayCell?.querySelector(".reconciled-indicator")).toBeNull();
+
+    // Add reconciled date — should show indicator via targeted update
+    component.reconciledDates = new Set(["2024-02-12"]);
+
+    dayCell = component.shadowRoot?.querySelector('[data-date="2024-02-12"]');
+    expect(dayCell?.querySelector(".reconciled-indicator")).toBeTruthy();
+
+    // Remove reconciled date — indicator should disappear
+    component.reconciledDates = new Set();
+
+    dayCell = component.shadowRoot?.querySelector('[data-date="2024-02-12"]');
+    expect(dayCell?.querySelector(".reconciled-indicator")).toBeNull();
+  });
+});

@@ -216,9 +216,13 @@ export class AdminPtoRequestsPage
           const [y, m] = month.split("-").map(Number);
           const endDate = getLastDayOfMonth(y, m);
 
-          const ptoEntries = await this.api.get(
-            `/admin/pto?employeeId=${employeeId}&startDate=${startDate}&endDate=${endDate}`,
-          );
+          // Fetch PTO entries and acknowledgment status in parallel
+          const [ptoEntries, ackData] = await Promise.all([
+            this.api.get(
+              `/admin/pto?employeeId=${employeeId}&startDate=${startDate}&endDate=${endDate}`,
+            ),
+            this.api.get(`/admin-acknowledgements/${employeeId}`),
+          ]);
 
           const queue = this.shadowRoot?.querySelector(
             "pto-request-queue",
@@ -233,8 +237,14 @@ export class AdminPtoRequestsPage
             hours: p.hours,
             createdAt: p.createdAt ?? "",
             approved_by: p.approved_by ?? null,
+            notes: p.notes ?? null,
           }));
-          queue.setCalendarEntries(employeeId, month, normalized);
+
+          // Check if this month is admin-acknowledged (locked)
+          const acks = (ackData as any)?.acknowledgements ?? [];
+          const isLocked = acks.some((ack: any) => ack.month === month);
+
+          queue.setCalendarEntries(employeeId, month, normalized, isLocked);
         } catch (error: any) {
           console.error(
             `Failed to load calendar data for employee ${employeeId}, month ${month}:`,
@@ -307,7 +317,8 @@ export class AdminPtoRequestsPage
     try {
       const [employees, entries] = await Promise.all([
         this.api.getEmployees(),
-        this.api.getAdminPTOEntries(),
+        // Exclude entries in admin-acknowledged (locked) months
+        this.api.getAdminPTOEntries({ excludeLockedMonths: true }),
       ]);
       const employeeMap = new Map(
         (employees as { id: number; name: string }[]).map((e) => [

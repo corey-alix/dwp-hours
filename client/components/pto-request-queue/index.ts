@@ -70,17 +70,41 @@ export class PtoRequestQueue extends BaseComponent {
    * Inject PTO entries into a specific expanded calendar.
    * Called by the parent page after fetching calendar data in response
    * to a `calendar-data-request` event.
+   *
+   * When `isLocked` is true the month has been admin-acknowledged and any
+   * unapproved entries are "reconciled" — the calendar shows a "†" badge
+   * in the top-right corner of those day cells.
    */
   setCalendarEntries(
     employeeId: number,
     _month: string,
     entries: PTOEntry[],
+    isLocked = false,
   ): void {
     const cal = this.shadowRoot.querySelector(
       `pto-calendar[data-employee-id="${employeeId}"]`,
     ) as PtoCalendar | null;
-    if (cal) {
-      cal.setPtoEntries(entries);
+    if (!cal) return;
+
+    cal.setPtoEntries(entries);
+
+    // Set reconciled indicators for unapproved entries in locked months
+    if (isLocked) {
+      const reconciledDates = new Set<string>();
+      const reconciledTooltips = new Map<string, string>();
+      for (const entry of entries) {
+        if (entry.approved_by === null || entry.approved_by === undefined) {
+          reconciledDates.add(entry.date);
+          if (entry.notes) {
+            reconciledTooltips.set(entry.date, entry.notes);
+          }
+        }
+      }
+      cal.reconciledDates = reconciledDates;
+      cal.reconciledTooltips = reconciledTooltips;
+    } else {
+      cal.reconciledDates = new Set();
+      cal.reconciledTooltips = new Map();
     }
   }
 

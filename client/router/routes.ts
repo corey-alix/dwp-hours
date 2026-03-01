@@ -73,7 +73,9 @@ export const appRoutes: AppRoutes = [
     loader: async () => {
       const [employees, entries] = await Promise.all([
         api.getEmployees(),
-        api.getAdminPTOEntries(),
+        // Exclude entries in admin-acknowledged (locked) months so they
+        // don't appear as dead-end pending cards in the queue.
+        api.getAdminPTOEntries({ excludeLockedMonths: true }),
       ]);
       const pendingRequests = entries
         .filter((e) => e.approved_by === null || e.approved_by === undefined)

@@ -281,6 +281,19 @@ export const styles = `
     line-height: 1;
 }
 
+/* Reconciled indicator: "†" badge for unapproved entries in locked months */
+
+.reconciled-indicator {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    color: var(--color-warning);
+    font-size: var(--font-size-xxs);
+    font-weight: var(--font-weight-bold);
+    line-height: 1;
+    cursor: help;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .note-indicator:hover {
         transform: none;

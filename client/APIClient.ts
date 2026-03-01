@@ -244,8 +244,15 @@ export class APIClient {
     return this.get(`/admin/monthly-review/${month}`);
   }
 
-  async getAdminPTOEntries(): Promise<ApiTypes.PTOEntry[]> {
-    return this.get("/admin/pto");
+  async getAdminPTOEntries(options?: {
+    excludeLockedMonths?: boolean;
+  }): Promise<ApiTypes.PTOEntry[]> {
+    const params = new URLSearchParams();
+    if (options?.excludeLockedMonths) {
+      params.set("excludeLockedMonths", "true");
+    }
+    const query = params.toString();
+    return this.get(`/admin/pto${query ? `?${query}` : ""}`);
   }
 
   async getEmployees(): Promise<ApiTypes.EmployeesResponse> {

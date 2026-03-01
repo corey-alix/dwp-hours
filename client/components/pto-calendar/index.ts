@@ -57,6 +57,14 @@ export class PtoCalendar extends BaseComponent {
   private _selectedPtoType: PTOType | null = null;
   private _overuseDates: Set<string> = new Set();
   private _overuseTooltips: Map<string, string> = new Map();
+  /**
+   * Set of date strings for entries that are unapproved but in a
+   * locked/reconciled month (e.g., historic import policy violations).
+   * These dates show a "†" indicator instead of the green checkmark.
+   */
+  private _reconciledDates: Set<string> = new Set();
+  /** Per-date tooltip for reconciled indicators, sourced from PTO entry notes. */
+  private _reconciledTooltips: Map<string, string> = new Map();
 
   // ── View-model focus state ──
   private _focusedDate: string | null = null;
@@ -204,6 +212,37 @@ export class PtoCalendar extends BaseComponent {
     this._overuseTooltips = value;
     // No re-render needed — tooltips are read during renderDayCell which
     // is already triggered by the overuseDates setter update cycle.
+  }
+
+  /**
+   * Set of date strings for unapproved entries in locked/reconciled months.
+   * When set, a "†" footnote badge appears in the top-right corner of
+   * affected day cells to indicate borrowed time that was not approved.
+   */
+  get reconciledDates(): Set<string> {
+    return this._reconciledDates;
+  }
+
+  set reconciledDates(value: Set<string>) {
+    const prev = this._reconciledDates;
+    this._reconciledDates = value;
+
+    // Targeted updates for changed dates only
+    for (const date of prev) {
+      if (!value.has(date)) this.updateDay(date);
+    }
+    for (const date of value) {
+      if (!prev.has(date)) this.updateDay(date);
+    }
+  }
+
+  /** Per-date tooltip text for reconciled indicators. */
+  get reconciledTooltips(): Map<string, string> {
+    return this._reconciledTooltips;
+  }
+
+  set reconciledTooltips(value: Map<string, string>) {
+    this._reconciledTooltips = value;
   }
 
   setSelectedMonth(selectedMonth: number | null) {
@@ -495,6 +534,16 @@ export class PtoCalendar extends BaseComponent {
     const checkmarkElement = hasApprovedEntry
       ? '<div class="checkmark">✓</div>'
       : "";
+
+    // Reconciled indicator: "†" in top-right for unapproved entries in locked months
+    const reconciledTooltip = this._reconciledTooltips.get(dateStr) ?? "";
+    const reconciledTitle = reconciledTooltip
+      ? ` title="${this.escapeAttribute(reconciledTooltip)}"`
+      : ' title="Unapproved borrowed time (month reconciled)"';
+    const reconciledIndicator =
+      !hasApprovedEntry && this._reconciledDates.has(dateStr)
+        ? `<div class="reconciled-indicator"${reconciledTitle}>†</div>`
+        : "";
     const { day } = parseDate(dateStr);
 
     // Note indicator: show triangle when PTO entry has notes
@@ -535,6 +584,7 @@ export class PtoCalendar extends BaseComponent {
     return `
       <div class="${dayClass} ${emptyClass} ${selectedClass} ${clickableClass} ${todayClass}" data-date="${dateStr}" ${tabindexAttr} role="gridcell">
           ${checkmarkElement}
+          ${reconciledIndicator}
           ${noteIndicator}
           ${overuseIndicator}
           <div class="date">${dayDisplay}</div>

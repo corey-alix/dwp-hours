@@ -404,6 +404,28 @@ export class AdminMonthlyReview extends BaseComponent {
             notes: e.notes ?? null,
           }));
         cal.setPtoEntries(empEntries);
+
+        // Set reconciled indicators for unapproved entries in locked months.
+        // The "†" badge shows on dates where PTO was taken but not approved
+        // due to policy violations, and the month has been admin-acknowledged.
+        const isLocked = this.isAcknowledged(empId, calMonth);
+        if (isLocked) {
+          const reconciledDates = new Set<string>();
+          const reconciledTooltips = new Map<string, string>();
+          for (const entry of empEntries) {
+            if (entry.approved_by === null) {
+              reconciledDates.add(entry.date);
+              if (entry.notes) {
+                reconciledTooltips.set(entry.date, entry.notes);
+              }
+            }
+          }
+          cal.reconciledDates = reconciledDates;
+          cal.reconciledTooltips = reconciledTooltips;
+        } else {
+          cal.reconciledDates = new Set();
+          cal.reconciledTooltips = new Map();
+        }
       });
 
     // Attach swipe listeners to newly rendered inline calendar containers

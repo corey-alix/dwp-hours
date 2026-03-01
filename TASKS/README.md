@@ -50,6 +50,7 @@
 | employee-month-acknowledgement-prompt.md    | 3      | E2E tests, documentation, and some unit tests remaining                                                         |
 | in-app-notifications.md                     | 3      | Seed data, prefers-reduced-motion, API/display tests, E2E test, manual testing remaining                        |
 | user-data-migration-corey-alix.md           | 2      | Phase 4: Validation and Documentation                                                                           |
+| historic-import-unapproved-pto-ux.md        | 2      | Manual testing and E2E test remaining                                                                           |
 
 ## TESTS MISSING
 

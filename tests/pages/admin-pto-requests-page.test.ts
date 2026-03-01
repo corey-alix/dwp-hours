@@ -81,3 +81,58 @@ describe("AdminPtoRequestsPage - Targeted Refresh", () => {
     requestUpdateSpy.mockRestore();
   });
 });
+
+describe("AdminPtoRequestsPage - Locked Month Filtering", () => {
+  let page: AdminPtoRequestsPage;
+  let container: HTMLElement;
+
+  beforeEach(() => {
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    page = new AdminPtoRequestsPage();
+    container.appendChild(page);
+  });
+
+  afterEach(() => {
+    if (container?.parentNode) {
+      document.body.removeChild(container);
+    }
+  });
+
+  it("should render queue with only pending requests from unlocked months", async () => {
+    // Provide loader data that only includes requests from unlocked months
+    // (the server-side excludeLockedMonths filter is responsible for this)
+    const requests = [
+      {
+        id: 1,
+        employeeId: 1,
+        employeeName: "John Doe",
+        startDate: "2026-03-10",
+        endDate: "2026-03-10",
+        type: "PTO" as const,
+        hours: 8,
+        status: "pending" as const,
+        createdAt: "2026-03-01",
+      },
+    ];
+
+    await page.onRouteEnter({}, new URLSearchParams(), { requests });
+
+    const queue = page.shadowRoot?.querySelector("pto-request-queue") as any;
+    expect(queue).toBeTruthy();
+    // The queue should have received only the unlocked-month requests
+    expect(queue.requests).toHaveLength(1);
+    expect(queue.requests[0].employeeId).toBe(1);
+  });
+
+  it("should render empty queue when all requests come from locked months", async () => {
+    // When excludeLockedMonths filters everything out, loader returns empty
+    const requests: any[] = [];
+
+    await page.onRouteEnter({}, new URLSearchParams(), { requests });
+
+    const queue = page.shadowRoot?.querySelector("pto-request-queue") as any;
+    expect(queue).toBeTruthy();
+    expect(queue.requests).toHaveLength(0);
+  });
+});
