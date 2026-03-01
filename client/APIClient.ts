@@ -21,7 +21,7 @@ export class APIClient {
     return `${separator}current_year=${year}`;
   }
 
-  async get(endpoint: string): Promise<any> {
+  private async get(endpoint: string): Promise<any> {
     const response = await fetch(`${this.baseURL}${endpoint}`, {
       credentials: "include",
     });
@@ -40,7 +40,7 @@ export class APIClient {
     return response.json();
   }
 
-  async post(endpoint: string, data: any): Promise<any> {
+  private async post(endpoint: string, data: any): Promise<any> {
     const response = await fetch(`${this.baseURL}${endpoint}`, {
       method: "POST",
       headers: {
@@ -64,7 +64,7 @@ export class APIClient {
     return response.json();
   }
 
-  async put(endpoint: string, data: any): Promise<any> {
+  private async put(endpoint: string, data: any): Promise<any> {
     const response = await fetch(`${this.baseURL}${endpoint}`, {
       method: "PUT",
       headers: {
@@ -88,7 +88,7 @@ export class APIClient {
     return response.json();
   }
 
-  async delete(endpoint: string): Promise<any> {
+  private async delete(endpoint: string): Promise<any> {
     const response = await fetch(`${this.baseURL}${endpoint}`, {
       method: "DELETE",
       credentials: "include",
@@ -108,7 +108,7 @@ export class APIClient {
     return response.json();
   }
 
-  async patch(endpoint: string, data?: any): Promise<any> {
+  private async patch(endpoint: string, data?: any): Promise<any> {
     const response = await fetch(`${this.baseURL}${endpoint}`, {
       method: "PATCH",
       headers: {
@@ -246,13 +246,31 @@ export class APIClient {
 
   async getAdminPTOEntries(options?: {
     excludeLockedMonths?: boolean;
+    employeeId?: number;
+    startDate?: string;
+    endDate?: string;
   }): Promise<ApiTypes.PTOEntry[]> {
     const params = new URLSearchParams();
     if (options?.excludeLockedMonths) {
       params.set("excludeLockedMonths", "true");
     }
+    if (options?.employeeId !== undefined) {
+      params.set("employeeId", String(options.employeeId));
+    }
+    if (options?.startDate) {
+      params.set("startDate", options.startDate);
+    }
+    if (options?.endDate) {
+      params.set("endDate", options.endDate);
+    }
     const query = params.toString();
     return this.get(`/admin/pto${query ? `?${query}` : ""}`);
+  }
+
+  async getAdminAcknowledgements(
+    employeeId: number,
+  ): Promise<ApiTypes.AdminAcknowledgementResponse> {
+    return this.get(`/admin-acknowledgements/${employeeId}`);
   }
 
   async getEmployees(): Promise<ApiTypes.EmployeesResponse> {

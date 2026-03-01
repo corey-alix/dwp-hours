@@ -17,40 +17,39 @@ describe("APIClient", () => {
     vi.clearAllMocks();
   });
 
-  describe("get", () => {
+  describe("get (via typed wrapper)", () => {
     it("should make a GET request to the correct endpoint", async () => {
-      const mockResponse = { data: "test" };
+      const mockResponse = { status: "ok", timestamp: "", uptime: 0 };
       fetchMock.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve(mockResponse),
       });
 
-      const result = await apiClient.get("/test-endpoint");
+      const result = await apiClient.health();
 
-      expect(fetchMock).toHaveBeenCalledWith("/api/test-endpoint", {
+      expect(fetchMock).toHaveBeenCalledWith("/api/health", {
         credentials: "include",
       });
       expect(result).toEqual(mockResponse);
     });
   });
 
-  describe("post", () => {
+  describe("post (via typed wrapper)", () => {
     it("should make a POST request with correct headers and body", async () => {
-      const mockResponse = { success: true };
-      const requestData = { key: "value" };
+      const mockResponse = { message: "success", magicLink: "http://test" };
       fetchMock.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve(mockResponse),
       });
 
-      const result = await apiClient.post("/test-endpoint", requestData);
+      const result = await apiClient.requestAuthLink("test@example.com");
 
-      expect(fetchMock).toHaveBeenCalledWith("/api/test-endpoint", {
+      expect(fetchMock).toHaveBeenCalledWith("/api/auth/request-link", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(requestData),
+        body: JSON.stringify({ identifier: "test@example.com" }),
         credentials: "include",
       });
       expect(result).toEqual(mockResponse);

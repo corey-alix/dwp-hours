@@ -281,13 +281,13 @@ app.get("/api/resource/:id", (req, res) => {
 ### Frontend Patterns
 
 ```typescript
-// API client usage
+// API client usage — always use typed wrapper methods, never raw HTTP verbs
 const api = new APIClient();
 
 async function loadData(): Promise<void> {
   try {
-    const data = await api.get("/api/endpoint");
-    // Handle success
+    const entries = await api.getAdminPTOEntries({ employeeId: 5 });
+    // Handle success — entries is already typed as PTOEntry[]
   } catch (error) {
     // Handle error
   }
@@ -297,6 +297,19 @@ async function loadData(): Promise<void> {
 const ptoForm = querySingle<PtoEntryForm>("pto-entry-form"); // Specific type, no casting
 const input = querySingle<HTMLInputElement>("#input-id", ptoForm.shadowRoot); // Scoped queries
 ```
+
+### APIClient Usage
+
+- **Never call `api.get()`, `api.post()`, `api.put()`, `api.delete()`, or `api.patch()` directly** — these HTTP methods are `private`. All API calls must use typed wrapper methods on `APIClient` (e.g., `api.getAdminPTOEntries()`, `api.getAdminAcknowledgements()`).
+- **When a new endpoint is needed**, add a typed wrapper method to `client/APIClient.ts` with a proper return type from `shared/api-models.d.ts`. If no matching response type exists, add one to `api-models.d.ts` first.
+- This ensures all API calls have typed responses, eliminating the need for `as any` casts on response data.
+
+### Type Safety — No `as any` Casts
+
+- **Never use `as any`** to cast values. Use proper TypeScript types instead.
+- When querying shadow DOM for custom elements, import the component's class type and cast to it: `as PtoRequestQueue | null` instead of `as any`.
+- When processing API responses, leverage the typed return values from `APIClient` wrapper methods — no need to cast individual fields.
+- Use `error: unknown` (not `error: any`) in catch blocks and narrow with `instanceof Error`.
 
 ### DOM Element Handling
 

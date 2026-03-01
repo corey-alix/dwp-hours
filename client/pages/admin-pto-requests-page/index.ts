@@ -10,6 +10,7 @@ import {
 } from "../../../shared/businessRules.js";
 import type { MonthSummary } from "../../components/month-summary/index.js";
 import type { PtoRequestQueue } from "../../components/pto-request-queue/index.js";
+import type { PTOEntry } from "../../components/pto-calendar/index.js";
 import { styles } from "./css.js";
 
 interface PTORequest {
@@ -60,8 +61,8 @@ export class AdminPtoRequestsPage
       const ptoEntries = await this.api.getAdminPTOEntries();
       const currentYear = today().slice(0, 4);
       this._ptoEntries = (ptoEntries || [])
-        .filter((p: any) => p.date?.startsWith(currentYear))
-        .map((p: any) => ({
+        .filter((p) => p.date?.startsWith(currentYear))
+        .map((p) => ({
           employee_id: p.employeeId,
           type: p.type,
           hours: p.hours,
@@ -169,7 +170,9 @@ export class AdminPtoRequestsPage
     });
 
     // Notify queue about employees with negative balances
-    const queue = this.shadowRoot.querySelector("pto-request-queue") as any;
+    const queue = this.shadowRoot.querySelector(
+      "pto-request-queue",
+    ) as PtoRequestQueue | null;
     if (queue) {
       queue.negativeBalanceEmployees = negativeBalanceIds;
     }
@@ -218,10 +221,12 @@ export class AdminPtoRequestsPage
 
           // Fetch PTO entries and acknowledgment status in parallel
           const [ptoEntries, ackData] = await Promise.all([
-            this.api.get(
-              `/admin/pto?employeeId=${employeeId}&startDate=${startDate}&endDate=${endDate}`,
-            ),
-            this.api.get(`/admin-acknowledgements/${employeeId}`),
+            this.api.getAdminPTOEntries({
+              employeeId,
+              startDate,
+              endDate,
+            }),
+            this.api.getAdminAcknowledgements(employeeId),
           ]);
 
           const queue = this.shadowRoot?.querySelector(
@@ -229,7 +234,7 @@ export class AdminPtoRequestsPage
           ) as PtoRequestQueue | null;
           if (!queue) return;
 
-          const normalized = (ptoEntries || []).map((p: any, idx: number) => ({
+          const normalized: PTOEntry[] = (ptoEntries || []).map((p, idx) => ({
             id: p.id ?? idx + 1,
             employeeId: p.employeeId,
             date: p.date,
@@ -241,11 +246,11 @@ export class AdminPtoRequestsPage
           }));
 
           // Check if this month is admin-acknowledged (locked)
-          const acks = (ackData as any)?.acknowledgements ?? [];
-          const isLocked = acks.some((ack: any) => ack.month === month);
+          const acks = ackData.acknowledgements ?? [];
+          const isLocked = acks.some((ack) => ack.month === month);
 
           queue.setCalendarEntries(employeeId, month, normalized, isLocked);
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error(
             `Failed to load calendar data for employee ${employeeId}, month ${month}:`,
             error,
@@ -256,7 +261,9 @@ export class AdminPtoRequestsPage
   }
 
   private async dismissQueueCard(requestId: number): Promise<void> {
-    const queue = this.shadowRoot?.querySelector("pto-request-queue") as any;
+    const queue = this.shadowRoot?.querySelector(
+      "pto-request-queue",
+    ) as PtoRequestQueue | null;
     if (queue?.dismissCard) {
       await queue.dismissCard(requestId);
     }
@@ -320,12 +327,7 @@ export class AdminPtoRequestsPage
         // Exclude entries in admin-acknowledged (locked) months
         this.api.getAdminPTOEntries({ excludeLockedMonths: true }),
       ]);
-      const employeeMap = new Map(
-        (employees as { id: number; name: string }[]).map((e) => [
-          e.id,
-          e.name,
-        ]),
-      );
+      const employeeMap = new Map(employees.map((e) => [e.id, e.name]));
       this._requests = entries
         .filter((e) => e.approved_by === null || e.approved_by === undefined)
         .map((e) => ({
@@ -343,8 +345,8 @@ export class AdminPtoRequestsPage
       // Update PTO entries for balance hydration
       const currentYear = today().slice(0, 4);
       this._ptoEntries = (entries || [])
-        .filter((p: any) => p.date?.startsWith(currentYear))
-        .map((p: any) => ({
+        .filter((p) => p.date?.startsWith(currentYear))
+        .map((p) => ({
           employee_id: p.employeeId,
           type: p.type,
           hours: p.hours,

@@ -133,9 +133,7 @@ export class AdminMonthlyReviewPage
 
             // Fetch PTO entries and monthly review data in parallel
             const [ptoEntries, monthlyReview] = await Promise.all([
-              this.api.get(
-                `/admin/pto?startDate=${startDate}&endDate=${endDate}`,
-              ),
+              this.api.getAdminPTOEntries({ startDate, endDate }),
               this.api.getAdminMonthlyReview(month),
             ]);
 

@@ -206,9 +206,11 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
           const [y, m] = month.split("-").map(Number);
           const endDate = getLastDayOfMonth(y, m);
 
-          const ptoEntries = await this.api.get(
-            `/admin/pto?employeeId=${employeeId}&startDate=${startDate}&endDate=${endDate}`,
-          );
+          const ptoEntries = await this.api.getAdminPTOEntries({
+            employeeId,
+            startDate,
+            endDate,
+          });
 
           const list = this.shadowRoot?.querySelector("employee-list") as any;
           if (!list?.setCalendarEntries) return;
