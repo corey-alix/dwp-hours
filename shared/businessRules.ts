@@ -1,6 +1,7 @@
 import {
   getDayOfWeek,
   getWorkdaysBetween,
+  getLastDayOfMonth,
   parseDate,
   formatDate,
   compareDates,
@@ -1079,4 +1080,110 @@ export function getOveruseTooltips(
   }
 
   return tooltips;
+}
+
+// ── Monthly Accrual Row Computation ────────────────────────────────────
+
+/**
+ * A single row in the monthly accrual table.
+ */
+export interface MonthlyAccrualRow {
+  /** 1–12 */
+  month: number;
+  /** "January", "February", etc. */
+  label: string;
+  /** Weekdays in this month */
+  workDays: number;
+  /** Effective PTO daily rate for this month */
+  rate: number;
+  /** rate × workDays */
+  accrued: number;
+  /** Balance entering this month (Jan = carryover, others = prior month's ending balance) */
+  priorBalance: number;
+  /** PTO hours used this month */
+  used: number;
+  /** priorBalance + accrued − used */
+  balance: number;
+}
+
+/**
+ * Computes the 12-row monthly accrual breakdown for a given year.
+ *
+ * @param year        - Calendar year (e.g. 2026)
+ * @param carryover   - Hours carried over from the previous year
+ * @param hireDate    - YYYY-MM-DD hire date (months before hire show zeroes)
+ * @param ptoEntries  - Array of PTO entries for the year (all types; only "PTO" is summed for Used)
+ * @returns 12 MonthlyAccrualRow objects (January–December)
+ */
+export function computeMonthlyAccrualRows(
+  year: number,
+  carryover: number,
+  hireDate: string,
+  ptoEntries: ReadonlyArray<{ date: string; type: string; hours: number }>,
+): MonthlyAccrualRow[] {
+  const hireParsed = parseDate(hireDate);
+
+  // Pre-compute PTO usage by month
+  const usedByMonth: Record<number, number> = {};
+  for (const entry of ptoEntries) {
+    if (entry.type !== "PTO") continue;
+    const parsed = parseDate(entry.date);
+    if (parsed.year !== year) continue;
+    usedByMonth[parsed.month] = (usedByMonth[parsed.month] ?? 0) + entry.hours;
+  }
+
+  const rows: MonthlyAccrualRow[] = [];
+  let runningBalance = carryover;
+
+  for (let month = 1; month <= 12; month++) {
+    const label = MONTH_NAMES[month - 1];
+
+    // Check if entire month is before hire date
+    const isBeforeHire =
+      year < hireParsed.year ||
+      (year === hireParsed.year && month < hireParsed.month);
+
+    if (isBeforeHire) {
+      rows.push({
+        month,
+        label,
+        workDays: 0,
+        rate: 0,
+        accrued: 0,
+        priorBalance: runningBalance,
+        used: 0,
+        balance: runningBalance,
+      });
+      continue;
+    }
+
+    // Work days in this month
+    const firstDay = formatDate(year, month, 1);
+    const lastDay = getLastDayOfMonth(year, month);
+    const workDays = getWorkdaysBetween(firstDay, lastDay).length;
+
+    // Effective rate for this month (may change on July 1)
+    const tier = getEffectivePtoRate(hireDate, lastDay);
+    const rate = tier.dailyRate;
+
+    const accrued = Math.round(rate * workDays * 100) / 100;
+    const used = Math.round((usedByMonth[month] ?? 0) * 100) / 100;
+    const priorBalance = Math.round(runningBalance * 100) / 100;
+    const balance = Math.round((priorBalance + accrued - used) * 100) / 100;
+
+    rows.push({
+      month,
+      label,
+      workDays,
+      rate,
+      accrued,
+      priorBalance,
+      used,
+      balance,
+    });
+
+    runningBalance = balance;
+  }
+
+  return rows;
 }

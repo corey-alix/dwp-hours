@@ -3,6 +3,7 @@ import type { PageComponent } from "../../router/types.js";
 import type { PtoPtoCard } from "../../components/pto-pto-card/index.js";
 import type { PtoEmployeeInfoCard } from "../../components/pto-employee-info-card/index.js";
 import type { BalanceTable } from "../../components/balance-table/index.js";
+import type { MonthlyAccrualTable } from "../../components/monthly-accrual-table/index.js";
 import type * as ApiTypes from "../../../shared/api-models.js";
 import {
   getCurrentYear,
@@ -11,7 +12,10 @@ import {
   formatDate,
   today,
 } from "../../../shared/dateUtils.js";
-import { computeAccrualToDate } from "../../../shared/businessRules.js";
+import {
+  computeAccrualToDate,
+  computeMonthlyAccrualRows,
+} from "../../../shared/businessRules.js";
 import { styles } from "./css.js";
 
 interface LoaderData {
@@ -56,6 +60,7 @@ export class CurrentYearSummaryPage
         <pto-employee-info-card></pto-employee-info-card>
         <pto-pto-card></pto-pto-card>
       </div>
+      <monthly-accrual-table></monthly-accrual-table>
     `;
   }
 
@@ -121,6 +126,20 @@ export class CurrentYearSummaryPage
         (e) => parseDate(e.date).year === year,
       );
       // Expanded state restored from localStorage by the card itself
+    }
+
+    // Monthly accrual table
+    const accrualTable = this.shadowRoot.querySelector<MonthlyAccrualTable>(
+      "monthly-accrual-table",
+    );
+    if (accrualTable) {
+      const rows = computeMonthlyAccrualRows(
+        year,
+        status.carryoverFromPreviousYear,
+        status.hireDate,
+        yearEntries,
+      );
+      accrualTable.rows = rows;
     }
   }
 
