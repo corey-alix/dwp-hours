@@ -213,6 +213,373 @@ export function updateActivityTimestamp(storage: StorageService = localStorage):
 4. Fix `current-year-summary-page` — read user from `AuthService.getUser()` instead of raw localStorage
 5. Refactor `pto-entry-form` and `pto-pto-card` — accept storage via constructor or context
 
+---
+
+## Usage Examples — Before / After
+
+Concrete before-and-after code for each refactored system, showing exactly what changes at the call site.
+
+---
+
+### Example 1: Notification consumer (page component)
+
+**BEFORE** — importing a module-level singleton from `app.ts`:
+
+```typescript
+// client/pages/submit-time-off-page/index.ts (current)
+import { notifications } from "../../app.js";
+
+export class SubmitTimeOffPage extends HTMLElement {
+  async handleSubmit(requests: PTORequest[]): Promise<void> {
+    try {
+      const result = await this.api.createPTOEntry({ requests });
+      notifications.success("PTO request submitted successfully!");
+
+      if (result.warnings?.length) {
+        for (const warning of result.warnings) {
+          notifications.warning(warning);
+        }
+      }
+    } catch (error) {
+      notifications.error("Failed to submit PTO request. Please try again.");
+    }
+  }
+}
+```
+
+**AFTER** — consuming `TraceListener` from the ancestor context provider:
+
+```typescript
+// client/pages/submit-time-off-page/index.ts (refactored)
+import { consumeContext } from "../../shared/context.js";
+import type { TraceListener } from "../../controller/TraceListener.js";
+
+export class SubmitTimeOffPage extends HTMLElement {
+  private notifications: TraceListener | undefined;
+
+  connectedCallback(): void {
+    consumeContext<TraceListener>(this, (svc) => {
+      this.notifications = svc;
+    });
+  }
+
+  async handleSubmit(requests: PTORequest[]): Promise<void> {
+    try {
+      const result = await this.api.createPTOEntry({ requests });
+      this.notifications?.success("PTO request submitted successfully!");
+
+      if (result.warnings?.length) {
+        for (const warning of result.warnings) {
+          this.notifications?.warning(warning);
+        }
+      }
+    } catch (error) {
+      this.notifications?.error(
+        "Failed to submit PTO request. Please try again.",
+      );
+    }
+  }
+}
+```
+
+**What changed:** The hard import of the `notifications` singleton is gone. The component receives the service from a DOM-tree ancestor via the context protocol. In tests, you can mount the component inside a fake provider that injects a spy `TraceListener`.
+
+---
+
+### Example 2: App bootstrap — registering context providers
+
+**BEFORE** — global wiring in `App.run()`:
+
+```typescript
+// client/app.ts (current)
+export const notifications = new TraceListener();
+
+export class App {
+  static run(): UIManager {
+    notifications.addListener(new PtoNotificationController());
+    notifications.addListener(new DebugConsoleController());
+    return new UIManager();
+  }
+}
+```
+
+**AFTER** — providers wrap the app shell:
+
+```typescript
+// client/app.ts (refactored)
+import { ContextProvider } from "./shared/context.js";
+import { TraceListener } from "./controller/TraceListener.js";
+
+// No more module-level singleton export
+
+export class App {
+  static run(): UIManager {
+    const traceListener = new TraceListener();
+
+    // Create a <notification-provider> and insert it around the app root
+    const provider = new ContextProvider<TraceListener>(traceListener);
+    const appRoot = document.getElementById("app")!;
+    appRoot.parentElement!.insertBefore(provider, appRoot);
+    provider.appendChild(appRoot);
+
+    // Controllers register on the instance — same as before
+    traceListener.addListener(new PtoNotificationController());
+    traceListener.addListener(new DebugConsoleController());
+
+    return new UIManager();
+  }
+}
+```
+
+**What changed:** The `export const notifications` singleton disappears. The `TraceListener` instance is held by a `<notification-provider>` DOM element. Any descendant can request it via `consumeContext`. Nothing outside the DOM tree can access it.
+
+---
+
+### Example 3: StorageService — activityTracker
+
+**BEFORE** — hardcoded `localStorage` calls:
+
+```typescript
+// client/shared/activityTracker.ts (current)
+const STORAGE_KEY = "dwp-hours:lastActivityTimestamp";
+
+export function isFirstSessionVisit(): boolean {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return true;
+
+    const lastActivity = new Date(stored).getTime();
+    if (isNaN(lastActivity)) return true;
+
+    const elapsed = Date.now() - lastActivity;
+    return elapsed >= BUSINESS_RULES_CONSTANTS.SESSION_INACTIVITY_THRESHOLD_MS;
+  } catch {
+    return true;
+  }
+}
+
+export function updateActivityTimestamp(): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, new Date().toISOString());
+  } catch {
+    // silent fallback
+  }
+}
+```
+
+**AFTER** — injectable `StorageService`, defaulting to `localStorage`:
+
+```typescript
+// client/shared/storage.ts (new file)
+export interface StorageService {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+  removeItem(key: string): void;
+}
+
+export class LocalStorageAdapter implements StorageService {
+  getItem(key: string): string | null {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  }
+  setItem(key: string, value: string): void {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      /* silent */
+    }
+  }
+  removeItem(key: string): void {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      /* silent */
+    }
+  }
+}
+```
+
+```typescript
+// client/shared/activityTracker.ts (refactored)
+import type { StorageService } from "./storage.js";
+
+const STORAGE_KEY = "dwp-hours:lastActivityTimestamp";
+
+export function isFirstSessionVisit(
+  storage: StorageService = localStorage,
+): boolean {
+  const stored = storage.getItem(STORAGE_KEY);
+  if (!stored) return true;
+
+  const lastActivity = new Date(stored).getTime();
+  if (isNaN(lastActivity)) return true;
+
+  const elapsed = Date.now() - lastActivity;
+  return elapsed >= BUSINESS_RULES_CONSTANTS.SESSION_INACTIVITY_THRESHOLD_MS;
+}
+
+export function updateActivityTimestamp(
+  storage: StorageService = localStorage,
+): void {
+  storage.setItem(STORAGE_KEY, new Date().toISOString());
+}
+```
+
+**What changed:** The function signatures gain an optional `storage` parameter. Existing callers pass nothing and get `localStorage` as before (zero breaking changes). Tests pass an in-memory fake — no more `vi.stubGlobal("localStorage", ...)`.
+
+---
+
+### Example 4: StorageService — testing with in-memory fake
+
+**BEFORE** — mocking the global `localStorage`:
+
+```typescript
+// tests/activityTracker.test.ts (current)
+let mockStorage: Record<string, string> = {};
+vi.stubGlobal("localStorage", {
+  getItem: (key: string) => mockStorage[key] ?? null,
+  setItem: (key: string, val: string) => {
+    mockStorage[key] = val;
+  },
+  removeItem: (key: string) => {
+    delete mockStorage[key];
+  },
+});
+
+it("returns true when no timestamp exists", () => {
+  expect(isFirstSessionVisit()).toBe(true);
+});
+```
+
+**AFTER** — passing a plain object:
+
+```typescript
+// tests/activityTracker.test.ts (refactored)
+import type { StorageService } from "../client/shared/storage.js";
+
+function createFakeStorage(): StorageService {
+  const data: Record<string, string> = {};
+  return {
+    getItem: (k) => data[k] ?? null,
+    setItem: (k, v) => {
+      data[k] = v;
+    },
+    removeItem: (k) => {
+      delete data[k];
+    },
+  };
+}
+
+it("returns true when no timestamp exists", () => {
+  const storage = createFakeStorage();
+  expect(isFirstSessionVisit(storage)).toBe(true);
+});
+```
+
+**What changed:** No global mocking. Each test creates its own isolated storage. Tests can run in parallel without stomping on each other.
+
+---
+
+### Example 5: Fixing direct localStorage bypass in current-year-summary-page
+
+**BEFORE** — reading `currentUser` straight from localStorage, duplicating AuthService's knowledge of the storage key:
+
+```typescript
+// client/pages/current-year-summary-page/index.ts (current)
+if (infoCard) {
+  const storedUser = localStorage.getItem("currentUser");
+  const employeeName = storedUser
+    ? (JSON.parse(storedUser) as { name?: string }).name
+    : undefined;
+  infoCard.info = { employeeName /* ... */ };
+}
+```
+
+**AFTER** — reading from `AuthService.getUser()`:
+
+```typescript
+// client/pages/current-year-summary-page/index.ts (refactored)
+if (infoCard) {
+  const user = this.authService.getUser();
+  infoCard.info = { employeeName: user?.name /* ... */ };
+}
+```
+
+**What changed:** The component no longer knows the localStorage key or the JSON shape. All user-session reads go through `AuthService`, which owns that concern. If the storage format changes, only `AuthService` needs updating.
+
+---
+
+### Example 6: DebugConsoleController — scoped lifecycle
+
+**BEFORE** — constructor performs irreversible global side effects:
+
+```typescript
+// client/controller/DebugConsoleController.ts (current)
+export class DebugConsoleController implements TraceListenerHandler {
+  constructor() {
+    const isDebug =
+      new URLSearchParams(window.location.search).get("debug") === "1";
+
+    this.element = document.querySelector<DebugConsole>("debug-console");
+
+    if (isDebug) {
+      if (!this.element) {
+        this.element = document.createElement("debug-console") as DebugConsole;
+        document.body.appendChild(this.element);
+      }
+      this.setupConsoleInterception(); // patches console.log/warn/error globally
+      this.setupExceptionHandlers(); // adds window error listeners (never removed)
+    }
+  }
+}
+```
+
+**AFTER** — explicit `activate()` / `deactivate()` lifecycle:
+
+```typescript
+// client/controller/DebugConsoleController.ts (refactored)
+export class DebugConsoleController implements TraceListenerHandler {
+  private errorHandler: ((e: ErrorEvent) => void) | null = null;
+  private rejectionHandler: ((e: PromiseRejectionEvent) => void) | null = null;
+
+  constructor() {
+    this.element = document.querySelector<DebugConsole>("debug-console");
+    // No side effects — just capture an existing element reference
+  }
+
+  /** Call from provider's connectedCallback when ?debug=1 */
+  activate(): void {
+    if (!this.element) {
+      this.element = document.createElement("debug-console") as DebugConsole;
+      document.body.appendChild(this.element);
+    }
+    this.setupConsoleInterception();
+    this.errorHandler = (e) =>
+      this.element?.log("error", `Unhandled: ${e.message}`);
+    this.rejectionHandler = (e) =>
+      this.element?.log("error", `Rejection: ${e.reason}`);
+    window.addEventListener("error", this.errorHandler);
+    window.addEventListener("unhandledrejection", this.rejectionHandler);
+  }
+
+  /** Call from provider's disconnectedCallback to fully clean up */
+  deactivate(): void {
+    this.destroy(); // restores console.log/warn/error
+    if (this.errorHandler)
+      window.removeEventListener("error", this.errorHandler);
+    if (this.rejectionHandler)
+      window.removeEventListener("unhandledrejection", this.rejectionHandler);
+  }
+}
+```
+
+**What changed:** The constructor no longer mutates globals. `activate()` is called explicitly by the debug context provider, and `deactivate()` is called in `disconnectedCallback` — no more leaked `window` listeners or permanent console patches. Tests call `activate()` / `deactivate()` directly without relying on URL query strings at construction time.
+
+---
+
 ### Phase 2: Context Provider Infrastructure
 
 - [ ] Implement context providers for notifications, activity tracking, and debug state
