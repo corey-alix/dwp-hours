@@ -13,7 +13,7 @@ import {
 } from "../shared/dateUtils.js";
 
 // Note: This file contains unit tests for PTO Entry Form date calculation logic.
-// Browser-based integration tests remain in client/components/pto-entry-form/test.ts
+// Browser-based integration tests remain in client/components/pto-entry-form/playground.ts
 
 // ============================================================================
 // UNIT TESTS FOR PTO ENTRY FORM

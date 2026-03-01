@@ -2589,12 +2589,13 @@ describe("Excel Import", () => {
           (e) => e.notes && e.notes.includes("reclassified as PTO"),
         );
         expect(reclassified.length).toBe(1);
+        expect(reclassified[0].type).toBe("PTO");
 
-        // Verify no reclassification warnings
-        const reclassWarnings = result.warnings.filter((w) =>
+        // Verify reclassification resolved message was generated
+        const reclassResolved = result.resolved.filter((w) =>
           w.includes("reclassified"),
         );
-        expect(reclassWarnings.length).toBe(0);
+        expect(reclassResolved.length).toBe(1);
       });
 
       it("should detect December over-coloring", () => {
