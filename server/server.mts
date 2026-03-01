@@ -28,6 +28,7 @@ import {
   compareDates,
   isValidDateString,
   today,
+  setTimeTravelDay,
 } from "../shared/dateUtils.js";
 import net from "net";
 import { sendMagicLinkEmail } from "./utils/mailer.js";
@@ -276,6 +277,17 @@ const fileStats = fs.statSync(runningFrom);
 const FILE_AGE = Date.now() - fileStats.mtime.getTime();
 
 dotenv.config();
+
+// ── Server-side time-travel bootstrap ─────────────────────────────────
+// Read TIME_TRAVEL_DAY env var at startup so server and client share the
+// same today() override. For E2E testing:
+//   TIME_TRAVEL_DAY=2018-03-15 pnpm start
+const timeTravelEnv = process.env.TIME_TRAVEL_DAY;
+if (timeTravelEnv && isValidDateString(timeTravelEnv)) {
+  setTimeTravelDay(timeTravelEnv);
+  // eslint-disable-next-line no-console
+  console.info(`[time-travel] Server active — reference day set to ${timeTravelEnv}`);
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -918,13 +930,6 @@ initDatabase()
         try {
           const authenticatedEmployeeId = req.employee!.id;
 
-          // Accept optional ?current_date=YYYY-MM-DD for time-travel testing
-          const currentDateParam = req.query.current_date as string | undefined;
-          const currentDate =
-            currentDateParam && isValidDateString(currentDateParam)
-              ? currentDateParam
-              : undefined;
-
           const employeeRepo = dataSource.getRepository(Employee);
           const ptoEntryRepo = dataSource.getRepository(PtoEntry);
 
@@ -969,7 +974,6 @@ initDatabase()
           const status = calculatePTOStatus(
             employeeData,
             ptoEntriesData,
-            currentDate,
           );
 
           res.json(status);
@@ -1440,17 +1444,9 @@ initDatabase()
           }
 
           // Guard: month must have fully ended
-          // Accept optional ?current_date=YYYY-MM-DD for time-travel testing
-          const currentDateParam = req.query.current_date as
-            | string
-            | undefined;
-          const effectiveToday =
-            currentDateParam && isValidDateString(currentDateParam)
-              ? currentDateParam
-              : today();
           const monthEndedError = validateAdminCanLockMonth(
             monthStr,
-            effectiveToday,
+            today(),
           );
           if (monthEndedError) {
             const earliestDate = getEarliestAdminLockDate(monthStr);
@@ -1975,14 +1971,7 @@ initDatabase()
 
           const hireDate = employee.hire_date;
 
-          // Accept optional ?current_date=YYYY-MM-DD for time-travel testing
-          const currentDateParam = req.query.current_date as
-            | string
-            | undefined;
-          const currentDate =
-            currentDateParam && isValidDateString(currentDateParam)
-              ? currentDateParam
-              : today();
+          const currentDate = today();
           const currentYear = parseInt(currentDate.split("-")[0]);
 
           // Carryover from previous year
@@ -2618,13 +2607,7 @@ initDatabase()
           const authenticatedEmployeeId = req.employee!.id;
 
           // Validate year parameter
-          // Accept optional ?current_year for time-travel testing
-          const currentYearParam = req.query.current_year as
-            | string
-            | undefined;
-          const currentYear = currentYearParam
-            ? parseInt(currentYearParam)
-            : parseInt(today().split("-")[0]);
+          const currentYear = parseInt(today().split("-")[0]);
           if (
             isNaN(yearNum) ||
             yearNum < currentYear - 10 ||
