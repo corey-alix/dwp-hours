@@ -31,12 +31,12 @@ export class MonthlyAccrualTable extends BaseComponent {
   private renderHeaderRow(): string {
     return `<div class="header-row">
       <div class="cell header">Month</div>
-      <div class="cell header compact-only">Work Days</div>
+      <div class="cell header wide-only">Work Days</div>
       <div class="cell header compact-only">Rate</div>
-      <div class="cell header">Accrued</div>
+      <div class="cell header compact-only">Accrued</div>
       <div class="cell header wide-only">Prior Bal</div>
       <div class="cell header wide-only">Used</div>
-      <div class="cell header wide-only">Balance</div>
+      <div class="cell header">Balance</div>
     </div>`;
   }
 
@@ -45,12 +45,12 @@ export class MonthlyAccrualTable extends BaseComponent {
     const negativeClass = row.balance < 0 ? " negative" : "";
     return `<div class="${cls}">
       <div class="cell month-label">${row.label}</div>
-      <div class="cell numeric compact-only">${row.workDays}</div>
+      <div class="cell numeric wide-only">${row.workDays}</div>
       <div class="cell numeric compact-only">${this.formatNumber(row.rate)}</div>
-      <div class="cell numeric">${this.formatNumber(row.accrued)}</div>
+      <div class="cell numeric compact-only">${this.formatNumber(row.accrued)}</div>
       <div class="cell numeric wide-only">${this.formatNumber(row.priorBalance)}</div>
       <div class="cell numeric wide-only">${this.formatNumber(row.used)}</div>
-      <div class="cell numeric wide-only${negativeClass}">${this.formatNumber(row.balance)}</div>
+      <div class="cell numeric ${negativeClass}">${this.formatNumber(row.balance)}</div>
     </div>`;
   }
 
@@ -86,11 +86,13 @@ export class MonthlyAccrualTable extends BaseComponent {
       .join("");
 
     return `<style>${styles}</style>
-      <h3 class="accrual-heading">Monthly Accrual</h3>
+      <div class="card">
+      <h4 class="accrual-heading">Monthly Accrual</h4>
       <div class="accrual-grid">
         ${this.renderHeaderRow()}
         ${dataRows}
         ${this.renderTotalsRow()}
+      </div>
       </div>`;
   }
 }

@@ -56,11 +56,11 @@ export class CurrentYearSummaryPage
       <div class="sticky-balance">
         <balance-table></balance-table>
       </div>
+      <pto-employee-info-card></pto-employee-info-card>
       <div class="pto-summary">
-        <pto-employee-info-card></pto-employee-info-card>
         <pto-pto-card></pto-pto-card>
+        <monthly-accrual-table></monthly-accrual-table>
       </div>
-      <monthly-accrual-table></monthly-accrual-table>
     `;
   }
 

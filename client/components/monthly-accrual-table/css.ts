@@ -4,11 +4,23 @@ export const styles = `
   container-type: inline-size;
 }
 
+.card {
+  background: var(--color-background);
+  border: var(--border-width) var(--border-style-solid) var(--color-border);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-sm);
+}
+
 .accrual-heading {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
+  text-align: center;
+  background: var(--color-surface);
+  padding: var(--space-sm);
+  margin: 0 0 var(--space-md) 0;
+  font-size: var(--font-size-xl);
+  border-bottom: var(--border-width) var(--border-style-solid) var(--color-border);
   color: var(--color-text);
-  margin: var(--space-md) 0 var(--space-sm) 0;
+  font-weight: var(--font-weight-semibold);
 }
 
 .accrual-grid {
@@ -16,8 +28,6 @@ export const styles = `
   grid-template-columns: 1fr auto;
   gap: 0;
   font-size: var(--font-size-sm);
-  border: var(--border-width) var(--border-style-solid) var(--color-border);
-  border-radius: var(--border-radius-md);
   overflow: hidden;
 }
 
@@ -46,8 +56,11 @@ export const styles = `
 
 .cell.month-label {
   text-align: left;
-  font-weight: var(--font-weight-normal);
-  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 /* Numeric columns */
