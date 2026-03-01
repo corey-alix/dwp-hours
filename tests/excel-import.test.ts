@@ -18,6 +18,7 @@ import {
   resolveColorToARGB,
   parseThemeColors,
   colorDistance,
+  labColorDistance,
   findClosestLegendColor,
   extractCellNoteText,
   parseHoursFromNote,
@@ -862,6 +863,39 @@ describe("Excel Import", () => {
       // Pure green is far from pure red
       const result = findClosestLegendColor("FF00FF00", legend);
       expect(result).toBeUndefined();
+    });
+
+    it("should match lime green (92D050) to Sick green (00B050), not PTO yellow", () => {
+      // Reproduces the J Schwerin bug: cells F8/G8/C9 are filled with lime
+      // green (FF92D050) which must match Sick (FF00B050), not Partial PTO
+      // (FFFFC000) which is closer in naive RGB Euclidean distance.
+      const legend = new Map([
+        ["FF00B050", "Sick" as const],
+        ["FFFFFF00", "PTO" as const],
+        ["FFFFC000", "PTO" as const],
+        ["FF00B0F0", "PTO" as const],
+      ]);
+      const result = findClosestLegendColor("FF92D050", legend);
+      expect(result).toBe("Sick");
+    });
+  });
+
+  describe("labColorDistance", () => {
+    it("should return 0 for identical colors", () => {
+      expect(labColorDistance("FFFFC000", "FFFFC000")).toBe(0);
+    });
+
+    it("should measure perceptual distance in CIE Lab space", () => {
+      // Lime green → Sick green is perceptually closer than RGB suggests
+      const distSick = labColorDistance("FF92D050", "FF00B050");
+      const distPartialPto = labColorDistance("FF92D050", "FFFFC000");
+      expect(distSick).toBeLessThan(distPartialPto);
+      expect(distSick).toBeLessThan(50); // within Lab threshold
+    });
+
+    it("should measure red vs green as very far apart", () => {
+      const dist = labColorDistance("FFFF0000", "FF00FF00");
+      expect(dist).toBeGreaterThan(100);
     });
   });
 

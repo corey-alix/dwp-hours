@@ -21,6 +21,7 @@ export {
   parseThemeColors,
   resolveColorToARGB,
   colorDistance,
+  labColorDistance,
   findClosestLegendColor,
 
   // Cell utilities

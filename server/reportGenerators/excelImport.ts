@@ -54,6 +54,7 @@ export {
   parseThemeColors,
   resolveColorToARGB,
   colorDistance,
+  labColorDistance,
   findClosestLegendColor,
   // Cell helpers
   extractCellNoteText,
