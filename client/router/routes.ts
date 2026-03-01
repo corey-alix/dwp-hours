@@ -28,7 +28,21 @@ export const appRoutes: AppRoutes = [
     component: "current-year-summary-page",
     name: "Current Year Summary",
     meta: { title: "Current Year Summary", requiresAuth: true },
-    loader: async () => {
+    loader: async (
+      _params: Record<string, string>,
+      search: URLSearchParams,
+    ) => {
+      const employeeIdParam = search.get("employeeId");
+      if (employeeIdParam) {
+        const employeeId = parseInt(employeeIdParam, 10);
+        const currentDate = search.get("current_date") ?? undefined;
+        const [statusWithName, entries] = await Promise.all([
+          api.getAdminEmployeePTOStatus(employeeId, currentDate),
+          api.getAdminPTOEntries({ employeeId }),
+        ]);
+        const { employeeName, ...status } = statusWithName;
+        return { status, entries, employeeName, employeeId };
+      }
       const [status, entries] = await Promise.all([
         api.getPTOStatus(),
         api.getPTOEntries(),

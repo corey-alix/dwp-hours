@@ -1,25 +1,8 @@
 // API client
 import type * as ApiTypes from "../shared/api-models.js";
-import { getTimeTravelYear, today } from "../shared/dateUtils.js";
 
 export class APIClient {
   private baseURL = "/api";
-
-  /**
-   * Returns query-string parameters for time-travel override,
-   * or an empty string when inactive.
-   */
-  private timeTravelQuery(
-    style: "current_date" | "current_year",
-    separator: "?" | "&" = "?",
-  ): string {
-    const year = getTimeTravelYear();
-    if (year === null) return "";
-    if (style === "current_date") {
-      return `${separator}current_date=${encodeURIComponent(today())}`;
-    }
-    return `${separator}current_year=${year}`;
-  }
 
   private async get(endpoint: string): Promise<any> {
     const response = await fetch(`${this.baseURL}${endpoint}`, {
@@ -148,7 +131,7 @@ export class APIClient {
   }
 
   async getPTOStatus(): Promise<ApiTypes.PTOStatusResponse> {
-    return this.get(`/pto/status${this.timeTravelQuery("current_date")}`);
+    return this.get("/pto/status");
   }
 
   async getPTOEntries(): Promise<ApiTypes.PTOEntry[]> {
@@ -158,7 +141,7 @@ export class APIClient {
   async getPTOYearReview(
     year: number,
   ): Promise<ApiTypes.PTOYearReviewResponse> {
-    return this.get(`/pto/year/${year}${this.timeTravelQuery("current_year")}`);
+    return this.get(`/pto/year/${year}`);
   }
 
   async createPTOEntry(
@@ -231,8 +214,7 @@ export class APIClient {
     employeeId: number,
     month: string,
   ): Promise<ApiTypes.AdminAcknowledgementSubmitResponse> {
-    const ttQuery = this.timeTravelQuery("current_date");
-    return this.post(`/admin-acknowledgements${ttQuery}`, {
+    return this.post("/admin-acknowledgements", {
       employeeId,
       month,
     });
@@ -242,6 +224,14 @@ export class APIClient {
     month: string,
   ): Promise<ApiTypes.AdminMonthlyReviewResponse> {
     return this.get(`/admin/monthly-review/${month}`);
+  }
+
+  async getAdminEmployeePTOStatus(
+    employeeId: number,
+    currentDate?: string,
+  ): Promise<ApiTypes.PTOStatusResponse & { employeeName: string }> {
+    const query = currentDate ? `?current_date=${currentDate}` : "";
+    return this.get(`/admin/employees/${employeeId}/pto-status${query}`);
   }
 
   async getAdminPTOEntries(options?: {

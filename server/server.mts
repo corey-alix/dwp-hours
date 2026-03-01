@@ -28,6 +28,7 @@ import {
   compareDates,
   isValidDateString,
   today,
+  setTimeTravelDay,
 } from "../shared/dateUtils.js";
 import net from "net";
 import { sendMagicLinkEmail } from "./utils/mailer.js";
@@ -56,6 +57,7 @@ import {
   SYS_ADMIN_EMPLOYEE_ID,
   ENABLE_IMPORT_AUTO_APPROVE,
   computeEmployeeBalanceData,
+  validateDateString,
   type PTOType,
 } from "../shared/businessRules.js";
 import { BACKUP_CONFIG } from "../shared/backupConfig.js";
@@ -276,6 +278,17 @@ const fileStats = fs.statSync(runningFrom);
 const FILE_AGE = Date.now() - fileStats.mtime.getTime();
 
 dotenv.config();
+
+// ── Server-side time-travel bootstrap ─────────────────────────────────
+// Read TIME_TRAVEL_DAY env var at startup so server and client share the
+// same today() override. For E2E testing:
+//   TIME_TRAVEL_DAY=2018-03-15 pnpm start
+const timeTravelEnv = process.env.TIME_TRAVEL_DAY;
+if (timeTravelEnv && isValidDateString(timeTravelEnv)) {
+  setTimeTravelDay(timeTravelEnv);
+  // eslint-disable-next-line no-console
+  console.info(`[time-travel] Server active — reference day set to ${timeTravelEnv}`);
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -918,13 +931,6 @@ initDatabase()
         try {
           const authenticatedEmployeeId = req.employee!.id;
 
-          // Accept optional ?current_date=YYYY-MM-DD for time-travel testing
-          const currentDateParam = req.query.current_date as string | undefined;
-          const currentDate =
-            currentDateParam && isValidDateString(currentDateParam)
-              ? currentDateParam
-              : undefined;
-
           const employeeRepo = dataSource.getRepository(Employee);
           const ptoEntryRepo = dataSource.getRepository(PtoEntry);
 
@@ -969,7 +975,6 @@ initDatabase()
           const status = calculatePTOStatus(
             employeeData,
             ptoEntriesData,
-            currentDate,
           );
 
           res.json(status);
@@ -1440,17 +1445,9 @@ initDatabase()
           }
 
           // Guard: month must have fully ended
-          // Accept optional ?current_date=YYYY-MM-DD for time-travel testing
-          const currentDateParam = req.query.current_date as
-            | string
-            | undefined;
-          const effectiveToday =
-            currentDateParam && isValidDateString(currentDateParam)
-              ? currentDateParam
-              : today();
           const monthEndedError = validateAdminCanLockMonth(
             monthStr,
-            effectiveToday,
+            today(),
           );
           if (monthEndedError) {
             const earliestDate = getEarliestAdminLockDate(monthStr);
@@ -1975,14 +1972,7 @@ initDatabase()
 
           const hireDate = employee.hire_date;
 
-          // Accept optional ?current_date=YYYY-MM-DD for time-travel testing
-          const currentDateParam = req.query.current_date as
-            | string
-            | undefined;
-          const currentDate =
-            currentDateParam && isValidDateString(currentDateParam)
-              ? currentDateParam
-              : today();
+          const currentDate = today();
           const currentYear = parseInt(currentDate.split("-")[0]);
 
           // Carryover from previous year
@@ -2114,6 +2104,89 @@ initDatabase()
           res.json(ptoEntries);
         } catch (error) {
           logger.error(`Error getting employee PTO entries: ${error}`);
+          res.status(500).json({ error: "Internal server error" });
+        }
+      },
+    );
+
+    // Admin endpoint — get PTO status for a specific employee (admin only)
+    // Accepts optional ?current_date=YYYY-MM-DD to compute status as of that date
+    app.get(
+      "/api/admin/employees/:id/pto-status",
+      authenticateAdmin(() => dataSource, log),
+      async (req, res) => {
+        try {
+          const employeeId = parseInt(String(req.params.id), 10);
+          if (isNaN(employeeId) || employeeId <= 0) {
+            return res
+              .status(400)
+              .json({ error: "Invalid employee ID" });
+          }
+
+          // Validate optional current_date query param
+          const currentDateParam = req.query.current_date as
+            | string
+            | undefined;
+          if (currentDateParam) {
+            const dateError = validateDateString(currentDateParam);
+            if (dateError) {
+              return res.status(400).json({
+                error: `Invalid current_date: ${currentDateParam}`,
+              });
+            }
+          }
+
+          const employeeRepo = dataSource.getRepository(Employee);
+          const ptoEntryRepo = dataSource.getRepository(PtoEntry);
+
+          const employee = await employeeRepo.findOne({
+            where: { id: employeeId },
+          });
+          if (!employee) {
+            return res
+              .status(404)
+              .json({ error: "Employee not found" });
+          }
+
+          const ptoEntries = await ptoEntryRepo.find({
+            where: { employee_id: employeeId },
+          });
+
+          const employeeData = {
+            id: employee.id,
+            name: employee.name,
+            identifier: employee.identifier,
+            pto_rate: employee.pto_rate,
+            carryover_hours: employee.carryover_hours,
+            hire_date: employee.hire_date,
+            role: employee.role,
+          };
+
+          const ptoEntriesData = ptoEntries.map((entry) => ({
+            id: entry.id,
+            employee_id: entry.employee_id,
+            date: entry.date,
+            type: entry.type,
+            hours: entry.hours,
+            created_at: dateToString(
+              entry.created_at instanceof Date
+                ? entry.created_at
+                : new Date(entry.created_at as any),
+            ),
+          }));
+
+          const status = calculatePTOStatus(
+            employeeData,
+            ptoEntriesData,
+            currentDateParam,
+          );
+
+          // Include the employee name so the client can display it
+          res.json({ ...status, employeeName: employee.name });
+        } catch (error) {
+          logger.error(
+            `Error getting admin employee PTO status: ${error}`,
+          );
           res.status(500).json({ error: "Internal server error" });
         }
       },
@@ -2618,13 +2691,7 @@ initDatabase()
           const authenticatedEmployeeId = req.employee!.id;
 
           // Validate year parameter
-          // Accept optional ?current_year for time-travel testing
-          const currentYearParam = req.query.current_year as
-            | string
-            | undefined;
-          const currentYear = currentYearParam
-            ? parseInt(currentYearParam)
-            : parseInt(today().split("-")[0]);
+          const currentYear = parseInt(today().split("-")[0]);
           if (
             isNaN(yearNum) ||
             yearNum < currentYear - 10 ||

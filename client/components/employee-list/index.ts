@@ -17,7 +17,11 @@ import {
   animateSlide,
 } from "../../css-extensions/index.js";
 import { styles } from "./css.js";
-import { addMonths, getCurrentMonth } from "../../../shared/dateUtils.js";
+import {
+  addMonths,
+  getCurrentMonth,
+  today,
+} from "../../../shared/dateUtils.js";
 import { MONTH_NAMES, type PTOType } from "../../../shared/businessRules.js";
 // Side-effect import: ensure <pto-calendar> custom element is registered
 import "../pto-calendar/index.js";
@@ -183,6 +187,7 @@ export class EmployeeList extends BaseComponent {
 
                 <div class="employee-actions">
                     <button class="action-btn view-calendar-btn" data-action="view-calendar" data-employee-id="${employee.id}">${this._expandedCalendars.has(employee.id) ? "Hide Calendar" : "View Calendar"}</button>
+                    <button class="action-btn view-summary" data-action="view-summary" data-employee-id="${employee.id}">View</button>
                     <button class="action-btn edit" data-action="edit" data-employee-id="${employee.id}">Edit</button>
                     <button class="action-btn delete" data-action="delete" data-employee-id="${employee.id}" title="Hold to delete">Delete</button>
                 </div>
@@ -511,6 +516,18 @@ export class EmployeeList extends BaseComponent {
       // Handle view-calendar toggle internally
       if (action === "view-calendar" && employeeId) {
         this.toggleCalendar(parseInt(employeeId));
+        return;
+      }
+
+      // Navigate to the employee's year summary
+      if (action === "view-summary" && employeeId) {
+        window.dispatchEvent(
+          new CustomEvent("router-navigate", {
+            detail: {
+              path: `/current-year-summary?employeeId=${employeeId}&current_date=${today()}`,
+            },
+          }),
+        );
         return;
       }
 

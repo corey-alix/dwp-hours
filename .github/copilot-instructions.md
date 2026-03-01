@@ -15,6 +15,10 @@ You are assisting with the DWP Hours Tracker, a Node.js/TypeScript application f
 
 ## Development Workflow
 
+### Temporary Files
+
+**Always use `./tmp/` (relative to the project root) instead of `/tmp/` for temporary files.** The `./tmp` directory already exists in the workspace and is gitignored. Using the workspace-local directory avoids filesystem permission prompts and keeps all generated artifacts visible within the project.
+
 ### Terminal and Console Output
 
 **⚠️ CRITICAL: Tmux Interference with Console Output**
@@ -54,7 +58,7 @@ This approach prevents the disruptive pattern where server startup and test exec
 
 ### Design Review Tooling
 
-Use `scripts/review-screenshot.mjs` to capture screenshots and shadow DOM HTML from the running application via Playwright. The script logs in as `admin@example.com` via the magic-link API, navigates to `/admin/monthly-review`, saves a full-page screenshot to `/tmp/monthly-review.png`, and dumps the rendered shadow DOM HTML to `/tmp/monthly-review-shadow.html`. Run it from the project root:
+Use `scripts/review-screenshot.mjs` to capture screenshots and shadow DOM HTML from the running application via Playwright. The script logs in as `admin@example.com` via the magic-link API, navigates to `/admin/monthly-review`, saves a full-page screenshot to `./tmp/monthly-review.png`, and dumps the rendered shadow DOM HTML to `./tmp/monthly-review-shadow.html`. Run it from the project root:
 
 ```bash
 node scripts/review-screenshot.mjs
@@ -105,7 +109,7 @@ curl -s http://localhost:${PORT:-3003}/api/employees \
   -H "Cookie: auth_hash=$AUTH_TOKEN"
 ```
 
-> **Note**: The magic link token expires in 1 hour. The session token (`authToken`) expires in 10 years. Save the session token to a file (e.g., `/tmp/admin_token.txt`) for reuse across commands in the same session.
+> **Note**: The magic link token expires in 1 hour. The session token (`authToken`) expires in 10 years. Save the session token to a file (e.g., `./tmp/admin_token.txt`) for reuse across commands in the same session.
 
 ### Excel Import via API
 
@@ -114,7 +118,7 @@ The server exposes two import endpoints. Use the **file upload** endpoint for im
 **Upload endpoint** — `POST /api/admin/import-excel` (server-side ExcelJS parsing):
 
 ```bash
-AUTH_TOKEN=$(cat /tmp/admin_token.txt)
+AUTH_TOKEN=$(cat ./tmp/admin_token.txt)
 curl -s -X POST http://localhost:${PORT:-3003}/api/admin/import-excel \
   -H "Cookie: auth_hash=$AUTH_TOKEN" \
   -F "file=@reports/2018.xlsx"
@@ -198,10 +202,10 @@ pnpm seed
 # (restart the server process to pick up the new database)
 
 # 2. Authenticate
-# (steps 1-2 from "API Authentication via curl" above, save to /tmp/admin_token.txt)
+# (steps 1-2 from "API Authentication via curl" above, save to ./tmp/admin_token.txt)
 
 # 3. Import
-AUTH_TOKEN=$(cat /tmp/admin_token.txt)
+AUTH_TOKEN=$(cat ./tmp/admin_token.txt)
 curl -s -X POST http://localhost:3003/api/admin/import-excel \
   -H "Cookie: auth_hash=$AUTH_TOKEN" \
   -F "file=@reports/2018.xlsx" | python3 -m json.tool | head -20

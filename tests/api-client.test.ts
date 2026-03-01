@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { APIClient } from "../client/APIClient.js";
 import {
   VALIDATION_MESSAGES,

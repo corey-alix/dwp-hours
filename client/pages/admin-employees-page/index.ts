@@ -54,7 +54,7 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
     this._employees = (loaderData as any)?.employees ?? [];
     this._showForm = false;
     this._editEmployee = null;
-    this._currentYear = _search.get("current_year") || String(getCurrentYear());
+    this._currentYear = String(getCurrentYear());
 
     // Fetch PTO entries for balance calculations
     try {
