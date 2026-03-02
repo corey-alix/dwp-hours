@@ -104,3 +104,65 @@ describe("BaseComponent addCleanup()", () => {
     expect(spy).toHaveBeenCalledOnce();
   });
 });
+
+describe("BaseComponent resolveAction()", () => {
+  /** Subclass that exposes resolveAction and records clicks. */
+  class ActionTestComponent extends BaseComponent {
+    lastAction: { action: string; target: HTMLElement } | null = null;
+
+    protected render(): string | undefined {
+      return `
+        <div>
+          <button data-action="approve" data-id="42">Approve</button>
+          <span class="icon" data-action="delete">X</span>
+          <button>No Action</button>
+          <div data-action="parent"><span class="child">Nested</span></div>
+        </div>
+      `;
+    }
+
+    protected handleDelegatedClick(e: Event): void {
+      this.lastAction = this.resolveAction(e);
+    }
+  }
+
+  if (!customElements.get("action-test-component")) {
+    customElements.define("action-test-component", ActionTestComponent);
+  }
+
+  let el: ActionTestComponent;
+
+  beforeEach(() => {
+    el = new ActionTestComponent();
+    document.body.appendChild(el);
+  });
+
+  afterEach(() => {
+    el.remove();
+  });
+
+  it("returns action and target for a data-action element", () => {
+    const btn = el.shadowRoot.querySelector<HTMLElement>(
+      "[data-action='approve']",
+    )!;
+    btn.click();
+    expect(el.lastAction).toEqual({ action: "approve", target: btn });
+  });
+
+  it("returns null for elements without data-action", () => {
+    const btn = el.shadowRoot.querySelector<HTMLElement>(
+      "button:not([data-action])",
+    )!;
+    btn.click();
+    expect(el.lastAction).toBeNull();
+  });
+
+  it("resolves data-action from ancestor (closest)", () => {
+    const nested = el.shadowRoot.querySelector<HTMLElement>(".child")!;
+    nested.click();
+    const parent = el.shadowRoot.querySelector<HTMLElement>(
+      "[data-action='parent']",
+    )!;
+    expect(el.lastAction).toEqual({ action: "parent", target: parent });
+  });
+});

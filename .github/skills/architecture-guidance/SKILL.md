@@ -245,3 +245,177 @@ class AdminEmployeesPage extends BaseComponent {
 - **Component Isolation**: Web components should be data-agnostic and testable without direct API dependencies
 - **Type Safety**: Full TypeScript coverage for reliability and developer experience
 - **Testability**: Architecture designed to support comprehensive unit and E2E testing with mockable services
+
+### Context Protocol
+
+The application uses a lightweight context protocol for dependency injection into web components. Context providers wrap subtrees and intercept bubbling `context-request` events.
+
+#### Providing Context
+
+In `App.run()`, context providers wrap `#app-wrapper`:
+
+```typescript
+import { createContextProvider, CONTEXT_KEYS } from "./shared/context.js";
+
+const provider = createContextProvider(
+  CONTEXT_KEYS.NOTIFICATIONS,
+  notifications,
+);
+provider.style.display = "contents";
+parentElement.insertBefore(provider, appWrapper);
+provider.appendChild(appWrapper);
+```
+
+#### Consuming Context
+
+Components consume context in `connectedCallback()`:
+
+```typescript
+import { consumeContext, CONTEXT_KEYS } from "../../shared/context.js";
+import type { TraceListener } from "../../controller/TraceListener.js";
+
+class MyPage extends BaseComponent {
+  private _notifications: TraceListener | null = null;
+
+  connectedCallback() {
+    super.connectedCallback();
+    consumeContext<TraceListener>(this, CONTEXT_KEYS.NOTIFICATIONS, (svc) => {
+      this._notifications = svc;
+    });
+  }
+
+  private handleError(msg: string): void {
+    this._notifications?.error(msg); // nullable — safe in unit tests without provider
+  }
+}
+```
+
+#### Well-Known Context Keys
+
+| Key             | Value Type               | Purpose              |
+| --------------- | ------------------------ | -------------------- |
+| `NOTIFICATIONS` | `TraceListener`          | Toast notifications  |
+| `DEBUG`         | `DebugConsoleController` | Debug console bridge |
+
+#### Context vs Constructor Injection
+
+- **Context protocol**: For web components (DOM elements) that need shared services.
+- **Constructor injection**: For plain classes like `UIManager` that are not custom elements.
+
+### Event Delegation and `data-action` Convention
+
+#### Standard Target Resolution
+
+Use `BaseComponent.resolveAction(e)` to resolve the `data-action` attribute from a delegated event:
+
+```typescript
+protected handleDelegatedClick(e: Event): void {
+  const hit = this.resolveAction(e);
+  if (!hit) return;
+
+  switch (hit.action) {
+    case "approve":
+      this.handleApprove(hit.target);
+      break;
+    case "reject":
+      this.handleReject(hit.target);
+      break;
+  }
+}
+```
+
+#### HTML Markup
+
+Actionable elements carry `data-action` and optional `data-*` attributes:
+
+```html
+<button data-action="approve" data-request-id="42">Approve</button>
+<button data-action="reject" data-request-id="42">Reject</button>
+```
+
+#### When to Use Delegation vs Direct Listeners
+
+| Scenario                  | Pattern                          |
+| ------------------------- | -------------------------------- |
+| Dynamic/repeated content  | Delegation via `data-action`     |
+| Static buttons/controls   | Direct `addListener()`           |
+| Cross-component data flow | Custom events                    |
+| External events (window)  | `addListener()` + `addCleanup()` |
+
+### Custom Event Catalog
+
+All custom events are cataloged in `client/shared/events.ts` with typed detail interfaces.
+
+#### Naming Conventions
+
+| Pattern             | Usage                     | Example             |
+| ------------------- | ------------------------- | ------------------- |
+| `noun-verb`         | Action completed          | `employee-submit`   |
+| `noun-data-request` | Component needs data      | `pto-data-request`  |
+| `noun-changed`      | State change notification | `selection-changed` |
+
+#### Typed Dispatch
+
+```typescript
+import { dispatchTypedEvent } from "../../shared/events.js";
+
+dispatchTypedEvent(this, "employee-submit", { employee: { name: "Jane" } });
+```
+
+### Two-Click Confirmation Pattern
+
+For destructive or important actions, use `ConfirmationController` from `client/shared/confirmation-mixin.ts`:
+
+```typescript
+import { ConfirmationController } from "../../shared/confirmation-mixin.js";
+
+class MyComponent extends BaseComponent {
+  private _confirm = new ConfirmationController();
+
+  disconnectedCallback() {
+    this._confirm.clearAll();
+    super.disconnectedCallback();
+  }
+
+  protected handleDelegatedClick(e: Event): void {
+    const hit = this.resolveAction(e);
+    if (!hit) return;
+
+    if (hit.action === "delete") {
+      this._confirm.handleClick(hit.target as HTMLButtonElement, () => {
+        this.executeDelete(hit.target);
+      });
+    }
+  }
+}
+```
+
+For conditional confirmation (only confirm under certain conditions):
+
+```typescript
+this._confirm.handleConditionalClick(
+  btn,
+  hasNegativeBalance, // only require confirmation when true
+  () => this.executeApprove(requestId),
+);
+```
+
+### StorageService Abstraction
+
+Components that persist UI preferences (expanded state, selected month, etc.) use the `StorageService` interface from `client/shared/storage.ts`:
+
+```typescript
+import type { StorageService } from "../../shared/storage.js";
+import { LocalStorageAdapter } from "../../shared/storage.js";
+
+class MyComponent extends BaseComponent {
+  private _storage: StorageService = new LocalStorageAdapter();
+
+  // Setter for test injection
+  set storage(svc: StorageService) {
+    this._storage = svc;
+  }
+}
+```
+
+Tests inject `InMemoryStorage` instead of mocking `localStorage` globals.

@@ -65,6 +65,31 @@ export abstract class BaseComponent extends HTMLElement {
   }
 
   /**
+   * Resolve the `data-action` from a delegated event target.
+   *
+   * Standard convention: walk up from `e.target` using
+   * `closest("[data-action]")` and return the action string + element.
+   * Returns `null` when no actionable ancestor is found.
+   *
+   * Usage in `handleDelegatedClick`:
+   * ```ts
+   * const hit = this.resolveAction(e);
+   * if (!hit) return;
+   * switch (hit.action) { ... }
+   * ```
+   */
+  protected resolveAction(
+    e: Event,
+  ): { action: string; target: HTMLElement } | null {
+    const origin = e.target as HTMLElement | null;
+    const el = origin?.closest<HTMLElement>("[data-action]");
+    if (!el) return null;
+    const action = el.dataset.action;
+    if (!action) return null;
+    return { action, target: el };
+  }
+
+  /**
    * Register an arbitrary cleanup function to run in disconnectedCallback
    * or before re-render. Use for addEventListener, timers, observers, etc.
    */

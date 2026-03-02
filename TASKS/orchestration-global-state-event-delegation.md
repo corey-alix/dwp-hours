@@ -42,11 +42,11 @@ Temporary orchestrator tracking unified progress across `global-state-refactor.m
 
 ## Stage 4: Event System Design (Event Delegation Phases 1–2)
 
-- [ ] Standardize target identification convention: `closest("[data-action]")` as primary pattern
-- [ ] Extract shared two-click confirmation mixin (AdminMonthlyReview + PtoRequestQueue)
-- [ ] Define typed custom event catalog with naming conventions
-- [ ] Update architecture-guidance skill with event + context patterns
-- [ ] Build passes, lint passes
+- [x] Standardize target identification convention: `closest("[data-action]")` as primary pattern
+- [x] Extract shared two-click confirmation mixin (AdminMonthlyReview + PtoRequestQueue)
+- [x] Define typed custom event catalog with naming conventions
+- [x] Update architecture-guidance skill with event + context patterns
+- [x] Build passes, lint passes
 
 ## Stage 5: Critical Component Refactoring (Event Delegation Phases 3–4)
 
@@ -71,7 +71,7 @@ Temporary orchestrator tracking unified progress across `global-state-refactor.m
 
 ## Status
 
-**Current Stage:** 3 — Activity & Debug (complete)
+**Current Stage:** 4 — Event System Design (complete)
 **Started:** 2026-03-01
 
 ---
@@ -142,6 +142,16 @@ Migrated files:
 - `tests/activityTracker.test.ts` — replaced `vi.stubGlobal("localStorage", ...)` with `InMemoryStorage`. Functions called with explicit `storage` parameter.
 - `tests/components/pto-pto-card.test.ts` — replaced `vi.stubGlobal("localStorage")` with `InMemoryStorage` via `component.storage = storage`.
 
+**Stage 4 deliverables:**
+
+- `client/shared/confirmation-mixin.ts` — `ConfirmationController` class (standalone, no inheritance). `handleClick(btn, onConfirm, options?)` for unconditional two-click, `handleConditionalClick(btn, condition, onConfirm, options?)` for conditional. `clearAll()` for cleanup in `disconnectedCallback`. Auto-revert default 3 s, configurable via constructor.
+- `client/shared/events.ts` — Typed custom event catalog. `AppEvents` interface maps 25+ event names to detail payload interfaces. `dispatchTypedEvent<K>(target, eventName, detail, options?)` helper dispatches with `bubbles: true, composed: true` by default.
+- `client/components/base-component.ts` — added `resolveAction(e)` protected method. Returns `{ action: string; target: HTMLElement } | null` via `closest("[data-action]")` on the event target.
+- `.github/skills/architecture-guidance/SKILL.md` — added sections for Context Protocol, Event Delegation / `data-action` convention, Custom Event Catalog, Two-Click Confirmation, and StorageService Abstraction.
+- `tests/shared/confirmation-mixin.test.ts` — 12 tests covering: first/second click, auto-revert, custom label, custom timeout, conditional click, isConfirming, clear/clearAll, multi-button independence.
+- `tests/shared/events.test.ts` — 4 tests covering: correct name/detail, bubbling, composed override, return value.
+- `tests/components/base-component.test.ts` — added 3 `resolveAction()` tests: direct hit, no-action returns null, ancestor resolution via `closest`.
+
 ### Key Architecture Decisions
 
 1. **Context keys are strings** (not Symbols) — stored in `CONTEXT_KEYS` const object.
@@ -152,10 +162,12 @@ Migrated files:
 
 ### Test Suite Status
 
-All 1204 tests passing (1 skipped: server test). Key test files:
+All 1222 tests passing (1 skipped: server test). Key test files:
 
 - `tests/shared/context.test.ts` — context protocol lifecycle (happy-dom)
 - `tests/shared/storage.test.ts` — InMemoryStorage (node)
-- `tests/components/base-component.test.ts` — addCleanup lifecycle (happy-dom)
+- `tests/shared/confirmation-mixin.test.ts` — ConfirmationController (happy-dom)
+- `tests/shared/events.test.ts` — dispatchTypedEvent (happy-dom)
+- `tests/components/base-component.test.ts` — addCleanup lifecycle + resolveAction (happy-dom)
 - `tests/trace-listener.test.ts` — TraceListener unit tests (independent of context)
 - `tests/components/debug-console.test.ts` — DebugConsoleController tests
