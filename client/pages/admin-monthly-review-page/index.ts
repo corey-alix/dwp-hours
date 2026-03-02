@@ -43,14 +43,12 @@ export class AdminMonthlyReviewPage
     `;
   }
 
-  private _customEventsSetup = false;
-
   protected setupEventDelegation(): void {
     super.setupEventDelegation();
-    if (this._customEventsSetup) return;
-    this._customEventsSetup = true;
 
-    this.shadowRoot.addEventListener("admin-acknowledge", ((e: CustomEvent) => {
+    this.addListener(this.shadowRoot, "admin-acknowledge", ((
+      e: CustomEvent,
+    ) => {
       e.stopPropagation();
       this.handleAdminAcknowledgeReview(
         e.detail.employeeId,
@@ -59,7 +57,7 @@ export class AdminMonthlyReviewPage
       );
     }) as EventListener);
 
-    this.shadowRoot.addEventListener("send-lock-reminder", ((
+    this.addListener(this.shadowRoot, "send-lock-reminder", ((
       e: CustomEvent,
     ) => {
       e.stopPropagation();
@@ -67,7 +65,8 @@ export class AdminMonthlyReviewPage
     }) as EventListener);
 
     // Handle data requests from the `admin-monthly-review` child component
-    this.shadowRoot.addEventListener(
+    this.addListener(
+      this.shadowRoot,
       "admin-monthly-review-request",
       (evt: Event) => {
         const e = evt as CustomEvent;
@@ -124,7 +123,8 @@ export class AdminMonthlyReviewPage
     );
 
     // Handle calendar month navigation data requests from inline calendars
-    this.shadowRoot.addEventListener(
+    this.addListener(
+      this.shadowRoot,
       "calendar-month-data-request",
       (evt: Event) => {
         const e = evt as CustomEvent;

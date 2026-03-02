@@ -130,16 +130,7 @@ export class DashboardNavigationMenu extends BaseComponent {
     if (target.classList.contains("menu-toggle")) {
       this.toggleMenu();
     } else if (target.classList.contains("menu-item")) {
-      const action = target.dataset.action;
-      if (action === "logout") {
-        this.handleLogout();
-      } else if (action === "download-report-html") {
-        this.handleDownloadReport("html");
-      } else if (action === "download-report-excel") {
-        this.handleDownloadReport("excel");
-      } else if (action) {
-        this.selectPage(action as Page);
-      }
+      this.executeMenuAction(target.dataset.action);
     }
   }
 
@@ -149,17 +140,22 @@ export class DashboardNavigationMenu extends BaseComponent {
     if (target.classList.contains("menu-item")) {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
-        const action = target.dataset.action;
-        if (action === "logout") {
-          this.handleLogout();
-        } else if (action === "download-report-html") {
-          this.handleDownloadReport("html");
-        } else if (action === "download-report-excel") {
-          this.handleDownloadReport("excel");
-        } else if (action) {
-          this.selectPage(action as Page);
-        }
+        this.executeMenuAction(target.dataset.action);
       }
+    }
+  }
+
+  /** Shared action routing for both click and keydown on menu items. */
+  private executeMenuAction(action: string | undefined): void {
+    if (!action) return;
+    if (action === "logout") {
+      this.handleLogout();
+    } else if (action === "download-report-html") {
+      this.handleDownloadReport("html");
+    } else if (action === "download-report-excel") {
+      this.handleDownloadReport("excel");
+    } else {
+      this.selectPage(action as Page);
     }
   }
 

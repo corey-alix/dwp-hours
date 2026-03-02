@@ -102,24 +102,20 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
     `;
   }
 
-  private _customEventsSetup = false;
-
   protected setupEventDelegation(): void {
     super.setupEventDelegation();
-    if (this._customEventsSetup) return;
-    this._customEventsSetup = true;
 
-    this.shadowRoot.addEventListener("pto-submit", ((e: CustomEvent) => {
+    this.addListener(this.shadowRoot, "pto-submit", ((e: CustomEvent) => {
       e.stopPropagation();
       this.handlePtoRequestSubmit(e);
     }) as EventListener);
 
-    this.shadowRoot.addEventListener("pto-data-request", ((e: Event) => {
+    this.addListener(this.shadowRoot, "pto-data-request", ((e: Event) => {
       e.stopPropagation();
       this.handlePtoDataRequest();
     }) as EventListener);
 
-    this.shadowRoot.addEventListener("pto-validation-error", ((
+    this.addListener(this.shadowRoot, "pto-validation-error", ((
       e: CustomEvent,
     ) => {
       e.stopPropagation();
@@ -127,12 +123,12 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
       this._notifications?.error(errors.join("\n"));
     }) as EventListener);
 
-    this.shadowRoot.addEventListener("selection-changed", ((e: Event) => {
+    this.addListener(this.shadowRoot, "selection-changed", ((e: Event) => {
       e.stopPropagation();
       this.handleSelectionChanged();
     }) as EventListener);
 
-    this.shadowRoot.addEventListener("pto-type-changed", ((e: CustomEvent) => {
+    this.addListener(this.shadowRoot, "pto-type-changed", ((e: CustomEvent) => {
       e.stopPropagation();
       const type = e.detail?.type;
       if (!type) return;
@@ -149,7 +145,7 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
       this.handleSelectionChanged();
     }) as EventListener);
 
-    this.shadowRoot.addEventListener("month-changed", (() => {
+    this.addListener(this.shadowRoot, "month-changed", (() => {
       this.refreshLockState();
     }) as EventListener);
   }

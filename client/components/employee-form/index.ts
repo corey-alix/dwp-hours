@@ -252,44 +252,7 @@ export class EmployeeForm extends BaseComponent {
 
     if (target.id === "submit-btn") {
       e.preventDefault();
-      if (this._isSubmitting) {
-        return;
-      }
-      // Mark submitting and re-render action state after collecting data
-      this._isSubmitting = true;
-
-      // Collect and validate form data before rendering to avoid losing user input
-      const result = this.validateAndCollectData();
-      if (result.isValid) {
-        // Update UI to submitting state
-        this.requestUpdate();
-
-        // Dispatch submit event with collected data
-        this.dispatchEvent(
-          new CustomEvent("employee-submit", {
-            detail: { employee: result.employee, isEdit: this._isEdit },
-            bubbles: true,
-            composed: true,
-          }),
-        );
-
-        // Update the employee property with submitted values so form shows correct data
-        if (result.employee) {
-          this._employee = result.employee;
-        }
-
-        // Clear submitting state and staged values after dispatch so consumers can update
-        this._isSubmitting = false;
-        this._stagedFormValues = null;
-        this._errors = {};
-        this.requestUpdate();
-      } else {
-        // Focus first error field
-        this.focusFirstError();
-        this._isSubmitting = false;
-        // Keep staged form values so user input is preserved when re-rendering
-        this.requestUpdate();
-      }
+      this.handleFormSubmit();
     } else if (target.id === "cancel-btn") {
       this.dispatchEvent(
         new CustomEvent("form-cancel", {
@@ -297,6 +260,35 @@ export class EmployeeForm extends BaseComponent {
           composed: true,
         }),
       );
+    }
+  }
+
+  /** Validate, collect, and dispatch the employee-submit event. */
+  private handleFormSubmit(): void {
+    if (this._isSubmitting) return;
+    this._isSubmitting = true;
+
+    const result = this.validateAndCollectData();
+    if (result.isValid) {
+      this.requestUpdate();
+      this.dispatchEvent(
+        new CustomEvent("employee-submit", {
+          detail: { employee: result.employee, isEdit: this._isEdit },
+          bubbles: true,
+          composed: true,
+        }),
+      );
+      if (result.employee) {
+        this._employee = result.employee;
+      }
+      this._isSubmitting = false;
+      this._stagedFormValues = null;
+      this._errors = {};
+      this.requestUpdate();
+    } else {
+      this.focusFirstError();
+      this._isSubmitting = false;
+      this.requestUpdate();
     }
   }
 

@@ -400,21 +400,22 @@ export class PtoCalendar extends BaseComponent {
   protected setupEventDelegation() {
     super.setupEventDelegation();
 
-    // Long-press detection via pointer events
-    this.shadowRoot.addEventListener("pointerdown", (e) => {
+    // Long-press detection via pointer events — use addListener for
+    // automatic cleanup between renders (prevents listener accumulation).
+    this.addListener(this.shadowRoot, "pointerdown", (e) => {
       this.handlePointerDown(e as PointerEvent);
     });
-    this.shadowRoot.addEventListener("pointermove", (e) => {
+    this.addListener(this.shadowRoot, "pointermove", (e) => {
       this.handlePointerMove(e as PointerEvent);
     });
-    this.shadowRoot.addEventListener("pointerup", () => {
+    this.addListener(this.shadowRoot, "pointerup", () => {
       this.cancelLongPress();
     });
-    this.shadowRoot.addEventListener("pointercancel", () => {
+    this.addListener(this.shadowRoot, "pointercancel", () => {
       this.cancelLongPress();
     });
     // Suppress context menu on long-press
-    this.shadowRoot.addEventListener("contextmenu", (e) => {
+    this.addListener(this.shadowRoot, "contextmenu", (e) => {
       if (this._longPressDate) {
         e.preventDefault();
       }
@@ -424,77 +425,86 @@ export class PtoCalendar extends BaseComponent {
   protected handleDelegatedClick(e: Event): void {
     const target = e.target as HTMLElement;
 
-    // Note indicator clicks — in edit mode, open the note dialog;
-    // in read-only mode, show a toast.
-    const noteIndicator = target.closest(".note-indicator") as HTMLElement;
-    if (noteIndicator) {
-      e.preventDefault();
-      e.stopPropagation();
-      const date = noteIndicator.closest(".day")?.getAttribute("data-date");
-      if (!this.isReadonly && date) {
-        this.openNoteDialog(date);
-      } else {
-        const noteText = noteIndicator.getAttribute("data-note");
-        if (noteText) {
-          this._notifications?.info(noteText, "Note");
-        }
-      }
-      return;
-    }
-
-    // Edit-note placeholder clicks (TL ghost icon shown in edit mode)
-    const editNote = target.closest(".edit-note-icon") as HTMLElement;
-    if (editNote && !this.isReadonly) {
-      e.preventDefault();
-      e.stopPropagation();
-      const date = editNote.closest(".day")?.getAttribute("data-date");
-      if (date) {
-        this.openNoteDialog(date);
-      }
-      return;
-    }
-
+    if (this.handleNoteIndicatorClick(target, e)) return;
+    if (this.handleEditNoteClick(target, e)) return;
     if (this.isReadonly) return;
+    if (this.handleDayCellClick(target, e)) return;
+    if (this.handleLegendItemClick(target, e)) return;
+    this.handleSubmitSlotClick(target, e);
+  }
 
-    // Day cell clicks
+  /** Note indicator click — open dialog (edit) or show toast (readonly). */
+  private handleNoteIndicatorClick(target: HTMLElement, e: Event): boolean {
+    const noteIndicator = target.closest(".note-indicator") as HTMLElement;
+    if (!noteIndicator) return false;
+    e.preventDefault();
+    e.stopPropagation();
+    const date = noteIndicator.closest(".day")?.getAttribute("data-date");
+    if (!this.isReadonly && date) {
+      this.openNoteDialog(date);
+    } else {
+      const noteText = noteIndicator.getAttribute("data-note");
+      if (noteText) {
+        this._notifications?.info(noteText, "Note");
+      }
+    }
+    return true;
+  }
+
+  /** Edit-note placeholder click — open note dialog in edit mode. */
+  private handleEditNoteClick(target: HTMLElement, e: Event): boolean {
+    const editNote = target.closest(".edit-note-icon") as HTMLElement;
+    if (!editNote || this.isReadonly) return false;
+    e.preventDefault();
+    e.stopPropagation();
+    const date = editNote.closest(".day")?.getAttribute("data-date");
+    if (date) {
+      this.openNoteDialog(date);
+    }
+    return true;
+  }
+
+  /** Day cell click — toggle date selection. */
+  private handleDayCellClick(target: HTMLElement, e: Event): boolean {
     const dayCell = target.closest(".day.clickable") as HTMLElement;
-    if (dayCell) {
-      e.preventDefault();
-      const date = dayCell.dataset.date;
-      if (date) {
-        this._focusedDate = date;
-        this._lastFocusArea = "grid";
-        this.toggleDaySelection(date);
-      }
-      return;
+    if (!dayCell) return false;
+    e.preventDefault();
+    const date = dayCell.dataset.date;
+    if (date) {
+      this._focusedDate = date;
+      this._lastFocusArea = "grid";
+      this.toggleDaySelection(date);
     }
+    return true;
+  }
 
-    // Legend item clicks
+  /** Legend item click — toggle PTO type filter. */
+  private handleLegendItemClick(target: HTMLElement, e: Event): boolean {
     const legendItem = target.closest(".legend-item.clickable") as HTMLElement;
-    if (legendItem) {
-      e.preventDefault();
-      const type = legendItem.dataset.type;
-      if (type) {
-        const legendItems = Array.from(
-          this.shadowRoot.querySelectorAll(".legend-item.clickable"),
-        );
-        this._focusedLegendIndex = legendItems.indexOf(legendItem);
-        this._selectedPtoType =
-          this._selectedPtoType === type ? null : normalizePTOType(type);
-        this._lastFocusArea = "legend";
-        this.requestUpdate();
-      }
-      return;
+    if (!legendItem) return false;
+    e.preventDefault();
+    const type = legendItem.dataset.type;
+    if (type) {
+      const legendItems = Array.from(
+        this.shadowRoot.querySelectorAll(".legend-item.clickable"),
+      );
+      this._focusedLegendIndex = legendItems.indexOf(legendItem);
+      this._selectedPtoType =
+        this._selectedPtoType === type ? null : normalizePTOType(type);
+      this._lastFocusArea = "legend";
+      this.requestUpdate();
     }
+    return true;
+  }
 
-    // Submit button clicks (slotted)
+  /** Submit button click (slotted). */
+  private handleSubmitSlotClick(target: HTMLElement, e: Event): void {
     const submitSlot = target.closest(".submit-slot");
-    if (submitSlot) {
-      const button = target.closest("button");
-      if (button && button.textContent === "Submit PTO Request") {
-        e.preventDefault();
-        this.submitRequest();
-      }
+    if (!submitSlot) return;
+    const button = target.closest("button");
+    if (button && button.textContent === "Submit PTO Request") {
+      e.preventDefault();
+      this.submitRequest();
     }
   }
 

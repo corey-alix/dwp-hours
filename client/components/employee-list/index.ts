@@ -271,7 +271,6 @@ export class EmployeeList extends BaseComponent {
         `;
   }
 
-  private _inputListenerSetup = false;
   private _deleteTimer: ReturnType<typeof setTimeout> | null = null;
   private _deleteTarget: HTMLElement | null = null;
   private static readonly DELETE_HOLD_MS = 1500;
@@ -386,11 +385,9 @@ export class EmployeeList extends BaseComponent {
 
   protected setupEventDelegation() {
     super.setupEventDelegation();
-    if (this._inputListenerSetup) return;
-    this._inputListenerSetup = true;
 
-    // Input event for search filtering
-    this.shadowRoot.addEventListener("input", (e) => {
+    // Input event for search filtering — use addListener for cleanup between renders
+    this.addListener(this.shadowRoot, "input", (e) => {
       const target = e.target as HTMLElement;
       if (target.id === "search-input") {
         this._searchTerm = (target as HTMLInputElement).value;
@@ -399,7 +396,7 @@ export class EmployeeList extends BaseComponent {
     });
 
     // Forward employee-submit from inline editor
-    this.shadowRoot.addEventListener("employee-submit", (e) => {
+    this.addListener(this.shadowRoot, "employee-submit", (e) => {
       e.stopPropagation();
       this.dispatchEvent(
         new CustomEvent("employee-submit", {
@@ -411,7 +408,7 @@ export class EmployeeList extends BaseComponent {
     });
 
     // Forward form-cancel from inline editor
-    this.shadowRoot.addEventListener("form-cancel", (e) => {
+    this.addListener(this.shadowRoot, "form-cancel", (e) => {
       e.stopPropagation();
       this.dispatchEvent(
         new CustomEvent("form-cancel", {
@@ -423,7 +420,7 @@ export class EmployeeList extends BaseComponent {
     });
 
     // Long-press detection for delete buttons
-    this.shadowRoot.addEventListener("pointerdown", (e) => {
+    this.addListener(this.shadowRoot, "pointerdown", (e) => {
       const target = e.target as HTMLElement;
       if (
         target.classList.contains("action-btn") &&
@@ -434,11 +431,11 @@ export class EmployeeList extends BaseComponent {
       }
     });
 
-    this.shadowRoot.addEventListener("pointerup", () => {
+    this.addListener(this.shadowRoot, "pointerup", () => {
       this.cancelDeletePress();
     });
 
-    this.shadowRoot.addEventListener("pointerleave", (e) => {
+    this.addListener(this.shadowRoot, "pointerleave", (e) => {
       const target = e.target as HTMLElement;
       if (target === this._deleteTarget) {
         this.cancelDeletePress();
@@ -446,7 +443,7 @@ export class EmployeeList extends BaseComponent {
     });
 
     // Also cancel on pointer cancel (e.g., system gesture interruption)
-    this.shadowRoot.addEventListener("pointercancel", () => {
+    this.addListener(this.shadowRoot, "pointercancel", () => {
       this.cancelDeletePress();
     });
   }

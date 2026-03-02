@@ -1,4 +1,5 @@
 import { BaseComponent } from "../base-component.js";
+import { ConfirmationController } from "../../shared/confirmation-mixin.js";
 import { styles } from "./css.js";
 import type {
   AdminMonthlyReviewItem,
@@ -58,8 +59,8 @@ export class AdminMonthlyReview extends BaseComponent {
     approved_by?: number | null;
     notes?: string | null;
   }> = [];
-  /** Track buttons awaiting confirmation. Maps button element to reset timer. */
-  private _pendingConfirmations = new Map<HTMLButtonElement, number>();
+  /** Two-click confirmation controller for acknowledge buttons. */
+  private _confirm = new ConfirmationController();
   /** Track which employee IDs have their inline calendar expanded */
   private _expandedCalendars: Set<number> = new Set();
   /** Per-card navigated month (employee ID → YYYY-MM). Reset on collapse. */
@@ -105,6 +106,11 @@ export class AdminMonthlyReview extends BaseComponent {
     adoptNavigation(this.shadowRoot);
     adoptAnimations(this.shadowRoot);
     this.requestEmployeeData();
+  }
+
+  disconnectedCallback() {
+    this._confirm.clearAll();
+    super.disconnectedCallback();
   }
 
   attributeChangedCallback(
@@ -458,24 +464,6 @@ export class AdminMonthlyReview extends BaseComponent {
     );
   }
 
-  private resetConfirmation(
-    btn: HTMLButtonElement,
-    originalText: string,
-  ): void {
-    btn.classList.remove("confirming");
-    btn.textContent = originalText;
-    this._pendingConfirmations.delete(btn);
-  }
-
-  private clearConfirmation(btn: HTMLButtonElement): void {
-    const timer = this._pendingConfirmations.get(btn);
-    if (timer !== undefined) {
-      clearTimeout(timer);
-      this._pendingConfirmations.delete(btn);
-    }
-    btn.classList.remove("confirming");
-  }
-
   /**
    * Animate a card scaling down and fading out (dismiss effect).
    * Called by the parent page after the inline confirmation completes.
@@ -597,69 +585,69 @@ export class AdminMonthlyReview extends BaseComponent {
   protected handleDelegatedClick(e: Event): void {
     const target = e.target as HTMLElement;
 
-    // Handle acknowledge buttons — inline two-click confirmation
     if (target.classList.contains("acknowledge-btn")) {
-      const btn = target as HTMLButtonElement;
-      const employeeId = parseInt(btn.getAttribute("data-employee-id") || "0");
-      if (!employeeId) return;
-
-      if (!btn.classList.contains("confirming")) {
-        // First click: enter confirmation state
-        const originalText = btn.textContent?.trim() ?? "";
-        btn.classList.add("confirming");
-        btn.textContent = "Confirm Acknowledge?";
-
-        // Auto-revert after 3 seconds
-        const timer = window.setTimeout(() => {
-          this.resetConfirmation(btn, originalText);
-        }, 3000);
-        this._pendingConfirmations.set(btn, timer);
-        return;
-      }
-
-      // Second click: confirmed — dispatch event
-      this.clearConfirmation(btn);
-      this.dispatchAcknowledgeEvent(employeeId);
+      this.handleAcknowledgeClick(target as HTMLButtonElement);
       return;
     }
 
-    // Handle unlocked lock indicator — send notification reminder
     if (target.hasAttribute("data-notify-employee")) {
-      const employeeId = parseInt(
-        target.getAttribute("data-notify-employee") || "0",
-      );
-      if (employeeId) {
-        this.handleSendLockReminder(employeeId);
-      }
+      this.handleNotifyClick(target);
       return;
     }
 
-    // Handle view-calendar toggle buttons
     if (target.classList.contains("view-calendar-btn")) {
-      const employeeId = parseInt(
-        target.getAttribute("data-employee-id") || "0",
-      );
-      if (employeeId) {
-        this.toggleCalendar(employeeId);
-      }
+      this.handleViewCalendarClick(target);
       return;
     }
 
-    // Handle calendar month navigation arrows (with carousel animation)
     if (
       target.classList.contains("cal-nav-prev") ||
       target.classList.contains("cal-nav-next")
     ) {
-      const employeeId = parseInt(
-        target.getAttribute("data-employee-id") || "0",
-      );
-      if (employeeId) {
-        const direction: -1 | 1 = target.classList.contains("cal-nav-prev")
-          ? -1
-          : 1;
-        this.navigateMonthWithAnimation(employeeId, direction);
-      }
+      this.handleCalendarNavClick(target);
       return;
+    }
+  }
+
+  /** Two-click acknowledge via ConfirmationController. */
+  private handleAcknowledgeClick(btn: HTMLButtonElement): void {
+    const employeeId = parseInt(btn.getAttribute("data-employee-id") || "0");
+    if (!employeeId) return;
+    this._confirm.handleClick(
+      btn,
+      () => {
+        this.dispatchAcknowledgeEvent(employeeId);
+      },
+      { confirmLabel: "Confirm Acknowledge?" },
+    );
+  }
+
+  /** Send lock-reminder notification. */
+  private handleNotifyClick(target: HTMLElement): void {
+    const employeeId = parseInt(
+      target.getAttribute("data-notify-employee") || "0",
+    );
+    if (employeeId) {
+      this.handleSendLockReminder(employeeId);
+    }
+  }
+
+  /** Toggle inline calendar. */
+  private handleViewCalendarClick(target: HTMLElement): void {
+    const employeeId = parseInt(target.getAttribute("data-employee-id") || "0");
+    if (employeeId) {
+      this.toggleCalendar(employeeId);
+    }
+  }
+
+  /** Navigate calendar month with animation. */
+  private handleCalendarNavClick(target: HTMLElement): void {
+    const employeeId = parseInt(target.getAttribute("data-employee-id") || "0");
+    if (employeeId) {
+      const direction: -1 | 1 = target.classList.contains("cal-nav-prev")
+        ? -1
+        : 1;
+      this.navigateMonthWithAnimation(employeeId, direction);
     }
   }
 

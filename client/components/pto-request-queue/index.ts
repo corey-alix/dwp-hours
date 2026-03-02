@@ -6,6 +6,7 @@ import {
 } from "../../../shared/dateUtils.js";
 import { MONTH_NAMES } from "../../../shared/businessRules.js";
 import { BaseComponent } from "../base-component.js";
+import { ConfirmationController } from "../../shared/confirmation-mixin.js";
 import {
   adoptAnimations,
   adoptNavigation,
@@ -30,8 +31,8 @@ export class PtoRequestQueue extends BaseComponent {
   private _requests: PTORequest[] = [];
   /** Employee IDs that have at least one negative balance category. */
   private _negativeBalanceEmployeeIds = new Set<number>();
-  /** Track buttons awaiting confirmation. Maps button element to reset timer. */
-  private _pendingConfirmations = new Map<HTMLButtonElement, number>();
+  /** Two-click confirmation controller for negative-balance approve/reject. */
+  private _confirm = new ConfirmationController();
   /** Track which employee groups have their inline calendar expanded. */
   private _calendarExpandedEmployees: Set<number> = new Set();
   /** Per-employee navigated month (employee ID → YYYY-MM). */
@@ -50,6 +51,11 @@ export class PtoRequestQueue extends BaseComponent {
     super.connectedCallback();
     adoptAnimations(this.shadowRoot);
     adoptNavigation(this.shadowRoot);
+  }
+
+  disconnectedCallback() {
+    this._confirm.clearAll();
+    super.disconnectedCallback();
   }
 
   get requests(): PTORequest[] {
@@ -379,13 +385,7 @@ export class PtoRequestQueue extends BaseComponent {
       target.classList.contains("cal-nav-prev") ||
       target.classList.contains("cal-nav-next")
     ) {
-      const empId = parseInt(target.getAttribute("data-employee-id") || "0");
-      if (empId) {
-        const direction: -1 | 1 = target.classList.contains("cal-nav-prev")
-          ? -1
-          : 1;
-        this.navigateCalendarMonth(empId, direction);
-      }
+      this.handleCalendarNavClick(target);
       return;
     }
 
@@ -393,20 +393,39 @@ export class PtoRequestQueue extends BaseComponent {
 
     // Handle show-calendar toggle
     if (target.dataset.action === "show-calendar") {
-      const empId = parseInt(target.dataset.employeeId || "0");
-      if (empId) {
-        // Find the requests for this employee to determine default month
-        const pendingRequests = this._requests.filter(
-          (r) => r.status === "pending",
-        );
-        const aggregated = aggregatePTORequests(pendingRequests);
-        const empRequests = aggregated.filter((r) => r.employeeId === empId);
-        this.toggleCalendar(empId, empRequests);
-      }
+      this.handleShowCalendarClick(target);
       return;
     }
 
-    const btn = target as HTMLButtonElement;
+    this.handleRequestActionClick(target as HTMLButtonElement);
+  }
+
+  /** Navigate inline calendar month. */
+  private handleCalendarNavClick(target: HTMLElement): void {
+    const empId = parseInt(target.getAttribute("data-employee-id") || "0");
+    if (empId) {
+      const direction: -1 | 1 = target.classList.contains("cal-nav-prev")
+        ? -1
+        : 1;
+      this.navigateCalendarMonth(empId, direction);
+    }
+  }
+
+  /** Toggle inline calendar for an employee. */
+  private handleShowCalendarClick(target: HTMLElement): void {
+    const empId = parseInt(target.dataset.employeeId || "0");
+    if (empId) {
+      const pendingRequests = this._requests.filter(
+        (r) => r.status === "pending",
+      );
+      const aggregated = aggregatePTORequests(pendingRequests);
+      const empRequests = aggregated.filter((r) => r.employeeId === empId);
+      this.toggleCalendar(empId, empRequests);
+    }
+  }
+
+  /** Approve/reject action — with conditional two-click confirmation for negative-balance employees. */
+  private handleRequestActionClick(btn: HTMLButtonElement): void {
     const action = btn.dataset.action;
     const requestIdsAttr = btn.dataset.requestIds;
     if (!action || !requestIdsAttr) return;
@@ -416,51 +435,17 @@ export class PtoRequestQueue extends BaseComponent {
     const group = card?.closest(".employee-group") as HTMLElement | null;
     const empId = group ? parseInt(group.dataset.employeeId ?? "0", 10) : 0;
 
-    // Check if this employee has a negative balance (unusual condition)
     const needsConfirm = this._negativeBalanceEmployeeIds.has(empId);
 
-    if (needsConfirm && !btn.classList.contains("confirming")) {
-      // First click: enter confirmation state
-      const originalText = btn.textContent?.trim() ?? "";
-      btn.classList.add("confirming");
-      btn.textContent = `Confirm ${originalText}?`;
-
-      // Auto-revert after 3 seconds
-      const timer = window.setTimeout(() => {
-        this.resetConfirmation(btn, originalText);
-      }, 3000);
-      this._pendingConfirmations.set(btn, timer);
-      return;
-    }
-
-    // Either no confirm needed, or this is the second click (confirmed)
-    this.clearConfirmation(btn);
-
-    this.dispatchEvent(
-      new CustomEvent(`request-${action}`, {
-        detail: { requestId: requestIds[0], requestIds },
-        bubbles: true,
-        composed: true,
-      }),
-    );
-  }
-
-  private resetConfirmation(
-    btn: HTMLButtonElement,
-    originalText: string,
-  ): void {
-    btn.classList.remove("confirming");
-    btn.textContent = originalText;
-    this._pendingConfirmations.delete(btn);
-  }
-
-  private clearConfirmation(btn: HTMLButtonElement): void {
-    const timer = this._pendingConfirmations.get(btn);
-    if (timer !== undefined) {
-      clearTimeout(timer);
-      this._pendingConfirmations.delete(btn);
-    }
-    btn.classList.remove("confirming");
+    this._confirm.handleConditionalClick(btn, needsConfirm, () => {
+      this.dispatchEvent(
+        new CustomEvent(`request-${action}`, {
+          detail: { requestId: requestIds[0], requestIds },
+          bubbles: true,
+          composed: true,
+        }),
+      );
+    });
   }
 }
 

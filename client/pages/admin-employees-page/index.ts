@@ -174,30 +174,26 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
       .reduce((sum, e) => sum + e.hours, 0);
   }
 
-  private _customEventsSetup = false;
-
   protected setupEventDelegation(): void {
     super.setupEventDelegation();
-    if (this._customEventsSetup) return;
-    this._customEventsSetup = true;
 
-    this.shadowRoot.addEventListener("employee-edit", ((e: CustomEvent) => {
+    this.addListener(this.shadowRoot, "employee-edit", ((e: CustomEvent) => {
       e.stopPropagation();
       this.handleEditEmployee(e.detail.employeeId);
     }) as EventListener);
 
-    this.shadowRoot.addEventListener("employee-delete", ((e: CustomEvent) => {
+    this.addListener(this.shadowRoot, "employee-delete", ((e: CustomEvent) => {
       e.stopPropagation();
       this.handleDeleteEmployee(e.detail.employeeId);
     }) as EventListener);
 
-    this.shadowRoot.addEventListener("employee-submit", ((e: CustomEvent) => {
+    this.addListener(this.shadowRoot, "employee-submit", ((e: CustomEvent) => {
       e.stopPropagation();
       this.handleEmployeeSubmit(e.detail);
     }) as EventListener);
 
     // Handle on-demand calendar data requests from the employee-list
-    this.shadowRoot.addEventListener("calendar-data-request", (evt: Event) => {
+    this.addListener(this.shadowRoot, "calendar-data-request", (evt: Event) => {
       const e = evt as CustomEvent;
       e.stopPropagation();
       (async () => {
@@ -239,7 +235,7 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
       })().catch((err) => console.error(err));
     });
 
-    this.shadowRoot.addEventListener("form-cancel", (() => {
+    this.addListener(this.shadowRoot, "form-cancel", (() => {
       const wasInlineEdit = !!this._editEmployee && !this._showForm;
       this._showForm = false;
       this._editEmployee = null;

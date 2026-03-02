@@ -493,18 +493,14 @@ export class PtoEntryForm extends BaseComponent {
 
   // ── Event delegation ──
 
-  private _customEventsSetup = false;
-
   protected setupEventDelegation(): void {
     super.setupEventDelegation();
-    if (this._customEventsSetup) return;
-    this._customEventsSetup = true;
 
     // Submit event from parent (e.g. submit-time-off-page)
-    this.addEventListener("submit", () => this.handleUnifiedSubmit());
+    this.addListener(this, "submit", () => this.handleUnifiedSubmit());
 
     // Selection-changed events bubble from pto-calendar instances
-    this.shadowRoot.addEventListener("selection-changed", (e: Event) => {
+    this.addListener(this.shadowRoot, "selection-changed", (e: Event) => {
       if (this.isMultiCalendar) {
         this.handleMultiCalendarSelectionChanged(e);
       } else {
@@ -515,7 +511,7 @@ export class PtoEntryForm extends BaseComponent {
     });
 
     // PTO type changes from interactive month-summary components
-    this.shadowRoot.addEventListener("pto-type-changed", ((e: CustomEvent) => {
+    this.addListener(this.shadowRoot, "pto-type-changed", ((e: CustomEvent) => {
       const type = e.detail?.type;
       if (type) this.handlePtoTypeChanged(type);
     }) as EventListener);

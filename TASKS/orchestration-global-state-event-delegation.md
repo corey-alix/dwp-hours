@@ -50,15 +50,15 @@ Temporary orchestrator tracking unified progress across `global-state-refactor.m
 
 ## Stage 5: Critical Component Refactoring (Event Delegation Phases 3–4)
 
-- [ ] **AdminMonthlyReview** — split 70-line click handler into action-zone methods, use confirmation mixin
-- [ ] **PtoCalendar** — split 55-line click handler into note/day/legend/submit handlers
-- [ ] **PtoRequestQueue** — split 55-line click handler, use confirmation mixin
-- [ ] **EmployeeList** — consolidate 7 extra listeners, extract long-press behavior
-- [ ] **EmployeeForm** — extract form submission logic from click handler
-- [ ] **DashboardNavigationMenu** — unify duplicated click/keydown action routing
-- [ ] Hybrid delegation: direct listeners for static elements, delegation only on dynamic containers
-- [ ] Remove `_customEventsSetup` / `_inputListenerSetup` guard flags (use `addCleanup()`)
-- [ ] Build passes, lint passes
+- [x] **AdminMonthlyReview** — split 70-line click handler into action-zone methods, use confirmation mixin
+- [x] **PtoCalendar** — split 55-line click handler into note/day/legend/submit handlers
+- [x] **PtoRequestQueue** — split 55-line click handler, use confirmation mixin
+- [x] **EmployeeList** — consolidate 7 extra listeners, extract long-press behavior
+- [x] **EmployeeForm** — extract form submission logic from click handler
+- [x] **DashboardNavigationMenu** — unify duplicated click/keydown action routing
+- [x] Hybrid delegation: direct listeners for static elements, delegation only on dynamic containers
+- [x] Remove `_customEventsSetup` / `_inputListenerSetup` guard flags (use `addCleanup()`)
+- [x] Build passes, lint passes
 
 ## Stage 6: Validation (both tasks)
 
@@ -71,7 +71,7 @@ Temporary orchestrator tracking unified progress across `global-state-refactor.m
 
 ## Status
 
-**Current Stage:** 4 — Event System Design (complete)
+**Current Stage:** 5 — Critical Component Refactoring (complete)
 **Started:** 2026-03-01
 
 ---
@@ -152,6 +152,16 @@ Migrated files:
 - `tests/shared/events.test.ts` — 4 tests covering: correct name/detail, bubbling, composed override, return value.
 - `tests/components/base-component.test.ts` — added 3 `resolveAction()` tests: direct hit, no-action returns null, ancestor resolution via `closest`.
 
+**Stage 5 deliverables:**
+
+- `client/components/admin-monthly-review/index.ts` — replaced inline two-click confirmation (`_pendingConfirmations` Map, `resetConfirmation()`, `clearConfirmation()`) with `ConfirmationController` mixin. Split 70-line `handleDelegatedClick` into 4 focused methods: `handleAcknowledgeClick()`, `handleNotifyClick()`, `handleViewCalendarClick()`, `handleCalendarNavClick()`. Added `disconnectedCallback` calling `_confirm.clearAll()`.
+- `client/components/pto-calendar/index.ts` — split 55-line `handleDelegatedClick` into 5 focused methods: `handleNoteIndicatorClick()`, `handleEditNoteClick()`, `handleDayCellClick()`, `handleLegendItemClick()`, `handleSubmitSlotClick()`. Fixed listener leak in `setupEventDelegation()` — migrated 5 raw `addEventListener` calls (pointerdown/move/up/cancel, contextmenu) to `addListener()` for automatic cleanup between renders.
+- `client/components/pto-request-queue/index.ts` — replaced `_pendingConfirmations` Map + `resetConfirmation()` + `clearConfirmation()` with `ConfirmationController.handleConditionalClick()` (gated on negative-balance employees). Split handler into `handleCalendarNavClick()`, `handleShowCalendarClick()`, `handleRequestActionClick()`. Added `disconnectedCallback` calling `_confirm.clearAll()`.
+- `client/components/employee-list/index.ts` — removed `_inputListenerSetup` guard flag. Migrated all 7 raw `addEventListener` calls (input, employee-submit, form-cancel, pointerdown/up/leave/cancel) to `addListener()`. Listeners now cleaned up between renders and re-added automatically.
+- `client/components/employee-form/index.ts` — extracted form submission logic from `handleDelegatedClick` into `handleFormSubmit()` private method. Click handler now compact: submit delegates to `handleFormSubmit()`, cancel dispatches `form-cancel`.
+- `client/components/dashboard-navigation-menu/index.ts` — unified duplicated click/keydown action routing into shared `executeMenuAction(action)` private method. Document-level auto-close listeners retained with manual add/remove pattern (appropriate for conditional lifecycle).
+- **Guard flag removal (5 files):** Removed `_customEventsSetup` flag and migrated all `addEventListener` calls to `addListener()` in: `submit-time-off-page`, `admin-employees-page`, `admin-pto-requests-page`, `admin-monthly-review-page`, `pto-entry-form`.
+
 ### Key Architecture Decisions
 
 1. **Context keys are strings** (not Symbols) — stored in `CONTEXT_KEYS` const object.
@@ -159,6 +169,7 @@ Migrated files:
 3. **`display: contents`** on the provider element so it doesn't affect layout.
 4. **Consumers use nullable access** (`this._notifications?.error(...)`) since context may not be available in unit tests without a provider.
 5. **UIManager uses constructor injection** (not context protocol) since it's a plain class, not a DOM element.
+6. **`addListener()` replaces guard flags** — child `setupEventDelegation()` overrides use `addListener()` which registers cleanup via `addCleanup()`. Listeners are cleaned up before each re-render and re-added after, eliminating the need for `_customEventsSetup` / `_inputListenerSetup` guard flags. The base delegation listeners (click/submit/keydown) remain permanent via `isEventDelegationSetup` guard.
 
 ### Test Suite Status
 

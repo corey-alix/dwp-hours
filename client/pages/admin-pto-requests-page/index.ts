@@ -194,27 +194,23 @@ export class AdminPtoRequestsPage
       .reduce((sum, e) => sum + e.hours, 0);
   }
 
-  private _customEventsSetup = false;
-
   protected setupEventDelegation(): void {
     super.setupEventDelegation();
-    if (this._customEventsSetup) return;
-    this._customEventsSetup = true;
 
-    this.shadowRoot.addEventListener("request-approve", ((e: CustomEvent) => {
+    this.addListener(this.shadowRoot, "request-approve", ((e: CustomEvent) => {
       e.stopPropagation();
       const ids: number[] = e.detail.requestIds ?? [e.detail.requestId];
       this.handleApproveAll(ids);
     }) as EventListener);
 
-    this.shadowRoot.addEventListener("request-reject", ((e: CustomEvent) => {
+    this.addListener(this.shadowRoot, "request-reject", ((e: CustomEvent) => {
       e.stopPropagation();
       const ids: number[] = e.detail.requestIds ?? [e.detail.requestId];
       this.handleRejectAll(ids);
     }) as EventListener);
 
     // Handle on-demand calendar data requests from the queue component
-    this.shadowRoot.addEventListener("calendar-data-request", (evt: Event) => {
+    this.addListener(this.shadowRoot, "calendar-data-request", (evt: Event) => {
       const e = evt as CustomEvent;
       e.stopPropagation();
       (async () => {
