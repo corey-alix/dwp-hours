@@ -76,28 +76,38 @@ export const styles = `
                     }
                 }
 
-                /* ── Multi-calendar grid (all 12 months visible) ── */
+                /* ── Single-calendar mode (one month visible at a time) ── */
 
-                :host(.multi-calendar) {
-                    max-width: none;
-                }
-
-                :host(.multi-calendar) .calendar-header-nav {
+                :host([data-mode="single"]) .month-card {
                     display: none;
                 }
 
-                :host(.multi-calendar) .balance-summary-section {
+                :host([data-mode="single"]) .month-card.active {
+                    display: block;
+                }
+
+                /* ── Multi-calendar grid (all 12 months visible) ── */
+
+                :host([data-mode="multi"]) {
+                    max-width: none;
+                }
+
+                :host([data-mode="multi"]) .calendar-header-nav {
+                    display: none;
+                }
+
+                :host([data-mode="multi"]) .balance-summary-section {
                     position: sticky;
                     top: 0;                    
                 }
 
-                :host(.multi-calendar) .calendar-container {
+                :host([data-mode="multi"]) .calendar-container {
                     display: grid;
                     grid-template-columns: repeat(3, 1fr);
                     gap: var(--space-sm);
                 }
 
-                :host(.multi-calendar) .month-card {
+                :host([data-mode="multi"]) .month-card {
                     border: var(--border-width) var(--border-style-solid) var(--color-border);
                     border-radius: var(--border-radius-md);
                     background: var(--color-surface);
@@ -107,23 +117,23 @@ export const styles = `
                 }
 
                 @media (min-width: 1200px) {
-                    :host(.multi-calendar) .calendar-container {
+                    :host([data-mode="multi"]) .calendar-container {
                         grid-template-columns: repeat(4, 1fr);
                     }
                 }
 
                 @media (min-width: 1600px) {
-                    :host(.multi-calendar) .calendar-container {
+                    :host([data-mode="multi"]) .calendar-container {
                         grid-template-columns: repeat(6, 1fr);
                     }
                 }
 
-                :host(.multi-calendar) .month-card.locked {
+                :host([data-mode="multi"]) .month-card.locked {
                     opacity: 0.5;
                     pointer-events: none;
                 }
 
-                :host(.multi-calendar) .month-card.highlight {
+                :host([data-mode="multi"]) .month-card.highlight {
                     animation: highlightPulse 1.2s ease-out;
                 }
 
@@ -133,7 +143,7 @@ export const styles = `
                 }
 
                 @media (prefers-reduced-motion: reduce) {
-                    :host(.multi-calendar) .month-card.highlight {
+                    :host([data-mode="multi"]) .month-card.highlight {
                         animation: none;
                     }
                 }

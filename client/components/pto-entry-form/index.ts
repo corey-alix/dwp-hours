@@ -1,4 +1,3 @@
-import { querySingle } from "../test-utils";
 import { today, parseDate, getCurrentYear } from "../../../shared/dateUtils.js";
 import {
   validateHours,
@@ -57,10 +56,10 @@ export class PtoEntryForm extends BaseComponent {
   private multiCalendarMql: MediaQueryList | null = null;
   /** Bound handler for matchMedia changes */
   private handleMqlChange = (e: MediaQueryListEvent | MediaQueryList) => {
-    this.setMultiCalendarMode(e.matches);
+    this.applyMode(e.matches);
   };
 
-  /** Currently active PTO type, persisted across calendar rebuilds */
+  /** Currently active PTO type, persisted across mode switches */
   private _activePtoType: string = "PTO";
 
   /** Centralised balance model — single source of truth for overuse dates */
@@ -98,19 +97,25 @@ export class PtoEntryForm extends BaseComponent {
   ) {
     if (oldValue === newValue) return;
     // Note: requestUpdate() is intentionally NOT called here.
-    // The template is static (no attribute-dependent rendering), and
-    // re-rendering would destroy imperatively-built calendars in
-    // #calendar-container. The attribute-backed getter (availablePtoBalance)
-    // reads directly from getAttribute(), so validation always uses the
-    // current value.
+    // Calendar elements are rendered once in render() and their state
+    // (ptoEntries, selectedCells) is maintained via property setters.
+    // Re-rendering would reset child component state. The attribute-backed
+    // getter (availablePtoBalance) reads directly from getAttribute(),
+    // so validation always uses the current value.
   }
 
   connectedCallback() {
     super.connectedCallback();
     adoptAnimations(this.shadowRoot);
+
+    // Set initial selectedPtoType on all declaratively-rendered calendars
+    for (const cal of this.getAllCalendars()) {
+      cal.selectedPtoType = this._activePtoType;
+    }
+
     this.setupSwipeListeners();
     this.setupMultiCalendarDetection();
-    // After detection, calendars are built. Request PTO data from parent.
+    // After detection, request PTO data from parent.
     this.dispatchEvent(new CustomEvent("pto-data-request", { bubbles: true }));
   }
 
@@ -132,9 +137,8 @@ export class PtoEntryForm extends BaseComponent {
     this.multiCalendarMql = window.matchMedia(
       `(min-width: ${MULTI_CALENDAR_BREAKPOINT}px)`,
     );
-    // Apply initial state — force-build even when the mode matches the default
-    this.classList.toggle("multi-calendar", this.multiCalendarMql.matches);
-    this.rebuildCalendars();
+    // Apply initial mode — CSS handles show/hide via data-mode attribute
+    this.applyMode(this.multiCalendarMql.matches);
     // Memory-safe listener tracked for automatic cleanup in disconnectedCallback
     this.addListener(
       this.multiCalendarMql,
@@ -145,152 +149,88 @@ export class PtoEntryForm extends BaseComponent {
 
   /** Whether the component is currently in multi-calendar (12-month grid) mode */
   get isMultiCalendar(): boolean {
-    return this.classList.contains("multi-calendar");
+    return this.getAttribute("data-mode") === "multi";
   }
 
   /**
-   * Toggle between single-calendar and multi-calendar modes.
-   * In multi-calendar mode all 12 months are shown in a CSS grid.
-   * In single-calendar mode the existing carousel navigation is used.
+   * Apply the responsive mode (single or multi-calendar).
+   * All 12 calendars are always present in the DOM — CSS handles visibility
+   * via the `data-mode` attribute on the host. This method toggles the
+   * attribute and adjusts calendar header visibility for each mode.
    */
-  private setMultiCalendarMode(enabled: boolean): void {
-    if (enabled === this.isMultiCalendar) return;
-    this.classList.toggle("multi-calendar", enabled);
-    this.rebuildCalendars();
+  private applyMode(isMulti: boolean): void {
+    const newMode = isMulti ? "multi" : "single";
+    if (this.getAttribute("data-mode") === newMode) return;
+
+    this.setAttribute("data-mode", newMode);
+
+    // Toggle calendar headers: show in multi, hide in single
+    for (const cal of this.getAllCalendars()) {
+      if (isMulti) {
+        cal.removeAttribute("hide-header");
+      } else {
+        cal.setAttribute("hide-header", "true");
+      }
+    }
+
+    if (!isMulti) {
+      // Ensure an active month card is visible in single-calendar mode
+      const month = this.getPersistedMonth();
+      this.setActiveMonth(month);
+    }
   }
 
   /**
-   * Rebuild the calendar container contents for the current mode.
-   * - Single-calendar: one `<pto-calendar>` set to the current month.
-   * - Multi-calendar: twelve `<pto-calendar>` instances inside `.month-card` wrappers.
-   *
-   * IMPERATIVE CONSTRUCTION JUSTIFICATION:
-   * The number of child pto-calendar instances varies by responsive mode
-   * (1 in single-calendar, 12 in multi-calendar). This dynamic child count
-   * cannot be expressed in a static render() template, so imperative
-   * createElement/appendChild is used here. This method is only called from
-   * lifecycle-adjacent code (setupMultiCalendarDetection, setMultiCalendarMode)
-   * and the public reset() method — never from render().
-   *
-   * render() returns the static shell only (#calendar-container is empty).
-   * requestUpdate() does NOT destroy imperative content because the
-   * attributeChangedCallback intentionally skips requestUpdate() — the template
-   * has no attribute-dependent rendering.
+   * Set the active month in single-calendar mode by moving the `.active`
+   * class to the target month card and updating the navigation label.
    */
-  private rebuildCalendars(): void {
-    const container = querySingle<HTMLDivElement>(
-      "#calendar-container",
-      this.shadowRoot,
+  private setActiveMonth(month: number): void {
+    const container = this.shadowRoot.querySelector("#calendar-container");
+    if (!container) return;
+
+    // Remove active from all cards
+    container
+      .querySelectorAll(".month-card.active")
+      .forEach((card) => card.classList.remove("active"));
+
+    // Add active to the target card
+    const targetCard = container.querySelector(
+      `.month-card[data-month="${month}"]`,
     );
+    if (targetCard) {
+      targetCard.classList.add("active");
+    }
 
-    // Preserve existing PTO entries and pending selections from the
-    // current calendar(s) so they survive the view-mode switch.
-    const existingEntries = this.collectPtoEntries();
-    const pendingSelections = this.collectSelectedCells();
+    // Update the nav label
+    const year = getCurrentYear();
+    this.updateMonthLabel(month, year);
+  }
 
-    container.innerHTML = "";
+  /**
+   * Navigate to an adjacent month in single-calendar mode.
+   * Moves the `.active` class, persists the selected month,
+   * and dispatches a month-changed event.
+   */
+  private switchToAdjacentMonth(direction: number): void {
+    const activeCard = this.shadowRoot.querySelector(".month-card.active");
+    const currentMonth = activeCard
+      ? parseInt(activeCard.getAttribute("data-month") || "1", 10)
+      : this.getPersistedMonth();
+
+    let newMonth = currentMonth + direction;
+    if (newMonth < 1) newMonth = 12;
+    else if (newMonth > 12) newMonth = 1;
+
+    this.setActiveMonth(newMonth);
+    this.persistSelectedMonth(newMonth);
 
     const year = getCurrentYear();
-
-    if (this.isMultiCalendar) {
-      for (let m = 1; m <= 12; m++) {
-        const card = document.createElement("div");
-        card.className = "month-card";
-        card.dataset.month = m.toString();
-
-        const cal = document.createElement("pto-calendar") as PtoCalendar;
-        cal.setAttribute("month", m.toString());
-        cal.setAttribute("year", year.toString());
-        cal.setAttribute("selected-month", m.toString());
-        cal.setAttribute("readonly", "false");
-        cal.setAttribute("hide-legend", "true");
-
-        const summary = document.createElement("month-summary") as MonthSummary;
-        summary.setAttribute("interactive", "");
-        summary.setAttribute("active-type", this._activePtoType);
-
-        cal.selectedPtoType = this._activePtoType;
-
-        // Filter existing entries for this month and year
-        const monthEntries = existingEntries.filter(
-          (e) =>
-            parseDate(e.date).month === m && parseDate(e.date).year === year,
-        );
-        cal.ptoEntries = monthEntries;
-
-        // Populate summary with existing scheduled hours for this month
-        this.updateSummaryHours(summary, monthEntries);
-
-        // Restore pending selections for this month
-        const monthSelections = new Map<string, number>();
-        for (const [date, hours] of pendingSelections) {
-          if (parseDate(date).month === m) {
-            monthSelections.set(date, hours);
-          }
-        }
-        if (monthSelections.size > 0) {
-          cal.selectedCells = monthSelections;
-          const deltas = computeSelectionDeltas(
-            cal.getSelectedRequests(),
-            monthEntries,
-          );
-          summary.deltas = deltas;
-        }
-
-        card.appendChild(cal);
-        card.appendChild(summary);
-        container.appendChild(card);
-      }
-
-      // Wire up selection-changed across all calendars (handled by persistent listener)
-    } else {
-      // Single-calendar mode
-      const cal = document.createElement("pto-calendar") as PtoCalendar;
-      cal.setAttribute("readonly", "false");
-      cal.setAttribute("hide-header", "true");
-      cal.setAttribute("hide-legend", "true");
-
-      const month = this.getPersistedMonth();
-      cal.setAttribute("month", month.toString());
-      cal.setAttribute("year", year.toString());
-      cal.setAttribute("selected-month", month.toString());
-
-      cal.selectedPtoType = this._activePtoType;
-      cal.ptoEntries = existingEntries;
-
-      // Restore pending selections
-      if (pendingSelections.size > 0) {
-        cal.selectedCells = pendingSelections;
-      }
-
-      container.appendChild(cal);
-
-      // Interactive month-summary for PTO type selection
-      const summary = document.createElement("month-summary") as MonthSummary;
-      summary.setAttribute("interactive", "");
-      summary.setAttribute("active-type", this._activePtoType);
-
-      // Populate summary with existing scheduled hours for this month and year
-      const monthEntries = existingEntries.filter(
-        (e) =>
-          parseDate(e.date).month === month && parseDate(e.date).year === year,
-      );
-      this.updateSummaryHours(summary, monthEntries);
-
-      // Update summary deltas from restored selections
-      if (pendingSelections.size > 0) {
-        const deltas = computeSelectionDeltas(
-          cal.getSelectedRequests(),
-          existingEntries,
-        );
-        summary.deltas = deltas;
-      }
-
-      container.appendChild(summary);
-
-      // Update the external month label
-      this.updateMonthLabel(month, year);
-    }
+    this.dispatchEvent(
+      new CustomEvent("month-changed", {
+        detail: { month: newMonth, year },
+        bubbles: true,
+      }),
+    );
   }
 
   /**
@@ -312,28 +252,7 @@ export class PtoEntryForm extends BaseComponent {
   }
 
   /**
-   * Update the single-calendar mode month-summary with the committed hours
-   * for the calendar's currently displayed month.
-   */
-  private updateSingleCalendarSummaryHours(calendar: PtoCalendar): void {
-    const container = this.shadowRoot.querySelector("#calendar-container");
-    if (!container) return;
-    const summary = container.querySelector(
-      "month-summary",
-    ) as MonthSummary | null;
-    if (!summary) return;
-    const month = calendar.month;
-    const yearVal = calendar.year;
-    const monthEntries = calendar.ptoEntries.filter(
-      (e) =>
-        parseDate(e.date).month === month && parseDate(e.date).year === yearVal,
-    );
-    this.updateSummaryHours(summary, monthEntries);
-  }
-
-  /**
    * Collect PTO entries from all currently rendered calendars.
-   * Used to preserve data when switching between single/multi-calendar modes.
    */
   private collectPtoEntries(): PTOEntry[] {
     const container = this.shadowRoot.querySelector("#calendar-container");
@@ -380,10 +299,10 @@ export class PtoEntryForm extends BaseComponent {
   }
 
   /**
-   * Handle selection-changed events from any calendar in multi-calendar mode.
-   * Updates the corresponding month-summary deltas.
+   * Handle selection-changed events from any calendar.
+   * Finds the parent month-card and updates the corresponding month-summary deltas.
    */
-  private handleMultiCalendarSelectionChanged(e: Event): void {
+  private handleSelectionChanged(e: Event): void {
     const calendar = e.target as PtoCalendar;
     if (!calendar) return;
 
@@ -394,28 +313,6 @@ export class PtoEntryForm extends BaseComponent {
     if (!card) return;
 
     const summary = card.querySelector("month-summary") as MonthSummary | null;
-    if (!summary) return;
-
-    const selectedRequests = calendar.getSelectedRequests();
-    const existingEntries = calendar.ptoEntries;
-    const deltas = computeSelectionDeltas(selectedRequests, existingEntries);
-    summary.deltas = deltas;
-  }
-
-  /**
-   * Handle selection-changed events from the calendar in single-calendar mode.
-   * Updates the month-summary deltas for the single summary in the container.
-   */
-  private handleSingleCalendarSelectionChanged(e: Event): void {
-    const calendar = e.target as PtoCalendar;
-    if (!calendar) return;
-
-    const container = this.shadowRoot.querySelector("#calendar-container");
-    if (!container) return;
-
-    const summary = container.querySelector(
-      "month-summary",
-    ) as MonthSummary | null;
     if (!summary) return;
 
     const selectedRequests = calendar.getSelectedRequests();
@@ -445,9 +342,9 @@ export class PtoEntryForm extends BaseComponent {
     // Recalculate deltas for each calendar's month-summary after re-typing
     for (const cal of calendars) {
       const card = cal.closest(".month-card");
-      const summary = card
-        ? (card.querySelector("month-summary") as MonthSummary | null)
-        : (container.querySelector("month-summary") as MonthSummary | null);
+      const summary = card?.querySelector(
+        "month-summary",
+      ) as MonthSummary | null;
       if (summary) {
         const selectedRequests = cal.getSelectedRequests();
         const existingEntries = cal.ptoEntries;
@@ -472,6 +369,26 @@ export class PtoEntryForm extends BaseComponent {
   }
 
   protected render(): string {
+    const year = getCurrentYear();
+    const calendarCards = Array.from({ length: 12 }, (_, i) => {
+      const month = i + 1;
+      return `
+                        <div class="month-card" data-month="${month}">
+                            <pto-calendar
+                                month="${month}"
+                                year="${year}"
+                                selected-month="${month}"
+                                readonly="false"
+                                hide-legend="true">
+                            </pto-calendar>
+                            <month-summary
+                                interactive
+                                active-type="${this._activePtoType}">
+                            </month-summary>
+                        </div>
+      `;
+    }).join("");
+
     return `
             <style>${styles}</style>
 
@@ -485,7 +402,9 @@ export class PtoEntryForm extends BaseComponent {
                 </div>
 
                 <div class="calendar-view" id="calendar-view">
-                    <div id="calendar-container" class="calendar-container"></div>
+                    <div id="calendar-container" class="calendar-container">
+                        ${calendarCards}
+                    </div>
                 </div>
             </div>
         `;
@@ -501,11 +420,7 @@ export class PtoEntryForm extends BaseComponent {
 
     // Selection-changed events bubble from pto-calendar instances
     this.addListener(this.shadowRoot, "selection-changed", (e: Event) => {
-      if (this.isMultiCalendar) {
-        this.handleMultiCalendarSelectionChanged(e);
-      } else {
-        this.handleSingleCalendarSelectionChanged(e);
-      }
+      this.handleSelectionChanged(e);
       // Update the balance model with merged pending selections
       this.updateModelPendingSelections();
     });
@@ -523,11 +438,9 @@ export class PtoEntryForm extends BaseComponent {
     if (!actionEl) return;
     const action = actionEl.dataset.action;
     if (action === "prev-month") {
-      const calendar = this.getCalendar();
-      if (calendar) this.navigateMonth(calendar, -1);
+      this.navigateMonth(-1);
     } else if (action === "next-month") {
-      const calendar = this.getCalendar();
-      if (calendar) this.navigateMonth(calendar, 1);
+      this.navigateMonth(1);
     }
   }
 
@@ -548,18 +461,20 @@ export class PtoEntryForm extends BaseComponent {
       this as unknown as ListenerHost,
       container,
       (direction) => {
-        const calendar = this.getCalendar();
-        if (calendar) this.updateCalendarMonth(calendar, direction);
+        if (!this.isMultiCalendar) {
+          this.switchToAdjacentMonth(direction);
+        }
       },
     );
   }
 
   /**
-   * Navigate the calendar to the next/previous month with carousel animation.
-   * Used by arrow button clicks. Swipe gestures go through _swipeHandle.
+   * Navigate to the next/previous month in single-calendar mode
+   * with carousel animation. Arrow button clicks use this method.
+   * Swipe gestures bypass animation (handled by setupSwipeNavigation).
    */
-  private navigateMonth(calendar: PtoCalendar, direction: number): void {
-    // In multi-calendar mode, arrow navigation is hidden
+  private navigateMonth(direction: number): void {
+    // In multi-calendar mode, arrow navigation is hidden via CSS
     if (this.isMultiCalendar) return;
 
     const container = this.shadowRoot.querySelector(
@@ -567,44 +482,19 @@ export class PtoEntryForm extends BaseComponent {
     ) as HTMLElement | null;
     if (!container) {
       // Fallback: navigate without animation
-      this.updateCalendarMonth(calendar, direction);
+      this.switchToAdjacentMonth(direction);
       return;
     }
 
     // Delegate to animateCarousel directly for arrow-button navigation
     animateCarousel(container, direction, () => {
-      this.updateCalendarMonth(calendar, direction);
+      this.switchToAdjacentMonth(direction);
     });
   }
 
   /** Check if user prefers reduced motion */
   private prefersReducedMotion(): boolean {
     return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  }
-
-  /** Update the calendar to the next/previous month with fiscal-year wrap-around */
-  private updateCalendarMonth(calendar: PtoCalendar, direction: number): void {
-    let newMonth = calendar.month + direction;
-    const newYear = calendar.year;
-
-    if (newMonth < 1) {
-      newMonth = 12;
-    } else if (newMonth > 12) {
-      newMonth = 1;
-    }
-
-    calendar.setAttribute("month", newMonth.toString());
-    calendar.setAttribute("year", newYear.toString());
-    calendar.setAttribute("selected-month", newMonth.toString());
-    this.persistSelectedMonth(newMonth);
-    this.updateMonthLabel(newMonth, newYear);
-    this.updateSingleCalendarSummaryHours(calendar);
-    this.dispatchEvent(
-      new CustomEvent("month-changed", {
-        detail: { month: newMonth, year: newYear },
-        bubbles: true,
-      }),
-    );
   }
 
   /** Update the month label text displayed in the custom navigation header. */
@@ -691,15 +581,14 @@ export class PtoEntryForm extends BaseComponent {
     ) as PtoCalendar[];
   }
 
-  /** Return the single-mode calendar (first pto-calendar in the container). */
+  /** Return the calendar in the active month card, or the first calendar as fallback. */
   private getCalendar(): PtoCalendar | null {
-    const calendarContainer = querySingle<HTMLDivElement>(
-      "#calendar-container",
-      this.shadowRoot,
-    );
-    return calendarContainer.querySelector(
-      "pto-calendar",
-    ) as PtoCalendar | null;
+    const activeCard = this.shadowRoot.querySelector(".month-card.active");
+    if (activeCard) {
+      return activeCard.querySelector("pto-calendar") as PtoCalendar | null;
+    }
+    // Fallback: first calendar
+    return this.shadowRoot.querySelector("pto-calendar") as PtoCalendar | null;
   }
 
   private emitValidationErrors(messages: string[]): void {
@@ -718,8 +607,15 @@ export class PtoEntryForm extends BaseComponent {
       cal.clearSelection();
     }
 
-    // Rebuild calendars to their default state
-    this.rebuildCalendars();
+    // Clear all summaries' deltas
+    const container = this.shadowRoot.querySelector("#calendar-container");
+    if (container) {
+      container.querySelectorAll("month-summary").forEach((s) => {
+        (s as MonthSummary).deltas = {};
+      });
+    }
+
+    // Re-request PTO data to refresh
     this.dispatchEvent(new CustomEvent("pto-data-request", { bubbles: true }));
   }
 
@@ -746,31 +642,23 @@ export class PtoEntryForm extends BaseComponent {
   }
 
   setPtoData(ptoEntries: PTOEntry[]) {
-    if (this.isMultiCalendar) {
-      // Distribute entries to their respective month calendars
-      for (const cal of this.getAllCalendars()) {
-        const month = cal.month;
-        const calYear = cal.year;
-        const monthEntries = ptoEntries.filter(
-          (e) =>
-            parseDate(e.date).month === month &&
-            parseDate(e.date).year === calYear,
-        );
-        cal.ptoEntries = monthEntries;
+    // Distribute entries to their respective month calendars (all modes)
+    for (const cal of this.getAllCalendars()) {
+      const month = cal.month;
+      const calYear = cal.year;
+      const monthEntries = ptoEntries.filter(
+        (e) =>
+          parseDate(e.date).month === month &&
+          parseDate(e.date).year === calYear,
+      );
+      cal.ptoEntries = monthEntries;
 
-        // Update the adjacent month-summary with committed hours
-        const card = cal.closest(".month-card");
-        const summary = card?.querySelector(
-          "month-summary",
-        ) as MonthSummary | null;
-        if (summary) this.updateSummaryHours(summary, monthEntries);
-      }
-    } else {
-      const calendar = this.getCalendar();
-      if (calendar) {
-        calendar.ptoEntries = ptoEntries;
-        this.updateSingleCalendarSummaryHours(calendar);
-      }
+      // Update the adjacent month-summary with committed hours
+      const card = cal.closest(".month-card");
+      const summary = card?.querySelector(
+        "month-summary",
+      ) as MonthSummary | null;
+      if (summary) this.updateSummaryHours(summary, monthEntries);
     }
 
     // Seed persisted entries into the balance model (current year only —
@@ -862,20 +750,14 @@ export class PtoEntryForm extends BaseComponent {
         }
       }
     } else {
-      const calendar = this.getCalendar();
-      if (calendar) {
-        calendar.setAttribute("month", month.toString());
-        calendar.setAttribute("year", year.toString());
-        calendar.setAttribute("selected-month", month.toString());
-        this.persistSelectedMonth(month);
-        this.updateMonthLabel(month, year);
-        this.dispatchEvent(
-          new CustomEvent("month-changed", {
-            detail: { month, year },
-            bubbles: true,
-          }),
-        );
-      }
+      this.setActiveMonth(month);
+      this.persistSelectedMonth(month);
+      this.dispatchEvent(
+        new CustomEvent("month-changed", {
+          detail: { month, year },
+          bubbles: true,
+        }),
+      );
     }
   }
 

@@ -13,12 +13,12 @@ Refactor components that use imperative DOM manipulation for responsive modes (e
 ### Phase 1: Analysis and Design
 
 - [x] Identify all components using imperative DOM for responsive behavior
-- [ ] Document current responsive patterns and media query usage
-- [ ] Design CSS-driven alternatives using grid/flexbox layouts
-- [ ] Define attribute/slot-based mode switching patterns
-- [ ] Create responsive design system guidelines
+- [x] Document current responsive patterns and media query usage
+- [x] Design CSS-driven alternatives using grid/flexbox layouts
+- [x] Define attribute/slot-based mode switching patterns
+- [x] Create responsive design system guidelines
 - [ ] Update architecture-guidance skill with responsive patterns
-- [ ] Manual review of design approach
+- [x] Manual review of design approach
 
 **Discovery Findings:**
 
@@ -37,40 +37,40 @@ Refactor components that use imperative DOM manipulation for responsive modes (e
 
 ### Phase 2: CSS Layout Foundation
 
-- [ ] Implement responsive CSS grid/flexbox layouts in component styles
-- [ ] Create CSS custom properties for responsive breakpoints
+- [x] Implement responsive CSS grid/flexbox layouts in component styles
+- [x] Create CSS custom properties for responsive breakpoints
 - [ ] Add container queries support where needed
-- [ ] Define declarative template structures
+- [x] Define declarative template structures
 - [ ] Test layouts across different viewport sizes
-- [ ] Build passes, lint passes
+- [x] Build passes, lint passes
 
 ### Phase 3: Component Template Updates
 
-- [ ] Update PtoEntryForm to use declarative calendar rendering
-- [ ] Remove imperative element creation/rebuilding logic
-- [ ] Implement attribute-based mode switching
+- [x] Update PtoEntryForm to use declarative calendar rendering
+- [x] Remove imperative element creation/rebuilding logic
+- [x] Implement attribute-based mode switching
 - [ ] Add slot-based content injection where appropriate
-- [ ] Update component lifecycle methods
+- [x] Update component lifecycle methods
 - [ ] Manual testing of responsive behavior
 
 ### Phase 4: Mode Switching Implementation
 
-- [ ] Implement CSS-driven mode transitions
-- [ ] Add attribute observers for dynamic mode changes
-- [ ] Update media query listeners to use CSS containment
-- [ ] Remove JavaScript-based DOM manipulation
+- [x] Implement CSS-driven mode transitions
+- [x] Add attribute observers for dynamic mode changes
+- [x] Update media query listeners to use CSS containment
+- [x] Remove JavaScript-based DOM manipulation
 - [ ] Test mode switching across devices
-- [ ] Build passes, lint passes
+- [x] Build passes, lint passes
 
 ### Phase 5: Testing and Validation
 
-- [ ] Update vitest + happy-dom unit tests to verify declarative rendering and mode attributes
-- [ ] Add vitest tests for attribute-driven mode switching (set attribute, assert DOM structure)
+- [x] Update vitest + happy-dom unit tests to verify declarative rendering and mode attributes
+- [x] Add vitest tests for attribute-driven mode switching (set attribute, assert DOM structure)
 - [ ] Add Playwright E2E tests only where a real viewport is required (visual regression screenshots)
 - [ ] Performance testing for layout shifts
 - [ ] Code review and accessibility audit
 - [ ] Documentation updates
-- [ ] Build passes, lint passes, all tests pass
+- [x] Build passes, lint passes, all tests pass
 
 ## Implementation Notes
 
