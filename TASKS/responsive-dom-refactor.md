@@ -63,10 +63,10 @@ Refactor components that use imperative DOM manipulation for responsive modes (e
 
 ### Phase 5: Testing and Validation
 
-- [ ] Update unit tests to verify declarative rendering
-- [ ] Add E2E tests for responsive behavior across viewports
+- [ ] Update vitest + happy-dom unit tests to verify declarative rendering and mode attributes
+- [ ] Add vitest tests for attribute-driven mode switching (set attribute, assert DOM structure)
+- [ ] Add Playwright E2E tests only where a real viewport is required (visual regression screenshots)
 - [ ] Performance testing for layout shifts
-- [ ] Cross-browser testing on responsive layouts
 - [ ] Code review and accessibility audit
 - [ ] Documentation updates
 - [ ] Build passes, lint passes, all tests pass
@@ -82,9 +82,17 @@ Refactor components that use imperative DOM manipulation for responsive modes (e
 
 ## Questions and Concerns
 
-1. How to handle complex responsive interactions that require JavaScript?
-2. Should we implement container queries for component-level responsiveness?
-3. How to test responsive behavior reliably in automated tests?
-4. What fallback patterns for older browsers without modern CSS support?
-5. How to coordinate responsive behavior across nested components?</content>
-   <parameter name="filePath">/home/ca0v/code/corey-alix/dwp-hours/jupiter/TASKS/responsive-dom-refactor.md
+1. **How to handle complex responsive interactions that require JavaScript?**
+   Keep pure layout (columns, stacking, sizing) in CSS via grid/flex/container queries. Reserve JS for behavior only: user-driven state, data-dependent rendering, animations needing JS timing. Pattern: observed attributes for mode (single vs multi-calendar), CSS handles structural changes via `[data-mode="multi"]` selectors or container queries, JS only toggles the attribute on resize/mount — no direct DOM creation/removal. This eliminates `rebuildCalendars()` thrashing while keeping necessary logic.
+
+2. **Should we implement container queries for component-level responsiveness?**
+   Yes — selectively and incrementally, especially for PtoEntryForm calendars. Browser support is excellent (>95% global in 2026). Enables true component independence: calendars adapt to available space inside form/tabs/sidebars, not just viewport. Use media queries for page-level layout shifts, container queries for inner component variants. Avoid overusing on every element — apply only where parent size matters more than viewport.
+
+3. **How to test responsive behavior reliably in automated tests?**
+   Strongly prefer **vitest + happy-dom** for all structural/attribute assertions: set the mode attribute on the component, assert rendered DOM (calendar count, classes, slots) — no real browser needed. Because the refactor moves responsive logic into observed attributes + CSS, most behavior is testable by setting `data-mode="multi"` or `data-mode="single"` in happy-dom and verifying the resulting shadow DOM structure. Reserve **Playwright only** for true viewport-dependent visual regression (screenshot diffs at breakpoints). Avoid duplicating structural assertions in E2E tests that vitest already covers.
+
+4. **What fallback patterns for older browsers without modern CSS support?**
+   Container queries have ~95%+ support in 2026 — low risk. Use progressive enhancement: mobile-first single-column default, `@supports (container-type: inline-size)` for container queries, viewport-based `@media` fallback for very old browsers. Prioritize mobile-first + feature queries over polyfills (maintenance cost too high).
+
+5. **How to coordinate responsive behavior across nested components?**
+   Single source of truth via attributes down the tree, in order of preference: (a) observed attribute on root — descendants use `[data-mode]` selectors (simplest, zero JS coordination); (b) CSS custom properties on ancestor — children query via `@container`; (c) context/provide-inject only if CSS propagation fails. Avoid direct parent-child JS coupling. Start with attribute + container queries on PtoEntryForm, remove imperative rebuild logic, add viewport-based E2E tests immediately.
