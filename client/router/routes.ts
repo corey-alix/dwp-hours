@@ -1,7 +1,7 @@
-import { APIClient } from "../APIClient.js";
+import { getServices } from "../services/index.js";
 import type { AppRoutes } from "./types.js";
 
-const api = new APIClient();
+const svc = getServices();
 
 export const appRoutes: AppRoutes = [
   {
@@ -17,8 +17,8 @@ export const appRoutes: AppRoutes = [
     meta: { title: "Submit Time Off", requiresAuth: true },
     loader: async () => {
       const [status, entries] = await Promise.all([
-        api.getPTOStatus(),
-        api.getPTOEntries(),
+        svc.pto.getStatus(),
+        svc.pto.getEntries(),
       ]);
       return { status, entries };
     },
@@ -37,15 +37,15 @@ export const appRoutes: AppRoutes = [
         const employeeId = parseInt(employeeIdParam, 10);
         const currentDate = search.get("current_date") ?? undefined;
         const [statusWithName, entries] = await Promise.all([
-          api.getAdminEmployeePTOStatus(employeeId, currentDate),
-          api.getAdminPTOEntries({ employeeId }),
+          svc.admin.getEmployeePTOStatus(employeeId, currentDate),
+          svc.admin.getPTOEntries({ employeeId }),
         ]);
         const { employeeName, ...status } = statusWithName;
         return { status, entries, employeeName, employeeId };
       }
       const [status, entries] = await Promise.all([
-        api.getPTOStatus(),
-        api.getPTOEntries(),
+        svc.pto.getStatus(),
+        svc.pto.getEntries(),
       ]);
       return { status, entries };
     },
@@ -58,7 +58,7 @@ export const appRoutes: AppRoutes = [
     loader: async () => {
       const { getCurrentYear } = await import("../../shared/dateUtils.js");
       const priorYear = getCurrentYear() - 1;
-      return api.getPTOYearReview(priorYear);
+      return svc.pto.getYearReview(priorYear);
     },
   },
   {
@@ -77,7 +77,7 @@ export const appRoutes: AppRoutes = [
       requiresAuth: true,
       roles: ["Admin"],
     },
-    loader: async () => ({ employees: await api.getEmployees() }),
+    loader: async () => ({ employees: await svc.employees.getAll() }),
   },
   {
     path: "/admin/pto-requests",
@@ -86,10 +86,10 @@ export const appRoutes: AppRoutes = [
     meta: { title: "PTO Request Queue", requiresAuth: true, roles: ["Admin"] },
     loader: async () => {
       const [employees, entries] = await Promise.all([
-        api.getEmployees(),
+        svc.employees.getAll(),
         // Exclude entries in admin-acknowledged (locked) months so they
         // don't appear as dead-end pending cards in the queue.
-        api.getAdminPTOEntries({ excludeLockedMonths: true }),
+        svc.admin.getPTOEntries({ excludeLockedMonths: true }),
       ]);
       const pendingRequests = entries
         .filter((e) => e.approved_by === null || e.approved_by === undefined)

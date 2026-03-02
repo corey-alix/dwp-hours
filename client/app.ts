@@ -12,6 +12,7 @@ import { PtoNotificationController } from "./controller/PtoNotificationControlle
 import { DebugConsoleController } from "./controller/DebugConsoleController.js";
 import { UIManager } from "./UIManager.js";
 import { createContextProvider, CONTEXT_KEYS } from "./shared/context.js";
+import { getServices } from "./services/index.js";
 import {
   setTimeTravelDay,
   isValidDateString,
@@ -56,7 +57,14 @@ export class App {
     // can call consumeContext<T>(this, key, cb) for notifications or debug.
     const appWrapper = document.getElementById("app-wrapper");
     if (appWrapper?.parentElement) {
-      // Outer: notifications provider
+      // Outer: services provider
+      const servicesProvider = createContextProvider(
+        CONTEXT_KEYS.SERVICES,
+        getServices(),
+      );
+      servicesProvider.style.display = "contents";
+
+      // Notifications provider
       const notifProvider = createContextProvider(
         CONTEXT_KEYS.NOTIFICATIONS,
         notifications,
@@ -70,7 +78,8 @@ export class App {
       );
       debugProvider.style.display = "contents";
 
-      appWrapper.parentElement.insertBefore(notifProvider, appWrapper);
+      appWrapper.parentElement.insertBefore(servicesProvider, appWrapper);
+      servicesProvider.appendChild(notifProvider);
       notifProvider.appendChild(debugProvider);
       debugProvider.appendChild(appWrapper);
     }

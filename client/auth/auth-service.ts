@@ -1,5 +1,6 @@
 import type * as ApiTypes from "../../shared/api-models.js";
-import { APIClient } from "../APIClient.js";
+import type { IAuthApiService } from "../services/interfaces.js";
+import { getServices } from "../services/index.js";
 import type { StorageService } from "../shared/storage.js";
 import { LocalStorageAdapter } from "../shared/storage.js";
 
@@ -16,11 +17,11 @@ export interface AuthUser {
  */
 export class AuthService {
   private currentUser: AuthUser | null = null;
-  private api: APIClient;
+  private api: IAuthApiService;
   private storage: StorageService;
 
-  constructor(api?: APIClient, storage?: StorageService) {
-    this.api = api ?? new APIClient();
+  constructor(api?: IAuthApiService, storage?: StorageService) {
+    this.api = api ?? getServices().auth;
     this.storage = storage ?? new LocalStorageAdapter();
   }
 

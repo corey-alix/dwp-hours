@@ -11,7 +11,8 @@ import {
 } from "../../../shared/dateUtils.js";
 import type { CalendarEntry } from "../../components/pto-calendar/index.js";
 import type { PtoCalendar } from "../../components/pto-calendar/index.js";
-import { APIClient } from "../../APIClient.js";
+import { getServices } from "../../services/index.js";
+import type { ServiceContainer } from "../../services/index.js";
 import { consumeContext, CONTEXT_KEYS } from "../../shared/context.js";
 import type { TraceListener } from "../../controller/TraceListener.js";
 import { adoptToolbar } from "../../css-extensions/index.js";
@@ -31,7 +32,7 @@ interface LoaderData {
  * Receives PTO status + entries from the route loader.
  */
 export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
-  private api = new APIClient();
+  private services: ServiceContainer = getServices();
   private _notifications: TraceListener | null = null;
   private _loaderData: LoaderData | null = null;
   private _lockState: MonthLockState = "unlocked";
@@ -240,7 +241,7 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
     const form = this.getPtoForm();
     if (!form) return;
     try {
-      const entries = await this.api.getPTOEntries();
+      const entries = await this.services.pto.getEntries();
       form.setPtoData(entries);
     } catch (error) {
       console.error("Failed to fetch PTO entries for calendar:", error);
@@ -275,7 +276,7 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
     }
 
     try {
-      const result = await this.api.createPTOEntry({ requests });
+      const result = await this.services.pto.create({ requests });
       this._notifications?.success("PTO request submitted successfully!");
 
       // Display any soft warnings (e.g., sick day threshold exceeded)
@@ -294,7 +295,7 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
       await this.handlePtoDataRequest();
 
       // Refresh balance
-      const status = await this.api.getPTOStatus();
+      const status = await this.services.pto.getStatus();
       this.updateBalanceSummary(status);
       this.updateCalendarBalanceLimits(status);
     } catch (error: any) {
@@ -341,7 +342,8 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
     if (!month) return;
 
     try {
-      const { acknowledgements } = await this.api.getAcknowledgements();
+      const { acknowledgements } =
+        await this.services.acknowledgements.getAll();
       this._acknowledgements = acknowledgements;
 
       const employeeAck = acknowledgements.find(
@@ -530,7 +532,7 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
     if (this._lockState === "unlocked") {
       // Lock the month
       try {
-        await this.api.submitAcknowledgement(month);
+        await this.services.acknowledgements.submit(month);
         this._notifications?.success("Month locked successfully.");
         await this.refreshLockState();
       } catch (error: any) {
@@ -548,7 +550,7 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
     } else if (this._lockState === "employee-locked" && this._currentAckId) {
       // Unlock the month
       try {
-        await this.api.deleteAcknowledgement(this._currentAckId);
+        await this.services.acknowledgements.remove(this._currentAckId);
         this._notifications?.success("Month unlocked successfully.");
         await this.refreshLockState();
       } catch (error: any) {

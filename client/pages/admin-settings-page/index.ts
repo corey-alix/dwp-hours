@@ -1,10 +1,10 @@
 import { BaseComponent } from "../../components/base-component.js";
 import type { PageComponent } from "../../router/types.js";
 import { styles } from "./css.js";
-import { APIClient } from "../../APIClient.js";
+import { getServices } from "../../services/index.js";
 import { ENABLE_BROWSER_IMPORT } from "../../../shared/businessRules.js";
 
-const api = new APIClient();
+const svc = getServices();
 
 /**
  * Admin Settings page.
@@ -110,7 +110,7 @@ export class AdminSettingsPage extends BaseComponent implements PageComponent {
     this.requestUpdate();
 
     try {
-      const result = await api.importExcel(input.files[0]);
+      const result = await svc.imports.importExcel(input.files[0]);
       this.renderImportResult(result);
     } catch (err: any) {
       this.importStatus = `<p class="error">Import failed: ${err.message || err}</p>`;
@@ -181,7 +181,7 @@ export class AdminSettingsPage extends BaseComponent implements PageComponent {
         this.shadowRoot.querySelector<HTMLElement>(".import-progress");
       if (progressEl) progressEl.textContent = this.importProgress;
 
-      const result = await api.importBulk(payload);
+      const result = await svc.imports.importBulk(payload);
       this.importProgress = "";
 
       // Merge client-side warnings into result

@@ -5,12 +5,12 @@ import { NotificationService } from "../client/shared/notificationService.js";
 import { BUSINESS_RULES_CONSTANTS } from "../shared/businessRules.js";
 import type { NotificationItem } from "../shared/api-models.js";
 
-// Minimal mock APIClient
+// Minimal mock that implements INotificationService
 function createMockApi() {
   return {
-    getNotifications: vi.fn(),
-    markNotificationRead: vi.fn(),
-    createNotification: vi.fn(),
+    getAll: vi.fn(),
+    markRead: vi.fn(),
+    create: vi.fn(),
   };
 }
 
@@ -43,24 +43,24 @@ describe("NotificationService", () => {
 
   beforeEach(() => {
     mockApi = createMockApi();
-    service = new NotificationService(mockApi as any);
+    service = new NotificationService(mockApi);
   });
 
   describe("fetchUnread", () => {
     it("should fetch and store unread notifications", async () => {
-      mockApi.getNotifications.mockResolvedValue({
+      mockApi.getAll.mockResolvedValue({
         notifications: sampleNotifications,
       });
 
       const result = await service.fetchUnread();
 
-      expect(mockApi.getNotifications).toHaveBeenCalledOnce();
+      expect(mockApi.getAll).toHaveBeenCalledOnce();
       expect(result).toEqual(sampleNotifications);
       expect(service.unread).toEqual(sampleNotifications);
     });
 
     it("should return empty array on API error", async () => {
-      mockApi.getNotifications.mockRejectedValue(new Error("Network error"));
+      mockApi.getAll.mockRejectedValue(new Error("Network error"));
 
       const result = await service.fetchUnread();
 
@@ -69,13 +69,13 @@ describe("NotificationService", () => {
     });
 
     it("should replace previous unread with fresh data", async () => {
-      mockApi.getNotifications.mockResolvedValueOnce({
+      mockApi.getAll.mockResolvedValueOnce({
         notifications: sampleNotifications,
       });
       await service.fetchUnread();
       expect(service.unread.length).toBe(2);
 
-      mockApi.getNotifications.mockResolvedValueOnce({
+      mockApi.getAll.mockResolvedValueOnce({
         notifications: [sampleNotifications[0]],
       });
       await service.fetchUnread();
@@ -85,26 +85,26 @@ describe("NotificationService", () => {
 
   describe("markRead", () => {
     it("should call API and remove notification from unread list", async () => {
-      mockApi.getNotifications.mockResolvedValue({
+      mockApi.getAll.mockResolvedValue({
         notifications: [...sampleNotifications],
       });
-      mockApi.markNotificationRead.mockResolvedValue({ success: true });
+      mockApi.markRead.mockResolvedValue({ success: true });
 
       await service.fetchUnread();
       expect(service.unread.length).toBe(2);
 
       await service.markRead(1);
 
-      expect(mockApi.markNotificationRead).toHaveBeenCalledWith(1);
+      expect(mockApi.markRead).toHaveBeenCalledWith(1);
       expect(service.unread.length).toBe(1);
       expect(service.unread[0].id).toBe(2);
     });
 
     it("should keep notification in unread list if API call fails", async () => {
-      mockApi.getNotifications.mockResolvedValue({
+      mockApi.getAll.mockResolvedValue({
         notifications: [...sampleNotifications],
       });
-      mockApi.markNotificationRead.mockRejectedValue(new Error("Server error"));
+      mockApi.markRead.mockRejectedValue(new Error("Server error"));
 
       await service.fetchUnread();
       await service.markRead(1);

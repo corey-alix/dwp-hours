@@ -117,4 +117,5 @@ export function createContextProvider<T>(
 export const CONTEXT_KEYS = {
   NOTIFICATIONS: "notifications",
   DEBUG: "debug",
+  SERVICES: "services",
 } as const;

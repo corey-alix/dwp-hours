@@ -44,7 +44,7 @@ describe("AdminEmployeesPage — Event Integration", () => {
     // Inject test employees via the private field
     (page as any)._employees = testEmployees;
 
-    // Mock the APIClient methods
+    // Mock the service layer methods
     mockApi = {
       deleteEmployee: vi.fn().mockResolvedValue({ message: "Deleted" }),
       updateEmployee: vi.fn().mockResolvedValue({ message: "Updated" }),
@@ -52,7 +52,17 @@ describe("AdminEmployeesPage — Event Integration", () => {
       getEmployees: vi.fn().mockResolvedValue(testEmployees),
       getAdminPTOEntries: vi.fn().mockResolvedValue([]),
     };
-    (page as any).api = mockApi;
+    (page as any).services = {
+      employees: {
+        remove: mockApi.deleteEmployee,
+        update: mockApi.updateEmployee,
+        create: mockApi.createEmployee,
+        getAll: mockApi.getEmployees,
+      },
+      admin: {
+        getPTOEntries: mockApi.getAdminPTOEntries,
+      },
+    };
   });
 
   afterEach(() => {

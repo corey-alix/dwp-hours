@@ -1,12 +1,12 @@
 import { BaseComponent } from "../../components/base-component.js";
 import type { PageComponent } from "../../router/types.js";
 import type { TimesheetUploadForm } from "../../components/timesheet-upload-form/index.js";
-import { APIClient } from "../../APIClient.js";
+import { getServices } from "../../services/index.js";
 import { consumeContext, CONTEXT_KEYS } from "../../shared/context.js";
 import type { TraceListener } from "../../controller/TraceListener.js";
 import { styles } from "./css.js";
 
-const api = new APIClient();
+const svc = getServices();
 
 /**
  * Upload Timesheet page.
@@ -39,7 +39,7 @@ export class UploadTimesheetPage
 
     try {
       // Fetch the authenticated employee's profile via the session endpoint
-      const session = await api.validateSession();
+      const session = await svc.auth.validateSession();
       if (!session?.valid || !session.employee) {
         this._notifications?.error(
           "Unable to load your profile. Please log in again.",

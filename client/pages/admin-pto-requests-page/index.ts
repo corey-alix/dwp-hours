@@ -1,7 +1,8 @@
 import { BaseComponent } from "../../components/base-component.js";
 import type { PageComponent } from "../../router/types.js";
 import type { AuthService } from "../../auth/auth-service.js";
-import { APIClient } from "../../APIClient.js";
+import { getServices } from "../../services/index.js";
+import type { ServiceContainer } from "../../services/index.js";
 import { consumeContext, CONTEXT_KEYS } from "../../shared/context.js";
 import type { TraceListener } from "../../controller/TraceListener.js";
 import { today, getLastDayOfMonth } from "../../../shared/dateUtils.js";
@@ -35,7 +36,7 @@ export class AdminPtoRequestsPage
   extends BaseComponent
   implements PageComponent
 {
-  private api = new APIClient();
+  private services: ServiceContainer = getServices();
   private _notifications: TraceListener | null = null;
   private _requests: PTORequest[] = [];
   private _ptoEntries: Array<{
@@ -67,7 +68,7 @@ export class AdminPtoRequestsPage
 
     // Fetch PTO entries for balance calculations
     try {
-      const ptoEntries = await this.api.getAdminPTOEntries();
+      const ptoEntries = await this.services.admin.getPTOEntries();
       const currentYear = today().slice(0, 4);
       this._ptoEntries = (ptoEntries || [])
         .filter((p) => p.date?.startsWith(currentYear))
@@ -226,12 +227,12 @@ export class AdminPtoRequestsPage
 
           // Fetch PTO entries and acknowledgment status in parallel
           const [ptoEntries, ackData] = await Promise.all([
-            this.api.getAdminPTOEntries({
+            this.services.admin.getPTOEntries({
               employeeId,
               startDate,
               endDate,
             }),
-            this.api.getAdminAcknowledgements(employeeId),
+            this.services.admin.getAcknowledgements(employeeId),
           ]);
 
           const queue = this.shadowRoot?.querySelector(
@@ -290,7 +291,9 @@ export class AdminPtoRequestsPage
       await this.dismissQueueCard(requestIds[0]);
       // Approve all underlying requests
       await Promise.all(
-        requestIds.map((id) => this.api.approvePTOEntry(id, adminUser.id)),
+        requestIds.map((id) =>
+          this.services.admin.approvePTOEntry(id, adminUser.id),
+        ),
       );
       const label =
         requestIds.length === 1
@@ -311,7 +314,9 @@ export class AdminPtoRequestsPage
   private async handleRejectAll(requestIds: number[]): Promise<void> {
     try {
       await this.dismissQueueCard(requestIds[0]);
-      await Promise.all(requestIds.map((id) => this.api.rejectPTOEntry(id)));
+      await Promise.all(
+        requestIds.map((id) => this.services.admin.rejectPTOEntry(id)),
+      );
       const label =
         requestIds.length === 1
           ? "PTO request rejected."
@@ -328,9 +333,9 @@ export class AdminPtoRequestsPage
   private async refreshQueue(): Promise<void> {
     try {
       const [employees, entries] = await Promise.all([
-        this.api.getEmployees(),
+        this.services.employees.getAll(),
         // Exclude entries in admin-acknowledged (locked) months
-        this.api.getAdminPTOEntries({ excludeLockedMonths: true }),
+        this.services.admin.getPTOEntries({ excludeLockedMonths: true }),
       ]);
       const employeeMap = new Map(employees.map((e) => [e.id, e.name]));
       this._requests = entries

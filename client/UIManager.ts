@@ -1,5 +1,6 @@
-import { APIClient } from "./APIClient";
-import { AuthService } from "./auth/auth-service";
+import { getServices } from "./services/index.js";
+import type { ServiceContainer } from "./services/index.js";
+import { AuthService } from "./auth/auth-service.js";
 import { Router, appRoutes } from "./router";
 import { DashboardNavigationMenu } from "./components";
 import type { TraceListener } from "./controller/TraceListener";
@@ -23,15 +24,17 @@ import "./pages/index";
 export class UIManager {
   private authService: AuthService;
   private router: Router;
-  private api: APIClient;
+  private services: ServiceContainer;
   private notificationService: NotificationService;
   private notifications: TraceListener;
 
   constructor(notifications: TraceListener) {
     this.notifications = notifications;
-    this.api = new APIClient();
-    this.notificationService = new NotificationService(this.api);
-    this.authService = new AuthService(this.api);
+    this.services = getServices();
+    this.notificationService = new NotificationService(
+      this.services.notifications,
+    );
+    this.authService = new AuthService(this.services.auth);
     const outlet = querySingle<HTMLElement>("#router-outlet");
     this.router = new Router(appRoutes, outlet, this.authService);
     this.init();
@@ -224,7 +227,8 @@ export class UIManager {
 
       if (!firstVisit) return false;
 
-      const { acknowledgements } = await this.api.getAcknowledgements();
+      const { acknowledgements } =
+        await this.services.acknowledgements.getAll();
       const currentDate = today();
       const priorMonth = getPriorMonth(currentDate);
       const { year, month } = parseDate(priorMonth + "-01");

@@ -1,6 +1,6 @@
 import { BaseComponent } from "../base-component.js";
 import { TIMESHEET_UPLOAD_FORM_CSS } from "./css.js";
-import { APIClient } from "../../APIClient.js";
+import { getServices } from "../../services/index.js";
 import { MONTH_NAMES } from "../../../shared/businessRules.js";
 import type {
   EmployeeImportBulkResponse,
@@ -9,7 +9,7 @@ import type {
   BulkImportAcknowledgement,
 } from "../../../shared/api-models.js";
 
-const api = new APIClient();
+const svc = getServices();
 
 /** Profile data needed for identity verification. */
 export interface TimesheetUserProfile {
@@ -265,22 +265,7 @@ export class TimesheetUploadForm extends BaseComponent {
     ptoEntries: BulkImportPtoEntry[];
     acknowledgements: BulkImportAcknowledgement[];
   }): Promise<EmployeeImportBulkResponse> {
-    const baseURL = api["baseURL"] as string; // access the base URL from APIClient
-    const response = await fetch(`${baseURL}/employee/import-bulk`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(body),
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      const error = new Error(
-        data.error || `HTTP ${response.status}: ${response.statusText}`,
-      );
-      (error as any).responseData = data;
-      throw error;
-    }
-    return data as EmployeeImportBulkResponse;
+    return svc.imports.importEmployeeBulk(body);
   }
 
   private renderImportResult(result: EmployeeImportBulkResponse): void {

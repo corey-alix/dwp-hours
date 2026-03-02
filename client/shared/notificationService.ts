@@ -1,4 +1,4 @@
-import { APIClient } from "../APIClient.js";
+import type { INotificationService } from "../services/interfaces.js";
 import type { NotificationItem } from "../../shared/api-models.js";
 import { BUSINESS_RULES_CONSTANTS } from "../../shared/businessRules.js";
 
@@ -13,17 +13,17 @@ import { BUSINESS_RULES_CONSTANTS } from "../../shared/businessRules.js";
  * - Do NOT call `markRead` on auto-dismiss (timeout) — notification reappears next session
  */
 export class NotificationService {
-  private api: APIClient;
+  private api: INotificationService;
   private _unread: NotificationItem[] = [];
 
-  constructor(api: APIClient) {
+  constructor(api: INotificationService) {
     this.api = api;
   }
 
   /** Fetch unread notifications from the server. */
   async fetchUnread(): Promise<NotificationItem[]> {
     try {
-      const response = await this.api.getNotifications();
+      const response = await this.api.getAll();
       this._unread = response.notifications;
       return this._unread;
     } catch (error) {
@@ -35,7 +35,7 @@ export class NotificationService {
   /** Mark a single notification as read (user explicitly dismissed it). */
   async markRead(id: number): Promise<void> {
     try {
-      await this.api.markNotificationRead(id);
+      await this.api.markRead(id);
       this._unread = this._unread.filter((n) => n.id !== id);
     } catch (error) {
       console.error(`Failed to mark notification ${id} as read:`, error);

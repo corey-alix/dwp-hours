@@ -26,7 +26,7 @@ describe("AdminPtoRequestsPage — Event Integration", () => {
     };
     page.authService = mockAuthService as any;
 
-    // Mock API
+    // Mock service layer
     mockApi = {
       approvePTOEntry: vi.fn().mockResolvedValue({ message: "Approved" }),
       rejectPTOEntry: vi.fn().mockResolvedValue({ message: "Rejected" }),
@@ -36,7 +36,17 @@ describe("AdminPtoRequestsPage — Event Integration", () => {
         .mockResolvedValue({ acknowledgements: [] }),
       getEmployees: vi.fn().mockResolvedValue([]),
     };
-    (page as any).api = mockApi;
+    (page as any).services = {
+      admin: {
+        approvePTOEntry: mockApi.approvePTOEntry,
+        rejectPTOEntry: mockApi.rejectPTOEntry,
+        getPTOEntries: mockApi.getAdminPTOEntries,
+        getAcknowledgements: mockApi.getAdminAcknowledgements,
+      },
+      employees: {
+        getAll: mockApi.getEmployees,
+      },
+    };
   });
 
   afterEach(() => {

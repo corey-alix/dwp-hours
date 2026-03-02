@@ -1,6 +1,7 @@
 import { BaseComponent } from "../../components/base-component.js";
 import type { PageComponent } from "../../router/types.js";
-import { APIClient } from "../../APIClient.js";
+import { getServices } from "../../services/index.js";
+import type { ServiceContainer } from "../../services/index.js";
 import { consumeContext, CONTEXT_KEYS } from "../../shared/context.js";
 import type { TraceListener } from "../../controller/TraceListener.js";
 import {
@@ -23,7 +24,7 @@ import { styles } from "./css.js";
  * Handles add, edit, and delete employee operations.
  */
 export class AdminEmployeesPage extends BaseComponent implements PageComponent {
-  private api = new APIClient();
+  private services: ServiceContainer = getServices();
   private _notifications: TraceListener | null = null;
   private _employees: any[] = [];
   private _ptoEntries: Array<{
@@ -58,7 +59,7 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
 
     // Fetch PTO entries for balance calculations
     try {
-      const ptoEntries = await this.api.getAdminPTOEntries();
+      const ptoEntries = await this.services.admin.getPTOEntries();
       this._ptoEntries = (ptoEntries || [])
         .filter((p: any) => p.date?.startsWith(this._currentYear))
         .map((p: any) => ({
@@ -207,7 +208,7 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
           const [y, m] = month.split("-").map(Number);
           const endDate = getLastDayOfMonth(y, m);
 
-          const ptoEntries = await this.api.getAdminPTOEntries({
+          const ptoEntries = await this.services.admin.getPTOEntries({
             employeeId,
             startDate,
             endDate,
@@ -283,7 +284,7 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
     const name = employee?.name ?? `#${employeeId}`;
 
     try {
-      await this.api.deleteEmployee(employeeId);
+      await this.services.employees.remove(employeeId);
       this._notifications?.success(`Employee "${name}" deleted successfully.`);
       await this.refreshEmployees();
     } catch (error) {
@@ -309,7 +310,7 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
       const { employee, isEdit } = detail;
 
       if (isEdit && employee.id) {
-        await this.api.updateEmployee(employee.id, {
+        await this.services.employees.update(employee.id, {
           name: employee.name,
           identifier: employee.identifier,
           ptoRate: employee.ptoRate,
@@ -321,7 +322,7 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
           `Employee "${employee.name}" updated successfully!`,
         );
       } else {
-        await this.api.createEmployee({
+        await this.services.employees.create({
           name: employee.name,
           identifier: employee.identifier,
           ptoRate: employee.ptoRate,
@@ -346,8 +347,8 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
 
   private async refreshEmployees(): Promise<void> {
     const [employees, ptoEntries] = await Promise.all([
-      this.api.getEmployees(),
-      this.api.getAdminPTOEntries().catch((err) => {
+      this.services.employees.getAll(),
+      this.services.admin.getPTOEntries().catch((err) => {
         console.error("Failed to refresh PTO entries:", err);
         return [] as any[];
       }),

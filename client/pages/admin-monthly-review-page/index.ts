@@ -1,6 +1,7 @@
 import { BaseComponent } from "../../components/base-component.js";
 import type { PageComponent } from "../../router/types.js";
-import { APIClient } from "../../APIClient.js";
+import { getServices } from "../../services/index.js";
+import type { ServiceContainer } from "../../services/index.js";
 import { consumeContext, CONTEXT_KEYS } from "../../shared/context.js";
 import type { TraceListener } from "../../controller/TraceListener.js";
 import { styles } from "./css.js";
@@ -17,7 +18,7 @@ export class AdminMonthlyReviewPage
   extends BaseComponent
   implements PageComponent
 {
-  private api = new APIClient();
+  private services: ServiceContainer = getServices();
   private _notifications: TraceListener | null = null;
 
   connectedCallback() {
@@ -75,9 +76,9 @@ export class AdminMonthlyReviewPage
           const month: string = e.detail?.month;
           try {
             const [employeeData, ptoEntries, employees] = await Promise.all([
-              this.api.getAdminMonthlyReview(month),
-              this.api.getAdminPTOEntries(),
-              this.api.getEmployees(),
+              this.services.admin.getMonthlyReview(month),
+              this.services.admin.getPTOEntries(),
+              this.services.employees.getAll(),
             ]);
 
             const adminComp = this.shadowRoot?.querySelector(
@@ -142,8 +143,8 @@ export class AdminMonthlyReviewPage
 
             // Fetch PTO entries and monthly review data in parallel
             const [ptoEntries, monthlyReview] = await Promise.all([
-              this.api.getAdminPTOEntries({ startDate, endDate }),
-              this.api.getAdminMonthlyReview(month),
+              this.services.admin.getPTOEntries({ startDate, endDate }),
+              this.services.admin.getMonthlyReview(month),
             ]);
 
             const adminComp = this.shadowRoot?.querySelector(
@@ -219,7 +220,7 @@ export class AdminMonthlyReviewPage
         "{month}",
         month,
       );
-      await this.api.createNotification(
+      await this.services.notifications.create(
         employeeId,
         "calendar_lock_reminder",
         message,
@@ -248,7 +249,7 @@ export class AdminMonthlyReviewPage
     month: string,
   ): Promise<void> {
     try {
-      const response = await this.api.submitAdminAcknowledgement(
+      const response = await this.services.admin.submitAcknowledgement(
         employeeId,
         month,
       );
@@ -262,9 +263,9 @@ export class AdminMonthlyReviewPage
       ) as any;
       if (adminComp) {
         const [employeeData, ptoEntries, employees] = await Promise.all([
-          this.api.getAdminMonthlyReview(month),
-          this.api.getAdminPTOEntries(),
-          this.api.getEmployees(),
+          this.services.admin.getMonthlyReview(month),
+          this.services.admin.getPTOEntries(),
+          this.services.employees.getAll(),
         ]);
         const normalized = (ptoEntries || []).map((p: any) => ({
           employee_id: p.employeeId,
