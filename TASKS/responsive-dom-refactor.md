@@ -33,6 +33,7 @@ Refactor components that use imperative DOM manipulation for responsive modes (e
   - `prefers-reduced-motion` checks in multiple components
   - `pointer: fine` detection for desktop vs mobile behavior
 - **Impact:** PtoEntryForm has extensive imperative DOM manipulation justified as "dynamic child count cannot be expressed in static template"
+- **Browser target:** Chrome only (latest) — all modern CSS features (container queries, `:has()`, subgrid, etc.) are available with no fallback or polyfill concerns
 
 ### Phase 2: CSS Layout Foundation
 
@@ -91,8 +92,8 @@ Refactor components that use imperative DOM manipulation for responsive modes (e
 3. **How to test responsive behavior reliably in automated tests?**
    Strongly prefer **vitest + happy-dom** for all structural/attribute assertions: set the mode attribute on the component, assert rendered DOM (calendar count, classes, slots) — no real browser needed. Because the refactor moves responsive logic into observed attributes + CSS, most behavior is testable by setting `data-mode="multi"` or `data-mode="single"` in happy-dom and verifying the resulting shadow DOM structure. Reserve **Playwright only** for true viewport-dependent visual regression (screenshot diffs at breakpoints). Avoid duplicating structural assertions in E2E tests that vitest already covers.
 
-4. **What fallback patterns for older browsers without modern CSS support?**
-   Container queries have ~95%+ support in 2026 — low risk. Use progressive enhancement: mobile-first single-column default, `@supports (container-type: inline-size)` for container queries, viewport-based `@media` fallback for very old browsers. Prioritize mobile-first + feature queries over polyfills (maintenance cost too high).
+4. **~~What fallback patterns for older browsers without modern CSS support?~~**
+   N/A — Chrome-only target. Use any modern CSS freely (container queries, `:has()`, subgrid, `@layer`, nesting, etc.) without `@supports` guards, fallbacks, or polyfills.
 
 5. **How to coordinate responsive behavior across nested components?**
    Single source of truth via attributes down the tree, in order of preference: (a) observed attribute on root — descendants use `[data-mode]` selectors (simplest, zero JS coordination); (b) CSS custom properties on ancestor — children query via `@container`; (c) context/provide-inject only if CSS propagation fails. Avoid direct parent-child JS coupling. Start with attribute + container queries on PtoEntryForm, remove imperative rebuild logic, add viewport-based E2E tests immediately.
