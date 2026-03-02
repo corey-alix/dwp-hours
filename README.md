@@ -830,6 +830,7 @@ Most API endpoints require authentication. Authentication is handled via cookie-
 - `GET /api/pto/status` _(authenticated)_: Get comprehensive PTO status summary for authenticated user including balances, accruals, and usage by type
 - `GET /api/pto` _(authenticated)_: Retrieve PTO entries for authenticated user (admin can see all)
 - `GET /api/pto/year/:year` _(authenticated)_: Get PTO data aggregated by month for a specific historical year (prior year review)
+- `GET /api/pto/available-years` _(authenticated)_: Get list of prior years for which the employee has PTO data (sorted descending)
 - `POST /api/pto` _(authenticated)_: Submit a new PTO entry (admin can submit for others)
 - `PUT /api/pto/:id` _(authenticated)_: Update an existing PTO entry (admin only or own entries)
 - `DELETE /api/pto/:id` _(authenticated)_: Delete/cancel a PTO entry (admin only or own entries)

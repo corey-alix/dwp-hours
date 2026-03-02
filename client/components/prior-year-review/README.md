@@ -132,7 +132,9 @@ The component uses CSS custom properties (CSS variables) for theming:
 
 ## Year Selection
 
-Year selection is handled externally. The component does not include its own year picker - it simply renders the data provided to it. Year selection logic should be implemented at the parent component or page level.
+Year selection is handled externally by the `PriorYearSummaryPage` wrapper. The component does not include its own year picker — it simply renders the data provided to it.
+
+The page provides a **year navigation bar** (« Prev Year / Next Year ») that allows employees to browse any prior year that contains PTO data. The available years are discovered via `GET /api/pto/available-years` and the navigation bar is hidden when only one year is available. Navigation uses anchor links intercepted by the SPA router for seamless client-side transitions.
 
 ## No Data Handling
 

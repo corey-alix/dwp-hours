@@ -3041,6 +3041,35 @@ initDatabase()
       },
     );
 
+    // PTO Available Years endpoint
+    app.get(
+      "/api/pto/available-years",
+      authenticate(() => dataSource, log),
+      async (req, res) => {
+        try {
+          const authenticatedEmployeeId = req.employee!.id;
+          const currentYear = parseInt(today().split("-")[0]);
+
+          const ptoEntryRepo = dataSource.getRepository(PtoEntry);
+          const rawYears: { year: string }[] = await ptoEntryRepo
+            .createQueryBuilder("entry")
+            .select("DISTINCT substr(entry.date, 1, 4)", "year")
+            .where("entry.employee_id = :id", { id: authenticatedEmployeeId })
+            .getRawMany();
+
+          const years = rawYears
+            .map((r) => parseInt(r.year))
+            .filter((y) => !isNaN(y) && y < currentYear)
+            .sort((a, b) => b - a);
+
+          res.json({ years });
+        } catch (error) {
+          logger.error(`Error getting available PTO years: ${error}`);
+          res.status(500).json({ error: "Internal server error" });
+        }
+      },
+    );
+
     // PTO Year Review endpoint
     app.get(
       "/api/pto/year/:year",

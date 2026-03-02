@@ -12,6 +12,12 @@ import type { PtoBalanceData } from "./api-models.d.ts";
 
 export type PTOType = "Sick" | "PTO" | "Bereavement" | "Jury Duty";
 
+/**
+ * Minimum number of available prior years required to show year navigation.
+ * When the employee has fewer available years, the nav bar is hidden.
+ */
+export const PRIOR_YEAR_NAV_MIN_YEARS = 1;
+
 /** Canonical month name list (1-indexed via `MONTH_NAMES[monthNumber - 1]`). */
 export const MONTH_NAMES = [
   "January",

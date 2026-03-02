@@ -196,6 +196,37 @@ function setupIntegrationRoutes(app: express.Application) {
     }
   });
 
+  // PTO Available Years endpoint (simplified for testing - no auth)
+  app.get("/api/pto/available-years", async (req, res) => {
+    try {
+      const employeeId = req.query.employeeId
+        ? parseInt(req.query.employeeId as string)
+        : 1;
+
+      const currentYear = new Date().getFullYear();
+
+      const ptoEntryRepo = dataSource.getRepository(PtoEntry);
+      const entries = await ptoEntryRepo.find({
+        where: { employee_id: employeeId },
+        select: ["date"],
+      });
+
+      const yearSet = new Set<number>();
+      for (const entry of entries) {
+        const y = parseInt(entry.date.substring(0, 4));
+        if (!isNaN(y) && y < currentYear) {
+          yearSet.add(y);
+        }
+      }
+
+      const years = Array.from(yearSet).sort((a, b) => b - a);
+      res.json({ years });
+    } catch (error) {
+      console.error("Error getting available PTO years:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // PTO Year Review endpoint (simplified for testing - no auth)
   app.get("/api/pto/year/:year", async (req, res) => {
     try {
@@ -550,6 +581,119 @@ describe("API Integration Tests", () => {
       expect(month.summary).toHaveProperty("sickHours");
       expect(month.summary).toHaveProperty("bereavementHours");
       expect(month.summary).toHaveProperty("juryDutyHours");
+    });
+  });
+
+  describe("GET /api/pto/available-years", () => {
+    let testEmployee: Employee;
+
+    beforeEach(async () => {
+      // Create test employee
+      testEmployee = dataSource.getRepository(Employee).create({
+        name: "Available Years Test Employee",
+        identifier: "avail-years@example.com",
+        pto_rate: 0.71,
+        carryover_hours: 10,
+        hire_date: "2020-01-01",
+        role: "Employee",
+      });
+      await dataSource.getRepository(Employee).save(testEmployee);
+    });
+
+    it("should return years with PTO data sorted descending", async () => {
+      // Seed PTO in 2023, 2024, 2025
+      const entries = [
+        {
+          employee_id: testEmployee.id,
+          date: "2023-05-10",
+          type: "PTO" as const,
+          hours: 8,
+        },
+        {
+          employee_id: testEmployee.id,
+          date: "2024-03-15",
+          type: "PTO" as const,
+          hours: 8,
+        },
+        {
+          employee_id: testEmployee.id,
+          date: "2025-01-20",
+          type: "PTO" as const,
+          hours: 8,
+        },
+      ];
+      for (const entry of entries) {
+        await dataSource.getRepository(PtoEntry).save(entry);
+      }
+
+      const response = await request(app)
+        .get("/api/pto/available-years")
+        .query({ employeeId: testEmployee.id });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty("years");
+      expect(response.body.years).toEqual([2025, 2024, 2023]);
+    });
+
+    it("should return empty array when employee has no prior-year data", async () => {
+      const response = await request(app)
+        .get("/api/pto/available-years")
+        .query({ employeeId: testEmployee.id });
+
+      expect(response.status).toBe(200);
+      expect(response.body.years).toEqual([]);
+    });
+
+    it("should exclude current year from results", async () => {
+      const currentYear = new Date().getFullYear();
+      // Add entry for current year only
+      await dataSource.getRepository(PtoEntry).save({
+        employee_id: testEmployee.id,
+        date: `${currentYear}-06-15`,
+        type: "PTO" as const,
+        hours: 8,
+      });
+
+      const response = await request(app)
+        .get("/api/pto/available-years")
+        .query({ employeeId: testEmployee.id });
+
+      expect(response.status).toBe(200);
+      expect(response.body.years).toEqual([]);
+    });
+
+    it("should not return duplicate years for multiple entries in the same year", async () => {
+      // Add multiple entries in 2025
+      const entries = [
+        {
+          employee_id: testEmployee.id,
+          date: "2025-01-10",
+          type: "PTO" as const,
+          hours: 8,
+        },
+        {
+          employee_id: testEmployee.id,
+          date: "2025-06-15",
+          type: "Sick" as const,
+          hours: 4,
+        },
+        {
+          employee_id: testEmployee.id,
+          date: "2025-12-20",
+          type: "PTO" as const,
+          hours: 8,
+        },
+      ];
+      for (const entry of entries) {
+        await dataSource.getRepository(PtoEntry).save(entry);
+      }
+
+      const response = await request(app)
+        .get("/api/pto/available-years")
+        .query({ employeeId: testEmployee.id });
+
+      expect(response.status).toBe(200);
+      expect(response.body.years).toEqual([2025]);
     });
   });
 });
