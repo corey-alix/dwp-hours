@@ -35,6 +35,7 @@
 - LATER: See ./TASKS/timesheet-login.md for details
 - LATER: See ./TASKS/pto-accrual-rate-anniversary-month.md for details
 - LATER: See ./TASKS/prior-year-navigation.md for details
+- LATER: See ./TASKS/lock-month-button-per-calendar.md for details
 
 ## SOME WORK REMAINS
 

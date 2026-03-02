@@ -149,6 +149,14 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
     this.addListener(this.shadowRoot, "month-changed", (() => {
       this.refreshLockState();
     }) as EventListener);
+
+    this.addListener(this.shadowRoot, "toggle-month-lock", ((
+      e: CustomEvent,
+    ) => {
+      e.stopPropagation();
+      const month = e.detail?.month as string | undefined;
+      if (month) this.handleToggleLockForMonth(month);
+    }) as EventListener);
   }
 
   protected handleDelegatedClick(e: Event): void {
@@ -298,13 +306,22 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
       const status = await this.services.pto.getStatus();
       this.updateBalanceSummary(status);
       this.updateCalendarBalanceLimits(status);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error submitting PTO request:", error);
-      if (error.responseData?.error === "month_locked") {
-        this._notifications?.error(error.responseData.message);
-      } else if (error.responseData?.fieldErrors) {
-        const messages = error.responseData.fieldErrors.map(
-          (err: any) => `${err.field}: ${err.message}`,
+      const err = error as {
+        responseData?: {
+          error?: string;
+          message?: string;
+          fieldErrors?: Array<{ field: string; message: string }>;
+        };
+      };
+      if (err.responseData?.error === "month_locked") {
+        this._notifications?.error(
+          err.responseData.message ?? "Month is locked.",
+        );
+      } else if (err.responseData?.fieldErrors) {
+        const messages = err.responseData.fieldErrors.map(
+          (fe) => `${fe.field}: ${fe.message}`,
         );
         this._notifications?.error(
           `PTO request failed: ${messages.join("; ")}`,
@@ -430,14 +447,35 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
         card.classList.toggle("locked", isLocked);
         const cal = card.querySelector("pto-calendar") as PtoCalendar | null;
         if (cal) cal.setAttribute("readonly", isLocked ? "true" : "false");
+
+        // Update per-month lock button state
+        const monthLockBtn =
+          card.querySelector<HTMLButtonElement>(".btn-month-lock");
+        if (monthLockBtn) {
+          if (isLocked) {
+            monthLockBtn.textContent = "\ud83d\udd12 Unlock";
+            monthLockBtn.classList.add("btn-month-unlock");
+            monthLockBtn.classList.remove("hidden");
+          } else {
+            monthLockBtn.textContent = "\ud83d\udd13 Lock";
+            monthLockBtn.classList.remove("btn-month-unlock");
+            monthLockBtn.classList.remove("hidden");
+          }
+        }
       }
 
       // Don't apply global form-level lock in multi-calendar mode
       form.classList.remove("locked");
 
-      // Toolbar reflects the current/displayed month state
-      // Use the current _lockState which is based on getDisplayedMonth()
-      this.applyToolbarState(lockBtn, submitBtn, cancelBtn, banner);
+      // Hide global lock button in multi-calendar mode
+      if (lockBtn) lockBtn.classList.add("hidden");
+      if (banner) {
+        banner.textContent = "";
+        banner.classList.add("hidden");
+      }
+      // Submit/Cancel remain enabled in multi-calendar mode
+      if (submitBtn) submitBtn.disabled = false;
+      if (cancelBtn) cancelBtn.disabled = false;
       return;
     }
 
@@ -523,44 +561,66 @@ export class SubmitTimeOffPage extends BaseComponent implements PageComponent {
   }
 
   /**
-   * Toggle lock/unlock for the displayed month.
+   * Toggle lock/unlock for the displayed month (single-calendar toolbar button).
    */
   private async handleToggleLock(): Promise<void> {
     const month = this.getDisplayedMonth();
     if (!month) return;
+    await this.handleToggleLockForMonth(month);
+  }
 
-    if (this._lockState === "unlocked") {
+  /**
+   * Toggle lock/unlock for a specific month (parameterised).
+   * Used by both the global toolbar button and per-month lock buttons.
+   */
+  private async handleToggleLockForMonth(month: string): Promise<void> {
+    // Determine lock state for this specific month
+    const ack = this._acknowledgements.find(
+      (a: ApiTypes.Acknowledgement) => a.month === month,
+    );
+    const isLocked = !!ack;
+
+    if (!isLocked) {
       // Lock the month
       try {
         await this.services.acknowledgements.submit(month);
         this._notifications?.success("Month locked successfully.");
         await this.refreshLockState();
-      } catch (error: any) {
-        if (error.responseData?.error === "month_locked") {
-          // Admin already locked — refresh state
-          this._notifications?.error(error.responseData.message);
+      } catch (error: unknown) {
+        const err = error as {
+          responseData?: { error?: string; message?: string };
+        };
+        if (err.responseData?.error === "month_locked") {
+          this._notifications?.error(
+            err.responseData.message ?? "Month is already locked.",
+          );
           await this.refreshLockState();
         } else {
           this._notifications?.error(
-            error.responseData?.error ??
+            err.responseData?.error ??
               "Failed to lock month. Please try again.",
           );
         }
       }
-    } else if (this._lockState === "employee-locked" && this._currentAckId) {
+    } else {
       // Unlock the month
       try {
-        await this.services.acknowledgements.remove(this._currentAckId);
+        await this.services.acknowledgements.remove(ack.id);
         this._notifications?.success("Month unlocked successfully.");
         await this.refreshLockState();
-      } catch (error: any) {
-        if (error.responseData?.error === "month.admin_locked_cannot_unlock") {
+      } catch (error: unknown) {
+        const err = error as {
+          responseData?: { error?: string; message?: string };
+        };
+        if (err.responseData?.error === "month.admin_locked_cannot_unlock") {
           this._lockState = "admin-locked";
           this.applyLockStateUI();
-          this._notifications?.error(error.responseData.message);
+          this._notifications?.error(
+            err.responseData.message ?? "Admin has locked this month.",
+          );
         } else {
           this._notifications?.error(
-            error.responseData?.error ??
+            err.responseData?.error ??
               "Failed to unlock month. Please try again.",
           );
         }
