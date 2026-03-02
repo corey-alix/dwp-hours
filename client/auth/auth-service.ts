@@ -31,6 +31,15 @@ export class AuthService {
     document.cookie = `auth_hash=${hash}; path=/; max-age=${10 * 365 * 24 * 60 * 60}`; // 10 years
   }
 
+  /**
+   * Establish a full session: set the auth cookie and update the in-memory user state.
+   * Used by timesheet-login where the caller already has the token and user data.
+   */
+  establishSession(authToken: string, user: AuthUser): void {
+    this.setAuthCookie(authToken);
+    this.setUser(user);
+  }
+
   getAuthCookie(): string | null {
     const cookies = document.cookie.split(";");
     for (const cookie of cookies) {

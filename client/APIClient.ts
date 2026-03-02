@@ -351,6 +351,13 @@ export class APIClient {
     return this.post("/admin/import-bulk", payload);
   }
 
+  /** Authenticate via timesheet upload (unauthenticated endpoint). */
+  async timesheetLogin(
+    payload: ApiTypes.TimesheetLoginRequest,
+  ): Promise<ApiTypes.TimesheetLoginResponse> {
+    return this.post("/auth/timesheet-login", payload);
+  }
+
   /** Fetch resolved feature flags from the server. */
   async getFeatureFlags(): Promise<ApiTypes.FeatureFlagsResponse> {
     return this.get("/config/flags");

@@ -14,6 +14,9 @@ export interface IAuthApiService {
   requestAuthLink(identifier: string): Promise<Api.AuthRequestLinkResponse>;
   validateAuth(token: string): Promise<Api.AuthValidateResponse>;
   validateSession(): Promise<Api.AuthValidateSessionResponse>;
+  timesheetLogin(
+    payload: Api.TimesheetLoginRequest,
+  ): Promise<Api.TimesheetLoginResponse>;
 }
 
 // ── PTO (employee-facing) ───────────────────────────────────────

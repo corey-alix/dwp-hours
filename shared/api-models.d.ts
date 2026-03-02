@@ -455,6 +455,31 @@ export interface EmployeeImportBulkResponse {
   warnings: string[];
 }
 
+// ── Timesheet-Based Login Types ──
+
+/** Request body for POST /api/auth/timesheet-login. */
+export interface TimesheetLoginRequest {
+  employees: [BulkImportEmployee]; // exactly one employee
+}
+
+/** Response from POST /api/auth/timesheet-login (200 or 409). */
+export interface TimesheetLoginResponse {
+  authToken: string;
+  employee: {
+    id: number;
+    name: string;
+    role: string;
+  };
+  importResult: {
+    message: string;
+    perMonth: EmployeeImportMonthResult[];
+    totalEntriesImported: number;
+    totalEntriesDeleted: number;
+    warnings: string[];
+    created: boolean;
+  };
+}
+
 /** Response from GET /api/config/flags. */
 export interface FeatureFlagsResponse {
   enableBrowserImport: boolean;

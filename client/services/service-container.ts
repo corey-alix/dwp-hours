@@ -33,6 +33,9 @@ class AuthApiService implements IAuthApiService {
   validateSession() {
     return this.api.validateSession();
   }
+  timesheetLogin(payload: Api.TimesheetLoginRequest) {
+    return this.api.timesheetLogin(payload);
+  }
 }
 
 class PtoService implements IPtoService {

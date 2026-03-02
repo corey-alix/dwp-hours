@@ -934,6 +934,356 @@ initDatabase()
       },
     );
 
+    // ── Timesheet-Based Login (unauthenticated) ──
+    // POST /api/auth/timesheet-login
+    // Accepts browser-parsed single-employee spreadsheet data.
+    // Upserts the employee, imports PTO entries, and returns a session JWT.
+    const timesheetLoginLimiter = new Map<string, { count: number; resetAt: number }>();
+    app.post("/api/auth/timesheet-login", async (req: Request, res: Response) => {
+      logger.info(
+        `API access: ${req.method} ${req.path} by unauthenticated user`,
+      );
+
+      // ── Rate limiting: 5 requests per IP per minute ──
+      const clientIp = req.ip || req.socket.remoteAddress || "unknown";
+      const now = Date.now();
+      const limiterEntry = timesheetLoginLimiter.get(clientIp);
+      if (limiterEntry && limiterEntry.resetAt > now) {
+        limiterEntry.count++;
+        if (limiterEntry.count > 5) {
+          logger.warn(
+            `Timesheet login rate limit exceeded for IP ${clientIp}`,
+          );
+          return res.status(429).json({
+            error: "Too many login attempts. Please try again in a minute.",
+          });
+        }
+      } else {
+        timesheetLoginLimiter.set(clientIp, {
+          count: 1,
+          resetAt: now + 60_000,
+        });
+      }
+
+      try {
+        const { employees } = req.body as { employees?: unknown[] };
+
+        // ── Validate payload ──
+        if (!Array.isArray(employees) || employees.length !== 1) {
+          return res.status(400).json({
+            error:
+              "Invalid payload. Expected { employees: [<single employee>] }.",
+          });
+        }
+
+        const emp = employees[0] as Record<string, unknown>;
+        if (!emp || typeof emp.name !== "string" || !emp.name.trim()) {
+          return res.status(400).json({
+            error: "Employee name is required.",
+          });
+        }
+        if (typeof emp.hireDate !== "string" || !emp.hireDate.trim()) {
+          return res.status(400).json({
+            error: "Employee hire date is required.",
+          });
+        }
+
+        const empName = (emp.name as string).trim();
+        const empHireDate = (emp.hireDate as string).trim();
+        const empIdentifier =
+          typeof emp.identifier === "string" ? emp.identifier : "";
+        const ptoEntries = Array.isArray(emp.ptoEntries)
+          ? emp.ptoEntries
+          : [];
+        const acknowledgements = Array.isArray(emp.acknowledgements)
+          ? emp.acknowledgements
+          : [];
+        const carryoverHours =
+          typeof emp.carryoverHours === "number" ? emp.carryoverHours : 0;
+        const ptoRate =
+          typeof emp.ptoRate === "number" ? emp.ptoRate : 0;
+
+        // Determine the year from entries or default
+        const year =
+          ptoEntries.length > 0 && typeof ptoEntries[0].date === "string"
+            ? parseInt(ptoEntries[0].date.substring(0, 4), 10) || 0
+            : 0;
+
+        // ── Upsert employee ──
+        const empRepo = dataSource.getRepository(Employee);
+        const normalize = (s: string) =>
+          s.trim().replace(/\s+/g, " ").toLowerCase();
+
+        // Try to find existing employee by name (case-insensitive)
+        let existing = await empRepo
+          .createQueryBuilder("emp")
+          .where("LOWER(emp.name) = LOWER(:name)", { name: empName })
+          .getOne();
+
+        // Fallback: match by generated identifier
+        if (!existing && empIdentifier) {
+          existing = await empRepo.findOne({
+            where: { identifier: empIdentifier },
+          });
+        }
+
+        let employeeId: number;
+        let created = false;
+
+        if (existing) {
+          // Verify hire date matches
+          const dbHireDate = existing.hire_date || "";
+          if (dbHireDate && empHireDate && dbHireDate !== empHireDate) {
+            logger.warn(
+              `Timesheet login hire-date mismatch for "${empName}": ` +
+                `sheet="${empHireDate}" db="${dbHireDate}" (IP: ${clientIp})`,
+            );
+            return res.status(403).json({
+              error: `The spreadsheet hire date "${empHireDate}" does not match the account. Check your hire date.`,
+            });
+          }
+          // Update hire date if missing in DB
+          if (!existing.hire_date && empHireDate) {
+            existing.hire_date = empHireDate;
+          }
+          // Update carryover if provided
+          if (carryoverHours !== 0) {
+            existing.carryover_hours = carryoverHours;
+          }
+          await empRepo.save(existing);
+          employeeId = existing.id;
+        } else {
+          // Create new employee
+          const { computePtoRate, generateIdentifier } = await import(
+            "./reportGenerators/excelImport.js"
+          );
+          const { rate } = computePtoRate({
+            name: empName,
+            hireDate: empHireDate,
+            year,
+            carryoverHours,
+            spreadsheetPtoRate: ptoRate,
+          });
+          const identifier =
+            empIdentifier || generateIdentifier(empName);
+          const newEmp = empRepo.create({
+            name: empName,
+            identifier,
+            hire_date: empHireDate || today(),
+            pto_rate: rate,
+            carryover_hours: carryoverHours,
+            role: "Employee",
+          });
+          const saved = await empRepo.save(newEmp);
+          employeeId = saved.id;
+          created = true;
+          logger.info(
+            `Timesheet login created new employee "${empName}" id=${employeeId} (IP: ${clientIp})`,
+          );
+        }
+
+        // ── Import PTO entries (same logic as /api/employee/import-bulk) ──
+        const ptoRepo = dataSource.getRepository(PtoEntry);
+        const adminAckRepo = dataSource.getRepository(AdminAcknowledgement);
+        const ackRepo = dataSource.getRepository(Acknowledgement);
+        const perMonth: Array<{
+          month: string;
+          status: "imported" | "skipped-locked";
+          entriesImported: number;
+          entriesDeleted: number;
+          warnings: string[];
+        }> = [];
+        const allWarnings: string[] = [];
+        let totalImported = 0;
+        let totalDeleted = 0;
+
+        // Disable autoSave for bulk operation
+        const driver = dataSource.driver as any;
+        const originalAutoSave = driver.options?.autoSave;
+        if (driver.options) {
+          driver.options.autoSave = false;
+        }
+
+        try {
+          if (year > 0) {
+            for (let m = 1; m <= 12; m++) {
+              const monthStr = `${year}-${m < 10 ? "0" + m : m}`;
+              const monthWarnings: string[] = [];
+
+              // Check admin lock
+              const adminAck = await adminAckRepo.findOne({
+                where: { employee_id: employeeId, month: monthStr },
+              });
+              if (adminAck) {
+                perMonth.push({
+                  month: monthStr,
+                  status: "skipped-locked",
+                  entriesImported: 0,
+                  entriesDeleted: 0,
+                  warnings: [],
+                });
+                continue;
+              }
+
+              // Find PTO entries for this month from the payload
+              const monthEntries = ptoEntries.filter(
+                (e: { date?: string }) =>
+                  e.date && e.date.startsWith(monthStr),
+              );
+
+              // Delete existing entries for this month (full overwrite)
+              const existingEntries = await ptoRepo.find({
+                where: {
+                  employee_id: employeeId,
+                  date: Between(`${monthStr}-01`, `${monthStr}-31`),
+                },
+              });
+              const deletedCount = existingEntries.length;
+              if (deletedCount > 0) {
+                await ptoRepo.remove(existingEntries);
+              }
+
+              // Insert new entries (unapproved — approved_by = null)
+              let insertedCount = 0;
+              for (const entry of monthEntries) {
+                const validTypes = [
+                  "PTO",
+                  "Sick",
+                  "Bereavement",
+                  "Jury Duty",
+                ] as const;
+                type PtoType = (typeof validTypes)[number];
+                const entryType: PtoType = validTypes.includes(
+                  entry.type as PtoType,
+                )
+                  ? (entry.type as PtoType)
+                  : "PTO";
+
+                const ptoEntry = ptoRepo.create({
+                  employee_id: employeeId,
+                  date: entry.date,
+                  type: entryType,
+                  hours: entry.hours,
+                  notes: entry.notes || null,
+                  approved_by: null,
+                });
+                await ptoRepo.save(ptoEntry);
+                insertedCount++;
+              }
+
+              // Upsert employee acknowledgement for this month
+              const empAck = acknowledgements.find(
+                (a: { month?: string; type?: string }) =>
+                  a.month === monthStr && a.type === "employee",
+              );
+              if (empAck) {
+                const existingAck = await ackRepo.findOne({
+                  where: { employee_id: employeeId, month: monthStr },
+                });
+                if (!existingAck) {
+                  const newAck = ackRepo.create({
+                    employee_id: employeeId,
+                    month: monthStr,
+                    acknowledged_at: new Date(),
+                  });
+                  await ackRepo.save(newAck);
+                }
+              }
+
+              totalImported += insertedCount;
+              totalDeleted += deletedCount;
+              allWarnings.push(...monthWarnings);
+
+              perMonth.push({
+                month: monthStr,
+                status: "imported",
+                entriesImported: insertedCount,
+                entriesDeleted: deletedCount,
+                warnings: monthWarnings,
+              });
+            }
+          }
+        } finally {
+          // Restore autoSave and persist once
+          if (driver.options) {
+            driver.options.autoSave = originalAutoSave;
+          }
+          if (typeof driver.save === "function") {
+            await driver.save();
+          }
+        }
+
+        // ── Generate session JWT ──
+        const jwtSecret =
+          process.env.JWT_SECRET ||
+          process.env.HASH_SALT ||
+          "default_jwt_secret";
+
+        // Re-fetch the employee to get latest role
+        const resolvedEmployee = await empRepo.findOne({
+          where: { id: employeeId },
+        });
+        const role = resolvedEmployee?.role || "Employee";
+
+        const sessionToken = jwt.sign(
+          {
+            employeeId,
+            role,
+            exp:
+              Math.floor(Date.now() / 1000) + 10 * 365 * 24 * 60 * 60, // 10 years
+          },
+          jwtSecret,
+        );
+
+        const importedMonths = perMonth.filter(
+          (m) => m.status === "imported",
+        );
+        const lockedMonths = perMonth.filter(
+          (m) => m.status === "skipped-locked",
+        );
+        const lockedSummary =
+          lockedMonths.length > 0
+            ? ` (${lockedMonths.length} month(s) skipped — admin-locked)`
+            : "";
+
+        const responseBody = {
+          authToken: sessionToken,
+          employee: {
+            id: employeeId,
+            name: empName,
+            role,
+          },
+          importResult: {
+            message:
+              importedMonths.length === 0
+                ? "All months are admin-locked. No data was imported."
+                : `Import complete: ${totalImported} entries imported, ${totalDeleted} replaced${lockedSummary}.`,
+            perMonth,
+            totalEntriesImported: totalImported,
+            totalEntriesDeleted: totalDeleted,
+            warnings: allWarnings,
+            created,
+          },
+        };
+
+        // If all months were locked, return 409 but still include authToken
+        if (year > 0 && importedMonths.length === 0) {
+          logger.info(
+            `Timesheet login for "${empName}" id=${employeeId}: authenticated, all months locked (IP: ${clientIp})`,
+          );
+          return res.status(409).json(responseBody);
+        }
+
+        logger.info(
+          `Timesheet login for "${empName}" id=${employeeId}: ${totalImported} entries imported${lockedSummary} (IP: ${clientIp})`,
+        );
+        res.json(responseBody);
+      } catch (error) {
+        logger.error(`Error in timesheet login: ${error}`);
+        res.status(500).json({ error: "Failed to process timesheet login" });
+      }
+    });
+
     // PTO routes
     app.get(
       "/api/pto/status",

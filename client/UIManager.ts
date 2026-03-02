@@ -119,7 +119,7 @@ export class UIManager {
       const user = e.detail?.user;
       if (user) {
         this.showNav(true);
-        this.router.navigate("/submit-time-off");
+        this.router.navigate("/current-year-summary");
       }
     }) as EventListener);
 
