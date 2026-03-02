@@ -520,3 +520,99 @@ class MyComponent extends BaseComponent {
 ```
 
 Tests inject `InMemoryStorage` instead of mocking `localStorage` globals.
+
+### State Management Patterns
+
+The application follows a layered state management approach — no global stores, no raw `localStorage` access outside the `StorageService` abstraction.
+
+#### State Hierarchy (prefer higher over lower)
+
+| Priority | Mechanism             | Scope                        | Use Case                                              |
+| -------- | --------------------- | ---------------------------- | ----------------------------------------------------- |
+| 1        | Context Protocol      | Subtree (DOM-scoped)         | Shared services: notifications, debug console         |
+| 2        | Custom Events         | Parent ↔ child communication | Data requests, selection changes, action dispatches   |
+| 3        | Component Properties  | Single component             | Attributes, setters, internal state                   |
+| 4        | StorageService        | Persistent (localStorage)    | UI preferences, cached user identity                  |
+| 5        | ~~Global singletons~~ | ~~Window / module scope~~    | **Prohibited** — use context or constructor injection |
+
+#### Context Protocol (`client/shared/context.ts`)
+
+Lightweight dependency injection for web components. A `ContextProvider<T>` element wraps a DOM subtree and intercepts bubbling `context-request` events from descendants.
+
+**Providing context** (typically in `App.run()`):
+
+```typescript
+const provider = createContextProvider(
+  CONTEXT_KEYS.NOTIFICATIONS,
+  notificationService,
+);
+provider.style.display = "contents";
+parentElement.insertBefore(provider, appWrapper);
+provider.appendChild(appWrapper);
+```
+
+**Consuming context** (in any descendant component):
+
+```typescript
+connectedCallback() {
+  super.connectedCallback();
+  consumeContext<TraceListener>(this, CONTEXT_KEYS.NOTIFICATIONS, (svc) => {
+    this._notifications = svc;
+  });
+}
+```
+
+**Well-known context keys** (`CONTEXT_KEYS`):
+
+| Key             | Type                     | Purpose              |
+| --------------- | ------------------------ | -------------------- |
+| `NOTIFICATIONS` | `TraceListener`          | Toast notifications  |
+| `DEBUG`         | `DebugConsoleController` | Debug console bridge |
+
+Adding a new context: define a key in `CONTEXT_KEYS`, wrap the subtree with `createContextProvider()`, and consume with `consumeContext()`.
+
+#### Event-Based Communication (`client/shared/events.ts`)
+
+Components communicate through typed custom events — never through shared mutable state.
+
+- **`noun-verb`** — action completed: `employee-submit`
+- **`noun-data-request`** — component needs data: `pto-data-request`
+- **`noun-changed`** — state notification: `selection-changed`, `auth-state-changed`
+
+Use `dispatchTypedEvent()` for type-safe dispatch. Parent components listen and orchestrate API calls / data injection.
+
+#### StorageService Injection
+
+All `localStorage` access must go through `StorageService` — never call `localStorage` directly.
+
+**Constructor injection** (for plain classes like `AuthService`):
+
+```typescript
+class AuthService {
+  private storage: StorageService;
+  constructor(api?: APIClient, storage?: StorageService) {
+    this.storage = storage ?? new LocalStorageAdapter();
+  }
+}
+```
+
+**Property injection** (for web components):
+
+```typescript
+class MyComponent extends BaseComponent {
+  private _storage: StorageService = new LocalStorageAdapter();
+  set storage(svc: StorageService) {
+    this._storage = svc;
+  }
+}
+```
+
+**Test isolation**: Inject `InMemoryStorage` — no global mocking required, no cross-test contamination.
+
+#### Prohibited State Patterns
+
+- ❌ Raw `localStorage` / `sessionStorage` calls outside `StorageService`
+- ❌ Global singletons (`window.appState`, module-level mutable objects)
+- ❌ Constructor side-effects (fetching data, subscribing to events in constructors)
+- ❌ Implicit state sharing between components through DOM globals
+- ❌ Mutable shared references passed by identity between components

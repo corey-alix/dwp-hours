@@ -16,9 +16,9 @@ Refactor global singletons and side effects (TraceListener for notifications, ac
 - [x] Document TraceListener, activityTracker, and DebugConsoleController usage
 - [x] Analyze localStorage dependencies and data flow
 - [x] Design component-scoped alternatives for each global
-- [ ] Create context provider patterns for shared state
-- [ ] Update architecture-guidance skill with state management patterns
-- [ ] Manual review of refactoring approach
+- [x] Create context provider patterns for shared state
+- [x] Update architecture-guidance skill with state management patterns
+- [x] Manual review of refactoring approach
 
 **Discovery Findings:**
 
@@ -582,41 +582,45 @@ export class DebugConsoleController implements TraceListenerHandler {
 
 ### Phase 2: Context Provider Infrastructure
 
-- [ ] Implement context providers for notifications, activity tracking, and debug state
-- [ ] Create React-like context API for vanilla web components
-- [ ] Add context consumer patterns for component integration
-- [ ] Implement scoped storage abstractions
-- [ ] Test context provider lifecycle management
-- [ ] Build passes, lint passes
+- [x] Implement context providers for notifications, activity tracking, and debug state
+- [x] Create React-like context API for vanilla web components
+- [x] Add context consumer patterns for component integration
+- [x] Implement scoped storage abstractions
+- [x] Test context provider lifecycle management
+- [x] Build passes, lint passes
 
 ### Phase 3: Notification System Refactor
 
-- [ ] Replace TraceListener global with context-based notification system
-- [ ] Update notification components to use injected context
-- [ ] Implement prefers-reduced-motion handling at component level
-- [ ] Remove global notification side effects
-- [ ] Test notification delivery and display
+- [x] Replace TraceListener global with context-based notification system
+- [x] Update notification components to use injected context
+- [x] Implement prefers-reduced-motion handling at component level
+- [x] Remove global notification side effects
+- [x] Test notification delivery and display
 - [ ] Manual testing of notification features
 
 ### Phase 4: Activity Tracking Refactor
 
-- [ ] Replace activityTracker global with component-scoped tracking
-- [ ] Implement localStorage abstraction with context providers
-- [ ] Update components using activity tracking
-- [ ] Remove implicit state sharing through globals
-- [ ] Test activity persistence and retrieval
-- [ ] Build passes, lint passes
+- [x] Replace activityTracker global with component-scoped tracking
+- [x] Implement localStorage abstraction with context providers
+- [x] Update components using activity tracking
+- [x] Remove implicit state sharing through globals
+- [x] Test activity persistence and retrieval
+- [x] Build passes, lint passes
+
+**Resolved:** `auth-service.ts` now accepts `StorageService` via constructor injection and no longer uses raw `localStorage`. The `currentUser` key is managed through `this.storage.setItem()`/`removeItem()`. Tests use `InMemoryStorage` instead of global `localStorage` stubs.
 
 ### Phase 5: Debug System Refactor
 
-- [ ] Replace DebugConsoleController global interception with scoped debugging
-- [ ] Implement debug context provider for ?debug=1 functionality
-- [ ] Update debug-enabled components to use context
-- [ ] Remove global console interception
-- [ ] Test debug features in development mode
+- [x] Replace DebugConsoleController global interception with scoped debugging
+- [x] Implement debug context provider for ?debug=1 functionality
+- [x] Update debug-enabled components to use context
+- [x] Remove global console interception
+- [x] Test debug features in development mode
 - [ ] Code review and security audit
 - [ ] Documentation updates
-- [ ] Build passes, lint passes, all tests pass
+- [x] Build passes, lint passes, all tests pass
+
+**Remaining:** `DebugConsoleController` constructor still calls `activate()` when `?debug=1` — the task envisioned moving activation entirely to the provider's `connectedCallback`. The `activate()`/`deactivate()` lifecycle exists but the constructor-side-effect hasn't been fully eliminated.
 
 ## Implementation Notes
 

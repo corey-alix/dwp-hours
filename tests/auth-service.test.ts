@@ -2,10 +2,12 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { AuthService } from "../client/auth/auth-service.js";
+import { InMemoryStorage } from "../client/shared/storage.js";
 
 describe("AuthService", () => {
   let authService: AuthService;
   let mockApi: any;
+  let storage: InMemoryStorage;
 
   beforeEach(() => {
     mockApi = {
@@ -13,26 +15,11 @@ describe("AuthService", () => {
       validateAuth: vi.fn(),
       validateSession: vi.fn(),
     };
-    authService = new AuthService(mockApi);
+    storage = new InMemoryStorage();
+    authService = new AuthService(mockApi, storage);
     // Clear cookies
     document.cookie =
       "auth_hash=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    // Stub localStorage for happy-dom compatibility
-    const store: Record<string, string> = {};
-    vi.stubGlobal("localStorage", {
-      getItem: vi.fn((key: string) => store[key] ?? null),
-      setItem: vi.fn((key: string, val: string) => {
-        store[key] = val;
-      }),
-      removeItem: vi.fn((key: string) => {
-        delete store[key];
-      }),
-      clear: vi.fn(() => {
-        for (const k of Object.keys(store)) delete store[k];
-      }),
-      key: vi.fn(() => null),
-      length: 0,
-    });
   });
 
   afterEach(() => {
@@ -190,12 +177,12 @@ describe("AuthService", () => {
       expect(authService.getAuthCookie()).toBeNull();
     });
 
-    it("should clear localStorage", async () => {
-      localStorage.setItem("currentUser", '{"id":1}');
+    it("should clear storage", async () => {
+      storage.setItem("currentUser", '{"id":1}');
 
       authService.logout();
 
-      expect(localStorage.getItem("currentUser")).toBeNull();
+      expect(storage.getItem("currentUser")).toBeNull();
     });
 
     it("should dispatch auth-state-changed event with null user", () => {

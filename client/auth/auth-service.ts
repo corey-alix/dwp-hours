@@ -1,5 +1,7 @@
 import type * as ApiTypes from "../../shared/api-models.js";
 import { APIClient } from "../APIClient.js";
+import type { StorageService } from "../shared/storage.js";
+import { LocalStorageAdapter } from "../shared/storage.js";
 
 export interface AuthUser {
   id: number;
@@ -15,9 +17,11 @@ export interface AuthUser {
 export class AuthService {
   private currentUser: AuthUser | null = null;
   private api: APIClient;
+  private storage: StorageService;
 
-  constructor(api?: APIClient) {
+  constructor(api?: APIClient, storage?: StorageService) {
     this.api = api ?? new APIClient();
+    this.storage = storage ?? new LocalStorageAdapter();
   }
 
   // ── Cookie helpers ────────────────────────────────────────────
@@ -131,7 +135,7 @@ export class AuthService {
   logout(): void {
     this.currentUser = null;
     this.clearAuthCookie();
-    localStorage.removeItem("currentUser");
+    this.storage.removeItem("currentUser");
     this.emitAuthStateChanged();
   }
 
@@ -156,7 +160,7 @@ export class AuthService {
 
   private setUser(user: AuthUser): void {
     this.currentUser = user;
-    localStorage.setItem("currentUser", JSON.stringify(user));
+    this.storage.setItem("currentUser", JSON.stringify(user));
     this.emitAuthStateChanged();
   }
 
