@@ -15,10 +15,165 @@ Separate UI messages (VALIDATION_MESSAGES) from core business logic in shared/bu
 - [x] Analyze current businessRules.ts structure and dependencies
 - [x] Document all UI messages embedded in business logic
 - [x] Identify pure functions vs presentation-coupled code
-- [ ] Design localization layer for UI messages
-- [ ] Create separation patterns for domain vs presentation logic
-- [ ] Update architecture-guidance skill with separation patterns
+- [x] Design localization layer for UI messages
+- [x] Create separation patterns for domain vs presentation logic
+- [x] Update architecture-guidance skill with separation patterns
 - [ ] Manual review of separation strategy
+
+**Localization Layer Design:**
+
+The localization layer extracts all UI strings into a dedicated module (`shared/messages.ts`) and provides a typed resolution function. The design prioritizes message extraction for immediate decoupling while leaving the door open for full i18n later.
+
+**New module: `shared/messages.ts`**
+
+```typescript
+// ── Message Catalogs ──
+// All 4 constant objects move here from businessRules.ts:
+export const VALIDATION_MESSAGES = { ... } as const;
+export const SUCCESS_MESSAGES = { ... } as const;
+export const NOTIFICATION_MESSAGES = { ... } as const;
+export const UI_ERROR_MESSAGES = { ... } as const;
+
+// ── Types ──
+export type MessageKey = keyof typeof VALIDATION_MESSAGES;
+export type SuccessMessageKey = keyof typeof SUCCESS_MESSAGES;
+export type NotificationMessageKey = keyof typeof NOTIFICATION_MESSAGES;
+export type UIErrorMessageKey = keyof typeof UI_ERROR_MESSAGES;
+
+// ── Resolution ──
+/**
+ * Resolves a message key to a formatted UI string.
+ * Substitutes `{placeholder}` tokens with values from `params`.
+ * Returns the raw key as fallback if not found (aids debugging).
+ */
+export function resolveMessage(
+  key: string,
+  params?: Record<string, string | number>,
+): string {
+  const allMessages: Record<string, string> = {
+    ...VALIDATION_MESSAGES,
+    ...SUCCESS_MESSAGES,
+    ...NOTIFICATION_MESSAGES,
+    ...UI_ERROR_MESSAGES,
+  };
+  let msg = allMessages[key] ?? key;
+  if (params) {
+    for (const [k, v] of Object.entries(params)) {
+      msg = msg.replace(`{${k}}`, String(v));
+    }
+  }
+  return msg;
+}
+```
+
+**Separation Patterns — Domain vs Presentation:**
+
+| Layer        | Module                    | Returns                                                    | Knows about UI strings?       |
+| ------------ | ------------------------- | ---------------------------------------------------------- | ----------------------------- |
+| **Domain**   | `shared/businessRules.ts` | Structured error objects: `{ field, messageKey, params? }` | No — returns keys only        |
+| **Messages** | `shared/messages.ts`      | Formatted English strings                                  | Yes — owns all UI text        |
+| **Consumer** | Components / Server       | Calls `resolveMessage(error.messageKey, error.params)`     | Bridges domain → presentation |
+
+**Refactoring patterns for each category:**
+
+_1. Structurally-coupled functions (already good)_ — `validateHours()`, `validatePTOType()`, etc. already return `{ field, messageKey }`. No change needed.
+
+_2. Presentation-coupled functions_ — Refactor to return structured data:
+
+```typescript
+// BEFORE (businessRules.ts):
+export function formatLockedMessage(lockedBy: string, lockedAt: string): string {
+  return VALIDATION_MESSAGES["month.locked"]
+    .replace("{lockedBy}", lockedBy)
+    .replace("{lockedAt}", lockedAt);
+}
+
+// AFTER (businessRules.ts): pure — no message access
+// Remove formatLockedMessage entirely; callers use resolveMessage directly:
+//   resolveMessage("month.locked", { lockedBy, lockedAt })
+
+// BEFORE:
+export function checkSickDayThreshold(...): string | null {
+  if (...) return VALIDATION_MESSAGES["sick.pto_required_after_threshold"];
+  return null;
+}
+
+// AFTER: returns messageKey, not string
+export function checkSickDayThreshold(...): string | null {
+  if (...) return "sick.pto_required_after_threshold";
+  return null;
+}
+```
+
+_3. Inline-string functions_ — Refactor to return structured data with message keys:
+
+```typescript
+// BEFORE (shouldAutoApproveImportEntry):
+violations.push(
+  `Sick hours would reach ${projected}h, exceeding ${limit}h annual limit`,
+);
+
+// AFTER: new message keys in messages.ts, structured violations
+// messages.ts adds:
+//   "import.exceed_annual_limit": "{type} hours would reach {projected}h, exceeding {limit}h annual limit"
+// businessRules.ts returns:
+violations.push({
+  messageKey: "import.exceed_annual_limit",
+  params: { type: "Sick", projected: String(projected), limit: String(limit) },
+});
+
+// BEFORE (getOveruseTooltips):
+tooltips.set(
+  entry.date,
+  `Exceeds accrued PTO — ${available} hours accrued, ${scheduled} scheduled`,
+);
+
+// AFTER: new message keys in messages.ts, tooltip returns structured data
+// messages.ts adds:
+//   "overuse.exceeds_accrued_pto": "Exceeds accrued PTO — {available} hours accrued, {scheduled} scheduled"
+//   "overuse.exceeds_annual_limit": "Exceeds annual {type} limit — {scheduled} of {available} hours used"
+// businessRules.ts returns:
+tooltips.set(entry.date, {
+  messageKey: "overuse.exceeds_accrued_pto",
+  params: { available: String(available), scheduled: String(scheduled) },
+});
+// Callers resolve: resolveMessage(tooltip.messageKey, tooltip.params)
+```
+
+_4. Consumer migration pattern:_
+
+```typescript
+// BEFORE (component):
+import {
+  VALIDATION_MESSAGES,
+  MessageKey,
+} from "../../../shared/businessRules.js";
+errors.push(
+  `${request.date}: ${VALIDATION_MESSAGES[hoursError.messageKey as MessageKey]}`,
+);
+
+// AFTER:
+import { resolveMessage } from "../../../shared/messages.js";
+errors.push(`${request.date}: ${resolveMessage(hoursError.messageKey)}`);
+```
+
+**Future i18n extension point:**
+
+`resolveMessage()` becomes the single choke-point for all string resolution. To add locale support later:
+
+1. Change the internal lookup to check `translations[currentLocale]` first, falling back to English.
+2. Load locale JSON files via `fetch()` at app startup.
+3. No consumer code changes needed — they already go through `resolveMessage()`.
+
+**New message keys required** (for inline strings currently in businessRules.ts):
+
+| Key                                     | Template                                                                                                              | Source function                |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| `import.exceed_annual_limit`            | `{type} hours would reach {projected}h, exceeding {limit}h annual limit`                                              | `shouldAutoApproveImportEntry` |
+| `import.pto_borrowing_after_first_year` | `PTO borrowing after first year of service requires manual approval (requested {requested}h, available {available}h)` | `shouldAutoApproveImportEntry` |
+| `import.pto_exceeds_balance`            | `PTO request exceeds available balance (requested {requested}h, available {available}h)`                              | `shouldAutoApproveImportEntry` |
+| `overuse.exceeds_accrued_pto`           | `Exceeds accrued PTO — {available} hours accrued, {scheduled} scheduled`                                              | `getOveruseTooltips`           |
+| `overuse.exceeds_annual_limit`          | `Exceeds annual {type} limit — {scheduled} of {available} hours used`                                                 | `getOveruseTooltips`           |
 
 **Discovery Findings:**
 

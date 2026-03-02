@@ -245,6 +245,107 @@ class AdminEmployeesPage extends BaseComponent {
 - **Component Isolation**: Web components should be data-agnostic and testable without direct API dependencies
 - **Type Safety**: Full TypeScript coverage for reliability and developer experience
 - **Testability**: Architecture designed to support comprehensive unit and E2E testing with mockable services
+- **Domain/Presentation Separation**: Business rules return structured data (message keys), not UI strings. A dedicated messages module owns all user-facing text.
+
+### Business Rules / Messages Separation
+
+Business rules (`shared/businessRules.ts`) must be pure domain logic — no UI strings, no message formatting. All user-facing text lives in `shared/messages.ts`.
+
+#### Three-Layer Architecture
+
+| Layer        | Module                    | Returns                                                    | Knows about UI strings?       |
+| ------------ | ------------------------- | ---------------------------------------------------------- | ----------------------------- |
+| **Domain**   | `shared/businessRules.ts` | Structured error objects: `{ field, messageKey, params? }` | No — returns keys only        |
+| **Messages** | `shared/messages.ts`      | Formatted English strings                                  | Yes — owns all UI text        |
+| **Consumer** | Components / Server       | Calls `resolveMessage(error.messageKey, error.params)`     | Bridges domain → presentation |
+
+#### Validation Functions
+
+Validation functions return structured error objects with `messageKey` strings (not formatted messages):
+
+```typescript
+// ✅ Correct — returns messageKey for consumer to resolve
+export function validateHours(hours: number): ValidationError | null {
+  if (typeof hours !== "number" || isNaN(hours) || hours === 0) {
+    return { field: "hours", messageKey: "hours.invalid" };
+  }
+  return null;
+}
+
+// ❌ Prohibited — accessing message constants from businessRules.ts
+export function checkThreshold(): string | null {
+  return VALIDATION_MESSAGES["some.key"]; // Don't do this
+}
+```
+
+#### Warning/Threshold Functions
+
+Functions that produce warnings return messageKey strings (not formatted text):
+
+```typescript
+// ✅ Returns key — consumer calls resolveMessage()
+export function checkSickDayThreshold(
+  used: number,
+  requested: number,
+): string | null {
+  if (used + requested > SICK_HOURS_BEFORE_PTO) {
+    return "sick.pto_required_after_threshold";
+  }
+  return null;
+}
+```
+
+#### Structured Violations (Import/Overuse)
+
+Functions producing dynamic violation strings return structured objects with `messageKey` + `params`:
+
+```typescript
+// ✅ Structured — consumer calls resolveMessage(v.messageKey, v.params)
+interface StructuredViolation {
+  messageKey: string;
+  params?: Record<string, string | number>;
+}
+
+violations.push({
+  messageKey: "import.exceed_annual_limit",
+  params: { type: "Sick", projected: 28, limit: 24 },
+});
+```
+
+#### Consumer Pattern
+
+```typescript
+// Component / server resolves message at point of display
+import { resolveMessage } from "../shared/messages.js";
+
+const msg = resolveMessage(error.messageKey, error.params);
+// → "Sick hours would reach 28h, exceeding 24h annual limit"
+```
+
+#### `resolveMessage()` API
+
+```typescript
+function resolveMessage(
+  key: string,
+  params?: Record<string, string | number>,
+): string;
+```
+
+- Looks up `key` in all message catalogs (validation, success, notification, ui-error)
+- Substitutes `{placeholder}` tokens with `params` values
+- Returns raw `key` as fallback if not found (aids debugging)
+- Single choke-point for future i18n (swap lookup to locale-specific catalog)
+
+#### Prohibited Patterns
+
+- ❌ Importing `VALIDATION_MESSAGES` or any message constant in `businessRules.ts`
+- ❌ Business rule functions returning formatted English strings
+- ❌ Inline string construction in domain logic (template literals with user text)
+- ❌ `formatLockedMessage()` / `formatMonthNotEndedMessage()` style helpers in businessRules
+
+#### Migration Reference
+
+See `TASKS/business-rules-separation.md` for the full implementation plan including all message keys, affected files, and migration patterns.
 
 ### Context Protocol
 
