@@ -18,6 +18,7 @@ import {
   pad2,
 } from "./types.js";
 import { findPtoCalcStartRow } from "./ptoCalcParsing.js";
+import { CALENDAR_SYMBOLS } from "../calendar-symbols.js";
 
 /**
  * Parse acknowledgement marks from the worksheet.
@@ -34,12 +35,12 @@ export function parseAcknowledgements(
     const monthStr = `${year}-${pad2(m)}`;
 
     const empCell = ws.getCell(row, EMP_ACK_COL);
-    if (empCell.value?.toString().trim() === "✓") {
+    if (empCell.value?.toString().trim() === CALENDAR_SYMBOLS.CHECKMARK) {
       acks.push({ month: monthStr, type: "employee" });
     }
 
     const admCell = ws.getCell(row, ADMIN_ACK_COL);
-    if (admCell.value?.toString().trim() === "✓") {
+    if (admCell.value?.toString().trim() === CALENDAR_SYMBOLS.CHECKMARK) {
       acks.push({ month: monthStr, type: "admin" });
     }
   }

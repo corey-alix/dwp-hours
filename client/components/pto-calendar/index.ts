@@ -736,7 +736,7 @@ export class PtoCalendar extends BaseComponent {
     }
 
     const checkmarkElement = hasApprovedEntry
-      ? '<div class="checkmark">✓</div>'
+      ? `<div class="checkmark">${CALENDAR_SYMBOLS.CHECKMARK}</div>`
       : "";
 
     // Reconciled indicator: "†" in top-right for unapproved entries in locked months
@@ -746,7 +746,7 @@ export class PtoCalendar extends BaseComponent {
       : ' title="Unapproved borrowed time (month reconciled)"';
     const reconciledIndicator =
       !hasApprovedEntry && this._reconciledDates.has(dateStr)
-        ? `<div class="reconciled-indicator"${reconciledTitle}>†</div>`
+        ? `<div class="reconciled-indicator"${reconciledTitle}>${CALENDAR_SYMBOLS.RECONCILED}</div>`
         : "";
     const { day } = parseDate(dateStr);
 
@@ -756,14 +756,14 @@ export class PtoCalendar extends BaseComponent {
     const pendingNote = this._selectedNotes.get(dateStr) ?? "";
     const effectiveNote = pendingNote || entryNotes;
     const noteIndicator = effectiveNote
-      ? `<div class="note-indicator" data-note="${this.escapeAttribute(effectiveNote)}" title="${this.escapeAttribute(effectiveNote)}">&#9662;</div>`
+      ? `<div class="note-indicator" data-note="${this.escapeAttribute(effectiveNote)}" title="${this.escapeAttribute(effectiveNote)}">${CALENDAR_SYMBOLS.NOTE}</div>`
       : "";
 
     // Edit-note ghost icon: shown in TL corner on editable, current-month
     // cells that don't already have a filled note indicator.
     const editNoteIcon =
       !this.isReadonly && isCurrentMonth && !effectiveNote
-        ? '<div class="edit-note-icon" title="Add note">&#9662;</div>'
+        ? `<div class="edit-note-icon" title="Add note">${CALENDAR_SYMBOLS.NOTE}</div>`
         : "";
 
     // Superscript hours on day number: numeric text (e.g. 4, 1.5, +3.3)
@@ -782,9 +782,10 @@ export class PtoCalendar extends BaseComponent {
         : isSelected && this._selectedPtoType
           ? this._selectedPtoType
           : null;
-    const typeDot = ptoType
-      ? `<span class="type-dot type-dot-${ptoType.replace(/\s+/g, "-")}"></span>`
-      : "";
+    if (ptoType) {
+      hoursClass += ` type-dot type-dot-${ptoType.replace(/\s+/g, "-")}`;
+      hoursDisplay = hoursDisplay || CALENDAR_SYMBOLS.TYPE_DOT;
+    }
 
     // Overuse indicator: "!" in bottom-left when this date exceeds balance
     const overuseTooltip = this._overuseTooltips.get(dateStr) ?? "";
@@ -792,7 +793,7 @@ export class PtoCalendar extends BaseComponent {
       ? ` title="${overuseTooltip.replace(/"/g, "&quot;")}"`
       : "";
     const overuseIndicator = this._overuseDates.has(dateStr)
-      ? `<span class="overuse-indicator"${overuseTitle}>!</span>`
+      ? `<span class="overuse-indicator"${overuseTitle}>${CALENDAR_SYMBOLS.OVERUSE}</span>`
       : "";
 
     return `
@@ -803,7 +804,7 @@ export class PtoCalendar extends BaseComponent {
           ${editNoteIcon}
           ${overuseIndicator}
           <div class="date">${dayDisplay}</div>
-          <div class="${hoursClass}">${typeDot}${hoursDisplay}</div>
+          <div class="${hoursClass}">${hoursDisplay}</div>
       </div>
     `;
   }

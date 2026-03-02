@@ -5,6 +5,7 @@ import {
   PtoCalendar,
   PTOEntry,
 } from "../../client/components/pto-calendar/index.js";
+import { CALENDAR_SYMBOLS } from "../../shared/calendar-symbols.js";
 
 describe("PtoCalendar Component - Approval Indicators", () => {
   let component: PtoCalendar;
@@ -50,7 +51,7 @@ describe("PtoCalendar Component - Approval Indicators", () => {
       const checkmark = dayCell?.querySelector(".checkmark");
 
       expect(checkmark).toBeTruthy();
-      expect(checkmark?.textContent).toBe("✓");
+      expect(checkmark?.textContent).toBe(CALENDAR_SYMBOLS.CHECKMARK);
     });
 
     it("should not display checkmark for days with unapproved PTO entries", () => {
@@ -116,7 +117,7 @@ describe("PtoCalendar Component - Approval Indicators", () => {
       const checkmark = dayCell?.querySelector(".checkmark");
 
       expect(checkmark).toBeTruthy();
-      expect(checkmark?.textContent).toBe("✓");
+      expect(checkmark?.textContent).toBe(CALENDAR_SYMBOLS.CHECKMARK);
     });
 
     it("should not display checkmark for unapproved jury duty entries", () => {
@@ -177,7 +178,7 @@ describe("PtoCalendar Component - Approval Indicators", () => {
 
       // Should show checkmark because PTO is approved
       expect(checkmark).toBeTruthy();
-      expect(checkmark?.textContent).toBe("✓");
+      expect(checkmark?.textContent).toBe(CALENDAR_SYMBOLS.CHECKMARK);
     });
 
     it("should not display checkmark when only jury duty is present and unapproved", () => {
