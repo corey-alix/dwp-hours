@@ -350,4 +350,9 @@ export class APIClient {
   ): Promise<ApiTypes.BulkImportResponse> {
     return this.post("/admin/import-bulk", payload);
   }
+
+  /** Fetch resolved feature flags from the server. */
+  async getFeatureFlags(): Promise<ApiTypes.FeatureFlagsResponse> {
+    return this.get("/config/flags");
+  }
 }

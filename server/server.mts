@@ -55,7 +55,6 @@ import {
   checkSickDayThreshold,
   isAllowedEmailDomain,
   SYS_ADMIN_EMPLOYEE_ID,
-  ENABLE_IMPORT_AUTO_APPROVE,
   computeEmployeeBalanceData,
   validateDateString,
   type PTOType,
@@ -100,6 +99,7 @@ import {
   serializeAdminAcknowledgement,
 } from "../shared/entity-transforms.js";
 import { logger, log } from "../shared/logger.js";
+import { featureFlags } from "../shared/featureFlags.js";
 
 // Type guard functions for runtime validation
 function isEmployeeCreateRequest(obj: any): obj is EmployeeCreateRequest {
@@ -507,6 +507,17 @@ initDatabase()
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
         version: "1.0.0",
+      });
+    });
+
+    // Feature flags endpoint (unauthenticated — flags are not secret)
+    app.get("/api/config/flags", (req, res) => {
+      logger.info(
+        `API access: ${req.method} ${req.path} by unauthenticated user`,
+      );
+      res.json({
+        enableBrowserImport: featureFlags.enableBrowserImport,
+        enableImportAutoApprove: featureFlags.enableImportAutoApprove,
       });
     });
 
@@ -3086,7 +3097,7 @@ initDatabase()
                   : [];
 
                 const autoApproveCtx: AutoApproveImportContext | undefined =
-                  ENABLE_IMPORT_AUTO_APPROVE && emp.hireDate
+                  featureFlags.enableImportAutoApprove && emp.hireDate
                     ? {
                         hireDate: emp.hireDate,
                         carryoverHours: emp.carryoverHours || 0,

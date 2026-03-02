@@ -188,6 +188,7 @@ class HealthService implements IHealthService {
 // ── Container ───────────────────────────────────────────────────
 
 export class ServiceContainer {
+  readonly api: APIClient;
   readonly auth: IAuthApiService;
   readonly pto: IPtoService;
   readonly acknowledgements: IAcknowledgementService;
@@ -200,6 +201,7 @@ export class ServiceContainer {
 
   constructor(api?: APIClient) {
     const client = api ?? new APIClient();
+    this.api = client;
     this.auth = new AuthApiService(client);
     this.pto = new PtoService(client);
     this.acknowledgements = new AcknowledgementService(client);

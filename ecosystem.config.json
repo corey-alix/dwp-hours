@@ -10,11 +10,15 @@
       "max_memory_restart": "1G",
       "env": {
         "NODE_ENV": "development",
-        "PORT": 3000
+        "PORT": 3000,
+        "FF_ENABLE_BROWSER_IMPORT": "true",
+        "FF_ENABLE_IMPORT_AUTO_APPROVE": "true"
       },
       "env_production": {
         "NODE_ENV": "development",
-        "PORT": 3000
+        "PORT": 3000,
+        "FF_ENABLE_BROWSER_IMPORT": "true",
+        "FF_ENABLE_IMPORT_AUTO_APPROVE": "true"
       }
     }
   ]

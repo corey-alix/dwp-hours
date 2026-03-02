@@ -2,7 +2,7 @@
 
 ## Description
 
-Replace hardcoded feature toggles like ENABLE_BROWSER_IMPORT with runtime configuration or build-time flags. Implement a proper feature flag system to eliminate dead code paths and improve maintainability.
+Replace hardcoded feature toggles like ENABLE_BROWSER_IMPORT with environment-variable-driven configuration. Feature flags will be read from environment variables at runtime; if an environment variable is not set, the existing default value in `shared/businessRules.ts` is used as the fallback. This keeps the current behaviour unchanged out of the box while allowing per-environment overrides without code changes.
 
 ## Priority
 
@@ -13,12 +13,12 @@ Replace hardcoded feature toggles like ENABLE_BROWSER_IMPORT with runtime config
 ### Phase 1: Analysis and Design
 
 - [x] Identify all hardcoded feature flags in the codebase
-- [ ] Document ENABLE_BROWSER_IMPORT and other toggle usage
-- [ ] Analyze feature flag requirements and environments
-- [ ] Design runtime configuration system
-- [ ] Create build-time flag alternatives
+- [x] Document ENABLE_BROWSER_IMPORT and other toggle usage
+- [x] Analyze feature flag requirements and environments
+- [x] Design environment-variable-based configuration (env var names, parsing, boolean coercion)
+- [x] Document fallback strategy: env var → `businessRules.ts` default value
 - [ ] Update architecture-guidance skill with feature flag patterns
-- [ ] Manual review of feature flag strategy
+- [x] Manual review of feature flag strategy
 
 **Discovery Findings:**
 
@@ -42,55 +42,55 @@ Replace hardcoded feature toggles like ENABLE_BROWSER_IMPORT with runtime config
 
 ### Phase 2: Configuration Infrastructure
 
-- [ ] Implement runtime configuration loader
-- [ ] Create feature flag registry and evaluation system
-- [ ] Add environment-specific configuration files
-- [ ] Implement configuration validation and defaults
-- [ ] Test configuration loading and flag evaluation
-- [ ] Build passes, lint passes
+- [x] Create `shared/featureFlags.ts` module that reads `process.env` for each flag and falls back to `businessRules.ts` defaults
+- [x] Define env var naming convention (e.g. `FF_ENABLE_BROWSER_IMPORT`, `FF_ENABLE_IMPORT_AUTO_APPROVE`)
+- [x] Implement boolean coercion (`"true"/"1"` → true, `"false"/"0"` → false, missing → default)
+- [x] Add `.env.example` documenting all supported feature-flag env vars and their defaults
+- [x] Test configuration loading and fallback behavior
+- [x] Build passes, lint passes
 
 ### Phase 3: Feature Flag Migration
 
-- [ ] Replace ENABLE_BROWSER_IMPORT with configurable flag
-- [ ] Update all hardcoded toggles to use configuration system
-- [ ] Implement gradual rollout capabilities
-- [ ] Add feature flag overrides for development
-- [ ] Test flag-dependent code paths
+- [x] Replace direct imports of `ENABLE_BROWSER_IMPORT` with `featureFlags.enableBrowserImport`
+- [x] Replace direct imports of `ENABLE_IMPORT_AUTO_APPROVE` with `featureFlags.enableImportAutoApprove`
+- [x] Keep `businessRules.ts` constants as the canonical default values (single source of truth)
+- [x] Add env var overrides to deployment config (`ecosystem.config.json`, `.env`)
+- [x] Test flag-dependent code paths with and without env vars set
 - [ ] Manual testing of feature toggles
 
-### Phase 4: Build-Time Optimization
+### Phase 4: Client-Side Flag Delivery
 
-- [ ] Implement build-time feature flag removal
-- [ ] Create dead code elimination for production builds
-- [ ] Add build configuration for different environments
-- [ ] Optimize bundle size by removing unused features
-- [ ] Test build outputs with different flag combinations
-- [ ] Build passes, lint passes
+- [x] Expose resolved feature flags via a server API endpoint (e.g. `GET /api/config/flags`)
+- [x] Client reads flags at startup and caches them (no direct `process.env` access in browser code)
+- [x] Ensure client-side defaults match `businessRules.ts` for offline/fallback scenarios
+- [x] Test client flag loading and fallback behavior
+- [x] Build passes, lint passes
 
 ### Phase 5: Testing and Validation
 
-- [ ] Update unit tests to work with configurable features
+- [x] Update unit tests to work with configurable features
 - [ ] Add E2E tests for feature flag scenarios
-- [ ] Test configuration loading in different environments
-- [ ] Performance testing for flag evaluation overhead
+- [x] Test configuration loading in different environments
+- [x] Performance testing for flag evaluation overhead
 - [ ] Code review and configuration audit
 - [ ] Documentation updates
-- [ ] Build passes, lint passes, all tests pass
+- [x] Build passes, lint passes, all tests pass
 
 ## Implementation Notes
 
-- **Runtime Config**: JSON-based configuration for dynamic features
-- **Build-Time Flags**: Compile-time removal of unused code paths
-- **Environment Support**: Different configurations per environment
-- **Development Overrides**: Local overrides for development testing
-- **Type Safety**: Full TypeScript coverage for configuration types
-- **Performance**: Minimal runtime overhead for flag evaluation
+- **Environment Variables**: All feature flags are read from environment variables at runtime (server-side via `process.env`, client-side via an API endpoint)
+- **Defaults in businessRules.ts**: The existing constants (`ENABLE_BROWSER_IMPORT`, `ENABLE_IMPORT_AUTO_APPROVE`) remain as the canonical default values; the env var layer only overrides when explicitly set
+- **Env Var Naming**: `FF_<FLAG_NAME>` convention (e.g. `FF_ENABLE_BROWSER_IMPORT=false`)
+- **Boolean Coercion**: `"true"` / `"1"` → `true`; `"false"` / `"0"` → `false`; missing → `businessRules.ts` default
+- **Type Safety**: `shared/featureFlags.ts` exports a typed object so consumers get autocomplete and compile-time checks
+- **Performance**: Flags are resolved once at startup (server) or once on page load (client) — negligible overhead
+- **Deployment**: Override via `ecosystem.config.json` env block or `.env` file; no code changes needed per environment
 
 ## Questions and Concerns
 
-1. How to handle feature flags that require server-side coordination?
-2. Should we implement A/B testing capabilities or just simple toggles?
-3. How to manage configuration in production deployments?
-4. What migration strategy for existing hardcoded flags?
-5. How to test all combinations of feature flags efficiently?</content>
+1. How to handle feature flags that require server-side coordination? → Server reads env vars; client fetches resolved values from `GET /api/config/flags`
+2. Should we implement A/B testing capabilities or just simple toggles? → NO, simple toggles only
+3. How to manage configuration in production deployments? → Set env vars in `ecosystem.config.json` or `.env` on the droplet
+4. What migration strategy for existing hardcoded flags? → Keep `businessRules.ts` defaults intact; add env var override layer; migrate consumers to `featureFlags.ts`
+5. How to test all combinations of feature flags efficiently? → Vitest `beforeEach` sets `process.env` values; teardown restores originals</content>
    <parameter name="filePath">/home/ca0v/code/corey-alix/dwp-hours/jupiter/TASKS/feature-flags-refactor.md

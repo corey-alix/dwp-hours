@@ -454,3 +454,9 @@ export interface EmployeeImportBulkResponse {
   totalEntriesDeleted: number;
   warnings: string[];
 }
+
+/** Response from GET /api/config/flags. */
+export interface FeatureFlagsResponse {
+  enableBrowserImport: boolean;
+  enableImportAutoApprove: boolean;
+}

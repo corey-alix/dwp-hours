@@ -10,20 +10,30 @@ const svc = getServices();
  * Admin Settings page.
  * Settings UI including Excel PTO spreadsheet import.
  *
- * When ENABLE_BROWSER_IMPORT is true, the Excel file is parsed entirely
- * in the browser (via ExcelJS loaded on demand) and only the resulting
- * JSON payload is sent to the server. This avoids OOM on the 512 MB
- * production droplet.
+ * The `enableBrowserImport` flag is fetched from the server at
+ * `GET /api/config/flags` on route enter.  If the fetch fails the
+ * compile-time default from `businessRules.ts` is used.
  */
 export class AdminSettingsPage extends BaseComponent implements PageComponent {
   private importStatus: string = "";
   private isImporting: boolean = false;
   private importProgress: string = "";
+  /** Runtime feature flag — initialised from businessRules.ts default, updated from API. */
+  private enableBrowserImport: boolean = ENABLE_BROWSER_IMPORT;
 
   async onRouteEnter(): Promise<void> {
     this.importStatus = "";
     this.isImporting = false;
     this.importProgress = "";
+
+    // Fetch runtime feature flags (non-blocking — uses default on failure)
+    try {
+      const flags = await svc.api.getFeatureFlags();
+      this.enableBrowserImport = flags.enableBrowserImport;
+    } catch {
+      // Keep compile-time default
+    }
+
     this.requestUpdate();
   }
 
@@ -35,7 +45,7 @@ export class AdminSettingsPage extends BaseComponent implements PageComponent {
       <section class="settings-section">
         <h3>Import PTO Spreadsheet</h3>
         <p class="description">Upload an exported Excel (.xlsx) PTO workbook to seed employee data, PTO entries, and acknowledgements for an entire year.</p>
-        ${ENABLE_BROWSER_IMPORT ? '<p class="description import-mode">📱 Browser-side import enabled — file is parsed locally before sending to server.</p>' : ""}
+        ${this.enableBrowserImport ? '<p class="description import-mode">📱 Browser-side import enabled — file is parsed locally before sending to server.</p>' : ""}
         <form id="import-form">
           <label class="file-label" for="excel-file">
             <span class="file-icon">📂</span>
@@ -86,7 +96,7 @@ export class AdminSettingsPage extends BaseComponent implements PageComponent {
     const form = (e.target as HTMLElement).closest("#import-form");
     if (form) {
       e.preventDefault();
-      if (ENABLE_BROWSER_IMPORT) {
+      if (this.enableBrowserImport) {
         this.handleBrowserImport();
       } else {
         this.handleImport();

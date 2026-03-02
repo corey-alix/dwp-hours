@@ -8,6 +8,7 @@
  * run in both Node.js and browser environments.
  */
 
+import { featureFlags } from "../../shared/featureFlags.js";
 import ExcelJS from "exceljs";
 import type { DataSource } from "typeorm";
 import { Between } from "typeorm";
@@ -15,7 +16,6 @@ import {
   validateDateString,
   validatePTOType,
   VALIDATION_MESSAGES,
-  ENABLE_IMPORT_AUTO_APPROVE,
   SYS_ADMIN_EMPLOYEE_ID,
   shouldAutoApproveImportEntry,
   getYearsOfService,
@@ -185,7 +185,7 @@ export async function upsertEmployee(
  * Per-date: update type + hours for existing entries, insert new ones.
  * Entries not in the import are left untouched.
  *
- * When `autoApproveCtx` is provided and `ENABLE_IMPORT_AUTO_APPROVE` is true,
+ * When `autoApproveCtx` is provided and `featureFlags.enableImportAutoApprove` is true,
  * new entries that pass all validation checks and annual limits are automatically
  * approved (`approved_by = SYS_ADMIN_EMPLOYEE_ID`). Entries that fail checks
  * remain unapproved (`approved_by = null`) with violations recorded in notes.
@@ -209,7 +209,7 @@ export async function upsertPtoEntries(
 
   // ── Auto-approve setup ──
   const doAutoApprove =
-    ENABLE_IMPORT_AUTO_APPROVE && autoApproveCtx !== undefined;
+    featureFlags.enableImportAutoApprove && autoApproveCtx !== undefined;
 
   // Per-year running totals for auto-approve checks
   const annualUsage: Record<number, Record<PTOType, number>> = {};
