@@ -105,7 +105,11 @@ export class AdminMonthlyReview extends BaseComponent {
     adoptToolbar(this.shadowRoot);
     adoptNavigation(this.shadowRoot);
     adoptAnimations(this.shadowRoot);
-    this.requestEmployeeData();
+    // Defer data request so the parent's renderTemplate() can finish
+    // re-adding its event listeners before we dispatch the request event.
+    // Without this, the event fires synchronously during innerHTML assignment
+    // and is lost because the parent's listener was cleaned up pre-render.
+    queueMicrotask(() => this.requestEmployeeData());
   }
 
   disconnectedCallback() {

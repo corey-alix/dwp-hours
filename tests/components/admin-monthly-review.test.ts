@@ -139,6 +139,41 @@ describe("AdminMonthlyReview Component", () => {
         }, 0);
       });
     });
+
+    it("should dispatch request event receivable by parent after innerHTML insertion (regression)", () => {
+      // Regression test: when a parent component creates <admin-monthly-review>
+      // via innerHTML assignment, the event must fire AFTER the parent has
+      // finished setting up its listeners — not synchronously during innerHTML.
+      // See TASKS/issue-admin-monthly-review-loading-regression.md
+
+      // Remove the component created by beforeEach
+      container.removeChild(component);
+
+      // Simulate a parent shadow DOM inserting the child via innerHTML
+      const parentHost = document.createElement("div");
+      const parentShadow = parentHost.attachShadow({ mode: "open" });
+      document.body.appendChild(parentHost);
+
+      let received = false;
+
+      // 1. Set innerHTML (synchronously creates <admin-monthly-review>)
+      parentShadow.innerHTML =
+        '<admin-monthly-review selected-month="2026-02"></admin-monthly-review>';
+
+      // 2. Add the listener AFTER innerHTML — simulating renderTemplate() re-adding listeners
+      parentShadow.addEventListener("admin-monthly-review-request", () => {
+        received = true;
+      });
+
+      // 3. The deferred queueMicrotask should fire after both innerHTML and listener setup
+      return new Promise<void>((resolve) => {
+        setTimeout(() => {
+          expect(received).toBe(true);
+          document.body.removeChild(parentHost);
+          resolve();
+        }, 50);
+      });
+    });
   });
 
   describe("Data Injection and Rendering", () => {
