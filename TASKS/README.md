@@ -33,6 +33,7 @@
 - LATER: See ./TASKS/time-travel-encapsulation.md for details
 - LATER: See ./TASKS/admin-view-employee-year-summary.md for details
 - LATER: See ./TASKS/timesheet-login.md for details
+- LATER: See ./TASKS/pto-accrual-rate-anniversary-month.md for details
 
 ## SOME WORK REMAINS
 

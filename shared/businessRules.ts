@@ -2,6 +2,8 @@ import {
   getDayOfWeek,
   getWorkdaysBetween,
   getLastDayOfMonth,
+  getDaysInMonth,
+  addDays,
   parseDate,
   formatDate,
   compareDates,
@@ -117,7 +119,9 @@ export interface PtoRateTier {
 
 /**
  * Official PTO earning schedule.
- * Rate increases on July 1 — see `getEffectivePtoRate` for timing rules.
+ * Before 2022-01-01, rate increases on July 1.
+ * From 2022-01-01 onward, rate increases in the employee's hire-anniversary month.
+ * See `getEffectivePtoRate` for timing rules.
  */
 export const PTO_EARNING_SCHEDULE: readonly PtoRateTier[] = [
   { minYears: 0, maxYears: 1, annualHours: 168, dailyRate: 0.65 },
@@ -146,6 +150,19 @@ export const SICK_HOURS_BEFORE_PTO = 24;
 
 /** Number of consecutive bereavement days before PTO must be used. */
 export const BEREAVEMENT_CONSECUTIVE_DAYS_BEFORE_PTO = 2;
+
+/**
+ * Policy cutover date for PTO accrual rate increases.
+ *
+ * - **Before this date**: rate increases occur on July 1 each year, based on
+ *   the hire-date band (Jan–Jun vs Jul–Dec).
+ * - **On or after this date**: rate increases occur in the month of the
+ *   employee's hire anniversary, using absolute tenure from the original
+ *   hire date.
+ *
+ * See `getEffectivePtoRate` for the dual-policy implementation.
+ */
+export const PTO_ANNIVERSARY_POLICY_CUTOVER = "2022-01-01";
 
 // Business rules constants
 export const BUSINESS_RULES_CONSTANTS = {
@@ -612,14 +629,19 @@ export function getPtoRateTier(yearsOfService: number): PtoRateTier {
 
 /**
  * Returns the effective PTO rate for an employee on a given date,
- * accounting for the July 1 rate-increase timing rule from POLICY.md.
+ * applying the correct rate-increase policy based on whether `asOfDate`
+ * falls before or on/after the `PTO_ANNIVERSARY_POLICY_CUTOVER`.
  *
- * **July 1 Rule**:
+ * **Legacy rule (before 2022-01-01)**:
  * - Hired Jan 1 – Jun 30: rate increases on July 1 following one full year of service.
  * - Hired Jul 1 – Dec 31: rate increases on July 1 of the following calendar year.
+ * - In both cases the rate increase coincides with the first July 1 on or after
+ *   the employee's first anniversary, then every subsequent July 1.
  *
- * In both cases the rate increase coincides with the first July 1 on or after
- * the employee's first anniversary, then every subsequent July 1.
+ * **New rule (on/after 2022-01-01)**:
+ * - Rate increases in the month of the employee's hire anniversary.
+ * - Uses absolute tenure from the original hire date.
+ * - An employee already at the correct tier receives no additional bump.
  *
  * @param hireDate - YYYY-MM-DD hire date
  * @param asOfDate - YYYY-MM-DD reference date (typically today)
@@ -629,12 +651,25 @@ export function getEffectivePtoRate(
   hireDate: string,
   asOfDate: string,
 ): PtoRateTier {
+  if (compareDates(asOfDate, PTO_ANNIVERSARY_POLICY_CUTOVER) < 0) {
+    return getEffectivePtoRateLegacy(hireDate, asOfDate);
+  }
+  return getEffectivePtoRateAnniversary(hireDate, asOfDate);
+}
+
+/**
+ * Legacy (pre-2022) rate-increase logic: bumps occur on July 1.
+ * Extracted from the original `getEffectivePtoRate` implementation.
+ */
+function getEffectivePtoRateLegacy(
+  hireDate: string,
+  asOfDate: string,
+): PtoRateTier {
   const hire = parseDate(hireDate);
   const asOf = parseDate(asOfDate);
 
   // Determine number of July-1 rate bumps that have occurred.
   // First bump happens on the first July 1 on-or-after the first anniversary.
-  const firstAnniversary = formatDate(hire.year + 1, hire.month, hire.day);
 
   // The first July 1 that is >= the first anniversary
   let firstBumpYear: number;
@@ -663,17 +698,60 @@ export function getEffectivePtoRate(
   return getPtoRateTier(effectiveYears);
 }
 
+/**
+ * New (post-2022) rate-increase logic: bumps occur on the hire anniversary.
+ * Uses `getYearsOfService` (absolute tenure from hire date).
+ */
+function getEffectivePtoRateAnniversary(
+  hireDate: string,
+  asOfDate: string,
+): PtoRateTier {
+  const years = getYearsOfService(hireDate, asOfDate);
+  return getPtoRateTier(years);
+}
+
+/**
+ * Returns the date on which the PTO rate changes for a given calendar year,
+ * respecting the pre/post-2022 policy cutover.
+ *
+ * - For years before 2022: returns July 1 of that year.
+ * - For years 2022+: returns the employee's hire-anniversary date in that year.
+ *
+ * Used by `computeAccrualWithHireDate` to determine where to split accrual
+ * segments when a mid-period rate change occurs.
+ *
+ * @param hireDate - YYYY-MM-DD hire date
+ * @param year - Calendar year to compute the rate-change date for
+ * @returns YYYY-MM-DD rate-change date
+ */
+export function getRateChangeDate(hireDate: string, year: number): string {
+  const cutoverYear = parseDate(PTO_ANNIVERSARY_POLICY_CUTOVER).year;
+  if (year < cutoverYear) {
+    return formatDate(year, 7, 1);
+  }
+  const hire = parseDate(hireDate);
+  // Use the hire month/day as the anniversary; clamp day to the month's max
+  // (handles Feb 29 → Feb 28 in non-leap years).
+  const maxDay = getDaysInMonth(year, hire.month);
+  const day = Math.min(hire.day, maxDay);
+  return formatDate(year, hire.month, day);
+}
+
 // ── Phase 2: Accrual Calculation Functions ─────────────────────────────
 
 /**
  * Computes PTO accrued from a fiscal-year start to a reference date,
  * automatically deriving the daily rate from the employee's hire date
- * and handling the mid-year rate change on July 1.
+ * and handling mid-year rate changes.
+ *
+ * The rate-change split point depends on the policy era:
+ * - Before 2022: split at July 1.
+ * - 2022+: split at the employee's hire-anniversary date.
  *
  * @param hireDate - YYYY-MM-DD hire date
  * @param fiscalYearStart - YYYY-MM-DD start of the accrual period
  * @param currentDate - YYYY-MM-DD reference date (typically today)
- * @returns total hours accrued, accounting for rate changes on July 1
+ * @returns total hours accrued, accounting for mid-period rate changes
  */
 export function computeAccrualWithHireDate(
   hireDate: string,
@@ -681,29 +759,28 @@ export function computeAccrualWithHireDate(
   currentDate: string,
 ): number {
   const start = parseDate(fiscalYearStart);
-  const end = parseDate(currentDate);
 
-  // Determine if a July 1 rate change falls within the period
-  const july1 = formatDate(start.year, 7, 1);
-  const rateBeforeJuly1 = getEffectivePtoRate(
-    hireDate,
-    formatDate(start.year, 6, 30),
-  );
-  const rateAfterJuly1 = getEffectivePtoRate(hireDate, july1);
+  // Determine the rate-change date for this year using the policy-aware helper
+  const changeDate = getRateChangeDate(hireDate, start.year);
 
-  const rateChanged = rateBeforeJuly1.dailyRate !== rateAfterJuly1.dailyRate;
-  const july1InRange =
-    compareDates(july1, fiscalYearStart) > 0 &&
-    compareDates(july1, currentDate) <= 0;
+  // Get the day before the rate-change date for the "before" rate
+  const dayBeforeChange = addDays(changeDate, -1);
 
-  if (rateChanged && july1InRange) {
-    // Split into two segments: start→Jun30 and Jul1→currentDate
-    const june30 = formatDate(start.year, 6, 30);
-    const segment1Days = getWorkdaysBetween(fiscalYearStart, june30);
-    const segment2Days = getWorkdaysBetween(july1, currentDate);
+  const rateBefore = getEffectivePtoRate(hireDate, dayBeforeChange);
+  const rateAfter = getEffectivePtoRate(hireDate, changeDate);
+
+  const rateChanged = rateBefore.dailyRate !== rateAfter.dailyRate;
+  const changeDateInRange =
+    compareDates(changeDate, fiscalYearStart) > 0 &&
+    compareDates(changeDate, currentDate) <= 0;
+
+  if (rateChanged && changeDateInRange) {
+    // Split into two segments: start → dayBeforeChange and changeDate → currentDate
+    const segment1Days = getWorkdaysBetween(fiscalYearStart, dayBeforeChange);
+    const segment2Days = getWorkdaysBetween(changeDate, currentDate);
     return (
-      rateBeforeJuly1.dailyRate * segment1Days.length +
-      rateAfterJuly1.dailyRate * segment2Days.length
+      rateBefore.dailyRate * segment1Days.length +
+      rateAfter.dailyRate * segment2Days.length
     );
   }
 
