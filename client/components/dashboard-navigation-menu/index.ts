@@ -40,6 +40,7 @@ export class DashboardNavigationMenu extends BaseComponent {
 
   disconnectedCallback() {
     this.removeAutoCloseListeners();
+    this.finalizeAnimation();
     super.disconnectedCallback();
   }
 

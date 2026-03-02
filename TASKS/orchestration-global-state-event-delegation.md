@@ -62,17 +62,18 @@ Temporary orchestrator tracking unified progress across `global-state-refactor.m
 
 ## Stage 6: Validation (both tasks)
 
-- [ ] Unit tests for all refactored event handlers (outgoing event contracts)
-- [ ] Integration tests for incoming event reactions
-- [ ] E2E smoke tests for critical user flows
-- [ ] Memory leak audit — verify listener cleanup in disconnectedCallback
-- [ ] Documentation updates
-- [ ] Build passes, lint passes, all tests pass
+- [x] Unit tests for all refactored event handlers (outgoing event contracts)
+- [x] Integration tests for incoming event reactions
+- [x] E2E smoke tests for critical user flows
+- [x] Memory leak audit — verify listener cleanup in disconnectedCallback
+- [x] Documentation updates
+- [x] Build passes, lint passes, all tests pass
 
 ## Status
 
-**Current Stage:** 5 — Critical Component Refactoring (complete)
+**Current Stage:** 6 — Validation (complete)
 **Started:** 2026-03-01
+**Completed:** 2026-03-01
 
 ---
 
@@ -173,7 +174,7 @@ Migrated files:
 
 ### Test Suite Status
 
-All 1222 tests passing (1 skipped: server test). Key test files:
+All 1278 tests passing (1 skipped: server test). Key test files:
 
 - `tests/shared/context.test.ts` — context protocol lifecycle (happy-dom)
 - `tests/shared/storage.test.ts` — InMemoryStorage (node)
@@ -182,3 +183,17 @@ All 1222 tests passing (1 skipped: server test). Key test files:
 - `tests/components/base-component.test.ts` — addCleanup lifecycle + resolveAction (happy-dom)
 - `tests/trace-listener.test.ts` — TraceListener unit tests (independent of context)
 - `tests/components/debug-console.test.ts` — DebugConsoleController tests
+- `tests/components/dashboard-navigation-menu.test.ts` — 29 tests: rendering, event dispatch (page-change, logout), keyboard navigation, download report, auto-close, attribute reactivity, disconnect cleanup (happy-dom)
+- `tests/components/employee-form.test.ts` — added 7 event dispatch tests: employee-submit (valid, edit, bubbles/composed, invalid guard), form-cancel (dispatch, bubbles/composed)
+- `tests/components/employee-list.test.ts` — added 8 event dispatch tests: employee-edit, employee-delete (long press, single-click guard, cancel on pointerup), router-navigate (view-summary), event forwarding (employee-submit, form-cancel), disconnect cleanup
+- `tests/pages/admin-employees-page-integration.test.ts` — 7 API-mocked integration tests: employee-edit wiring, employee-delete → api.deleteEmployee, employee-submit → api.createEmployee/updateEmployee, form-cancel, calendar-data-request
+- `tests/pages/admin-pto-requests-page-integration.test.ts` — 4 API-mocked integration tests: request-approve → api.approvePTOEntry (batch), request-reject → api.rejectPTOEntry, queue refresh after approval, calendar-data-request → api.getAdminPTOEntries + getAdminAcknowledgements
+- `e2e/refactor-smoke.spec.ts` — E2E smoke tests: menu navigation between pages, admin employee edit/cancel, monthly review page render
+
+**Stage 6 deliverables:**
+
+- **Memory leak fixes (4 components):**
+  - `client/components/admin-monthly-review/index.ts` — `disconnectedCallback` now destroys all `_swipeHandles` entries
+  - `client/components/dashboard-navigation-menu/index.ts` — `disconnectedCallback` now calls `finalizeAnimation()` to cancel pending menu animation
+  - `client/components/pto-calendar/index.ts` — added `disconnectedCallback` to clear `_longPressTimer`
+  - `client/components/employee-list/index.ts` — added `disconnectedCallback` to call `cancelDeletePress()` (clears `_deleteTimer`)

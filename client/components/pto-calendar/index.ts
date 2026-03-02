@@ -70,6 +70,14 @@ export class PtoCalendar extends BaseComponent {
   private _selectedNotes: Map<string, string> = new Map();
   /** Long-press state tracking */
   private _longPressTimer: ReturnType<typeof setTimeout> | null = null;
+
+  disconnectedCallback() {
+    if (this._longPressTimer) {
+      clearTimeout(this._longPressTimer);
+      this._longPressTimer = null;
+    }
+    super.disconnectedCallback();
+  }
   private _longPressStartX = 0;
   private _longPressStartY = 0;
   private _longPressDate: string | null = null;

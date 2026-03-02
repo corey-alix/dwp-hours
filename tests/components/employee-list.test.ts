@@ -397,4 +397,252 @@ describe("EmployeeList Component - Inline Calendar", () => {
 
     vi.useRealTimers();
   });
+
+  describe("Event Dispatch — employee-edit", () => {
+    it("should dispatch employee-edit when edit button is clicked", () => {
+      const emp1Id = testEmployees[0].id;
+
+      let firedEvent: CustomEvent | null = null;
+      component.addEventListener("employee-edit", (e: Event) => {
+        firedEvent = e as CustomEvent;
+      });
+
+      const editBtn = component.shadowRoot?.querySelector(
+        `.action-btn[data-action="edit"][data-employee-id="${emp1Id}"]`,
+      ) as HTMLElement;
+      editBtn?.click();
+
+      expect(firedEvent).toBeTruthy();
+      expect(firedEvent!.detail.employeeId).toBe(emp1Id);
+    });
+
+    it("should dispatch employee-edit with bubbles and composed", () => {
+      const emp1Id = testEmployees[0].id;
+
+      let eventBubbles = false;
+      let eventComposed = false;
+      component.addEventListener("employee-edit", (e: Event) => {
+        eventBubbles = e.bubbles;
+        eventComposed = e.composed;
+      });
+
+      const editBtn = component.shadowRoot?.querySelector(
+        `.action-btn[data-action="edit"][data-employee-id="${emp1Id}"]`,
+      ) as HTMLElement;
+      editBtn?.click();
+
+      expect(eventBubbles).toBe(true);
+      expect(eventComposed).toBe(true);
+    });
+  });
+
+  describe("Event Dispatch — employee-delete (long press)", () => {
+    it("should dispatch employee-delete after long press", () => {
+      vi.useFakeTimers();
+      const emp1Id = testEmployees[0].id;
+
+      let firedEvent: CustomEvent | null = null;
+      component.addEventListener("employee-delete", (e: Event) => {
+        firedEvent = e as CustomEvent;
+      });
+
+      const deleteBtn = component.shadowRoot?.querySelector(
+        `.action-btn.delete[data-employee-id="${emp1Id}"]`,
+      ) as HTMLElement;
+
+      // Stub setPointerCapture (not available in happy-dom)
+      deleteBtn.setPointerCapture = () => {};
+
+      // Simulate pointerdown to start long press
+      deleteBtn?.dispatchEvent(
+        new PointerEvent("pointerdown", {
+          bubbles: true,
+          composed: true,
+          pointerId: 1,
+        }),
+      );
+
+      // Advance past DELETE_HOLD_MS (1500ms)
+      vi.advanceTimersByTime(1600);
+
+      expect(firedEvent).toBeTruthy();
+      expect(firedEvent!.detail.employeeId).toBe(emp1Id);
+
+      vi.useRealTimers();
+    });
+
+    it("should NOT dispatch employee-delete on single click", () => {
+      const emp1Id = testEmployees[0].id;
+
+      let firedEvent: CustomEvent | null = null;
+      component.addEventListener("employee-delete", (e: Event) => {
+        firedEvent = e as CustomEvent;
+      });
+
+      const deleteBtn = component.shadowRoot?.querySelector(
+        `.action-btn.delete[data-employee-id="${emp1Id}"]`,
+      ) as HTMLElement;
+      deleteBtn?.click();
+
+      expect(firedEvent).toBeNull();
+    });
+
+    it("should cancel delete on pointerup before timeout", () => {
+      vi.useFakeTimers();
+      const emp1Id = testEmployees[0].id;
+
+      let firedEvent: CustomEvent | null = null;
+      component.addEventListener("employee-delete", (e: Event) => {
+        firedEvent = e as CustomEvent;
+      });
+
+      const deleteBtn = component.shadowRoot?.querySelector(
+        `.action-btn.delete[data-employee-id="${emp1Id}"]`,
+      ) as HTMLElement;
+
+      deleteBtn.setPointerCapture = () => {};
+
+      deleteBtn.dispatchEvent(
+        new PointerEvent("pointerdown", {
+          bubbles: true,
+          composed: true,
+          pointerId: 1,
+        }),
+      );
+
+      // Release before timeout
+      vi.advanceTimersByTime(500);
+      deleteBtn.dispatchEvent(
+        new PointerEvent("pointerup", { bubbles: true, composed: true }),
+      );
+
+      // Advance past the full timeout
+      vi.advanceTimersByTime(1200);
+
+      expect(firedEvent).toBeNull();
+
+      vi.useRealTimers();
+    });
+  });
+
+  describe("Event Dispatch — router-navigate (view summary)", () => {
+    it("should dispatch router-navigate on window for view-summary action", () => {
+      const emp1Id = testEmployees[0].id;
+
+      let firedEvent: CustomEvent | null = null;
+      window.addEventListener("router-navigate", (e: Event) => {
+        firedEvent = e as CustomEvent;
+      });
+
+      const summaryBtn = component.shadowRoot?.querySelector(
+        `.action-btn[data-action="view-summary"][data-employee-id="${emp1Id}"]`,
+      ) as HTMLElement;
+      summaryBtn?.click();
+
+      expect(firedEvent).toBeTruthy();
+      expect(firedEvent!.detail.path).toContain(`employeeId=${emp1Id}`);
+    });
+  });
+
+  describe("Event Forwarding — employee-submit / form-cancel", () => {
+    it("should forward employee-submit from inline form to component", () => {
+      vi.useFakeTimers();
+      const emp1Id = testEmployees[0].id;
+
+      // Enter edit mode to render inline form
+      component.editingEmployeeId = emp1Id;
+      // Advance past the transition animation fallback timer
+      vi.advanceTimersByTime(350);
+
+      let firedEvent: CustomEvent | null = null;
+      component.addEventListener("employee-submit", (e: Event) => {
+        firedEvent = e as CustomEvent;
+      });
+
+      // Find the inner form and dispatch employee-submit on it
+      const form = component.shadowRoot?.querySelector(
+        "employee-form",
+      ) as HTMLElement;
+      expect(form).toBeTruthy();
+      form.dispatchEvent(
+        new CustomEvent("employee-submit", {
+          detail: { employee: { name: "Test" }, isEdit: true },
+          bubbles: true,
+          composed: true,
+        }),
+      );
+
+      expect(firedEvent).toBeTruthy();
+      expect(firedEvent!.detail.employee.name).toBe("Test");
+
+      vi.useRealTimers();
+    });
+
+    it("should forward form-cancel from inline form to component", () => {
+      vi.useFakeTimers();
+      const emp1Id = testEmployees[0].id;
+
+      // Enter edit mode to render inline form
+      component.editingEmployeeId = emp1Id;
+      vi.advanceTimersByTime(350);
+
+      let cancelFired = false;
+      component.addEventListener("form-cancel", () => {
+        cancelFired = true;
+      });
+
+      const form = component.shadowRoot?.querySelector(
+        "employee-form",
+      ) as HTMLElement;
+      expect(form).toBeTruthy();
+      form.dispatchEvent(
+        new CustomEvent("form-cancel", {
+          bubbles: true,
+          composed: true,
+        }),
+      );
+
+      expect(cancelFired).toBe(true);
+
+      vi.useRealTimers();
+    });
+  });
+
+  describe("Listener Cleanup on Disconnect", () => {
+    it("should cancel delete timer on disconnect without firing event", () => {
+      vi.useFakeTimers();
+      const emp1Id = testEmployees[0].id;
+
+      let deleteFired = false;
+      component.addEventListener("employee-delete", () => {
+        deleteFired = true;
+      });
+
+      const deleteBtn = component.shadowRoot?.querySelector(
+        `.action-btn.delete[data-employee-id="${emp1Id}"]`,
+      ) as HTMLElement;
+
+      deleteBtn.setPointerCapture = () => {};
+
+      // Start long press
+      deleteBtn.dispatchEvent(
+        new PointerEvent("pointerdown", {
+          bubbles: true,
+          composed: true,
+          pointerId: 1,
+        }),
+      );
+
+      // Disconnect mid-press
+      component.remove();
+
+      // Advance past DELETE_HOLD_MS
+      vi.advanceTimersByTime(2000);
+
+      // Event should NOT have fired
+      expect(deleteFired).toBe(false);
+
+      vi.useRealTimers();
+    });
+  });
 });

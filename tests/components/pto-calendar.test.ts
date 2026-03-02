@@ -1341,4 +1341,37 @@ describe("PtoCalendar - Day Notes", () => {
       expect(creditSup).toBeTruthy();
     });
   });
+
+  describe("Listener Cleanup on Disconnect", () => {
+    it("should clear long-press timer on disconnect without errors", () => {
+      // Triggering a pointerdown starts an internal long-press timer.
+      // Disconnecting the component should safely clear it.
+      component.setAttribute("editable", "true");
+      component.setYear(2024);
+      component.setMonth(2);
+      component.setPtoEntries([
+        {
+          id: 1,
+          employeeId: 1,
+          date: "2024-02-12",
+          type: "PTO",
+          hours: 8,
+          createdAt: "2024-01-01T00:00:00Z",
+          approved_by: null,
+        },
+      ]);
+
+      const dayCell = component.shadowRoot?.querySelector(
+        '[data-date="2024-02-12"]',
+      ) as HTMLElement;
+      if (dayCell) {
+        dayCell.dispatchEvent(
+          new PointerEvent("pointerdown", { bubbles: true, composed: true }),
+        );
+      }
+
+      // Disconnect mid-timer — should not throw or leak
+      component.remove();
+    });
+  });
 });

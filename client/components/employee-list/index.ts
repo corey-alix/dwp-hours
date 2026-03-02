@@ -274,6 +274,11 @@ export class EmployeeList extends BaseComponent {
   private _deleteTimer: ReturnType<typeof setTimeout> | null = null;
   private _deleteTarget: HTMLElement | null = null;
   private static readonly DELETE_HOLD_MS = 1500;
+
+  disconnectedCallback() {
+    this.cancelDeletePress();
+    super.disconnectedCallback();
+  }
   /** Duration for card fade-out before editor appears (matches --duration-normal). */
   private static readonly TRANSITION_MS = 250;
 

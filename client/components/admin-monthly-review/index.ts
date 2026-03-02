@@ -110,6 +110,11 @@ export class AdminMonthlyReview extends BaseComponent {
 
   disconnectedCallback() {
     this._confirm.clearAll();
+    // Destroy swipe handles for any expanded inline calendars
+    for (const handle of this._swipeHandles.values()) {
+      handle.destroy();
+    }
+    this._swipeHandles.clear();
     super.disconnectedCallback();
   }
 

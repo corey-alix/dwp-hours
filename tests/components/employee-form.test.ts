@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { EmployeeForm } from "../../client/components/employee-form/index.js";
 
 describe("EmployeeForm Component", () => {
@@ -18,6 +18,10 @@ describe("EmployeeForm Component", () => {
     // Happy DOM provides global document, window, etc.
     element = new EmployeeForm();
     document.body.appendChild(element);
+  });
+
+  afterEach(() => {
+    element.remove();
   });
 
   it("should render form in add mode", () => {
@@ -429,6 +433,135 @@ describe("EmployeeForm Component", () => {
       (element as any).handleDelegatedKeydown(escapeEvent);
 
       // The actual click behavior is tested elsewhere
+    });
+  });
+
+  describe("Event Dispatch — employee-submit", () => {
+    /** Fill all required fields with valid values. */
+    function fillValidForm(): void {
+      const nameInput = element.shadowRoot?.querySelector(
+        "#name",
+      ) as HTMLInputElement;
+      const identifierInput = element.shadowRoot?.querySelector(
+        "#identifier",
+      ) as HTMLInputElement;
+      const hireDateInput = element.shadowRoot?.querySelector(
+        "#hireDate",
+      ) as HTMLInputElement;
+      if (nameInput) nameInput.value = "John Doe";
+      if (identifierInput) identifierInput.value = "john@example.com";
+      if (hireDateInput) hireDateInput.value = "2020-01-15";
+    }
+
+    it("should dispatch employee-submit when submit button is clicked with valid data", () => {
+      fillValidForm();
+
+      let firedEvent: CustomEvent | null = null;
+      element.addEventListener("employee-submit", (e: Event) => {
+        firedEvent = e as CustomEvent;
+      });
+
+      const submitBtn = element.shadowRoot?.querySelector(
+        "#submit-btn",
+      ) as HTMLElement;
+      submitBtn.click();
+
+      expect(firedEvent).toBeTruthy();
+      expect(firedEvent!.detail.employee.name).toBe("John Doe");
+      expect(firedEvent!.detail.employee.identifier).toBe("john@example.com");
+      expect(firedEvent!.detail.isEdit).toBe(false);
+    });
+
+    it("should include isEdit true when editing existing employee", () => {
+      element.employee = {
+        id: 1,
+        name: "Existing",
+        identifier: "existing@example.com",
+        ptoRate: 0.8,
+        carryoverHours: 10,
+        role: "Employee",
+      };
+      fillHireDate();
+
+      let firedEvent: CustomEvent | null = null;
+      element.addEventListener("employee-submit", (e: Event) => {
+        firedEvent = e as CustomEvent;
+      });
+
+      const submitBtn = element.shadowRoot?.querySelector(
+        "#submit-btn",
+      ) as HTMLElement;
+      submitBtn.click();
+
+      expect(firedEvent).toBeTruthy();
+      expect(firedEvent!.detail.isEdit).toBe(true);
+    });
+
+    it("should dispatch with bubbles and composed", () => {
+      fillValidForm();
+
+      let eventBubbles = false;
+      let eventComposed = false;
+      element.addEventListener("employee-submit", (e: Event) => {
+        eventBubbles = e.bubbles;
+        eventComposed = e.composed;
+      });
+
+      const submitBtn = element.shadowRoot?.querySelector(
+        "#submit-btn",
+      ) as HTMLElement;
+      submitBtn.click();
+
+      expect(eventBubbles).toBe(true);
+      expect(eventComposed).toBe(true);
+    });
+
+    it("should NOT dispatch employee-submit when form is invalid", () => {
+      // Leave required fields empty
+      let firedEvent: CustomEvent | null = null;
+      element.addEventListener("employee-submit", (e: Event) => {
+        firedEvent = e as CustomEvent;
+      });
+
+      const submitBtn = element.shadowRoot?.querySelector(
+        "#submit-btn",
+      ) as HTMLElement;
+      submitBtn.click();
+
+      expect(firedEvent).toBeNull();
+    });
+  });
+
+  describe("Event Dispatch — form-cancel", () => {
+    it("should dispatch form-cancel when cancel button is clicked", () => {
+      let cancelFired = false;
+      element.addEventListener("form-cancel", () => {
+        cancelFired = true;
+      });
+
+      const cancelBtn = element.shadowRoot?.querySelector(
+        "#cancel-btn",
+      ) as HTMLElement;
+      cancelBtn.click();
+
+      expect(cancelFired).toBe(true);
+    });
+
+    it("should dispatch form-cancel with bubbles and composed", () => {
+      let eventBubbles = false;
+      let eventComposed = false;
+      element.addEventListener("form-cancel", (e: Event) => {
+        eventBubbles = e.bubbles;
+        eventComposed = e.composed;
+      });
+
+      const cancelBtn = element.shadowRoot?.querySelector(
+        "#cancel-btn",
+      ) as HTMLElement;
+      cancelBtn.click();
+
+      expect(eventBubbles).toBe(true);
+      expect(eventComposed).toBe(true);
     });
   });
 });
