@@ -329,7 +329,11 @@ export function getTimeTravelQueryParams(): Record<string, string> {
 export function today(): string {
   if (_timeTravelDate) return _timeTravelDate;
   const now = new Date();
-  return formatDate(now.getFullYear(), now.getMonth() + 1, now.getDate());
+  return formatDate(
+    now.getUTCFullYear(),
+    now.getUTCMonth() + 1,
+    now.getUTCDate(),
+  );
 }
 
 /**

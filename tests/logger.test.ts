@@ -124,7 +124,7 @@ describe("Logger", () => {
       const expectedPath = path.join(
         process.cwd(),
         "logs",
-        `app-2026-02-14.log`,
+        `app-2026-02-15.log`,
       );
 
       expect((testLogger as any).getLogPath()).toBe(expectedPath);
