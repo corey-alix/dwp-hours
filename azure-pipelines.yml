@@ -24,23 +24,24 @@ steps:
   - script: npm run build
     displayName: "Run build"
 
+  - script: |
+      mkdir -p test-results
+      npm run test:unit -- --reporter=junit --outputFile=test-results/junit-unit.xml
+    displayName: "Run unit tests"
+
   - task: PublishBuildArtifacts@1
     inputs:
       PathtoPublish: "dist"
       ArtifactName: "dist"
+    condition: succeeded()
     displayName: "Publish dist artifacts"
 
   - task: PublishBuildArtifacts@1
     inputs:
       PathtoPublish: "public"
       ArtifactName: "public"
+    condition: succeeded()
     displayName: "Publish public artifacts"
-
-  - script: |
-      mkdir -p test-results
-      npm run test:unit -- --reporter=junit --outputFile=test-results/junit-unit.xml
-    displayName: "Run unit tests"
-    continueOnError: true
 
   - task: PublishTestResults@2
     inputs:
