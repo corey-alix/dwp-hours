@@ -128,6 +128,12 @@ export const styles = `
 
 .type-Work-Day { background: ${PTO_TYPE_COLORS["Work Day"]}; border: 1px solid var(--color-border); }
 
+/* Readonly mode: add background colors for PTO types */
+:host([readonly]) .type-PTO { background: ${PTO_TYPE_COLORS.PTO}; }
+:host([readonly]) .type-Sick { background: ${PTO_TYPE_COLORS.Sick}; }
+:host([readonly]) .type-Bereavement { background: ${PTO_TYPE_COLORS.Bereavement}; }
+:host([readonly]) .type-Jury-Duty { background: ${PTO_TYPE_COLORS["Jury Duty"]}; }
+
 /* Make text adapt to theme for better contrast */
 .type-PTO .date,
 .type-Sick .date,
@@ -142,10 +148,13 @@ export const styles = `
 .type-Bereavement .hours { color: ${PTO_TYPE_COLORS.Bereavement}; }
 .type-Jury-Duty .hours { color: ${PTO_TYPE_COLORS["Jury Duty"]}; }
 
-/* Clearing state: day selected with 0 hours to unschedule */
-.day.clearing {
-    background: var(--color-surface);
-    opacity: 0.6;
+/* Readonly mode: hide interactive indicators */
+:host([readonly]) .checkmark,
+:host([readonly]) .reconciled-indicator,
+:host([readonly]) .note-indicator,
+:host([readonly]) .edit-note-icon,
+:host([readonly]) .overuse-indicator {
+    display: none;
 }
 
 .day.clearing .date {
@@ -326,6 +335,66 @@ export const styles = `
 
     .edit-note-icon {
         transition: none;
+    }
+}
+
+/* ── Print layout (colors handled by token reset in media.css) ── */
+@media print {
+    .calendar {
+        margin: 0;
+        padding: 1pt;
+    }
+
+    .calendar-header {
+        font-size: 7pt;
+        font-weight: bold;
+        padding: 1pt 0;
+    }
+
+    .calendar-grid {
+        gap: 0.5pt;
+    }
+
+    .weekday {
+        font-size: 5pt;
+    }
+
+    .day {
+        aspect-ratio: auto;
+        min-width: 0;
+        min-height: 0;
+        padding: 0.5pt;
+        font-size: 5pt;
+    }
+
+    .day.empty {
+        border: none;
+        background: transparent !important;
+    }
+
+    .day .date {
+        font-weight: bold;
+    }
+
+    .day .hours {
+        font-size: 4pt;
+    }
+
+    /* Hide all interactive indicators */
+    .checkmark,
+    .reconciled-indicator,
+    .note-indicator,
+    .edit-note-icon,
+    .overuse-indicator {
+        display: none;
+    }
+
+    .legend {
+        display: none;
+    }
+
+    slot[name="balance-summary"] {
+        display: none;
     }
 }
 `;

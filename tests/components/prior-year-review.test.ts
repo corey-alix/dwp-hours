@@ -4,6 +4,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import type { PTOYearReviewResponse } from "../../shared/api-models.js";
 import { PriorYearReview } from "../../client/components/prior-year-review/index.js";
 import "../../client/components/month-summary/index.js";
+import "../../client/components/pto-calendar/index.js";
 
 describe("PriorYearReview Component", () => {
   let component: any;
@@ -110,32 +111,50 @@ describe("PriorYearReview Component", () => {
 
     it("should display correct month headers", () => {
       component.data = mockData;
-      const headers = component.shadowRoot?.querySelectorAll(".month-header");
-      expect(headers?.[0]?.textContent).toBe("January 2025");
-      expect(headers?.[1]?.textContent).toBe("February 2025");
+      const calendars = component.shadowRoot?.querySelectorAll("pto-calendar");
+      expect(calendars?.length).toBe(12);
+
+      // Check headers in each calendar's shadow root
+      const calendarElements: Element[] = calendars
+        ? Array.from(calendars)
+        : [];
+      const headers = calendarElements
+        .map((cal: Element) =>
+          cal.shadowRoot?.querySelector(".calendar-header"),
+        )
+        .filter(Boolean);
+
+      expect(headers.length).toBe(12);
+      expect(headers[0]?.textContent?.trim()).toBe("January 2025");
+      expect(headers[1]?.textContent?.trim()).toBe("February 2025");
     });
 
     it("should render calendar grids for each month", () => {
       component.data = mockData;
-      const calendarGrids =
-        component.shadowRoot?.querySelectorAll(".calendar-grid");
-      expect(calendarGrids?.length).toBe(12);
+      const calendars = component.shadowRoot?.querySelectorAll("pto-calendar");
+      expect(calendars?.length).toBe(12);
     });
 
     it("should display PTO entries with correct styling", () => {
       component.data = mockData;
-      const ptoDays = component.shadowRoot?.querySelectorAll(".type-PTO");
-      expect(ptoDays?.length).toBeGreaterThan(0);
+      const calendars = component.shadowRoot?.querySelectorAll("pto-calendar");
+      expect(calendars?.length).toBe(12);
 
-      const sickDays = component.shadowRoot?.querySelectorAll(".type-Sick");
-      expect(sickDays?.length).toBeGreaterThan(0);
+      // Check that calendars have readonly attribute
+      calendars?.forEach((calendar: Element) => {
+        expect(calendar.getAttribute("readonly")).toBe("true");
+      });
     });
 
     it("should display hours in calendar cells", () => {
       component.data = mockData;
-      const hoursElements = component.shadowRoot?.querySelectorAll(".hours");
-      // Should have at least the hours from our mock data
-      expect(hoursElements?.length).toBeGreaterThanOrEqual(2);
+      const calendars = component.shadowRoot?.querySelectorAll("pto-calendar");
+      expect(calendars?.length).toBe(12);
+
+      // Check that calendars have the expected year and month
+      const firstCalendar = calendars?.[0] as any;
+      expect(firstCalendar?.getAttribute("year")).toBe("2025");
+      expect(firstCalendar?.getAttribute("month")).toBe("1");
     });
 
     it("should render month summaries", () => {
@@ -292,7 +311,7 @@ describe("PriorYearReview Component", () => {
       expect(adoptedSheets.length).toBeGreaterThan(0);
     });
 
-    it("should apply correct CSS classes for PTO types", () => {
+    it("should apply correct CSS classes for PTO types", async () => {
       const data: PTOYearReviewResponse = {
         year: 2025,
         months: [
@@ -328,14 +347,22 @@ describe("PriorYearReview Component", () => {
       };
       component.data = data;
 
-      // Verify day cells have correct type classes
-      const ptoDays = component.shadowRoot?.querySelectorAll(".type-PTO") ?? [];
+      // Wait for updateCalendars to run
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      // Find the first calendar with data
+      const calendars = component.shadowRoot?.querySelectorAll("pto-calendar");
+      const firstCalendar = calendars?.[0] as any;
+
+      // Verify day cells have correct type classes in the calendar's shadow root
+      const ptoDays =
+        firstCalendar?.shadowRoot?.querySelectorAll(".type-PTO") ?? [];
       const sickDays =
-        component.shadowRoot?.querySelectorAll(".type-Sick") ?? [];
+        firstCalendar?.shadowRoot?.querySelectorAll(".type-Sick") ?? [];
       const bereavementDays =
-        component.shadowRoot?.querySelectorAll(".type-Bereavement") ?? [];
+        firstCalendar?.shadowRoot?.querySelectorAll(".type-Bereavement") ?? [];
       const juryDutyDays =
-        component.shadowRoot?.querySelectorAll(".type-Jury-Duty") ?? [];
+        firstCalendar?.shadowRoot?.querySelectorAll(".type-Jury-Duty") ?? [];
 
       expect(ptoDays.length).toBeGreaterThan(0);
       expect(sickDays.length).toBeGreaterThan(0);

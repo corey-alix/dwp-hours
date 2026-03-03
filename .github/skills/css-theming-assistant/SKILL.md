@@ -253,5 +253,99 @@ This skill maintains the project's vanilla CSS approach with no CSS-in-JS framew
 - **Consistent Experience**: All components and UI elements adapt automatically
 - **Battery Friendly**: Respects system settings that may optimize for battery life in dark mode
 - **Cross-Platform**: Works consistently across different operating systems and browsers
-- **Maintainable**: Semantic naming and hierarchical structure make theme updates easy</content>
-  <parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/.github/skills/css-theming-assistant/SKILL.md
+- **Maintainable**: Semantic naming and hierarchical structure make theme updates easy
+
+## Single-Page Print Scaling Pattern
+
+When a page needs to fit entirely on one printed page (regardless of paper size), use the following pattern combining CSS print token overrides with JavaScript dynamic zoom scaling.
+
+### Why `beforeprint` Is Insufficient
+
+The `beforeprint` / `afterprint` window events only fire during actual printing (Ctrl+P). They do **not** fire when Chrome DevTools CSS print emulation mode is activated, which makes development and testing difficult. Use `window.matchMedia("print")` instead — its `change` event fires in both scenarios.
+
+### Implementation Pattern
+
+```typescript
+export class MyPage extends BaseComponent {
+  private _printMQ: MediaQueryList | null = null;
+  private _rafId = 0;
+
+  // Arrow-function handlers for stable add/remove by reference
+  private _handlePrintChange = (e: MediaQueryListEvent): void => {
+    if (e.matches) {
+      this._scaleToFitPage();
+    } else {
+      this._resetScale();
+    }
+  };
+
+  private _handleResize = (): void => {
+    if (!this._printMQ?.matches) return;
+    cancelAnimationFrame(this._rafId);
+    this._rafId = requestAnimationFrame(() => this._scaleToFitPage());
+  };
+
+  connectedCallback() {
+    super.connectedCallback();
+
+    // matchMedia("print") fires in DevTools print emulation AND real printing
+    this._printMQ = window.matchMedia("print");
+    this._printMQ.addEventListener("change", this._handlePrintChange);
+    window.addEventListener("beforeprint", this._handleResize);
+    window.addEventListener("afterprint", () => this._resetScale());
+    window.addEventListener("resize", this._handleResize);
+
+    // Handle page load while already in print emulation mode
+    if (this._printMQ.matches) {
+      this._scaleToFitPage();
+    }
+  }
+
+  disconnectedCallback() {
+    this._resetScale();
+    cancelAnimationFrame(this._rafId);
+    this._printMQ?.removeEventListener("change", this._handlePrintChange);
+    window.removeEventListener("beforeprint", this._handleResize);
+    window.removeEventListener("resize", this._handleResize);
+    this._printMQ = null;
+    super.disconnectedCallback();
+  }
+
+  /**
+   * Scale document.body to fit all content on one printed page.
+   * Must target document.body (not a shadow DOM element) so the
+   * entire page including header scales uniformly.
+   */
+  private _scaleToFitPage(): void {
+    const body = document.body;
+    body.style.zoom = "";
+    const contentHeight = body.scrollHeight;
+    const pageHeight = window.innerHeight;
+    if (contentHeight > pageHeight && pageHeight > 0) {
+      const scale = Math.floor((pageHeight / contentHeight) * 100) / 100;
+      body.style.zoom = String(scale);
+    }
+  }
+
+  private _resetScale(): void {
+    document.body.style.zoom = "";
+  }
+}
+```
+
+### Key Design Decisions
+
+1. **Scale `document.body`, not a shadow DOM wrapper**: Scaling a shadow DOM element only shrinks the component's content — the header, nav, and other page-level elements remain full-size and still cause overflow. Applying `zoom` to `document.body` scales everything uniformly.
+
+2. **Use `matchMedia("print")` over `beforeprint`/`afterprint`**: The `matchMedia` change event works in Chrome DevTools CSS print emulation mode, enabling visual testing without triggering a real print dialog.
+
+3. **Manage listeners manually, not via `addListener`**: BaseComponent's `addListener` registers cleanup that runs during `renderTemplate()` / `requestUpdate()`. Print scaling listeners must survive re-renders, so add them in `connectedCallback` and remove them in `disconnectedCallback` directly.
+
+4. **Throttle resize with `requestAnimationFrame`**: When the user resizes the DevTools responsive viewport while in print emulation, the resize event fires rapidly. RAF debouncing prevents layout thrashing.
+
+5. **Check `_printMQ.matches` on connect**: If the page loads while already in print emulation mode, the `change` event won't fire. An initial check ensures scaling is applied immediately.
+
+### Companion CSS
+
+Print color overrides should be centralized in `client/media.css` by resetting design tokens under `@media print`, not scattered across component `css.ts` files with `!important`. Per-component `@media print` blocks should contain only layout rules (sizing, hiding elements, grid adjustments). See the task file `TASKS/readonly-pto-calendar-in-prior-year-summary.md` for the full print token strategy.</content>
+<parameter name="filePath">/home/ca0v/code/ca0v/dwp-hours/.github/skills/css-theming-assistant/SKILL.md

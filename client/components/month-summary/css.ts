@@ -97,4 +97,28 @@ export const styles = `
         transition: none;
     }
 }
+
+/* Print layout (colors handled by token reset in media.css) */
+@media print {
+    :host {
+        gap: 1pt;
+        padding: 1pt;
+    }
+
+    .summary-label {
+        font-size: 5pt;
+        margin-bottom: 0;
+    }
+
+    .summary-value {
+        font-size: 6pt;
+    }
+
+    .summary-pto,
+    .summary-sick,
+    .summary-bereavement,
+    .summary-jury-duty {
+        font-size: 6pt;
+    }
+}
 `;

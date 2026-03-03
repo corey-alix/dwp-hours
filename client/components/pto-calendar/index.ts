@@ -664,7 +664,7 @@ export class PtoCalendar extends BaseComponent {
                     ${calendarDates.map((dateStr) => this.renderDayCell(dateStr)).join("")}
                 </div>
                 ${
-                  this.hideLegend
+                  this.hideLegend || this.isReadonly
                     ? ""
                     : `<div class="legend" role="listbox" aria-label="PTO type selection">
                     ${Object.entries(PTO_TYPE_COLORS)

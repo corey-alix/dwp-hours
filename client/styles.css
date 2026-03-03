@@ -500,3 +500,10 @@ button[type="button"]:hover {
   opacity: 0;
   transform: translateX(100%);
 }
+
+/* Print layout overrides (colors handled by token reset in media.css) */
+@media print {
+  header {
+    box-shadow: none;
+  }
+}

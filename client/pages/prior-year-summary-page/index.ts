@@ -26,12 +26,80 @@ export class PriorYearSummaryPage
   private _notifications: TraceListener | null = null;
   private _loaderData: PTOYearReviewResponse | null = null;
   private _availableYears: number[] = [];
+  private _printMQ: MediaQueryList | null = null;
+  private _rafId = 0;
+
+  /**
+   * Arrow-function handlers so they can be added/removed by reference
+   * and survive across re-renders (managed outside BaseComponent's
+   * addListener/cleanup cycle which is tied to renderTemplate).
+   */
+  private _handlePrintChange = (e: MediaQueryListEvent): void => {
+    if (e.matches) {
+      this._scaleToFitPage();
+    } else {
+      this._resetScale();
+    }
+  };
+
+  private _handleResize = (): void => {
+    if (!this._printMQ?.matches) return;
+    cancelAnimationFrame(this._rafId);
+    this._rafId = requestAnimationFrame(() => this._scaleToFitPage());
+  };
 
   connectedCallback() {
     super.connectedCallback();
     consumeContext<TraceListener>(this, CONTEXT_KEYS.NOTIFICATIONS, (svc) => {
       this._notifications = svc;
     });
+
+    // matchMedia('print').change fires in Chrome DevTools CSS print
+    // emulation mode as well as during actual printing. The resize
+    // listener re-evaluates scaling when the emulated device size changes.
+    this._printMQ = window.matchMedia("print");
+    this._printMQ.addEventListener("change", this._handlePrintChange);
+    window.addEventListener("beforeprint", this._handleResize);
+    window.addEventListener("afterprint", () => this._resetScale());
+    window.addEventListener("resize", this._handleResize);
+
+    // If page loads while already in print emulation mode
+    if (this._printMQ.matches) {
+      this._scaleToFitPage();
+    }
+  }
+
+  disconnectedCallback() {
+    this._resetScale();
+    cancelAnimationFrame(this._rafId);
+    this._printMQ?.removeEventListener("change", this._handlePrintChange);
+    window.removeEventListener("beforeprint", this._handleResize);
+    window.removeEventListener("resize", this._handleResize);
+    this._printMQ = null;
+    super.disconnectedCallback();
+  }
+
+  /**
+   * Dynamically compute a zoom factor so the full page fits within one
+   * printed page.  Works in both actual printing (via beforeprint) and
+   * Chrome DevTools CSS print emulation + responsive-mode resizing.
+   * Applies zoom to `document.body` so the entire page scales uniformly.
+   */
+  private _scaleToFitPage(): void {
+    const body = document.body;
+    // Reset any previous zoom so measurement is accurate
+    body.style.zoom = "";
+    const contentHeight = body.scrollHeight;
+    const pageHeight = window.innerHeight;
+    if (contentHeight > pageHeight && pageHeight > 0) {
+      const scale = Math.floor((pageHeight / contentHeight) * 100) / 100;
+      body.style.zoom = String(scale);
+    }
+  }
+
+  /** Remove the print zoom after printing. */
+  private _resetScale(): void {
+    document.body.style.zoom = "";
   }
 
   async onRouteEnter(
@@ -88,7 +156,7 @@ export class PriorYearSummaryPage
 
   private renderYearNav(year: number): string {
     const years = this._availableYears;
-    if (years.length <= PRIOR_YEAR_NAV_MIN_YEARS) return "";
+    if (years.length <= 1) return "";
 
     const idx = years.indexOf(year);
     // availableYears is sorted descending: [2025, 2024, 2023]
@@ -113,23 +181,49 @@ export class PriorYearSummaryPage
     `;
   }
 
+  private renderLegend(): string {
+    return `
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-swatch pto-type-pto"></div>
+          <span>PTO</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-swatch pto-type-sick"></div>
+          <span>Sick</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-swatch pto-type-bereavement"></div>
+          <span>Bereavement</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-swatch pto-type-jury-duty"></div>
+          <span>Jury Duty</span>
+        </div>
+      </div>
+    `;
+  }
+
   protected render(): string {
     const year = this._loaderData?.year ?? getCurrentYear() - 1;
     const totals = this.getAnnualTotals();
 
     return `
       ${styles}
-      <h2 class="page-heading">${year} Prior Year Summary</h2>
-      ${this.renderYearNav(year)}
-      <div class="sticky-balance">
-        <month-summary
-          pto-hours="${totals.ptoHours}"
-          sick-hours="${totals.sickHours}"
-          bereavement-hours="${totals.bereavementHours}"
-          jury-duty-hours="${totals.juryDutyHours}"
-        ></month-summary>
+      <div class="print-content">
+        <h2 class="page-heading">${year} Prior Year Summary</h2>
+        ${this.renderYearNav(year)}
+        <div class="sticky-balance">
+          <month-summary
+            pto-hours="${totals.ptoHours}"
+            sick-hours="${totals.sickHours}"
+            bereavement-hours="${totals.bereavementHours}"
+            jury-duty-hours="${totals.juryDutyHours}"
+          ></month-summary>
+        </div>
+        ${this.renderLegend()}
+        <prior-year-review id="prior-year-review"></prior-year-review>
       </div>
-      <prior-year-review id="prior-year-review"></prior-year-review>
     `;
   }
 }

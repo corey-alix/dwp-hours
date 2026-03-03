@@ -67,9 +67,90 @@ export const styles = `<style>
     margin-bottom: var(--space-sm);
   }
 
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md, 16px);
+    justify-content: center;
+    margin-bottom: var(--space-md, 16px);
+    padding: var(--space-sm, 8px);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md, 4px);
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs, 4px);
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-secondary);
+  }
+
+  .legend-swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: var(--border-radius-sm, 2px);
+    border: 1px solid var(--color-border);
+  }
+
+  .pto-type-pto {
+    background: var(--color-pto);
+  }
+
+  .pto-type-sick {
+    background: var(--color-pto-sick);
+  }
+
+  .pto-type-bereavement {
+    background: var(--color-pto-bereavement);
+  }
+
+  .pto-type-jury-duty {
+    background: var(--color-pto-jury-duty);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .year-nav-btn {
       transition: none;
+    }
+  }
+
+  /* Print layout (colors handled by token reset in media.css) */
+  @media print {
+    :host {
+      padding: 0;
+    }
+
+    .page-heading {
+      font-size: 10pt;
+      margin: 0 0 2pt 0;
+      page-break-after: avoid;
+    }
+
+    .year-nav {
+      display: none;
+    }
+
+    .sticky-balance {
+      position: static;
+      margin-bottom: 2pt;
+      page-break-inside: avoid;
+    }
+
+    .legend {
+      margin-bottom: 2pt;
+      padding: 2pt 4pt;
+      page-break-inside: avoid;
+    }
+
+    .legend-item {
+      font-size: 6pt;
+    }
+
+    .legend-swatch {
+      width: 8pt;
+      height: 8pt;
     }
   }
 </style>`;

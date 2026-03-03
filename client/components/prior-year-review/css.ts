@@ -50,75 +50,41 @@ export const styles = `<style>
     border-radius: var(--border-radius-lg, 8px);
     background: var(--color-surface);
     overflow: hidden;
-  }
-
-  .month-header {
-    font-weight: var(--font-weight-semibold, 600);
-    padding: var(--space-sm, 8px) var(--space-md, 16px);
-    background: var(--color-surface-hover);
-    border-bottom: 1px solid var(--color-border);
-    text-align: center;
-  }
-
-  .month-calendar {
-    padding: var(--space-sm, 8px);
-  }
-
-  .calendar-header {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 2px;
-    margin-bottom: var(--space-xs, 4px);
-  }
-
-  .weekday {
-    font-size: var(--font-size-xs, 0.75rem);
-    font-weight: var(--font-weight-semibold, 600);
-    color: var(--color-text-secondary);
-    text-align: center;
-  }
-
-  .calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 2px;
-  }
-
-  .day {
-    position: relative;
-    aspect-ratio: 1;
-    border-radius: var(--border-radius-md, 4px);
-    background: var(--color-surface);
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: var(--font-size-xs, 0.75rem);
-    min-height: 24px;
   }
 
-  .day.empty {
-    opacity: 0;
-    border: none;
+  .month-card pto-calendar {
+    flex: 1;
   }
 
-  .day .date {
-    font-weight: var(--font-weight-semibold, 600);
-    color: var(--color-text);
-  }
-
-  .day .hours {
-    position: absolute;
-    bottom: 1px;
-    right: 2px;
-    font-size: 0.5rem;
-    color: var(--color-text-secondary);
-    font-weight: var(--font-weight-semibold, 600);
+  .month-card month-summary {
+    border-top: 1px solid var(--color-border);
   }
 
   @media (min-width: 768px) {
     .months-grid {
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+  }
+
+  /* Print layout (colors handled by token reset in media.css) */
+  @media print {
+    .container {
+      padding: 0;
+    }
+
+    .months-grid {
+      grid-template-columns: repeat(4, 1fr) !important;
+      gap: 2pt !important;
+      max-width: none !important;
+      margin: 0 !important;
+    }
+
+    .month-card {
+      border-radius: 0;
+      break-inside: avoid;
+      page-break-inside: avoid;
     }
   }
 </style>`;

@@ -10,6 +10,7 @@ import {
 } from "../../../shared/dateUtils.js";
 import { adoptPtoDayColors } from "../../css-extensions/index.js";
 import { styles } from "./css.js";
+import type { PtoCalendar } from "../pto-calendar/index.js";
 
 export class PriorYearReview extends BaseComponent {
   private _data: PTOYearReviewResponse | null = null;
@@ -21,6 +22,8 @@ export class PriorYearReview extends BaseComponent {
   set data(value: PTOYearReviewResponse | null) {
     this._data = value;
     this.requestUpdate();
+    // Set data on calendars after render
+    requestAnimationFrame(() => this.updateCalendars());
   }
 
   connectedCallback() {
@@ -32,65 +35,15 @@ export class PriorYearReview extends BaseComponent {
     const monthName = MONTH_NAMES[monthData.month - 1];
     const year = this.data!.year;
 
-    // Create a calendar grid that always shows 6 weeks (42 days) for consistent height
-    const startDateStr = getCalendarStartDate(year, monthData.month);
-    const endDateStr = addDays(startDateStr, 41);
-
-    const calendarDays: {
-      dateStr: string;
-      isCurrentMonth: boolean;
-      entry?: { type: string; hours: number };
-    }[] = [];
-
-    let currentDateStr = startDateStr;
-    while (compareDates(currentDateStr, endDateStr) <= 0) {
-      const entriesForDate = monthData.ptoEntries.filter(
-        (e) => e.date === currentDateStr,
-      );
-      const isCurrentMonth = isInMonth(currentDateStr, year, monthData.month);
-
-      let entry: { type: string; hours: number } | undefined;
-      if (entriesForDate.length > 0) {
-        const totalHours = entriesForDate.reduce((sum, e) => sum + e.hours, 0);
-        entry = { type: entriesForDate[0].type, hours: totalHours };
-      }
-
-      calendarDays.push({
-        dateStr: currentDateStr,
-        isCurrentMonth,
-        entry,
-      });
-      currentDateStr = addDays(currentDateStr, 1);
-    }
-
-    const weekdays = ["S", "M", "T", "W", "T", "F", "S"];
-
     return `
       <div class="month-card">
-        <div class="month-header">${monthName} ${year}</div>
-        <div class="month-calendar">
-          <div class="calendar-header">
-            ${weekdays.map((day) => `<div class="weekday">${day}</div>`).join("")}
-          </div>
-          <div class="calendar-grid">
-            ${calendarDays
-              .map(({ dateStr, isCurrentMonth, entry }) => {
-                const dayClass = entry
-                  ? `day type-${entry.type.replace(/\s+/g, "-")}`
-                  : "day";
-                const emptyClass = isCurrentMonth ? "" : "empty";
-                const hoursDisplay = entry ? entry.hours.toFixed(0) : "";
-                const dayNumber = parseDate(dateStr).day;
-                return `
-                  <div class="${dayClass} ${emptyClass}">
-                    <div class="date">${dayNumber}</div>
-                    ${hoursDisplay ? `<div class="hours">${hoursDisplay}</div>` : ""}
-                  </div>
-                `;
-              })
-              .join("")}
-          </div>
-        </div>
+        <pto-calendar
+          year="${year}"
+          month="${monthData.month}"
+          readonly="true"
+          hide-legend="true"
+          hide-header="false">
+        </pto-calendar>
         <month-summary
           pto-hours="${monthData.summary.ptoHours}"
           sick-hours="${monthData.summary.sickHours}"
@@ -101,15 +54,28 @@ export class PriorYearReview extends BaseComponent {
     `;
   }
 
-  private renderLegend(): string {
-    return `
-      <div class="legend">
-        <div class="legend-item"><span class="legend-swatch type-PTO"></span> PTO</div>
-        <div class="legend-item"><span class="legend-swatch type-Sick"></span> Sick</div>
-        <div class="legend-item"><span class="legend-swatch type-Bereavement"></span> Bereavement</div>
-        <div class="legend-item"><span class="legend-swatch type-Jury-Duty"></span> Jury Duty</div>
-      </div>
-    `;
+  private updateCalendars(): void {
+    if (!this._data) return;
+
+    const calendars =
+      this.shadowRoot.querySelectorAll<PtoCalendar>("pto-calendar");
+    calendars.forEach((calendar, index) => {
+      const monthData = this._data!.months[index];
+      if (monthData) {
+        // Convert simplified PTO entries to full PTOEntry format expected by PtoCalendar
+        const ptoEntries = monthData.ptoEntries.map((entry, entryIndex) => ({
+          id: entryIndex + 1, // Placeholder ID
+          employeeId: 0, // Not available in this context
+          date: entry.date,
+          type: entry.type,
+          hours: entry.hours,
+          createdAt: entry.date, // Use date as placeholder
+          approved_by: entry.approved_by,
+          notes: null, // Not available in simplified format
+        }));
+        calendar.ptoEntries = ptoEntries;
+      }
+    });
   }
 
   protected render(): string {
@@ -120,7 +86,6 @@ export class PriorYearReview extends BaseComponent {
           this.data
             ? this.data.months.some((m) => m.ptoEntries.length > 0)
               ? `
-                ${this.renderLegend()}
                 <div class="months-grid">
                   ${this.data.months.map((month) => this.renderMonth(month)).join("")}
                 </div>
