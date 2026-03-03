@@ -1,0 +1,50 @@
+# CI/CD Pipeline Light for Azure DevOps
+
+trigger:
+  - main
+
+pr:
+  - main
+
+pool:
+  vmImage: "ubuntu-latest"
+
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: "20.x"
+    displayName: "Setup Node.js"
+
+  - script: npm ci
+    displayName: "Install dependencies"
+
+  - script: npm run lint
+    displayName: "Run linting"
+
+  - script: npm run build
+    displayName: "Run build"
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      PathtoPublish: "dist"
+      ArtifactName: "dist"
+    displayName: "Publish dist artifacts"
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      PathtoPublish: "public"
+      ArtifactName: "public"
+    displayName: "Publish public artifacts"
+
+  - script: |
+      mkdir -p test-results
+      npm run test:unit -- --reporter=junit --outputFile=test-results/junit-unit.xml
+    displayName: "Run unit tests"
+    continueOnError: true
+
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFiles: "test-results/junit-unit.xml"
+      testRunTitle: "Unit Tests Results"
+    condition: always()
+    displayName: "Publish unit test results"
