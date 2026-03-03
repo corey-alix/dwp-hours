@@ -86,14 +86,17 @@ describe("computeMonthlyAccrualRows", () => {
     expect(rows[0].balance).toBe(rows[0].accrued);
   });
 
-  it("should reflect rate change for employee crossing tier on July 1", () => {
-    // Hired 2024-06-15 → crosses 2-year tier on July 1 2026
+  it("should reflect rate change for employee crossing tier at anniversary month (post-2022)", () => {
+    // Hired 2024-06-15 → under anniversary policy, rate changes in June (hire month)
+    // getYearsOfService at May 31 = 1 (tier 1, 0.68), at June 30 = 2 (tier 2, 0.71)
     const rows = computeMonthlyAccrualRows(2026, 0, "2024-06-15", []);
+    const mayRate = rows[4].rate;
     const juneRate = rows[5].rate;
     const julyRate = rows[6].rate;
-    // Rate should increase from tier 1 (0.68) to tier 2 (0.71) on July 1
-    expect(juneRate).toBe(0.68);
-    expect(julyRate).toBe(0.71);
+    // Rate should increase in June (anniversary month), not July
+    expect(mayRate).toBe(0.68); // tier 1 before anniversary
+    expect(juneRate).toBe(0.71); // tier 2 at anniversary month
+    expect(julyRate).toBe(0.71); // stays at tier 2
   });
 
   it("should handle entries from other years gracefully (ignored)", () => {

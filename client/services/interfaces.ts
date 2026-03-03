@@ -25,6 +25,7 @@ export interface IPtoService {
   getStatus(): Promise<Api.PTOStatusResponse>;
   getEntries(): Promise<Api.PTOEntry[]>;
   getYearReview(year: number): Promise<Api.PTOYearReviewResponse>;
+  getAvailableYears(): Promise<Api.PTOAvailableYearsResponse>;
   create(request: Api.PTOCreateRequest | Api.PTOBulkCreateRequest): Promise<{
     message: string;
     ptoEntry: Api.PTOEntry;

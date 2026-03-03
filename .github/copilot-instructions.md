@@ -372,6 +372,7 @@ const input = querySingle<HTMLInputElement>("#input-id", ptoForm.shadowRoot); //
 - **Never implement business logic directly in client files** - all validation rules, calculations, and business constraints must be imported from `shared/businessRules.ts`
 - Client-side validation should leverage the shared business rules module for consistency with server-side validation
 - Extend `shared/businessRules.ts` as needed rather than duplicating logic in components
+- **No magic values** — When the user specifies a date, threshold, rate, limit, or any other concrete value in a feature request, treat it as a **configurable constant** with that value as its **default**. Define a named, exported constant in `shared/businessRules.ts` (e.g., `PTO_ANNIVERSARY_POLICY_CUTOVER = "2022-01-01"`) and reference it everywhere instead of repeating the literal. This ensures the value can be changed in one place without a codebase-wide find-and-replace.
 
 ### Date Handling
 

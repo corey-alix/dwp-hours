@@ -113,7 +113,7 @@ export const styles = `
                     background: var(--color-surface);
                     overflow: hidden;
                     display: grid;
-                    grid-template-rows: 1fr auto;
+                    grid-template-rows: 1fr auto auto;
                 }
 
                 @media (min-width: 1200px) {
@@ -130,7 +130,19 @@ export const styles = `
 
                 :host([data-mode="multi"]) .month-card.locked {
                     opacity: 0.5;
+                }
+
+                :host([data-mode="multi"]) .month-card.locked pto-calendar {
                     pointer-events: none;
+                }
+
+                :host([data-mode="multi"]) .month-card.locked month-summary {
+                    pointer-events: none;
+                }
+
+                :host([data-mode="multi"]) .month-card.locked .btn-month-lock {
+                    opacity: 1;
+                    pointer-events: auto;
                 }
 
                 :host([data-mode="multi"]) .month-card.highlight {
@@ -145,6 +157,49 @@ export const styles = `
                 @media (prefers-reduced-motion: reduce) {
                     :host([data-mode="multi"]) .month-card.highlight {
                         animation: none;
+                    }
+                }
+
+                /* ── Per-month lock button (visible only in multi-calendar mode) ── */
+
+                .btn-month-lock {
+                    display: none;
+                }
+
+                :host([data-mode="multi"]) .btn-month-lock {
+                    display: block;
+                    width: 100%;
+                    padding: var(--space-xs, 4px) var(--space-sm, 8px);
+                    border: none;
+                    border-top: 1px solid var(--color-border);
+                    background: var(--color-surface-hover, #e5e7eb);
+                    color: var(--color-text, #333);
+                    cursor: pointer;
+                    font-size: var(--font-size-sm, 0.875rem);
+                    transition: background-color var(--duration-fast, 0.15s) var(--easing-standard, ease);
+                }
+
+                :host([data-mode="multi"]) .btn-month-lock:hover {
+                    background: var(--color-warning, #ffc107);
+                    color: var(--color-on-warning, #000);
+                }
+
+                :host([data-mode="multi"]) .btn-month-lock.btn-month-unlock {
+                    background: var(--color-info, #17a2b8);
+                    color: white;
+                }
+
+                :host([data-mode="multi"]) .btn-month-lock.btn-month-unlock:hover {
+                    opacity: 0.9;
+                }
+
+                :host([data-mode="multi"]) .btn-month-lock.hidden {
+                    display: none;
+                }
+
+                @media (prefers-reduced-motion: reduce) {
+                    .btn-month-lock {
+                        transition: none;
                     }
                 }
 

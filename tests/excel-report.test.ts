@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import ExcelJS from "exceljs";
 import { generateExcelReport } from "../server/reportGenerators/excelReport.js";
 import type { ReportData } from "../server/reportService.js";
+import { CALENDAR_SYMBOLS } from "../shared/calendar-symbols.js";
 
 /** Load a generated buffer into an ExcelJS workbook (handles Node Buffer type quirks) */
 async function loadWorkbook(buffer: Buffer): Promise<ExcelJS.Workbook> {
@@ -387,7 +388,7 @@ describe("Excel Report Generator", () => {
     const ws = workbook.getWorksheet("Alice Smith")!;
     // January (row 43) acknowledged → checkmark
     const janEmpAck = ws.getCell(43, 24).value;
-    expect(janEmpAck).toBe("✓");
+    expect(janEmpAck).toBe(CALENDAR_SYMBOLS.CHECKMARK);
     // February (row 44) not acknowledged → empty
     expect(ws.getCell(44, 24).value).toBeNull();
   });
@@ -400,7 +401,7 @@ describe("Excel Report Generator", () => {
 
     const ws = workbook.getWorksheet("Alice Smith")!;
     // January (row 43) should have checkmark
-    expect(ws.getCell(43, 25).value).toBe("✓");
+    expect(ws.getCell(43, 25).value).toBe(CALENDAR_SYMBOLS.CHECKMARK);
     // February (row 44) not acknowledged → empty
     expect(ws.getCell(44, 25).value).toBeNull();
   });

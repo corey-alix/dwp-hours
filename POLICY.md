@@ -10,6 +10,8 @@ Employees are eligible to earn PTO beginning on the first day of employment. PTO
 
 Any PTO taken is considered time worked. Therefore, you continue to accrue PTO time while you are taking time off.
 
+> **Policy Update — Effective 1/1/2022:** The PTO accrual rate now increases in the month of the employee's hire anniversary, rather than on July 1. For example, an employee hired on March 15 will see their rate increase each March. Accrual calculations for periods before 1/1/2022 continue to use the original July 1 rule described below. PTO should not be borrowed typically after the first year of service.
+
 ## PERSONAL TIME OFF EARNING SCHEDULE
 
 | Length of Service (based on hire date) | Eligible PTO        | Daily Rate |

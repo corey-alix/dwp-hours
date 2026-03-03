@@ -2,6 +2,8 @@
  * Shared CSS for all PTO card components.
  * Single source of truth — replaces both PTO_CARD_CSS and renderCard() inline styles.
  */
+import { CALENDAR_SYMBOLS } from "../../../shared/calendar-symbols.js";
+
 export const CARD_CSS = `
     :host {
         display: block;
@@ -56,13 +58,13 @@ export const CARD_CSS = `
     }
 
     .card .label.approved::after {
-        content: " ✓";
+        content: " ${CALENDAR_SYMBOLS.CHECKMARK}";
         color: var(--color-success);
         font-weight: var(--font-weight-semibold);
     }
 
     .card .usage-date.approved::after {
-        content: " ✓";
+        content: " ${CALENDAR_SYMBOLS.CHECKMARK}";
         color: var(--color-success);
         font-weight: var(--font-weight-semibold);
     }

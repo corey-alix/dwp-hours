@@ -372,6 +372,7 @@ export class PtoEntryForm extends BaseComponent {
     const year = getCurrentYear();
     const calendarCards = Array.from({ length: 12 }, (_, i) => {
       const month = i + 1;
+      const monthName = monthNames[i];
       return `
                         <div class="month-card" data-month="${month}">
                             <pto-calendar
@@ -385,6 +386,7 @@ export class PtoEntryForm extends BaseComponent {
                                 interactive
                                 active-type="${this._activePtoType}">
                             </month-summary>
+                            <button type="button" class="btn-month-lock" data-action="toggle-month-lock" data-month="${month}" aria-label="Lock ${monthName}">🔓 Lock</button>
                         </div>
       `;
     }).join("");
@@ -441,6 +443,18 @@ export class PtoEntryForm extends BaseComponent {
       this.navigateMonth(-1);
     } else if (action === "next-month") {
       this.navigateMonth(1);
+    } else if (action === "toggle-month-lock") {
+      const monthNum = actionEl.dataset.month;
+      if (!monthNum) return;
+      const year = getCurrentYear();
+      const monthKey = `${year}-${monthNum.padStart(2, "0")}`;
+      this.dispatchEvent(
+        new CustomEvent("toggle-month-lock", {
+          detail: { month: monthKey },
+          bubbles: true,
+          composed: true,
+        }),
+      );
     }
   }
 

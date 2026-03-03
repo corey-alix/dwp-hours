@@ -144,6 +144,10 @@ export class APIClient {
     return this.get(`/pto/year/${year}`);
   }
 
+  async getPTOAvailableYears(): Promise<ApiTypes.PTOAvailableYearsResponse> {
+    return this.get("/pto/available-years");
+  }
+
   async createPTOEntry(
     request: ApiTypes.PTOCreateRequest | ApiTypes.PTOBulkCreateRequest,
   ): Promise<{

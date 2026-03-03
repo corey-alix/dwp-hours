@@ -1,3 +1,5 @@
+import { CALENDAR_SYMBOLS } from "../../../shared/calendar-symbols.js";
+
 export const styles = `
 :host {
     display: flex;
@@ -73,7 +75,7 @@ export const styles = `
 }
 
 .summary-item.active .summary-label::after {
-    content: "✓";
+    content: "${CALENDAR_SYMBOLS.CHECKMARK}";
     color: var(--color-success);
     margin-left: var(--space-xs);
     font-weight: var(--font-weight-bold, 700);

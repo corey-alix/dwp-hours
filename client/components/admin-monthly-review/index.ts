@@ -23,6 +23,7 @@ import type { MonthSummary } from "../month-summary/index.js";
 // Side-effect import: ensure <pto-calendar> custom element is registered
 import "../pto-calendar/index.js";
 import { monthNames, type PtoCalendar } from "../pto-calendar/index.js";
+import { CALENDAR_SYMBOLS } from "../../../shared/calendar-symbols.js";
 import {
   adoptToolbar,
   adoptNavigation,
@@ -861,7 +862,7 @@ export class AdminMonthlyReview extends BaseComponent {
     // Lock status indicator: four states based on lock + notification status
     let lockIndicatorHtml: string;
     if (employee.calendarLocked) {
-      lockIndicatorHtml = `<span class="lock-indicator locked" title="Calendar locked">✓ Locked</span>`;
+      lockIndicatorHtml = `<span class="lock-indicator locked" title="Calendar locked">${CALENDAR_SYMBOLS.CHECKMARK} Locked</span>`;
     } else if (!employee.notificationSent) {
       lockIndicatorHtml = `<span class="lock-indicator unlocked" title="Calendar unlocked — click to send reminder" data-notify-employee="${employee.employeeId}">● Unlocked</span>`;
     } else if (!employee.notificationReadAt) {
@@ -888,7 +889,7 @@ export class AdminMonthlyReview extends BaseComponent {
     if (ackStatus === "warning") {
       warningIndicatorHtml = `<span class="lock-indicator warning" title="Import discrepancy — expand calendar for details">⚠ Warning</span>`;
     } else if (ackStatus === "resolved") {
-      warningIndicatorHtml = `<span class="lock-indicator resolved" title="Import discrepancy reviewed and resolved">✓ Resolved</span>`;
+      warningIndicatorHtml = `<span class="lock-indicator resolved" title="Import discrepancy reviewed and resolved">${CALENDAR_SYMBOLS.CHECKMARK} Resolved</span>`;
     }
 
     return `
