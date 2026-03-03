@@ -43,12 +43,18 @@ test.describe("Refactor Smoke Tests", () => {
     await empBtn.click();
     await page.waitForURL(/\/admin\/employees/);
 
+    // Wait for menu close animation to finish before toggling again
+    await expect(navMenu.locator(".menu-items")).not.toBeVisible();
+
     // Open menu and navigate to admin/pto-requests
     await toggle.click();
     const ptoBtn = navMenu.locator('button[data-action="admin/pto-requests"]');
     await expect(ptoBtn).toBeVisible();
     await ptoBtn.click();
     await page.waitForURL(/\/admin\/pto-requests/);
+
+    // Wait for menu close animation to finish before toggling again
+    await expect(navMenu.locator(".menu-items")).not.toBeVisible();
 
     // Open menu and navigate back to submit-time-off
     await toggle.click();

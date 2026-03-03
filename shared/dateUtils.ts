@@ -87,6 +87,14 @@ export function parseDate(dateStr: string): {
 }
 
 /**
+ * Converts a YYYY-MM-DD string to a JavaScript Date object
+ */
+export function asJavascriptDate(dateStr: string): Date {
+  const { year, month, day } = parseDate(dateStr);
+  return new Date(year, month - 1, day);
+}
+
+/**
  * Formats year, month, day into YYYY-MM-DD string
  */
 export function formatDate(year: number, month: number, day: number): string {
@@ -190,8 +198,7 @@ function isValidDateComponents(
  * Adds days to a date string
  */
 export function addDays(dateStr: string, days: number): string {
-  const { year, month, day } = parseDate(dateStr);
-  const date = new Date(year, month - 1, day);
+  const date = asJavascriptDate(dateStr);
   date.setDate(date.getDate() + days);
 
   return formatDate(date.getFullYear(), date.getMonth() + 1, date.getDate());
@@ -265,11 +272,8 @@ export function isAfter(dateStr1: string, dateStr2: string): boolean {
  * Gets the number of days between two dates (date1 - date2)
  */
 export function getDaysBetween(dateStr1: string, dateStr2: string): number {
-  const d1 = parseDate(dateStr1);
-  const d2 = parseDate(dateStr2);
-
-  const date1 = new Date(d1.year, d1.month - 1, d1.day);
-  const date2 = new Date(d2.year, d2.month - 1, d2.day);
+  const date1 = asJavascriptDate(dateStr1);
+  const date2 = asJavascriptDate(dateStr2);
 
   const diffTime = date1.getTime() - date2.getTime();
   return Math.round(diffTime / (1000 * 60 * 60 * 24));
@@ -340,8 +344,7 @@ export function today(): string {
  * Gets the day of the week (0 = Sunday, 6 = Saturday)
  */
 export function getDayOfWeek(dateStr: string) {
-  const { year, month, day } = parseDate(dateStr);
-  const date = new Date(year, month - 1, day);
+  const date = asJavascriptDate(dateStr);
   return date.getDay();
 }
 
@@ -423,8 +426,7 @@ export function getWeekdaysBetween(
  * Returns the time-travel year when a day override is active.
  */
 export function getCurrentYear(): number {
-  if (_timeTravelDate) return parseDate(_timeTravelDate).year;
-  return new Date().getFullYear();
+  return parseDate(today()).year;
 }
 
 /**
@@ -433,13 +435,7 @@ export function getCurrentYear(): number {
  * - Otherwise returns the real current year-month.
  */
 export function getCurrentMonth(): string {
-  if (_timeTravelDate) {
-    const { year, month } = parseDate(_timeTravelDate);
-    return `${year.toString().padStart(4, "0")}-${month.toString().padStart(2, "0")}`;
-  }
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1;
+  const { year, month } = parseDate(today());
   return `${year.toString().padStart(4, "0")}-${month.toString().padStart(2, "0")}`;
 }
 
@@ -450,8 +446,7 @@ export function formatDateForDisplay(
   dateStr: string,
   options?: Intl.DateTimeFormatOptions,
 ): string {
-  const { year, month, day } = parseDate(dateStr);
-  const date = new Date(year, month - 1, day);
+  const date = asJavascriptDate(dateStr);
   const defaultOptions: Intl.DateTimeFormatOptions = {
     month: "2-digit",
     day: "2-digit",

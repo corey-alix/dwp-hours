@@ -6,6 +6,7 @@ import {
 } from "../../../shared/dateUtils.js";
 import type { PTOEntry } from "../../../shared/api-models.js";
 import { MONTH_NAMES } from "../../../shared/businessRules.js";
+import { CALENDAR_SYMBOLS } from "../../../shared/calendar-symbols.js";
 import type { StorageService } from "../../shared/storage.js";
 import { LocalStorageAdapter } from "../../shared/storage.js";
 
@@ -116,7 +117,7 @@ const CARD_STYLES = `
   }
 
   .approved::after {
-    content: " ✓";
+    content: " ${CALENDAR_SYMBOLS.CHECKMARK}";
     color: var(--color-success);
     font-weight: var(--font-weight-semibold);
   }
@@ -339,7 +340,7 @@ export class PtoPtoCard extends BaseComponent {
     );
     const legend =
       hasApproved && this.expanded
-        ? `<div class="legend"><span class="checkmark">✓</span> = Admin approved</div>`
+        ? `<div class="legend"><span class="checkmark">${CALENDAR_SYMBOLS.CHECKMARK}</span> = Admin approved</div>`
         : "";
 
     const body =

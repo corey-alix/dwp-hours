@@ -55,10 +55,20 @@ export const appRoutes: AppRoutes = [
     component: "prior-year-summary-page",
     name: "Prior Year Summary",
     meta: { title: "Prior Year Summary", requiresAuth: true },
-    loader: async () => {
+    loader: async (
+      _params: Record<string, string>,
+      search: URLSearchParams,
+    ) => {
       const { getCurrentYear } = await import("../../shared/dateUtils.js");
-      const priorYear = getCurrentYear() - 1;
-      return svc.pto.getYearReview(priorYear);
+      const yearParam = search.get("year");
+      const year = yearParam ? parseInt(yearParam, 10) : getCurrentYear() - 1;
+      const validYear =
+        !isNaN(year) && year < getCurrentYear() ? year : getCurrentYear() - 1;
+      const [yearReview, availableYears] = await Promise.all([
+        svc.pto.getYearReview(validYear),
+        svc.pto.getAvailableYears(),
+      ]);
+      return { yearReview, availableYears: availableYears.years };
     },
   },
   {

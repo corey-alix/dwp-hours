@@ -49,6 +49,9 @@ class PtoService implements IPtoService {
   getYearReview(year: number) {
     return this.api.getPTOYearReview(year);
   }
+  getAvailableYears() {
+    return this.api.getPTOAvailableYears();
+  }
   create(request: Api.PTOCreateRequest | Api.PTOBulkCreateRequest) {
     return this.api.createPTOEntry(request);
   }

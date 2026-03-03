@@ -1,3 +1,5 @@
+import { CALENDAR_SYMBOLS } from "../../../shared/calendar-symbols.js";
+
 export const styles = `
 :host {
     display: flex;
@@ -73,7 +75,7 @@ export const styles = `
 }
 
 .summary-item.active .summary-label::after {
-    content: "✓";
+    content: "${CALENDAR_SYMBOLS.CHECKMARK}";
     color: var(--color-success);
     margin-left: var(--space-xs);
     font-weight: var(--font-weight-bold, 700);
@@ -93,6 +95,30 @@ export const styles = `
 
     .summary-item.interactive {
         transition: none;
+    }
+}
+
+/* Print layout (colors handled by token reset in media.css) */
+@media print {
+    :host {
+        gap: 1pt;
+        padding: 1pt;
+    }
+
+    .summary-label {
+        font-size: 5pt;
+        margin-bottom: 0;
+    }
+
+    .summary-value {
+        font-size: 6pt;
+    }
+
+    .summary-pto,
+    .summary-sick,
+    .summary-bereavement,
+    .summary-jury-duty {
+        font-size: 6pt;
     }
 }
 `;

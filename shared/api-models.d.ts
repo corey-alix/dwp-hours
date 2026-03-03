@@ -231,6 +231,10 @@ export interface PTOYearReviewResponse {
   }[];
 }
 
+export interface PTOAvailableYearsResponse {
+  years: number[];
+}
+
 export interface PTOUpdateResponse {
   message: string;
   ptoEntry: PTOEntry;

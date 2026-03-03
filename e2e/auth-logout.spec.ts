@@ -18,8 +18,8 @@ test.describe("Authentication Logout", () => {
     await loginPage.locator('#login-form button[type="submit"]').click();
 
     // Step 3: Wait for auto-login (dev mode auto-validates magic link token)
-    // After successful login, the router navigates to /submit-time-off
-    await page.waitForURL(/\/submit-time-off/);
+    // After successful login, the router navigates to /current-year-summary
+    await page.waitForURL(/\/current-year-summary/);
 
     // Step 4: Verify cookie has been set
     const cookies = await page.context().cookies();

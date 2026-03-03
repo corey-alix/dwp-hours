@@ -114,7 +114,7 @@ Implement a prior year review feature that allows users to view PTO data from pr
    **Decision**: Year selection is handled externally at the dashboard level, not within the component itself.
 
 3. Should there be a limit on how far back users can view (e.g., last 5 years, 10 years)?
-   **Decision**: 1 year
+   **Decision**: ~~1 year~~ Updated: all available prior years with PTO data (up to 10 years back, per server validation). See `TASKS/prior-year-navigation.md`.
 
 4. How should the component handle users with no historical data?
    **Decision**: Do not allow that year to be selected; do not even add it to the selection list.
@@ -134,7 +134,7 @@ Implement a prior year review feature that allows users to view PTO data from pr
    **Decision**: Year selection is handled externally at the dashboard level, not within the component itself.
 
 10. Should there be a limit on how far back users can view (e.g., last 5 years, 10 years)?
-    **Decision**: 1 year
+    **Decision**: ~~1 year~~ Updated: all available prior years with PTO data. See `TASKS/prior-year-navigation.md`.
 
 11. How should the component handle users with no historical data?
     **Decision**: Do not allow that year to be selected; do not even add it to the selection list.

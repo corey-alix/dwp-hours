@@ -20,6 +20,7 @@ import {
   MONTH_NAMES,
   SICK_HOURS_BEFORE_PTO,
 } from "../../shared/businessRules.js";
+import { CALENDAR_SYMBOLS } from "../../shared/calendar-symbols.js";
 
 // ── Legacy ARGB fill colors (from pto-spreadsheet-layout skill) ──
 
@@ -689,7 +690,7 @@ function writeAcknowledgements(
     const empAck = emp.acknowledgements.find((a) => a.month === monthStr);
     const empCell = ws.getCell(row, 24);
     if (empAck) {
-      empCell.value = "✓";
+      empCell.value = CALENDAR_SYMBOLS.CHECKMARK;
       empCell.font = {
         bold: true,
         color: { argb: "FF27AE60" },
@@ -704,7 +705,7 @@ function writeAcknowledgements(
     const admAck = emp.adminAcknowledgements.find((a) => a.month === monthStr);
     const admCell = ws.getCell(row, 25);
     if (admAck) {
-      admCell.value = "✓";
+      admCell.value = CALENDAR_SYMBOLS.CHECKMARK;
       admCell.font = {
         bold: true,
         color: { argb: "FF27AE60" },

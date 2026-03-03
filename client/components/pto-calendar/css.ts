@@ -42,6 +42,7 @@ export const styles = `
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 4px;
+    container-type: inline-size;
 }
 
 .weekday {
@@ -57,7 +58,7 @@ export const styles = `
     border: var(--border-width) var(--border-style-solid) var(--color-border);
     background: color-mix(in srgb, var(--color-surface) 85%, transparent);
     padding: var(--space-xs);
-    font-size: clamp(var(--font-size-xs), 2vw, var(--font-size-sm));
+    font-size: 3cqw;
     text-align: center;
     display: flex;
     flex-direction: column;
@@ -105,7 +106,7 @@ export const styles = `
     top: 2px;
     right: 2px;
     color: var(--color-success);
-    font-size: var(--font-size-xxs);
+    font-size: 0.65em;
     font-weight: bold;
 }
 
@@ -113,7 +114,7 @@ export const styles = `
     position: absolute;
     bottom: 2px;
     right: 2px;
-    font-size: clamp(var(--font-size-xs), 2vw, var(--font-size-sm));
+    font-size: 1em;
     color: var(--color-text-secondary);
 }
 
@@ -126,6 +127,12 @@ export const styles = `
 .type-Jury-Duty { /* No background - type indicated by hours color */ }
 
 .type-Work-Day { background: ${PTO_TYPE_COLORS["Work Day"]}; border: 1px solid var(--color-border); }
+
+/* Readonly mode: add background colors for PTO types */
+:host([readonly]) .type-PTO { background: ${PTO_TYPE_COLORS.PTO}; }
+:host([readonly]) .type-Sick { background: ${PTO_TYPE_COLORS.Sick}; }
+:host([readonly]) .type-Bereavement { background: ${PTO_TYPE_COLORS.Bereavement}; }
+:host([readonly]) .type-Jury-Duty { background: ${PTO_TYPE_COLORS["Jury Duty"]}; }
 
 /* Make text adapt to theme for better contrast */
 .type-PTO .date,
@@ -141,10 +148,13 @@ export const styles = `
 .type-Bereavement .hours { color: ${PTO_TYPE_COLORS.Bereavement}; }
 .type-Jury-Duty .hours { color: ${PTO_TYPE_COLORS["Jury Duty"]}; }
 
-/* Clearing state: day selected with 0 hours to unschedule */
-.day.clearing {
-    background: var(--color-surface);
-    opacity: 0.6;
+/* Readonly mode: hide interactive indicators */
+:host([readonly]) .checkmark,
+:host([readonly]) .reconciled-indicator,
+:host([readonly]) .note-indicator,
+:host([readonly]) .edit-note-icon,
+:host([readonly]) .overuse-indicator {
+    display: none;
 }
 
 .day.clearing .date {
@@ -222,27 +232,24 @@ export const styles = `
     opacity: 1;
 }
 
-/* Colored type-indicator dot — sole PTO indicator in day cell */
+/* Colored type-indicator dot — UTF-8 ● character for consistent inline sizing */
 .type-dot {
-    display: inline-block;
-    width: 0.5em;
-    height: 0.5em;
-    border-radius: 50%;
-    font-size: var(--font-size-xxs);
+    font-size: 0.65em;
+    line-height: 1;
     vertical-align: middle;
 }
 
-.type-dot-PTO { background: ${PTO_TYPE_COLORS.PTO}; }
-.type-dot-Sick { background: ${PTO_TYPE_COLORS.Sick}; }
-.type-dot-Bereavement { background: ${PTO_TYPE_COLORS.Bereavement}; }
-.type-dot-Jury-Duty { background: ${PTO_TYPE_COLORS["Jury Duty"]}; }
+.type-dot-PTO { color: ${PTO_TYPE_COLORS.PTO}; }
+.type-dot-Sick { color: ${PTO_TYPE_COLORS.Sick}; }
+.type-dot-Bereavement { color: ${PTO_TYPE_COLORS.Bereavement}; }
+.type-dot-Jury-Duty { color: ${PTO_TYPE_COLORS["Jury Duty"]}; }
 
 /* Note indicator: small triangle in top-left corner (filled = has note) */
 .note-indicator {
     position: absolute;
     top: 1px;
     left: 2px;
-    font-size: var(--font-size-xs);
+    font-size: 1em;
     color: var(--color-primary);
     cursor: pointer;
     line-height: 1;
@@ -260,7 +267,7 @@ export const styles = `
     position: absolute;
     top: 1px;
     left: 2px;
-    font-size: var(--font-size-xs);
+    font-size: 1em;
     color: var(--color-text-muted);
     cursor: pointer;
     line-height: 1;
@@ -301,7 +308,7 @@ export const styles = `
     position: absolute;
     bottom: 2px;
     left: 2px;
-    font-size: var(--font-size-xxs);
+    font-size: 0.65em;
     color: var(--color-error);
     font-weight: var(--font-weight-bold);
     line-height: 1;
@@ -314,7 +321,7 @@ export const styles = `
     top: 2px;
     right: 2px;
     color: var(--color-warning);
-    font-size: var(--font-size-xxs);
+    font-size: 0.65em;
     font-weight: var(--font-weight-bold);
     line-height: 1;
     cursor: help;
@@ -328,6 +335,66 @@ export const styles = `
 
     .edit-note-icon {
         transition: none;
+    }
+}
+
+/* ── Print layout (colors handled by token reset in media.css) ── */
+@media print {
+    .calendar {
+        margin: 0;
+        padding: 1pt;
+    }
+
+    .calendar-header {
+        font-size: 7pt;
+        font-weight: bold;
+        padding: 1pt 0;
+    }
+
+    .calendar-grid {
+        gap: 0.5pt;
+    }
+
+    .weekday {
+        font-size: 5pt;
+    }
+
+    .day {
+        aspect-ratio: auto;
+        min-width: 0;
+        min-height: 0;
+        padding: 0.5pt;
+        font-size: 5pt;
+    }
+
+    .day.empty {
+        border: none;
+        background: transparent !important;
+    }
+
+    .day .date {
+        font-weight: bold;
+    }
+
+    .day .hours {
+        font-size: 4pt;
+    }
+
+    /* Hide all interactive indicators */
+    .checkmark,
+    .reconciled-indicator,
+    .note-indicator,
+    .edit-note-icon,
+    .overuse-indicator {
+        display: none;
+    }
+
+    .legend {
+        display: none;
+    }
+
+    slot[name="balance-summary"] {
+        display: none;
     }
 }
 `;
