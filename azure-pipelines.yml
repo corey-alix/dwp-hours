@@ -1,4 +1,12 @@
-# CI/CD Pipeline Light for Azure DevOps
+# CI/CD Pipeline for Azure DevOps
+# Builds, tests, and deploys the DWP Hours Tracker to Azure Web App.
+#
+# Required setup:
+#   1. Create an Azure service connection in Azure DevOps:
+#      Project Settings → Service connections → New → Azure Resource Manager
+#      Name it "azure-dw-time" (or update the variable below).
+#   2. The service principal must have Contributor access to the
+#      DWP_time_app_RG resource group.
 
 trigger:
   - main
@@ -6,13 +14,21 @@ trigger:
 pr:
   - main
 
+variables:
+  azureServiceConnection: "azure-dw-time"
+  azureAppName: "dw-time"
+  azureResourceGroup: "DWP_time_app_RG"
+  azureLocation: "eastus2"
+  azurePlanName: "dw-pto-time-sp"
+
 pool:
   vmImage: "ubuntu-latest"
 
 steps:
+  # ── Build & Test ──────────────────────────────────────────────
   - task: NodeTool@0
     inputs:
-      versionSpec: "20.x"
+      versionSpec: "25.x"
     displayName: "Setup Node.js"
 
   - script: npm install -g pnpm@9
@@ -52,3 +68,17 @@ steps:
       testRunTitle: "Unit Tests Results"
     condition: always()
     displayName: "Publish unit test results"
+
+  # ── Deploy to Azure (main branch only) ───────────────────────
+  - task: AzureCLI@2
+    inputs:
+      azureSubscription: "$(azureServiceConnection)"
+      scriptType: "bash"
+      scriptPath: "scripts/deploy-azure.sh"
+    env:
+      AZURE_APP_NAME: "$(azureAppName)"
+      AZURE_RESOURCE_GROUP: "$(azureResourceGroup)"
+      AZURE_LOCATION: "$(azureLocation)"
+      AZURE_PLAN_NAME: "$(azurePlanName)"
+    displayName: "Deploy to Azure Web App"
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
