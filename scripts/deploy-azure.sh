@@ -23,7 +23,7 @@ RESOURCE_GROUP="${AZURE_RESOURCE_GROUP:-DWP_time_app_RG}"
 LOCATION="${AZURE_LOCATION:-eastus2}"
 PLAN_NAME="${AZURE_PLAN_NAME:-dw-pto-time-sp}"
 SKU="${AZURE_SKU:-B1}"
-NODE_VERSION="20-lts"
+NODE_VERSION="24-lts"
 DEPLOY_DIR="deploy-azure"
 ZIP_FILE="deploy-azure.zip"
 
