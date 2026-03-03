@@ -121,13 +121,15 @@ fi
 info "Configuring Web App..."
 
 # Set Node.js runtime version and startup command
+# Use start.sh to bypass Oryx's node_modules relocation (ESM/symlink incompatibility)
+STARTUP_CMD="/home/site/wwwroot/start.sh"
 if az webapp config set \
   --name "$APP_NAME" \
   --resource-group "$RESOURCE_GROUP" \
   --linux-fx-version "NODE|$NODE_VERSION" \
-  --startup-file "node dist/server.mjs" \
+  --startup-file "$STARTUP_CMD" \
   -o none 2>/dev/null; then
-  ok "Runtime configured (Node $NODE_VERSION, startup: node dist/server.mjs)"
+  ok "Runtime configured (Node $NODE_VERSION, startup: $STARTUP_CMD)"
 else
   warn "Could not update runtime config (may require elevated permissions)"
 fi
@@ -138,22 +140,40 @@ if az webapp config appsettings set \
   --resource-group "$RESOURCE_GROUP" \
   --settings \
     NODE_ENV=production \
-    WEBSITE_NODE_DEFAULT_VERSION="~20" \
+    PORT=8080 \
+    SCM_DO_BUILD_DURING_DEPLOYMENT=false \
+    ENABLE_ORYX_BUILD=false \
   -o none 2>/dev/null; then
   ok "App settings configured"
 else
   warn "Could not update app settings (may require elevated permissions)"
 fi
 
-# ── 5. Assemble deployment package ───────────────────────────────
+# ── 5. Build production server & assemble deployment package ────
+info "Building production server bundle..."
+pnpm run build:server:prod
+ok "Production server built (bundles all deps except sql.js)"
+
 info "Assembling deployment package..."
 
 rm -rf "$DEPLOY_DIR" "$ZIP_FILE"
 mkdir -p "$DEPLOY_DIR/dist" "$DEPLOY_DIR/public" "$DEPLOY_DIR/db"
 
-# Server bundle
+# Server bundle (production build — most deps inlined)
 cp dist/server.mjs "$DEPLOY_DIR/dist/"
 cp dist/server.mjs.map "$DEPLOY_DIR/dist/" 2>/dev/null || true
+
+# Startup script — simple, no Oryx workarounds needed.
+# Only sql.js is external (loaded via CJS require(), which handles symlinks fine).
+cat > "$DEPLOY_DIR/start.sh" << 'STARTEOF'
+#!/bin/bash
+cd /home/site/wwwroot
+export PORT=${PORT:-8080}
+echo "[start.sh] Starting server (PORT=$PORT)..."
+echo "[start.sh] node_modules: $(ls node_modules/ 2>&1 | head -10)"
+exec node dist/server.mjs
+STARTEOF
+chmod +x "$DEPLOY_DIR/start.sh"
 
 # Client assets
 cp -r public/* "$DEPLOY_DIR/public/"
@@ -161,15 +181,21 @@ cp -r public/* "$DEPLOY_DIR/public/"
 # Database schema (db file will be created at runtime by the server)
 cp db/schema.sql "$DEPLOY_DIR/db/" 2>/dev/null || true
 
-# Minimal package.json with production dependencies only
+# Minimal package.json with ONLY the external (non-bundled) dependency.
+# The production build bundles everything except sql.js (WASM binary can't be bundled).
 node -e "
 const pkg = require('./package.json');
+const externalDeps = ['sql.js'];
+const deps = {};
+for (const dep of externalDeps) {
+  if (pkg.dependencies[dep]) deps[dep] = pkg.dependencies[dep];
+}
 const minimal = {
   name: pkg.name,
   version: pkg.version,
   type: 'module',
   scripts: { start: 'node dist/server.mjs' },
-  dependencies: Object.assign({}, pkg.dependencies)
+  dependencies: deps
 };
 require('fs').writeFileSync('$DEPLOY_DIR/package.json', JSON.stringify(minimal, null, 2) + '\n');
 "
@@ -188,17 +214,14 @@ EOF
 
 ok "Deployment package assembled"
 
-# ── 6. Install production dependencies ───────────────────────────
-info "Installing production dependencies..."
+# ── 6. Install external dependencies (npm — flat node_modules, no symlinks) ──
+# IMPORTANT: Always use npm here, never pnpm. pnpm creates a symlink-based
+# node_modules layout that breaks ESM resolution on Azure (Oryx + symlinks).
+info "Installing external dependencies with npm..."
 
-if command -v pnpm >/dev/null 2>&1; then
-  (cd "$DEPLOY_DIR" && pnpm install --prod --no-frozen-lockfile --ignore-scripts 2>&1 | tail -3)
-else
-  cp pnpm-lock.yaml "$DEPLOY_DIR/" 2>/dev/null || true
-  (cd "$DEPLOY_DIR" && npm install --omit=dev 2>&1 | tail -3)
-fi
+(cd "$DEPLOY_DIR" && npm install --omit=dev 2>&1 | tail -5)
 
-ok "Production dependencies installed ($(du -sh "$DEPLOY_DIR/node_modules" | cut -f1))"
+ok "External dependencies installed ($(du -sh "$DEPLOY_DIR/node_modules" | cut -f1))"
 
 # ── 7. Create zip (using python3 — no 'zip' binary needed) ──────
 info "Creating deployment zip..."
@@ -219,6 +242,7 @@ az webapp deploy \
   --resource-group "$RESOURCE_GROUP" \
   --src-path "$ZIP_FILE" \
   --type zip \
+  --clean true \
   --async false \
   -o none
 

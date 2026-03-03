@@ -445,10 +445,25 @@ async function initDatabase() {
       }
     }
 
+    // Persist the sql.js database to disk so TypeORM can load it.
+    // On first run (no existing file), the in-memory db has the schema but the
+    // file doesn't exist yet. TypeORM opens its own sql.js instance from the
+    // file, so we must write it before TypeORM connects.
+    const data = db.export();
+    const dir = path.dirname(DB_PATH);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(DB_PATH, Buffer.from(data));
+    logger.info(`Database saved to ${DB_PATH}`);
+
     // Initialize TypeORM DataSource
+    // Pass the database bytes directly to avoid relying on TypeORM's bundled
+    // PlatformTools.readFileSync which may silently fail when esbuild-bundled.
     logger.info("Initializing TypeORM DataSource...");
     dataSource = new DataSource({
       type: "sqljs",
+      database: data,
       location: DB_PATH,
       autoSave: true,
       entities: [
@@ -1036,7 +1051,7 @@ initDatabase()
           if (dbHireDate && empHireDate && dbHireDate !== empHireDate) {
             logger.warn(
               `Timesheet login hire-date mismatch for "${empName}": ` +
-                `sheet="${empHireDate}" db="${dbHireDate}" (IP: ${clientIp})`,
+              `sheet="${empHireDate}" db="${dbHireDate}" (IP: ${clientIp})`,
             );
             return res.status(403).json({
               error: `The spreadsheet hire date "${empHireDate}" does not match the account. Check your hire date.`,
@@ -3301,7 +3316,7 @@ initDatabase()
       fileFilter: (_req, file, cb) => {
         if (
           file.mimetype ===
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
           file.originalname.endsWith(".xlsx")
         ) {
           cb(null, true);
@@ -3347,7 +3362,7 @@ initDatabase()
             });
           } finally {
             // Clean up temp file
-            fs.unlink(filePath, () => {});
+            fs.unlink(filePath, () => { });
           }
         } catch (error) {
           logger.error(`Error importing Excel: ${error}`);
@@ -3427,7 +3442,7 @@ initDatabase()
                     hireDate: emp.hireDate || "",
                     year: emp.ptoEntries?.[0]
                       ? parseInt(emp.ptoEntries[0].date?.substring(0, 4), 10) ||
-                        0
+                      0
                       : 0,
                     carryoverHours: emp.carryoverHours || 0,
                     spreadsheetPtoRate: emp.ptoRate || 0,
@@ -3449,9 +3464,9 @@ initDatabase()
                 const autoApproveCtx: AutoApproveImportContext | undefined =
                   featureFlags.enableImportAutoApprove && emp.hireDate
                     ? {
-                        hireDate: emp.hireDate,
-                        carryoverHours: emp.carryoverHours || 0,
-                      }
+                      hireDate: emp.hireDate,
+                      carryoverHours: emp.carryoverHours || 0,
+                    }
                     : undefined;
 
                 const { upserted, autoApproved: empAutoApproved, warnings: ptoWarnings } =
@@ -3491,7 +3506,7 @@ initDatabase()
 
                 logger.info(
                   `[Bulk Import] ${created ? "Created" : "Updated"} "${emp.name}" id=${employeeId}, ` +
-                    `${upserted} PTO entries (${empAutoApproved} auto-approved), ${acksSynced} acknowledgements`,
+                  `${upserted} PTO entries (${empAutoApproved} auto-approved), ${acksSynced} acknowledgements`,
                 );
               } catch (empError) {
                 const msg = `Failed to process employee "${emp.name || "unknown"}": ${empError}`;
@@ -3861,7 +3876,7 @@ initDatabase()
           const expiresAt = new Date();
           expiresAt.setDate(
             expiresAt.getDate() +
-              BUSINESS_RULES_CONSTANTS.NOTIFICATION_EXPIRY_DAYS,
+            BUSINESS_RULES_CONSTANTS.NOTIFICATION_EXPIRY_DAYS,
           );
 
           const adminId = (req as any).employee?.id;
