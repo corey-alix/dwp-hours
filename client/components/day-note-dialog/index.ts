@@ -54,13 +54,39 @@ export class DayNoteDialog extends BaseComponent {
 
   connectedCallback() {
     super.connectedCallback();
-    // Trap focus inside dialog
     requestAnimationFrame(() => {
+      this.centerInViewport();
       const textarea = this.shadowRoot.querySelector(
         "#note-text",
       ) as HTMLTextAreaElement | null;
-      textarea?.focus();
+      textarea?.focus({ preventScroll: true });
+      // Fallback: ensure the dialog is scrolled into view
+      const dialogEl = this.shadowRoot.querySelector(
+        ".dialog",
+      ) as HTMLElement | null;
+      dialogEl?.scrollIntoView({ block: "center", behavior: "instant" });
     });
+  }
+
+  /**
+   * Position the dialog at the vertical center of the visible viewport.
+   *
+   * `position: fixed` inside this component is relative to `#app-wrapper`
+   * (which has `transform: scale(...)`) rather than the true viewport.
+   * We compensate by calculating the viewport center in document
+   * coordinates and applying it as `margin-top` on the `.dialog`.
+   */
+  private centerInViewport(): void {
+    const dialogEl = this.shadowRoot.querySelector(
+      ".dialog",
+    ) as HTMLElement | null;
+    if (!dialogEl) return;
+
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    const viewportHeight = window.innerHeight;
+    const dialogHeight = dialogEl.offsetHeight;
+    const topPos = Math.max(0, scrollTop + (viewportHeight - dialogHeight) / 2);
+    dialogEl.style.marginTop = `${topPos}px`;
   }
 
   // ── Rendering ──

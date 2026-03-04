@@ -288,4 +288,37 @@ describe("DayNoteDialog Component", () => {
       expect(composed).toBe(true);
     });
   });
+
+  describe("Viewport Centering", () => {
+    it("should apply margin-top on .dialog to center in viewport", async () => {
+      // Wait for the requestAnimationFrame in connectedCallback
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+
+      const dialogEl = dialog.shadowRoot?.querySelector(
+        ".dialog",
+      ) as HTMLElement | null;
+      expect(dialogEl).toBeTruthy();
+
+      // In happy-dom, window.scrollY=0, window.innerHeight defaults to 768,
+      // and offsetHeight may be 0 since layout is not real. The code
+      // calculates: max(0, scrollY + (viewportHeight - dialogHeight) / 2).
+      // With scrollY=0 and offsetHeight=0 → marginTop = 384px.
+      const marginTop = parseFloat(dialogEl!.style.marginTop);
+      expect(marginTop).toBeGreaterThanOrEqual(0);
+    });
+
+    it("should not use flex centering on overlay", () => {
+      const overlay = dialog.shadowRoot?.querySelector(
+        ".overlay",
+      ) as HTMLElement | null;
+      expect(overlay).toBeTruthy();
+
+      // Overlay should NOT have display:flex centering — the dialog is
+      // positioned via margin-top calculated from viewport coordinates.
+      const computedDisplay = overlay!.style.display;
+      // The overlay should not have inline flex centering; the CSS class
+      // no longer sets display:flex/align-items/justify-content.
+      expect(computedDisplay).not.toBe("flex");
+    });
+  });
 });

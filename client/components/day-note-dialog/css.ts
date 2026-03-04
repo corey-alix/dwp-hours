@@ -8,9 +8,6 @@ export const dayNoteDialogStyles = `
     inset: 0;
     background: rgb(0 0 0 / 40%);
     z-index: 1000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     animation: fade-in var(--duration-fast, 150ms) var(--easing-standard, ease);
 }
 
@@ -24,6 +21,7 @@ export const dayNoteDialogStyles = `
     max-width: 90vw;
     max-height: 90vh;
     overflow-y: auto;
+    margin: 0 auto;
     animation: dialog-pop var(--duration-normal, 250ms) var(--easing-decelerate, ease-out);
 }
 

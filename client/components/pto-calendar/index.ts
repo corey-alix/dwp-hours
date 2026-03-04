@@ -86,6 +86,8 @@ export class PtoCalendar extends BaseComponent {
   private _longPressDate: string | null = null;
   /** The dialog instance currently attached to the shadow DOM (if any). */
   private _noteDialog: DayNoteDialog | null = null;
+  /** The date of the day cell that opened the note dialog (for scroll-back). */
+  private _noteDialogOriginDate: string | null = null;
   /**
    * Set of date strings for entries that are unapproved but in a
    * locked/reconciled month (e.g., historic import policy violations).
@@ -597,6 +599,9 @@ export class PtoCalendar extends BaseComponent {
     // Close any existing dialog
     this.closeNoteDialog();
 
+    // Remember which day cell opened the dialog (for scroll-back on close)
+    this._noteDialogOriginDate = date;
+
     // Lazy-import the dialog component
     const { DayNoteDialog } = await import("../day-note-dialog/index.js");
 
@@ -652,6 +657,18 @@ export class PtoCalendar extends BaseComponent {
     if (this._noteDialog) {
       this._noteDialog.remove();
       this._noteDialog = null;
+    }
+
+    // Scroll the originating day cell back into view so the user
+    // doesn't lose their place in the calendar after dismiss/save.
+    if (this._noteDialogOriginDate) {
+      const originCell = this.shadowRoot.querySelector(
+        `.day[data-date="${this._noteDialogOriginDate}"]`,
+      ) as HTMLElement | null;
+      this._noteDialogOriginDate = null;
+      if (originCell) {
+        originCell.scrollIntoView({ block: "center", behavior: "instant" });
+      }
     }
   }
 
