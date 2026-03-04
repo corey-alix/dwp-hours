@@ -175,6 +175,7 @@
 
   /* Component-specific semantic colors */
   --color-pto-vacation: var(--color-blue-500);
+  --color-pto-pto: var(--color-blue-500);
   --color-pto-sick: var(--color-yellow-500);
   --color-pto-bereavement: var(--color-purple-500);
   --color-pto-jury-duty: var(--color-green-500);
@@ -223,6 +224,7 @@
 
   /* Dark theme PTO colors - slightly adjusted for better contrast */
   --color-pto-vacation: var(--color-blue-400);
+  --color-pto-pto: var(--color-blue-400);
   --color-pto-sick: var(--color-orange-400);
   --color-pto-bereavement: var(--color-purple-700);
   --color-pto-jury-duty: var(--color-green-700);

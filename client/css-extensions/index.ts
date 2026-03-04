@@ -51,8 +51,23 @@ export {
   adoptPtoDayColors,
 } from "./pto-day-colors/index.js";
 
-// ── Interactions (gesture constants) ──
+// ── Interactions (gesture constants + device capabilities) ──
 export {
   LONG_PRESS_MS,
   LONG_PRESS_MOVE_THRESHOLD,
+  isCoarsePointer,
+  isFinePointer,
+  hasHover,
+  hasAnyCoarsePointer,
+  prefersReducedMotion,
+  prefersDarkScheme,
+  isPrintMedia,
+  hasGeolocation,
+  hasMediaDevices,
+  hasMotionSensor,
+  hasOrientationSensor,
+  hasBatteryAPI,
+  hasVibration,
+  hasNetworkInfo,
+  canPlayVideoType,
 } from "./interactions/index.js";

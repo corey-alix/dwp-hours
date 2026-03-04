@@ -23,6 +23,7 @@ import type { TraceListener } from "../../controller/TraceListener.js";
 import {
   LONG_PRESS_MS,
   LONG_PRESS_MOVE_THRESHOLD,
+  isCoarsePointer,
 } from "../../css-extensions/interactions/index.js";
 import type { DayNoteDialog } from "../day-note-dialog/index.js";
 
@@ -70,6 +71,8 @@ export class PtoCalendar extends BaseComponent {
   private _selectedNotes: Map<string, string> = new Map();
   /** Long-press state tracking */
   private _longPressTimer: ReturnType<typeof setTimeout> | null = null;
+  /** True briefly after a long-press fires, to suppress the contextmenu event. */
+  private _suppressContextMenu = false;
 
   disconnectedCallback() {
     if (this._longPressTimer) {
@@ -145,7 +148,7 @@ export class PtoCalendar extends BaseComponent {
   }
 
   get isReadonly(): boolean {
-    return this.getAttribute("readonly") !== "false";
+    return this.getAttribute("readonly") === "true";
   }
 
   set isReadonly(value: boolean) {
@@ -424,8 +427,9 @@ export class PtoCalendar extends BaseComponent {
     });
     // Suppress context menu on long-press
     this.addListener(this.shadowRoot, "contextmenu", (e) => {
-      if (this._longPressDate) {
+      if (this._suppressContextMenu) {
         e.preventDefault();
+        this._suppressContextMenu = false;
       }
     });
   }
@@ -441,28 +445,33 @@ export class PtoCalendar extends BaseComponent {
     this.handleSubmitSlotClick(target, e);
   }
 
-  /** Note indicator click — open dialog (edit) or show toast (readonly). */
+  /** Note indicator click — open dialog (edit) or show toast (readonly/touch). */
   private handleNoteIndicatorClick(target: HTMLElement, e: Event): boolean {
     const noteIndicator = target.closest(".note-indicator") as HTMLElement;
     if (!noteIndicator) return false;
     e.preventDefault();
     e.stopPropagation();
     const date = noteIndicator.closest(".day")?.getAttribute("data-date");
-    if (!this.isReadonly && date) {
-      this.openNoteDialog(date);
-    } else {
+    // On coarse-pointer (touch) devices, show a toast instead of the dialog;
+    // the long-press gesture is the canonical way to edit notes on touch.
+    if (isCoarsePointer() || this.isReadonly) {
       const noteText = noteIndicator.getAttribute("data-note");
       if (noteText) {
-        this._notifications?.info(noteText, "Note");
+        const suffix = !this.isReadonly ? " (long-press to edit)" : "";
+        this._notifications?.info(noteText + suffix, "Note");
       }
+    } else if (date) {
+      this.openNoteDialog(date);
     }
     return true;
   }
 
-  /** Edit-note placeholder click — open note dialog in edit mode. */
+  /** Edit-note placeholder click — open note dialog in edit mode (desktop only). */
   private handleEditNoteClick(target: HTMLElement, e: Event): boolean {
     const editNote = target.closest(".edit-note-icon") as HTMLElement;
     if (!editNote || this.isReadonly) return false;
+    // On coarse-pointer devices, skip — long-press handles note editing.
+    if (isCoarsePointer()) return false;
     e.preventDefault();
     e.stopPropagation();
     const date = editNote.closest(".day")?.getAttribute("data-date");
@@ -553,6 +562,7 @@ export class PtoCalendar extends BaseComponent {
 
     this._longPressTimer = setTimeout(() => {
       if (this._longPressDate) {
+        this._suppressContextMenu = true;
         this.openNoteDialog(this._longPressDate);
         this._longPressDate = null;
       }
