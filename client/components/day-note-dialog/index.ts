@@ -1,4 +1,5 @@
 import { isWorkingDay } from "../../../shared/businessRules.js";
+import { CALENDAR_SYMBOLS } from "../../../shared/calendar-symbols.js";
 import { BaseComponent } from "../base-component.js";
 import { dayNoteDialogStyles } from "./css.js";
 
@@ -20,6 +21,7 @@ export class DayNoteDialog extends BaseComponent {
   private _currentNote = "";
   private _currentHours = 0;
   private _validationError = "";
+  private _overuseMessage = "";
 
   // ── Properties ──
 
@@ -47,6 +49,16 @@ export class DayNoteDialog extends BaseComponent {
 
   set currentHours(v: number) {
     this._currentHours = v;
+    this.requestUpdate();
+  }
+
+  /** Overuse tooltip message to display when the day exceeds a balance limit. */
+  get overuseMessage(): string {
+    return this._overuseMessage;
+  }
+
+  set overuseMessage(v: string) {
+    this._overuseMessage = v;
     this.requestUpdate();
   }
 
@@ -97,6 +109,7 @@ export class DayNoteDialog extends BaseComponent {
       <div class="overlay" data-action="overlay">
         <div class="dialog" role="dialog" aria-modal="true" aria-label="Day note for ${this.escapeAttr(this._date)}">
           <div class="dialog-header">Note — ${this.escapeAttr(this._date)}</div>
+          ${this._overuseMessage ? `<div class="overuse-banner" role="alert"><span class="overuse-icon">${CALENDAR_SYMBOLS.OVERUSE}</span> ${this.escapeHtml(this._overuseMessage)}</div>` : ""}
           <div class="field">
             <label for="note-text">Note</label>
             <textarea id="note-text" cols="60" rows="5">${this.escapeHtml(this._currentNote)}</textarea>

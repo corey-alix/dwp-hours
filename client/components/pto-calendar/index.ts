@@ -614,6 +614,7 @@ export class PtoCalendar extends BaseComponent {
       this._selectedNotes.get(date) ?? existingEntry?.notes ?? "";
     dialog.currentHours =
       this._selectedCells.get(date) ?? existingEntry?.hours ?? 0;
+    dialog.overuseMessage = this._overuseTooltips.get(date) ?? "";
 
     // Listen for save/cancel
     dialog.addEventListener("day-note-save", ((e: CustomEvent) => {

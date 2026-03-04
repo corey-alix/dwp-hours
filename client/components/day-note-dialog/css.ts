@@ -42,6 +42,27 @@ export const dayNoteDialogStyles = `
     margin-bottom: var(--space-md, 16px);
 }
 
+.overuse-banner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm, 8px);
+    padding: var(--space-sm, 8px) var(--space-md, 16px);
+    margin-bottom: var(--space-md, 16px);
+    background: var(--color-error-light, #fef2f2);
+    border: var(--border-width, 1px) var(--border-style-solid, solid) var(--color-error, #dc2626);
+    border-radius: var(--border-radius, 4px);
+    color: var(--color-error, #dc2626);
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: var(--font-weight-medium, 500);
+    line-height: var(--line-height-base, 1.6);
+}
+
+.overuse-icon {
+    font-size: var(--font-size-xl, 1.25rem);
+    font-weight: var(--font-weight-bold, 700);
+    flex-shrink: 0;
+}
+
 .field {
     margin-bottom: var(--space-md, 16px);
 }

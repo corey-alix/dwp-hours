@@ -321,4 +321,31 @@ describe("DayNoteDialog Component", () => {
       expect(computedDisplay).not.toBe("flex");
     });
   });
+
+  describe("Overuse Banner", () => {
+    it("should not render overuse banner when overuseMessage is empty", () => {
+      const banner = dialog.shadowRoot?.querySelector(".overuse-banner");
+      expect(banner).toBeNull();
+    });
+
+    it("should render overuse banner when overuseMessage is set", () => {
+      dialog.overuseMessage = "PTO balance exceeded by 8h";
+      const banner = dialog.shadowRoot?.querySelector(".overuse-banner");
+      expect(banner).toBeTruthy();
+      expect(banner?.textContent).toContain("PTO balance exceeded by 8h");
+    });
+
+    it("should display the overuse icon in the banner", () => {
+      dialog.overuseMessage = "Sick balance exceeded by 4h";
+      const icon = dialog.shadowRoot?.querySelector(".overuse-icon");
+      expect(icon).toBeTruthy();
+      expect(icon?.textContent).toBe("!");
+    });
+
+    it("should have role=alert on the overuse banner for accessibility", () => {
+      dialog.overuseMessage = "Balance exceeded";
+      const banner = dialog.shadowRoot?.querySelector(".overuse-banner");
+      expect(banner?.getAttribute("role")).toBe("alert");
+    });
+  });
 });
