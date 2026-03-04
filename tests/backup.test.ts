@@ -59,6 +59,8 @@ describe("Backup System", () => {
 
   describe("createDatabaseBackupIfNeeded", () => {
     it("should create a backup when database has changed and no recent backup exists", () => {
+      const initialCount = listBackups().length;
+
       // Modify the DB file to simulate change
       fs.writeFileSync(testDbPath, "modified content");
 
@@ -66,7 +68,7 @@ describe("Backup System", () => {
       expect(result).toBe(true);
 
       const backups = listBackups();
-      expect(backups.length).toBe(1);
+      expect(backups.length).toBe(initialCount + 1);
       expect(backups[0].filename).toMatch(
         /^backup-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.db$/,
       );
@@ -76,13 +78,14 @@ describe("Backup System", () => {
       // Create initial backup
       fs.writeFileSync(testDbPath, "modified content");
       createDatabaseBackupIfNeeded();
+      const countAfterFirst = listBackups().length;
 
       // Try again without changing DB
       const result = createDatabaseBackupIfNeeded();
       expect(result).toBe(false);
 
       const backups = listBackups();
-      expect(backups.length).toBe(1); // Still only one
+      expect(backups.length).toBe(countAfterFirst); // No new backup
     });
   });
 
@@ -153,10 +156,15 @@ describe("Backup System", () => {
 
   describe("restoreFromBackup", () => {
     it("should restore database from backup file", () => {
+      const initialCount = listBackups().length;
+
+      // Modify DB so change detection sees a new mtime
+      fs.writeFileSync(testDbPath, "content for backup");
+
       // Create a backup
       createDatabaseBackupIfNeeded();
       const backups = listBackups();
-      expect(backups.length).toBe(1);
+      expect(backups.length).toBe(initialCount + 1);
 
       // Modify DB
       fs.writeFileSync(testDbPath, "modified");
@@ -169,7 +177,7 @@ describe("Backup System", () => {
 
       // Verify content
       const content = fs.readFileSync(testDbPath, "utf-8");
-      expect(content).toBe("dummy db content");
+      expect(content).toBe("content for backup");
     });
 
     it("should throw for invalid backup file", () => {

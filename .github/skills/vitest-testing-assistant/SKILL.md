@@ -40,6 +40,46 @@ When modifying test setup code, use unit tests to validate changes:
 - "How do I set up test coverage reporting?"
 - "My Vitest tests are slow, how can I optimize them?"
 
+## Test Execution Ordering
+
+Vitest provides several mechanisms that control the order in which tests run. Tests **must never depend on execution order** — each test should be fully self-contained via proper `beforeEach`/`afterEach` setup and teardown.
+
+### Default Behavior
+
+- **Within a `describe` block**: tests run **sequentially in definition order** by default.
+- **Across `describe` blocks in the same file**: blocks run sequentially in definition order by default.
+- **Across files**: files may run in parallel (worker threads) unless `--no-threads` is used.
+
+### Ordering Modifiers
+
+| Modifier                                  | Effect                                                                                                                                                             |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `describe.concurrent` / `test.concurrent` | Runs inner tests or marked tests **in parallel** within the suite.                                                                                                 |
+| `describe.sequential` / `test.sequential` | Forces **sequential** execution even inside a `describe.concurrent` or when `--sequence.concurrent` is active.                                                     |
+| `describe.shuffle` / `--sequence.shuffle` | Randomizes test order within the suite (seed-based via `sequence.seed`). Shuffle is **inherited** by nested describes unless overridden with `{ shuffle: false }`. |
+| `--sequence.concurrent` (config)          | Makes **all** tests concurrent by default (opt out with `.sequential`).                                                                                            |
+
+### Key Isolation Pitfalls
+
+1. **Module-level singleton state**: If a module under test has `let` variables at module scope (e.g., `lastBackupMtime`), that state persists across all tests in the file. `beforeEach` must explicitly reset or account for this state.
+2. **Absolute vs. relative assertions**: Never assert absolute counts (e.g., `expect(items.length).toBe(1)`) when prior tests or `beforeEach` hooks may have created items. Instead, **capture the initial state** at the start of each test and assert relative changes:
+   ```typescript
+   it("should add one item", () => {
+     const initialCount = getItems().length;
+     addItem();
+     expect(getItems().length).toBe(initialCount + 1);
+   });
+   ```
+3. **Filesystem mtime collisions**: On filesystems with 1-second mtime resolution, two writes in the same second produce identical mtimes. Tests that rely on mtime-based change detection can intermittently fail if a previous test set the "last known mtime" to the same value.
+4. **`beforeEach` should clean, not just create**: Use `beforeEach` to remove stale artifacts (files, directories) rather than only creating them if they don't exist. This prevents state leaking from a previous test's side effects.
+
+### Best Practice Summary
+
+- Treat every `it()` as if it could run first, last, or in isolation.
+- Use `beforeEach` to establish a **known clean state** — don't rely on `afterEach` alone.
+- Assert **relative changes** from a captured baseline, not absolute values.
+- When testing code with module-level state that cannot be reset via public API, use `vi.resetModules()` or dynamic `import()` to get a fresh module instance.
+
 ## Additional Context
 
 This skill integrates with the existing testing strategy defined in TASKS/testing-suite.md and follows Vitest's official best practices. Focuses on fast, reliable unit tests that complement the Playwright E2E testing setup. Prioritizes test maintainability, proper mocking strategies, and comprehensive coverage for critical business logic.

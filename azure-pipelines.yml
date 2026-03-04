@@ -28,7 +28,7 @@ steps:
   # ── Build & Test ──────────────────────────────────────────────
   - task: NodeTool@0
     inputs:
-      versionSpec: "25.x"
+      versionSpec: "24.x"
     displayName: "Setup Node.js"
 
   - script: npm install -g pnpm@9
