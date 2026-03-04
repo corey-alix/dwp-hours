@@ -129,10 +129,10 @@ export const styles = `
 .type-Work-Day { background: ${PTO_TYPE_COLORS["Work Day"]}; border: 1px solid var(--color-border); }
 
 /* Readonly mode: add background colors for PTO types */
-:host([readonly]) .type-PTO { background: ${PTO_TYPE_COLORS.PTO}; }
-:host([readonly]) .type-Sick { background: ${PTO_TYPE_COLORS.Sick}; }
-:host([readonly]) .type-Bereavement { background: ${PTO_TYPE_COLORS.Bereavement}; }
-:host([readonly]) .type-Jury-Duty { background: ${PTO_TYPE_COLORS["Jury Duty"]}; }
+:host([readonly="true"]) .type-PTO { background: ${PTO_TYPE_COLORS.PTO}; }
+:host([readonly="true"]) .type-Sick { background: ${PTO_TYPE_COLORS.Sick}; }
+:host([readonly="true"]) .type-Bereavement { background: ${PTO_TYPE_COLORS.Bereavement}; }
+:host([readonly="true"]) .type-Jury-Duty { background: ${PTO_TYPE_COLORS["Jury Duty"]}; }
 
 /* Make text adapt to theme for better contrast */
 .type-PTO .date,
@@ -149,11 +149,11 @@ export const styles = `
 .type-Jury-Duty .hours { color: ${PTO_TYPE_COLORS["Jury Duty"]}; }
 
 /* Readonly mode: hide interactive indicators */
-:host([readonly]) .checkmark,
-:host([readonly]) .reconciled-indicator,
-:host([readonly]) .note-indicator,
-:host([readonly]) .edit-note-icon,
-:host([readonly]) .overuse-indicator {
+:host([readonly="true"]) .checkmark,
+:host([readonly="true"]) .reconciled-indicator,
+:host([readonly="true"]) .note-indicator,
+:host([readonly="true"]) .edit-note-icon,
+:host([readonly="true"]) .overuse-indicator {
     display: none;
 }
 

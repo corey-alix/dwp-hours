@@ -95,7 +95,7 @@ export const styles = `<style>
   }
 
   .pto-type-pto {
-    background: var(--color-pto);
+    background: var(--color-pto-pto);
   }
 
   .pto-type-sick {

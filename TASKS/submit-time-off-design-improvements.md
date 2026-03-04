@@ -72,6 +72,20 @@ Calendar day cells use `aspect-ratio: 1` and `min-width: 3ch` which can produce 
 - [x] `pnpm run build` passes
 - [x] `pnpm run lint` passes
 
+### Stage 6: Fix Note Dialog Viewport Centering and Scroll Behavior
+
+The day-note dialog overlay uses `position: fixed` but `#app-wrapper` has `transform: scale(var(--scale-factor, 1))` which creates a containing block, making `position: fixed` relative to the full page instead of the viewport. The dialog was centered in the full page height, appearing off-screen when opened from the top half.
+
+- [x] Remove flex centering from `.overlay` (was centering in full page, not viewport)
+- [x] Calculate viewport center via JS and position `.dialog` at that point using `margin-top`
+- [x] Use `focus({ preventScroll: true })` to prevent browser auto-scrolling on textarea focus
+- [x] Add `scrollIntoView({ block: 'center' })` on dialog as fallback after positioning
+- [x] Store originating day cell date in `pto-calendar` when opening note dialog
+- [x] Scroll originating day cell back into view on dialog dismiss/save
+- [x] Add Vitest unit tests for viewport centering behavior
+- [x] `pnpm run build` passes
+- [x] `pnpm run lint` passes
+
 ## Implementation Notes
 
 - Page component: [client/pages/submit-time-off-page/index.ts](../client/pages/submit-time-off-page/index.ts) (465 lines)
@@ -95,6 +109,8 @@ Calendar day cells use `aspect-ratio: 1` and `min-width: 3ch` which can produce 
 6. **Balance heading added as sibling div, not inside `<month-summary>`** — The "Available Balance" label was added as a `<div class="balance-heading">` above `<month-summary>` in the page template, rather than modifying the `month-summary` component. This keeps `month-summary` generic and reusable across contexts (admin review, per-month card summaries, etc.).
 7. **Playwright screenshot script must run from project root** — The script imports `playwright` which is installed as a devDependency. Running from `/tmp/` fails with `ERR_MODULE_NOT_FOUND`. Copy into project root or use `scripts/` directory.
 8. **Employee vs Admin auth for page capture** — `/submit-time-off` requires employee login (`john.doe@example.com`). Admin pages use `admin@example.com`. The magic link endpoint is `POST /api/auth/request-link` with `{ identifier }` body.
+9. **`position: fixed` broken by ancestor `transform` in `#app-wrapper`** — `#app-wrapper { transform: scale(var(--scale-factor, 1)) }` creates a containing block even at `scale(1)`, making `position: fixed` relative to the full page instead of the viewport. The day-note dialog's overlay with `position: fixed; inset: 0` covered the entire page height, centering the dialog card at the midpoint of the full 12-month page. Fix: removed CSS flex centering from the overlay and instead calculated the viewport center in JS (`window.scrollY + window.innerHeight / 2 - dialogHeight / 2`) as `margin-top` on the dialog. Added `scrollIntoView({ block: 'center' })` as fallback and `focus({ preventScroll: true })` to avoid browser auto-scrolling.
+10. **Scroll-back on dialog dismiss preserves user context** — Storing the originating `data-date` in `pto-calendar` and calling `scrollIntoView({ block: 'center', behavior: 'instant' })` on the day cell after `closeNoteDialog()` ensures the user returns to the same calendar position. With viewport centering working correctly, the scroll-back is effectively a no-op but provides defensive UX.
 
 ## Questions and Concerns
 

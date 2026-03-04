@@ -8,9 +8,6 @@ export const dayNoteDialogStyles = `
     inset: 0;
     background: rgb(0 0 0 / 40%);
     z-index: 1000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     animation: fade-in var(--duration-fast, 150ms) var(--easing-standard, ease);
 }
 
@@ -24,6 +21,7 @@ export const dayNoteDialogStyles = `
     max-width: 90vw;
     max-height: 90vh;
     overflow-y: auto;
+    margin: 0 auto;
     animation: dialog-pop var(--duration-normal, 250ms) var(--easing-decelerate, ease-out);
 }
 
@@ -42,6 +40,27 @@ export const dayNoteDialogStyles = `
     font-weight: var(--font-weight-semibold, 600);
     color: var(--color-text, #1f2937);
     margin-bottom: var(--space-md, 16px);
+}
+
+.overuse-banner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm, 8px);
+    padding: var(--space-sm, 8px) var(--space-md, 16px);
+    margin-bottom: var(--space-md, 16px);
+    background: var(--color-error-light, #fef2f2);
+    border: var(--border-width, 1px) var(--border-style-solid, solid) var(--color-error, #dc2626);
+    border-radius: var(--border-radius, 4px);
+    color: var(--color-error, #dc2626);
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: var(--font-weight-medium, 500);
+    line-height: var(--line-height-base, 1.6);
+}
+
+.overuse-icon {
+    font-size: var(--font-size-xl, 1.25rem);
+    font-weight: var(--font-weight-bold, 700);
+    flex-shrink: 0;
 }
 
 .field {
