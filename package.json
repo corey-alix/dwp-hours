@@ -126,6 +126,8 @@
     "git:clean//": "delete all local and remote branches not checked out by a worktree",
     "test:unit": "vitest --run",
     "test:unit//": "run unit tests with vitest",
+    "test:unit:ci": "vitest --run --reporter=default --reporter=junit --outputFile=test-results/junit-unit.xml",
+    "test:unit:ci//": "run unit tests with junit XML report for CI pipelines",
     "test:unit:date-fns:tz": "tsx scripts/test-date-fns-timezones.mts",
     "test:unit:date-fns:tz//": "run shared/date-fns facade tests under multiple TZ values",
     "playwright:seed": "pnpm run seed && pnpm run server:reload",

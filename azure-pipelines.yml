@@ -45,7 +45,7 @@ steps:
 
   - script: |
       mkdir -p test-results
-      pnpm test:unit -- --reporter=junit --outputFile=test-results/junit-unit.xml
+      pnpm test:unit:ci
     displayName: "Run unit tests"
 
   - task: PublishBuildArtifacts@1
