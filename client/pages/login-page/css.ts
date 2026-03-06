@@ -154,4 +154,27 @@ export const styles = `<style>
   .policy-link a:hover {
     text-decoration: underline;
   }
+
+  .azure-login-section {
+    text-align: center;
+  }
+
+  .btn-azure {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm, 8px);
+    padding: var(--space-sm, 8px) var(--space-md, 16px);
+    border: 1px solid var(--color-border, #ccc);
+    border-radius: var(--border-radius, 4px);
+    background: var(--color-surface, #fff);
+    color: var(--color-text, #333);
+    font-size: var(--font-size-md, 1rem);
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+
+  .btn-azure:hover {
+    background: var(--color-surface-hover, #f0f0f0);
+  }
 </style>`;

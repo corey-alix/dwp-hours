@@ -1,3 +1,9 @@
+import {
+  ROLE_ADMIN,
+  ROLE_EMPLOYEE,
+  type EmployeeRole,
+} from "./businessRules.js";
+
 export type SeedPtoEntry = {
   employee_id: number;
   date: string;
@@ -19,7 +25,7 @@ export type SeedEmployee = {
   pto_rate: number;
   carryover_hours: number;
   hire_date: string;
-  role: "Employee" | "Admin";
+  role: EmployeeRole;
   hash: string | null;
 };
 
@@ -231,7 +237,7 @@ export const seedEmployees: SeedEmployee[] = [
     pto_rate: 0.71,
     carryover_hours: 40,
     hire_date: "2020-01-15",
-    role: "Employee",
+    role: ROLE_EMPLOYEE,
     hash: "9a86fd9ae81cfa0e38af38b870df41cb7ecf41c4915880113d905a444fef6380",
   },
   {
@@ -240,7 +246,7 @@ export const seedEmployees: SeedEmployee[] = [
     pto_rate: 0.71,
     carryover_hours: 25,
     hire_date: "2021-06-01",
-    role: "Employee",
+    role: ROLE_EMPLOYEE,
     hash: "eb2cd46a4ad6d9dede35357aa05eb527f89a6bf8e27ce29431ff24d4ffa434eb",
   },
   {
@@ -249,7 +255,7 @@ export const seedEmployees: SeedEmployee[] = [
     pto_rate: 0.71,
     carryover_hours: 0,
     hire_date: "2019-03-10",
-    role: "Admin",
+    role: ROLE_ADMIN,
     hash: "5a58fb229e76f201805379dedcd976391a7ef34877fdfa278ab07733aff22d81",
   },
 ];

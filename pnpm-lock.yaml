@@ -7,6 +7,9 @@ settings:
 importers:
   .:
     dependencies:
+      "@azure/msal-node":
+        specifier: ^5.0.6
+        version: 5.0.6
       cors:
         specifier: ^2.8.6
         version: 2.8.6
@@ -31,6 +34,9 @@ importers:
       helmet:
         specifier: ^8.1.0
         version: 8.1.0
+      jose:
+        specifier: ^6.2.0
+        version: 6.2.0
       jsonwebtoken:
         specifier: ^9.0.3
         version: 9.0.3
@@ -139,6 +145,20 @@ importers:
         version: 4.0.18(@types/node@25.3.2)(happy-dom@20.7.0)(tsx@4.21.0)(yaml@2.8.2)
 
 packages:
+  "@azure/msal-common@16.2.0":
+    resolution:
+      {
+        integrity: sha512-ge0nGzTLmEE5lg7tSCbTBrYqMGkpFQeQEtqfcKPuGJn/FPFf8Xz51uDfZsm5xpstNZGMYPhHvnYbL8OeNp/aLw==,
+      }
+    engines: { node: ">=0.8.0" }
+
+  "@azure/msal-node@5.0.6":
+    resolution:
+      {
+        integrity: sha512-vwGXndrTkf/5Nu0xjobrFXW1AVlrbp2IrTdmJumSERfHXMsBQC+5YqIvLxCqT2+Rn+sBvzRpGaUqHCA8CKAyjg==,
+      }
+    engines: { node: ">=20" }
+
   "@babel/code-frame@7.29.0":
     resolution:
       {
@@ -3019,6 +3039,12 @@ packages:
         integrity: sha512-OGlZQpz2yfahA/Rd1Y8Cd9SIEsqvXkLVoSw/cgwhnhFMDbsQFeZYoJJ7bIZBS9BcamUW96asq/npPWugM+RQBw==,
       }
 
+  jose@6.2.0:
+    resolution:
+      {
+        integrity: sha512-xsfE1TcSCbUdo6U07tR0mvhg0flGxU8tPLbF03mirl2ukGQENhUg4ubGYQnhVH0b5stLlPM+WOqDkEl1R1y5sQ==,
+      }
+
   js-git@0.7.8:
     resolution:
       {
@@ -5414,6 +5440,14 @@ packages:
     engines: { node: ">= 10" }
 
 snapshots:
+  "@azure/msal-common@16.2.0": {}
+
+  "@azure/msal-node@5.0.6":
+    dependencies:
+      "@azure/msal-common": 16.2.0
+      jsonwebtoken: 9.0.3
+      uuid: 8.3.2
+
   "@babel/code-frame@7.29.0":
     dependencies:
       "@babel/helper-validator-identifier": 7.28.5
@@ -7024,6 +7058,8 @@ snapshots:
       "@isaacs/cliui": 8.0.2
     optionalDependencies:
       "@pkgjs/parseargs": 0.11.0
+
+  jose@6.2.0: {}
 
   js-git@0.7.8:
     dependencies:

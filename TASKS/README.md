@@ -38,6 +38,7 @@
 - LATER: See ./TASKS/lock-month-button-per-calendar.md for details
 - LATER: See ./TASKS/pto-calendar-container-relative-fonts.md for details
 - LATER: See ./TASKS/readonly-pto-calendar-in-prior-year-summary.md for details
+- LATER: See ./TASKS/azure-ad-authentication.md for details
 
 ## SOME WORK REMAINS
 

@@ -2,6 +2,7 @@ import { BaseComponent } from "../../components/base-component.js";
 import type { PageComponent } from "../../router/types.js";
 import type { AuthService } from "../../auth/auth-service.js";
 import type { TimesheetLoginResponse } from "../../../shared/api-models.js";
+import { getServices } from "../../services/index.js";
 import { styles } from "./css.js";
 
 /**
@@ -17,6 +18,7 @@ export class LoginPage extends BaseComponent implements PageComponent {
   private _timesheetMessage = "";
   private _timesheetParsing = false;
   private _timesheetFileName = "";
+  private _azureAdEnabled = false;
 
   set authService(svc: AuthService) {
     this._authService = svc;
@@ -29,6 +31,19 @@ export class LoginPage extends BaseComponent implements PageComponent {
     this._timesheetParsing = false;
     this._timesheetFileName = "";
     this.requestUpdate();
+    this.fetchAzureAdFlag();
+  }
+
+  private async fetchAzureAdFlag(): Promise<void> {
+    try {
+      const flags = await getServices().api.getFeatureFlags();
+      if (flags.azureAdEnabled !== this._azureAdEnabled) {
+        this._azureAdEnabled = flags.azureAdEnabled;
+        this.requestUpdate();
+      }
+    } catch {
+      // Feature flag fetch failed — keep Azure button hidden
+    }
   }
 
   protected render(): string {
@@ -71,6 +86,25 @@ export class LoginPage extends BaseComponent implements PageComponent {
       <div class="policy-link">
         <a href="/POLICY.html" target="_blank" rel="noopener noreferrer">View PTO Policy</a>
       </div>
+
+      ${
+        this._azureAdEnabled
+          ? `
+      <div class="divider"><span>or</span></div>
+      <div class="azure-login-section">
+        <a href="/api/auth/azure/login" class="btn btn-azure" id="azure-login-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 23 23" aria-hidden="true">
+            <path fill="#f35325" d="M1 1h10v10H1z"/>
+            <path fill="#81bc06" d="M12 1h10v10H12z"/>
+            <path fill="#05a6f0" d="M1 12h10v10H1z"/>
+            <path fill="#ffba08" d="M12 12h10v10H12z"/>
+          </svg>
+          Sign in with Microsoft
+        </a>
+      </div>
+      `
+          : ""
+      }
     `;
   }
 

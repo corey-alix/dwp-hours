@@ -488,4 +488,5 @@ export interface TimesheetLoginResponse {
 export interface FeatureFlagsResponse {
   enableBrowserImport: boolean;
   enableImportAutoApprove: boolean;
+  azureAdEnabled: boolean;
 }

@@ -3,6 +3,7 @@ import { DataSource } from "typeorm";
 import { Employee } from "../entities/index.js";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
+import { isAdmin } from "../../shared/businessRules.js";
 
 // Extend Express Request interface to include authenticated employee
 declare global {
@@ -146,7 +147,7 @@ export function authenticateAdmin(
         if (err || !req.employee) return;
 
         // Check if user has admin role
-        if (req.employee.role !== "Admin") {
+        if (!isAdmin(req.employee.role)) {
           log(
             `Admin access denied for user ${req.employee.id} with role ${req.employee.role}`,
           );

@@ -15,6 +15,7 @@
 import {
   ENABLE_BROWSER_IMPORT as DEFAULT_ENABLE_BROWSER_IMPORT,
   ENABLE_IMPORT_AUTO_APPROVE as DEFAULT_ENABLE_IMPORT_AUTO_APPROVE,
+  AZURE_AD_ENABLED as DEFAULT_AZURE_AD_ENABLED,
 } from "./businessRules.js";
 
 // ── Helpers ──
@@ -44,6 +45,8 @@ export interface FeatureFlags {
   enableBrowserImport: boolean;
   /** See `ENABLE_IMPORT_AUTO_APPROVE` in `businessRules.ts`. */
   enableImportAutoApprove: boolean;
+  /** See `AZURE_AD_ENABLED` in `businessRules.ts`. */
+  azureAdEnabled: boolean;
 }
 
 /**
@@ -68,6 +71,7 @@ export function resolveFeatureFlags(
       env.FF_ENABLE_IMPORT_AUTO_APPROVE,
       DEFAULT_ENABLE_IMPORT_AUTO_APPROVE,
     ),
+    azureAdEnabled: envBool(env.AZURE_AD_ENABLED, DEFAULT_AZURE_AD_ENABLED),
   };
 }
 

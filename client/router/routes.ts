@@ -1,4 +1,5 @@
 import { getServices } from "../services/index.js";
+import { ROLE_ADMIN } from "../../shared/businessRules.js";
 import type { AppRoutes } from "./types.js";
 
 const svc = getServices();
@@ -85,7 +86,7 @@ export const appRoutes: AppRoutes = [
     meta: {
       title: "Employee Management",
       requiresAuth: true,
-      roles: ["Admin"],
+      roles: [ROLE_ADMIN],
     },
     loader: async () => ({ employees: await svc.employees.getAll() }),
   },
@@ -93,7 +94,11 @@ export const appRoutes: AppRoutes = [
     path: "/admin/pto-requests",
     component: "admin-pto-requests-page",
     name: "PTO Requests",
-    meta: { title: "PTO Request Queue", requiresAuth: true, roles: ["Admin"] },
+    meta: {
+      title: "PTO Request Queue",
+      requiresAuth: true,
+      roles: [ROLE_ADMIN],
+    },
     loader: async () => {
       const [employees, entries] = await Promise.all([
         svc.employees.getAll(),
@@ -129,14 +134,14 @@ export const appRoutes: AppRoutes = [
     meta: {
       title: "Monthly Employee Review",
       requiresAuth: true,
-      roles: ["Admin"],
+      roles: [ROLE_ADMIN],
     },
   },
   {
     path: "/admin/settings",
     component: "admin-settings-page",
     name: "Settings",
-    meta: { title: "System Settings", requiresAuth: true, roles: ["Admin"] },
+    meta: { title: "System Settings", requiresAuth: true, roles: [ROLE_ADMIN] },
   },
   // ── Catch-all ─────────────────────────────────────────────────
   {

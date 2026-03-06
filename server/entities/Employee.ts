@@ -34,6 +34,9 @@ export class Employee {
   @Column({ type: "text", nullable: true })
   hash!: string;
 
+  @Column({ type: "text", default: "local" })
+  auth_provider!: string;
+
   @OneToMany(() => PtoEntry, (ptoEntry) => ptoEntry.employee)
   ptoEntries!: PtoEntry[];
 

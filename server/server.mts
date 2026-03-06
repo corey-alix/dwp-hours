@@ -57,6 +57,8 @@ import {
   SYS_ADMIN_EMPLOYEE_ID,
   computeEmployeeBalanceData,
   validateDateString,
+  isAdmin,
+  ROLE_EMPLOYEE,
   type PTOType,
 } from "../shared/businessRules.js";
 import { BACKUP_CONFIG } from "../shared/backupConfig.js";
@@ -69,6 +71,7 @@ import {
 } from "./backup.js";
 import { performBulkMigration, performFileMigration } from "./bulkMigration.js";
 import { authenticate, authenticateAdmin } from "./utils/auth.js";
+import { createAzureAdRouter } from "./auth/azureAdRoutes.js";
 import { seedEmployees, seedPTOEntries } from "../shared/seedData.js";
 import { assembleReportData } from "./reportService.js";
 import { generateHtmlReport } from "./reportGenerators/htmlReport.js";
@@ -533,8 +536,16 @@ initDatabase()
       res.json({
         enableBrowserImport: featureFlags.enableBrowserImport,
         enableImportAutoApprove: featureFlags.enableImportAutoApprove,
+        azureAdEnabled: featureFlags.azureAdEnabled,
       });
     });
+
+    // Azure AD authentication routes (only mounted when feature flag is on)
+    const azureAdRouter = createAzureAdRouter(() => dataSource, log);
+    if (azureAdRouter) {
+      app.use("/api/auth/azure", azureAdRouter);
+      logger.info("Azure AD authentication routes registered");
+    }
 
     // Version endpoint
     app.get("/api/version", (req, res) => {
@@ -763,7 +774,7 @@ initDatabase()
                 hire_date: today(),
                 pto_rate: PTO_EARNING_SCHEDULE[0].dailyRate,
                 carryover_hours: 0,
-                role: "Employee",
+                role: ROLE_EMPLOYEE,
               });
               const saved = await employeeRepo.save(newEmployee);
               logger.info(
@@ -1087,7 +1098,7 @@ initDatabase()
             hire_date: empHireDate || today(),
             pto_rate: rate,
             carryover_hours: carryoverHours,
-            role: "Employee",
+            role: ROLE_EMPLOYEE,
           });
           const saved = await empRepo.save(newEmp);
           employeeId = saved.id;
@@ -1238,7 +1249,7 @@ initDatabase()
         const resolvedEmployee = await empRepo.findOne({
           where: { id: employeeId },
         });
-        const role = resolvedEmployee?.role || "Employee";
+        const role = resolvedEmployee?.role || ROLE_EMPLOYEE;
 
         const sessionToken = jwt.sign(
           {
@@ -2181,7 +2192,7 @@ initDatabase()
                 : carryoverHours
               : 0;
           employee.hire_date = hireDate || today();
-          employee.role = role || "Employee";
+          employee.role = role || ROLE_EMPLOYEE;
 
           await employeeRepo.save(employee);
 
@@ -2725,7 +2736,7 @@ initDatabase()
             // For admins, use the provided empId if present, otherwise
             // default to their own ID (self-submission from the calendar).
             const targetEmployeeId =
-              req.employee!.role === "Admin"
+              isAdmin(req.employee!.role)
                 ? (empId ?? authenticatedEmployeeId)
                 : authenticatedEmployeeId;
 
@@ -2956,7 +2967,7 @@ initDatabase()
 
           if (
             ptoEntry.employee_id !== authenticatedEmployeeId &&
-            req.employee!.role !== "Admin"
+            !isAdmin(req.employee!.role)
           ) {
             return res
               .status(403)
@@ -2976,7 +2987,7 @@ initDatabase()
               typeof hours === "string" ? parseFloat(hours) : hours;
           if (approved_by !== undefined) {
             // Only admins can set approved_by
-            if (req.employee!.role === "Admin") {
+            if (isAdmin(req.employee!.role)) {
               updateData.approved_by = approved_by;
             }
           }
@@ -3039,7 +3050,7 @@ initDatabase()
 
           if (
             ptoEntry.employee_id !== authenticatedEmployeeId &&
-            req.employee!.role !== "Admin"
+            !isAdmin(req.employee!.role)
           ) {
             return res
               .status(403)

@@ -5,6 +5,7 @@ import {
   animateSlide,
   type AnimationHandle,
 } from "../../css-extensions/index.js";
+import { isAdmin } from "../../../shared/businessRules.js";
 
 type Page =
   | "current-year-summary"
@@ -77,7 +78,7 @@ export class DashboardNavigationMenu extends BaseComponent {
       { id: "upload-timesheet", label: "Upload Timesheet" },
     ];
 
-    if (this.userRole === "Admin") {
+    if (isAdmin(this.userRole)) {
       menuItems.push(
         { id: "admin/employees", label: "Employee Management" },
         { id: "admin/pto-requests", label: "PTO Requests" },

@@ -1,3 +1,6 @@
+import type { EmployeeRole } from "../../../shared/businessRules.js";
+import { ROLE_ADMIN } from "../../../shared/businessRules.js";
+
 export interface Employee {
   id: number;
   name: string;
@@ -5,7 +8,7 @@ export interface Employee {
   ptoRate: number;
   carryoverHours: number;
   hireDate: string;
-  role: "Employee" | "Admin";
+  role: EmployeeRole;
   hash: string;
 }
 
@@ -160,7 +163,7 @@ export class EmployeeList extends BaseComponent {
             <div class="employee-card" data-employee-id="${employee.id}">
                 <slot name="balance-${employee.id}"></slot>
                 <div class="card-header">
-                    <span class="employee-role ${employee.role === "Admin" ? "role-admin" : "role-employee"}">${employee.role}</span>
+                    <span class="employee-role ${employee.role === ROLE_ADMIN ? "role-admin" : "role-employee"}">${employee.role}</span>
                 </div>
                 <div class="employee-details">                
                     <div class="detail-item">

@@ -13,6 +13,7 @@ import {
   BUSINESS_RULES_CONSTANTS,
   computeAnnualAllocation,
   type PTOType,
+  type EmployeeRole,
 } from "../../../shared/businessRules.js";
 import type { MonthSummary } from "../../components/month-summary/index.js";
 import { adoptAnimations, adoptToolbar } from "../../css-extensions/index.js";
@@ -316,7 +317,7 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
           ptoRate: employee.ptoRate,
           carryoverHours: employee.carryoverHours,
           hireDate: employee.hireDate,
-          role: employee.role as "Employee" | "Admin",
+          role: employee.role as EmployeeRole,
         });
         this._notifications?.success(
           `Employee "${employee.name}" updated successfully!`,
@@ -328,7 +329,7 @@ export class AdminEmployeesPage extends BaseComponent implements PageComponent {
           ptoRate: employee.ptoRate,
           carryoverHours: employee.carryoverHours,
           hireDate: employee.hireDate || today(),
-          role: employee.role as "Employee" | "Admin",
+          role: employee.role as EmployeeRole,
         });
         this._notifications?.success(
           `Employee "${employee.name}" added successfully!`,

@@ -12,6 +12,11 @@ interface Employee {
 import { querySingle } from "../test-utils";
 import { BaseComponent } from "../base-component";
 import { styles } from "./css.js";
+import {
+  ROLE_ADMIN,
+  ROLE_MANAGER,
+  ROLE_EMPLOYEE,
+} from "../../../shared/businessRules.js";
 
 export class EmployeeForm extends BaseComponent {
   private _employee: Employee | null = null;
@@ -223,8 +228,9 @@ export class EmployeeForm extends BaseComponent {
                             Role
                         </label>
                         <select id="role" name="role" class="form-select" aria-describedby="role-hint">
-                          <option value="Employee" ${(this._stagedFormValues?.role ?? this._employee?.role) === "Employee" ? "selected" : ""}>Employee</option>
-                          <option value="Admin" ${(this._stagedFormValues?.role ?? this._employee?.role) === "Admin" ? "selected" : ""}>Admin</option>
+                          <option value="${ROLE_EMPLOYEE}" ${(this._stagedFormValues?.role ?? this._employee?.role) === ROLE_EMPLOYEE ? "selected" : ""}>${ROLE_EMPLOYEE}</option>
+                          <option value="${ROLE_MANAGER}" ${(this._stagedFormValues?.role ?? this._employee?.role) === ROLE_MANAGER ? "selected" : ""}>${ROLE_MANAGER}</option>
+                          <option value="${ROLE_ADMIN}" ${(this._stagedFormValues?.role ?? this._employee?.role) === ROLE_ADMIN ? "selected" : ""}>${ROLE_ADMIN}</option>
                         </select>
                         <span id="role-hint" class="sr-only">Select the employee's role in the system</span>
                     </div>

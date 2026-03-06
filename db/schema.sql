@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS employees (
   carryover_hours REAL DEFAULT 0,
   hire_date DATE NOT NULL,
   role TEXT DEFAULT 'Employee',
-  hash TEXT
+  hash TEXT,
+  auth_provider TEXT DEFAULT 'local'
 );
 
 -- Create PTO entries table

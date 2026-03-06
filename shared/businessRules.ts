@@ -12,6 +12,62 @@ import type { PtoBalanceData } from "./api-models.d.ts";
 
 export type PTOType = "Sick" | "PTO" | "Bereavement" | "Jury Duty";
 
+// ── Role Constants ──
+
+export const ROLE_ADMIN = "Admin" as const;
+export const ROLE_MANAGER = "Manager" as const;
+export const ROLE_EMPLOYEE = "Employee" as const;
+
+/** Union of all internal role values. */
+export type EmployeeRole =
+  | typeof ROLE_ADMIN
+  | typeof ROLE_MANAGER
+  | typeof ROLE_EMPLOYEE;
+
+// ── Azure AD App Role Constants ──
+
+export const AD_ROLE_ADMIN = "dw-time-admin" as const;
+export const AD_ROLE_MANAGER = "dw-time-manager" as const;
+export const AD_ROLE_USER = "dw-time-user" as const;
+
+/** Maps Azure AD app-role claim values to internal roles. */
+export const AD_ROLE_MAP: Record<string, EmployeeRole> = {
+  [AD_ROLE_ADMIN]: ROLE_ADMIN,
+  [AD_ROLE_MANAGER]: ROLE_MANAGER,
+  [AD_ROLE_USER]: ROLE_EMPLOYEE,
+};
+
+/** AD role precedence (highest first). */
+const AD_ROLE_PRECEDENCE: readonly string[] = [
+  AD_ROLE_ADMIN,
+  AD_ROLE_MANAGER,
+  AD_ROLE_USER,
+];
+
+/**
+ * Resolves an array of Azure AD app-role claim values to the
+ * highest-privilege internal role. Returns `ROLE_EMPLOYEE` when
+ * no recognized role is present.
+ */
+export function resolveAdRole(adRoles: readonly string[]): EmployeeRole {
+  for (const adRole of AD_ROLE_PRECEDENCE) {
+    if (adRoles.includes(adRole)) {
+      return AD_ROLE_MAP[adRole];
+    }
+  }
+  return ROLE_EMPLOYEE;
+}
+
+/** Checks whether the given role string equals the Admin role. */
+export function isAdmin(role: string): boolean {
+  return role === ROLE_ADMIN;
+}
+
+/** Checks whether the given role string equals the Manager role. */
+export function isManager(role: string): boolean {
+  return role === ROLE_MANAGER;
+}
+
 /**
  * Minimum number of available prior years required to show year navigation.
  * When the employee has fewer available years, the nav bar is hidden.
@@ -80,6 +136,13 @@ export const SYS_ADMIN_EMPLOYEE_ID = 0;
  * employee-initiated PTO requests submitted via the app/API.
  */
 export const ENABLE_IMPORT_AUTO_APPROVE = true;
+
+/**
+ * When `true`, Azure AD / Entra ID authentication is available as an
+ * additional login option alongside magic links. When `false` (default),
+ * the app behaves identically to the magic-link-only configuration.
+ */
+export const AZURE_AD_ENABLED = false;
 
 /**
  * When `true`, the admin Excel import runs entirely in the browser
